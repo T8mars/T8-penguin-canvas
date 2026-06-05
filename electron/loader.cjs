@@ -131,6 +131,8 @@ function registerLoader() {
         // 因此需要在获不到外部依赖时回退到 loader.cjs(在 asar 内)的 require。
         // 这使得加密后端能访问主包 node_modules 里的 express/cors/multer/sharp 等。
         if (e && e.code === 'MODULE_NOT_FOUND') {
+          const text = String(id || '');
+          if (text.startsWith('.') || path.isAbsolute(text)) throw e;
           return require(id);
         }
         throw e;
