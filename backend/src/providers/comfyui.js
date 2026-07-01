@@ -878,12 +878,12 @@ async function generateImage(provider, input = {}, options = {}) {
       return { ok: false, code: 'missing_prompt_id', providerId: provider.id, protocol: 'comfyui', error: 'ComfyUI 未返回 prompt_id。', raw };
     }
     const polled = await pollHistory(baseUrl, promptId, options);
-    if (!polled.imageUrls.length) {
-      return { ok: false, code: 'empty_image', providerId: provider.id, protocol: 'comfyui', error: 'ComfyUI 工作流完成但没有返回图片。', raw: polled.raw };
+    if (!polled.imageUrls.length && !polled.videoUrls.length && !polled.audioUrls.length && !polled.text) {
+      return { ok: false, code: 'empty_output', providerId: provider.id, protocol: 'comfyui', error: 'ComfyUI 工作流完成但没有返回输出。', raw: polled.raw };
     }
     return {
       ok: true,
-      kind: 'image',
+      kind: polled.videoUrls.length ? 'video' : 'image',
       code: 'completed',
       providerId: provider.id,
       protocol: 'comfyui',

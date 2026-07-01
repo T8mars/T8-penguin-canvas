@@ -313,6 +313,54 @@ test('ComfyUI image generation patches workflow, submits prompt, polls history a
   assert.deepEqual(result.imageUrls, ['http://127.0.0.1:8188/view?filename=out.png&type=output&subfolder=']);
 });
 
+test('ComfyUI generation accepts video-only workflow outputs', async () => {
+  const provider = {
+    id: 'comfyui',
+    protocol: 'comfyui',
+    baseUrl: 'http://127.0.0.1:8188',
+    enabled: true,
+    comfyuiConfig: {
+      workflows: [
+        {
+          id: 'video-workflow',
+          name: 'Video Workflow',
+          workflowJson: {
+            '1': { class_type: 'CLIPTextEncode', inputs: { text: '' } },
+            '2': { class_type: 'VHS_VideoCombine', inputs: { filename_prefix: 'ComfyUI', images: ['3', 0] } },
+          },
+          fields: [
+            { nodeId: '1', fieldName: 'text', source: 'prompt' },
+          ],
+        },
+      ],
+    },
+  };
+
+  const result = await comfyui.generateImage(provider, {
+    prompt: 'a moving scene',
+    providerModel: 'video-workflow',
+  }, {
+    pollIntervalMs: 1,
+    fetchImpl: async (url: string, init: any = {}) => {
+      if (String(url).endsWith('/prompt')) {
+        return jsonResponse({ prompt_id: 'pid-video' });
+      }
+      return jsonResponse({
+        'pid-video': {
+          outputs: {
+            '2': { videos: [{ filename: 'movie.mp4', type: 'output', subfolder: '' }] },
+          },
+        },
+      });
+    },
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.kind, 'video');
+  assert.deepEqual(result.imageUrls, []);
+  assert.deepEqual(result.videoUrls, ['http://127.0.0.1:8188/view?filename=movie.mp4&type=output&subfolder=']);
+});
+
 test('ComfyUI field mappings ignore stale value unless source is fixed', async () => {
   const calls: any[] = [];
   const provider = {
