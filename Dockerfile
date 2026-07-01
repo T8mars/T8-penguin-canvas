@@ -26,6 +26,8 @@ RUN apt-get update \
   && apt-get install -y --no-install-recommends ffmpeg python3 ca-certificates \
   && rm -rf /var/lib/apt/lists/*
 
+RUN npm install -g @openai/codex
+
 COPY backend/package.json backend/package-lock.json ./backend/
 RUN cd backend && npm ci --omit=dev
 
