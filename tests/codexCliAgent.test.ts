@@ -257,6 +257,7 @@ test('Codex CLI runner builds safe exec args, parses JSONL, and extracts artifac
   writeFileSync(path.join(workspace, 'output', 'neon.png'), 'png');
   const normalized = runner.normalizeArtifactUrlForTests('output/neon.png', workspace);
   assert.match(normalized, /^\/files\/output\/codex\/codex_.*\.png$/);
+  assert.equal(runner.normalizeArtifactUrlForTests('/app/userdata/.codex/generated_images/run/_image_id_.png', workspace), '');
 
   const scanRoot = mkdtempSync(path.join(tmpdir(), 't8-codex-artifact-scan-'));
   const scanOutput = path.join(scanRoot, 'output', 'imagen');
@@ -275,6 +276,19 @@ test('Codex CLI runner builds safe exec args, parses JSONL, and extracts artifac
   );
   assert.equal(scannedArtifacts.some((item: any) => item.title === 'old-from-previous-run.png'), false);
   assert.equal(scannedArtifacts.some((item: any) => item.title === 'bernini_bilibili_cover_9x16_final.png'), true);
+
+  const codexGeneratedRoot = mkdtempSync(path.join(tmpdir(), 't8-codex-generated-'));
+  const codexGeneratedRun = path.join(codexGeneratedRoot, '019f1e24-run');
+  mkdirSync(codexGeneratedRun, { recursive: true });
+  const generatedImage = path.join(codexGeneratedRun, 'ig_real_image.png');
+  writeFileSync(generatedImage, 'png');
+  const generatedArtifacts = runner.extractArtifactsFromWorkspaceForTests(
+    { dir: scanRoot, outputDir: path.join(scanRoot, 'empty-output') },
+    new Map(),
+    { createdAfterMs: scanStartedAt, extraDirs: [codexGeneratedRoot] },
+  );
+  assert.equal(generatedArtifacts.some((item: any) => item.title === 'ig_real_image.png'), true);
+  assert.match(generatedArtifacts.find((item: any) => item.title === 'ig_real_image.png')?.url || '', /^\/files\/output\/codex\/codex_.*\.png$/);
 });
 
 test('Codex CLI runner resolves canvas image URLs to readable local files', () => {
@@ -923,7 +937,7 @@ test('Codex creator product library supports durable deletion and batch cleanup'
   assert.match(node, /generatedImages:\s*\[\]/);
   assert.match(node, /directImageUrls:\s*\[\]/);
   assert.match(runner, /function collectCodexRunArtifacts/);
-  assert.match(runner, /return artifactsByText\.length\s*\?\s*dedupeArtifacts\(artifactsByText\)\s*:\s*dedupeArtifacts\(artifactsByWorkspace\)/);
+  assert.match(runner, /return dedupeArtifacts\(\[\.\.\.artifactsByText,\s*\.\.\.artifactsByWorkspace]\)/);
   assert.match(runner, /partialArtifacts/);
   assert.match(runner, /error\.artifacts\s*=\s*partialArtifacts/);
   assert.match(route, /const errorArtifacts = Array\.isArray\(error\?\.artifacts\)/);

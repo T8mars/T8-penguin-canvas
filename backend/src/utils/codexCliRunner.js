@@ -672,7 +672,7 @@ function normalizeArtifactUrl(filePathOrUrl, baseDir = '', cache) {
   if (text.startsWith('/files/')) return text;
   if (/^https?:\/\//i.test(text) || /^data:/i.test(text)) return text;
   const abs = path.isAbsolute(text) ? text : path.resolve(baseDir || process.cwd(), text);
-  if (!fs.existsSync(abs)) return text;
+  if (!fs.existsSync(abs)) return '';
   if (cache?.has(abs)) return cache.get(abs);
   ensureDir(outputCodexDir());
   const suffix = crypto.randomBytes(4).toString('hex');
@@ -685,8 +685,18 @@ function normalizeArtifactUrl(filePathOrUrl, baseDir = '', cache) {
   return url;
 }
 
+function defaultCodexGeneratedImageDirs() {
+  const home = process.env.HOME || os.homedir?.() || '';
+  const codexHome = process.env.CODEX_HOME || (home ? path.join(home, '.codex') : '');
+  return codexHome ? [path.join(codexHome, 'generated_images')] : [];
+}
+
 function extractArtifactsFromWorkspace(workspace, cache, options = {}) {
-  const dirs = [workspace?.outputDir, workspace?.dir].filter(Boolean);
+  const dirs = [
+    workspace?.outputDir,
+    workspace?.dir,
+    ...(Array.isArray(options.extraDirs) ? options.extraDirs : []),
+  ].filter(Boolean);
   const out = [];
   const seen = new Set();
   const createdAfterMs = Number(options.createdAfterMs || 0);
@@ -741,15 +751,22 @@ function dedupeArtifacts(artifacts) {
 
 function collectCodexRunArtifacts(fullText, workspace, startedAt) {
   const artifactUrlCache = new Map();
-  const artifactsByText = extractArtifactsFromText(fullText).map((item) => ({
-    ...item,
-    url: normalizeArtifactUrl(item.url, workspace.dir, artifactUrlCache),
-    urls: (item.urls || []).map((url) => normalizeArtifactUrl(url, workspace.dir, artifactUrlCache)),
-  }));
-  const artifactsByWorkspace = extractArtifactsFromWorkspace(workspace, artifactUrlCache, { createdAfterMs: startedAt });
-  return artifactsByText.length
-    ? dedupeArtifacts(artifactsByText)
-    : dedupeArtifacts(artifactsByWorkspace);
+  const artifactsByText = extractArtifactsFromText(fullText)
+    .map((item) => {
+      const url = normalizeArtifactUrl(item.url, workspace.dir, artifactUrlCache);
+      const urls = (item.urls || []).map((candidate) => normalizeArtifactUrl(candidate, workspace.dir, artifactUrlCache)).filter(Boolean);
+      return {
+        ...item,
+        url,
+        urls: urls.length ? urls : (url ? [url] : []),
+      };
+    })
+    .filter((item) => item.url || item.urls?.length);
+  const artifactsByWorkspace = extractArtifactsFromWorkspace(workspace, artifactUrlCache, {
+    createdAfterMs: startedAt,
+    extraDirs: defaultCodexGeneratedImageDirs(),
+  });
+  return dedupeArtifacts([...artifactsByText, ...artifactsByWorkspace]);
 }
 
 function parseFrontmatter(raw) {
