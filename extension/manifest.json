@@ -1,14 +1,22 @@
 {
   "manifest_version": 3,
   "name": "T8 Penguin Canvas Web Image Reverse",
-  "description": "网页图片右键反推提示词、生成图片，并发送回 T8 画布。",
-  "version": "1.1.0",
+  "description": "网页图片右键反推、批量采集网页图片，并发送回 T8 画布。",
+  "version": "1.2.0",
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "采集网页图片到 T8"
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
   "permissions": [
     "activeTab",
     "contextMenus",
     "scripting",
     "storage",
-    "tabs"
+    "tabs",
+    "sidePanel"
   ],
   "host_permissions": [
     "<all_urls>"

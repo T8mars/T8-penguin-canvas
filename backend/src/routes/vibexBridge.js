@@ -64,7 +64,7 @@ function normalizeMessage(input) {
     const prompt = cleanText(payload.prompt || payload.text || payload.outputText);
     if (images.length === 0 && !prompt) return null;
 
-    const mode = ['prompt', 'image', 'both'].includes(String(payload.mode || '').trim())
+    const mode = ['prompt', 'image', 'both', 'reference'].includes(String(payload.mode || '').trim())
       ? String(payload.mode || '').trim()
       : 'both';
     const messageId = cleanText(payload.messageId || raw.messageId || `web-image-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, 180);
@@ -81,7 +81,7 @@ function normalizeMessage(input) {
         sourceImageUrl: cleanUrl(payload.sourceImageUrl),
         pageUrl: cleanText(payload.pageUrl || raw.pageUrl, 2048),
         pageTitle: cleanText(payload.pageTitle || raw.pageTitle, 200),
-        source: 'web-image-reverse',
+        source: cleanText(payload.source, 120) || 'web-image-reverse',
         createdAt: Number(payload.createdAt) || Date.now(),
         metadata: {
           ...cleanMetadata(payload.metadata),

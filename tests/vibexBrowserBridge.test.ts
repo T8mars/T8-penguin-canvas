@@ -130,7 +130,7 @@ test('local browser bridge also queues web image reverse payloads for Electron c
 
 test('Chrome extension exposes a RunningHub VibeX bridge content script and backend fallback', () => {
   const manifest = JSON.parse(read('extension/manifest.json'));
-  assert.equal(manifest.version, '1.1.0');
+  assert.equal(manifest.version, '1.2.0');
   assert.ok(
     manifest.content_scripts.some((entry: any) =>
       entry.js?.includes('scripts/runninghub-bridge.js') &&

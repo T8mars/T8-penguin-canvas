@@ -1076,6 +1076,7 @@ const BatchProcessorNode = lazyCanvasNode(() => import('./nodes/BatchProcessorNo
 const BatchTaggerNode = lazyCanvasNode(() => import('./nodes/BatchTaggerNode'), 'BatchTaggerNode');
 const TopazImageUpscaleNode = lazyCanvasNode(() => import('./nodes/TopazImageUpscaleNode'), 'TopazImageUpscaleNode');
 const TopazVideoUpscaleNode = lazyCanvasNode(() => import('./nodes/TopazVideoUpscaleNode'), 'TopazVideoUpscaleNode');
+const TopazPhotoAINode = lazyCanvasNode(() => import('./nodes/TopazPhotoAINode'), 'TopazPhotoAINode');
 const IdeaNode = lazyCanvasNode(() => import('./nodes/IdeaNode'), 'IdeaNode');
 const BpNode = lazyCanvasNode(() => import('./nodes/BpNode'), 'BpNode');
 const RelayNode = lazyCanvasNode(() => import('./nodes/RelayNode'), 'RelayNode');
@@ -1180,6 +1181,7 @@ const SPECIFIC_NODES: Record<string, any> = {
   'batch-tagger': BatchTaggerNode,
   'topaz-image-upscale': TopazImageUpscaleNode,
   'topaz-video-upscale': TopazVideoUpscaleNode,
+  'topaz-photo-ai': TopazPhotoAINode,
   'panorama-3d': Panorama3DNode,
   // Input - 上传素材
   upload: UploadNode,
@@ -1474,6 +1476,28 @@ const INITIAL_DATA: Record<string, Record<string, any>> = {
     topazVideoShowAdvanced: false,
     videoUrl: '',
     videoUrls: [],
+    status: 'idle',
+    error: '',
+  },
+  'topaz-photo-ai': {
+    topazPhotoAiPath: '',
+    topazPhotoAiUpscale: false,
+    topazPhotoAiNoise: false,
+    topazPhotoAiSharpen: false,
+    topazPhotoAiLighting: false,
+    topazPhotoAiColor: false,
+    topazPhotoAiFormat: 'preserve',
+    topazPhotoAiQuality: 95,
+    topazPhotoAiCompression: 2,
+    topazPhotoAiBitDepth: 16,
+    topazPhotoAiTiffCompression: 'zip',
+    topazPhotoAiOverwrite: true,
+    topazPhotoAiShowAdvanced: false,
+    topazPhotoAiShowSettings: false,
+    topazPhotoAiExtraOverrides: '',
+    imageUrl: '',
+    imageUrls: [],
+    urls: [],
     status: 'idle',
     error: '',
   },
@@ -1926,7 +1950,7 @@ const EXECUTABLE_NODE_TYPES = new Set<string>([
   'loop', 'random-route', 'pick-from-set',
   // v1.4.8: 工具箱文本节点也可点击 RUN 直接外挂 OutputNode
   'cinematic', 'video-motion', 'multi-angle-visual', 'portrait-master', 'pose-master', 'aggregate-parser', 'batch-processor', 'batch-tagger',
-  'topaz-image-upscale', 'topaz-video-upscale',
+  'topaz-image-upscale', 'topaz-video-upscale', 'topaz-photo-ai',
   'remove-ai-watermark',
 ]);
 
@@ -1946,7 +1970,7 @@ const WEB_IMAGE_EXTENSION_MESSAGE_CONTRACT = {
   source: 't8-web-image-extension',
 } as const;
 
-type WebImageExtensionSendMode = 'prompt' | 'image' | 'both';
+type WebImageExtensionSendMode = 'prompt' | 'image' | 'both' | 'reference';
 
 interface WebImageExtensionPayload {
   messageId?: string;
@@ -1964,14 +1988,14 @@ type BasicMediaKind = Exclude<MediaKind, 'model3d'>;
 
 function normalizeWebImageSendMode(value: unknown): WebImageExtensionSendMode {
   const mode = String(value || '').trim();
-  return mode === 'prompt' || mode === 'image' || mode === 'both' ? mode : 'both';
+  return mode === 'prompt' || mode === 'image' || mode === 'both' || mode === 'reference' ? mode : 'both';
 }
 
 function cleanWebImageText(value: unknown, maxLen = 8000): string {
   return String(value || '').replace(/\s+/g, ' ').trim().slice(0, maxLen);
 }
 
-function webImagePayloadImages(payload: WebImageExtensionPayload): MediaItem[] {
+function webImagePayloadImages(payload: WebImageExtensionPayload, limit = 12): MediaItem[] {
   const raw = Array.isArray(payload.images) ? payload.images : payload.imageUrls;
   const seen = new Set<string>();
   const out: MediaItem[] = [];
@@ -1988,7 +2012,7 @@ function webImagePayloadImages(payload: WebImageExtensionPayload): MediaItem[] {
       size: typeof item === 'string' ? 0 : item.size || 0,
     });
   }
-  return out.slice(0, 12);
+  return out.slice(0, limit);
 }
 
 function buildWebImageSendNodeSpecs(payload: WebImageExtensionPayload): SendNodeSpec[] {
@@ -2014,7 +2038,21 @@ function buildWebImageSendNodeSpecs(payload: WebImageExtensionPayload): SendNode
       },
     });
   }
-  const imageItems = webImagePayloadImages(payload);
+  const imageItems = webImagePayloadImages(payload, mode === 'reference' ? 80 : 12);
+  if (mode === 'reference' && imageItems.length > 0) {
+    specs.push({
+      type: 'upload',
+      data: {
+        ...createUploadDataFromItems('image', imageItems),
+        sendSource: payload.source === 'web-asset-importer' ? 'web-asset-importer' : 'web-image-reverse',
+        source: payload.source === 'web-asset-importer' ? 'web-asset-importer' : 'web-image-reverse',
+        webImageReverseSourceImageUrl: sourceImageUrl,
+        webImageReversePageUrl: pageUrl,
+        webImageReversePageTitle: pageTitle,
+      },
+    });
+    return specs;
+  }
   if ((mode === 'image' || mode === 'both') && imageItems.length > 0) {
     specs.push({
       type: 'output',

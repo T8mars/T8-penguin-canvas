@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>T8 网页采集</title>
+  <link rel="stylesheet" href="styles/importer.css">
+</head>
+<body class="side-panel">
+  <main class="t8-importer">
+    <header class="top">
+      <div>
+        <h1>T8 网页采集</h1>
+        <p>侧边栏会跟随当前活动标签页扫描</p>
+      </div>
+      <button id="pinBtn" class="icon-btn" type="button" title="已在侧边栏">已固定</button>
+    </header>
+
+    <section class="settings">
+      <label>
+        <span>后端地址</span>
+        <input id="backendInput" type="text" value="http://127.0.0.1:18766">
+      </label>
+      <div class="checks">
+        <label><input id="autoScrollInput" type="checkbox"> 自动滚动</label>
+        <label><input id="filterSmallInput" type="checkbox" checked> 过滤小图</label>
+      </div>
+    </section>
+
+    <section class="actions">
+      <button id="scanBtn" class="primary" type="button">扫描页面</button>
+      <button id="captureBtn" type="button">截取当前画面</button>
+    </section>
+
+    <section class="summary">
+      <span id="countText">未扫描</span>
+      <span>
+        <button id="selectAllBtn" type="button">全选</button>
+        <button id="clearBtn" type="button">清空</button>
+      </span>
+    </section>
+
+    <section id="grid" class="grid empty">
+      <div class="empty-text">点击“扫描页面”开始采集图片。</div>
+    </section>
+
+    <footer>
+      <span id="statusText">请先启动 T8 后端。</span>
+      <button id="importBtn" class="primary" type="button" disabled>导入画布</button>
+    </footer>
+  </main>
+  <script src="scripts/importer.js"></script>
+</body>
+</html>

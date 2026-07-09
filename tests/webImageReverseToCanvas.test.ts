@@ -245,8 +245,12 @@ test('web image reverse route pins the qwen-web VL model and stops unreadable vi
 test('web image Chrome extension exposes image context menu and canvas send modes', () => {
   const manifest = JSON.parse(readProjectFile('extension/manifest.json'));
   assert.equal(manifest.manifest_version, 3);
+  assert.equal(manifest.version, '1.2.0');
+  assert.equal(manifest.action.default_popup, 'popup.html');
+  assert.equal(manifest.side_panel.default_path, 'sidepanel.html');
   assert.ok(manifest.permissions.includes('contextMenus'));
   assert.ok(manifest.permissions.includes('scripting'));
+  assert.ok(manifest.permissions.includes('sidePanel'));
   assert.ok(manifest.host_permissions.includes('<all_urls>'));
   assert.equal(manifest.background.service_worker, 'scripts/background.js');
 
@@ -284,6 +288,19 @@ test('web image Chrome extension exposes image context menu and canvas send mode
 
   assert.match(background, /t8WebImage\.generateImage/);
   assert.match(background, /\/api\/proxy\/external\/image/);
+  assert.match(background, /t8WebImage\.importWebAssets/);
+  assert.match(background, /\/api\/web-assets\/import/);
+  assert.match(background, /mode:\s*['"]reference['"]/);
+
+  const importer = readProjectFile('extension/scripts/importer.js');
+  assert.match(importer, /collectPageImages/);
+  assert.match(importer, /captureVisibleTab/);
+  assert.match(importer, /fetchUrlsAsDataUrls/);
+  assert.match(importer, /t8WebImage\.importWebAssets/);
+  assert.match(readProjectFile('extension/popup.html'), /导入画布/);
+  assert.match(readProjectFile('extension/popup.html'), /scripts\/importer\.js/);
+  assert.match(readProjectFile('extension/sidepanel.html'), /导入画布/);
+  assert.match(readProjectFile('extension/sidepanel.html'), /scripts\/importer\.js/);
 });
 
 test('Canvas accepts web image extension payloads as prompt and output material nodes', () => {
@@ -299,6 +316,9 @@ test('Canvas accepts web image extension payloads as prompt and output material 
   assert.match(canvas, /const includePromptInOutput = mode === 'both' && !!prompt/);
   assert.match(canvas, /if \(mode === 'prompt' && prompt\)/);
   assert.match(canvas, /\.\.\.\(includePromptInOutput\s*\?\s*\{/);
+  assert.match(canvas, /mode === 'reference'/);
+  assert.match(canvas, /type:\s*'upload'/);
+  assert.match(canvas, /createUploadDataFromItems\('image', imageItems\)/);
 });
 
 test('Electron bridge web image payloads keep selected generation target behavior', () => {
@@ -310,4 +330,53 @@ test('Electron bridge web image payloads keep selected generation target behavio
   assert.match(canvas, /网页反推[\s\S]*提示词已写入选中的生成目标框/);
   assert.match(canvas, /message\?\.type === WEB_IMAGE_EXTENSION_MESSAGE_CONTRACT\.type/);
   assert.match(canvas, /importWebImagePayload\(message,\s*['"]网页反推['"]\)/);
+});
+
+test('web asset import route stores captured data URLs as local input files', async (t) => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 't8-web-assets-'));
+  t.after(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  const config = require('../backend/src/config.js');
+  const oldConfig = {
+    INPUT_DIR: config.INPUT_DIR,
+  };
+  t.after(() => Object.assign(config, oldConfig));
+  config.INPUT_DIR = path.join(tmpDir, 'input');
+
+  const webAssetsRouter = require('../backend/src/routes/webAssets.js');
+  const app = express();
+  app.use('/api/web-assets', webAssetsRouter);
+  const server = await listen(app);
+  t.after(() => server.close());
+
+  const base = `http://127.0.0.1:${server.address().port}`;
+  const result = await fetch(`${base}/api/web-assets/import`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      items: [
+        {
+          dataUrl: 'data:image/png;base64,iVBORw0KGgo=',
+          name: '网页参考图.png',
+          pageUrl: 'https://example.com/gallery',
+          pageTitle: 'Gallery',
+        },
+        {
+          url: 'http://127.0.0.1/private.png',
+          name: 'blocked.png',
+        },
+      ],
+    }),
+  }).then((res) => res.json());
+
+  assert.equal(result.success, true);
+  assert.equal(result.data.count, 1);
+  assert.equal(result.data.failed, 1);
+  assert.match(result.data.items[0].url, /^\/files\/input\/web_/);
+  assert.equal(result.data.items[0].mime, 'image/png');
+  assert.equal(result.data.items[0].pageUrl, 'https://example.com/gallery');
+  assert.equal(fs.existsSync(path.join(config.INPUT_DIR, result.data.items[0].filename)), true);
+  assert.match(result.data.items[1].error, /不允许|不安全|仅支持|失败/);
 });

@@ -1,0 +1,246 @@
+:root {
+  color-scheme: light dark;
+  font-family: Inter, "Microsoft YaHei", system-ui, sans-serif;
+  background: #f7fafc;
+  color: #142033;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  width: 390px;
+  min-height: 560px;
+  margin: 0;
+  background: #f7fafc;
+}
+
+body.side-panel {
+  width: auto;
+  min-width: 320px;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+.t8-importer {
+  display: flex;
+  min-height: 560px;
+  flex-direction: column;
+}
+
+.top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px;
+  border-bottom: 1px solid #d8e1ec;
+  background: #ffffff;
+}
+
+.top h1 {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.2;
+}
+
+.top p {
+  margin: 4px 0 0;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.settings {
+  display: grid;
+  gap: 10px;
+  padding: 12px 14px;
+  background: #eef6ff;
+  border-bottom: 1px solid #d8e1ec;
+}
+
+.settings label {
+  display: grid;
+  gap: 5px;
+  font-size: 12px;
+  color: #334155;
+}
+
+.settings input[type="text"] {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 8px 9px;
+  color: #0f172a;
+  background: #fff;
+  outline: none;
+}
+
+.checks {
+  display: flex;
+  gap: 14px;
+}
+
+.checks label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.actions,
+.summary,
+footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+}
+
+.summary {
+  justify-content: space-between;
+  color: #475569;
+  font-size: 12px;
+}
+
+button {
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 7px 10px;
+  background: #fff;
+  color: #1e293b;
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: .55;
+}
+
+button.primary {
+  border-color: #0891b2;
+  background: #0891b2;
+  color: #fff;
+}
+
+.icon-btn {
+  flex: 0 0 auto;
+}
+
+.grid {
+  display: grid;
+  flex: 1;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-content: start;
+  gap: 10px;
+  overflow: auto;
+  padding: 0 14px 14px;
+}
+
+body.side-panel .grid {
+  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+}
+
+.grid.empty {
+  display: grid;
+  place-items: center;
+  color: #64748b;
+  font-size: 13px;
+  text-align: center;
+}
+
+.card {
+  overflow: hidden;
+  border: 1px solid #d8e1ec;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.card.selected {
+  border-color: #0891b2;
+  box-shadow: 0 0 0 2px rgba(8, 145, 178, .16);
+}
+
+.thumb {
+  display: grid;
+  width: 100%;
+  aspect-ratio: 1.2;
+  place-items: center;
+  overflow: hidden;
+  background: #e2e8f0;
+}
+
+.thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px;
+  min-width: 0;
+}
+
+.meta span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  color: #334155;
+}
+
+footer {
+  justify-content: space-between;
+  border-top: 1px solid #d8e1ec;
+  background: #fff;
+}
+
+footer span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #64748b;
+  font-size: 12px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root,
+  body {
+    background: #101827;
+    color: #e5edf7;
+  }
+
+  .top,
+  footer,
+  .card,
+  button,
+  .settings input[type="text"] {
+    background: #172033;
+    color: #e5edf7;
+    border-color: #2d3b51;
+  }
+
+  .settings {
+    background: #111c2e;
+    border-color: #2d3b51;
+  }
+
+  .top p,
+  .settings label,
+  .summary,
+  footer span,
+  .meta span {
+    color: #a7b4c6;
+  }
+
+  .thumb {
+    background: #243145;
+  }
+}

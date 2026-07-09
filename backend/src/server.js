@@ -76,6 +76,7 @@ const vibexBridgeRouter = require('./routes/vibexBridge');
 const videoOpsRouter = require('./routes/videoOps');
 const batchTagsRouter = require('./routes/batchTags');
 const photoshopBridgeRouter = require('./routes/photoshopBridge');
+const webAssetsRouter = require('./routes/webAssets');
 const { registerLocalExtensions } = require('./extensions/localExtensions');
 const localHooks = require('./extensions/runtimeHooks');
 
@@ -101,6 +102,7 @@ app.use('/api/vibex-bridge', vibexBridgeRouter);
 app.use('/api/video-ops', videoOpsRouter);
 app.use('/api/batch-tags', batchTagsRouter);
 app.use('/api/photoshop-bridge', photoshopBridgeRouter);
+app.use('/api/web-assets', webAssetsRouter);
 registerLocalExtensions(app, { config, express, logger: console, hooks: localHooks });
 
 // ========== 前端静态资源(仅打包模式) ==========

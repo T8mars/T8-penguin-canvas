@@ -283,6 +283,47 @@ async function generateImage(message) {
   };
 }
 
+async function importWebAssets(message) {
+  const settings = await storageGet({ t8_backend_base: DEFAULT_BACKEND_BASE });
+  let lastError = null;
+  for (const backendBase of backendCandidates(message?.backendBase || settings.t8_backend_base)) {
+    try {
+      const response = await fetch(absoluteBackendUrl(backendBase, '/api/web-assets/import'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items: message?.items || [] }),
+      });
+      const data = await readJsonResponse(response);
+      if (!response.ok || data?.success === false) {
+        lastError = new Error(data?.error || `T8 后端返回 HTTP ${response.status}`);
+        continue;
+      }
+      const imported = (data?.data?.items || []).filter((item) => item?.ok && item?.url);
+      if (message?.sendToCanvas !== false && imported.length) {
+        await sendToCanvas({
+          mode: 'reference',
+          source: 'web-asset-importer',
+          images: imported.map((item) => ({
+            url: item.url,
+            name: item.name || item.filename || '',
+            size: item.size || 0,
+            mime: item.mime || '',
+          })),
+          imageUrls: imported.map((item) => item.url),
+          pageUrl: message?.pageUrl || '',
+          pageTitle: message?.pageTitle || '',
+          sourceImageUrl: imported[0]?.sourceUrl || imported[0]?.url || '',
+          createdAt: Date.now(),
+        });
+      }
+      return { ok: true, backendBase, data };
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError || new Error('无法连接 T8 网页素材导入接口。');
+}
+
 chrome.runtime.onInstalled.addListener(installContextMenu);
 chrome.runtime.onStartup.addListener(installContextMenu);
 installContextMenu();
@@ -329,6 +370,13 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     generateImage(message)
       .then((result) => sendResponse(result))
       .catch((error) => sendResponse({ ok: false, error: normalizeBackendFetchError(error), data: { success: false } }));
+    return true;
+  }
+
+  if (message?.action === 't8WebImage.importWebAssets') {
+    importWebAssets(message)
+      .then((result) => sendResponse(result))
+      .catch((error) => sendResponse({ ok: false, error: normalizeBackendFetchError(error) }));
     return true;
   }
 
