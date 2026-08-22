@@ -1,0 +1,37 @@
+{
+  "schema": "t8-workflow-fragment",
+  "version": 1,
+  "title": "即梦 CLI Seedance 2.5 纯音频参考",
+  "nodes": [
+    { "id": "jimeng-cli-seedance25-audio-only-input", "type": "upload", "position": { "x": 0, "y": 40 }, "data": { "label": "上传 2-30 秒参考音频", "uploadType": "audio", "lockedUploadType": "audio" } },
+    {
+      "id": "jimeng-cli-seedance25-audio-only",
+      "type": "video",
+      "position": { "x": 450, "y": 40 },
+      "data": {
+        "label": "即梦 CLI Seedance 2.5 纯音频参考",
+        "providerSource": "jimeng-cli",
+        "providerId": "jimeng-cli",
+        "providerModel": "seedance2.5",
+        "providerParams": { "frameMode": "omni" },
+        "prompt": "",
+        "duration": 5,
+        "ratio": "16:9",
+        "resolution": "720p",
+        "reuseResult": false
+      }
+    }
+  ],
+  "edges": [{ "id": "jimeng-cli-seedance25-audio-only-edge", "source": "jimeng-cli-seedance25-audio-only-input", "target": "jimeng-cli-seedance25-audio-only" }],
+  "nodeCount": 2,
+  "edgeCount": 1,
+  "nodeTypes": ["upload", "video"],
+  "topologyPreview": {
+    "nodes": [
+      { "id": "jimeng-cli-seedance25-audio-only-input", "type": "upload", "label": "上传 2-30 秒参考音频", "x": 50, "y": 90 },
+      { "id": "jimeng-cli-seedance25-audio-only", "type": "video", "label": "即梦 CLI Seedance 2.5 纯音频参考", "x": 500, "y": 90 }
+    ],
+    "edges": [{ "id": "jimeng-cli-seedance25-audio-only-edge", "source": "jimeng-cli-seedance25-audio-only-input", "target": "jimeng-cli-seedance25-audio-only" }]
+  },
+  "savedAt": "2026-08-23T00:00:00.000Z"
+}

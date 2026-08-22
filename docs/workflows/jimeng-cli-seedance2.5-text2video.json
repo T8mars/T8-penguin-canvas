@@ -1,0 +1,33 @@
+{
+  "schema": "t8-workflow-fragment",
+  "version": 1,
+  "title": "即梦 CLI Seedance 2.5 文生视频",
+  "nodes": [
+    {
+      "id": "jimeng-cli-seedance25-t2v",
+      "type": "video",
+      "position": { "x": 0, "y": 40 },
+      "data": {
+        "label": "即梦 CLI Seedance 2.5 文生视频",
+        "providerSource": "jimeng-cli",
+        "providerId": "jimeng-cli",
+        "providerModel": "seedance2.5",
+        "providerParams": { "frameMode": "omni" },
+        "prompt": "电影感广角镜头，清晨薄雾中的海边灯塔，镜头缓慢环绕并捕捉海浪反光",
+        "duration": 5,
+        "ratio": "16:9",
+        "resolution": "720p",
+        "reuseResult": false
+      }
+    }
+  ],
+  "edges": [],
+  "nodeCount": 1,
+  "edgeCount": 0,
+  "nodeTypes": ["video"],
+  "topologyPreview": {
+    "nodes": [{ "id": "jimeng-cli-seedance25-t2v", "type": "video", "label": "即梦 CLI Seedance 2.5 文生视频", "x": 50, "y": 90 }],
+    "edges": []
+  },
+  "savedAt": "2026-08-23T00:00:00.000Z"
+}

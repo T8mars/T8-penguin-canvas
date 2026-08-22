@@ -165,6 +165,7 @@ test('advancedProviderModelOptions uses explicit lists before safe provider defa
     advancedProviderModelOptions({ id: 'jimeng-cli', protocol: 'jimeng-cli' } as any, 'video'),
     [
       'seedance2.0fast_vip',
+      'seedance2.5',
       'seedance2.0_vip',
       'seedance2.0mini',
       'seedance2.0fast',
@@ -183,6 +184,10 @@ test('advancedProviderModelOptions uses explicit lists before safe provider defa
       'seedream-4.5',
       'seedream-5.0',
       'seedream-5.0-pro',
+      'seedream-4.1',
+      'seedream-4.0',
+      'seedream-3.1',
+      'seedream-3.0',
       'jimeng-image-2k',
       'jimeng-image-4k',
     ],
@@ -282,8 +287,9 @@ test('ImageNode lets Jimeng CLI request up to 10 images without lifting other pr
   assert.match(source, /const externalImageCountLimit = isJimengCliImageSelected \? 10 : 4/);
   assert.match(source, /Math\.min\(externalImageCountLimit,\s*Number\(d\?\.providerParams\?\.n \|\| 1\)\)/);
   assert.match(source, /生成数量/);
-  assert.match(source, /自定义宽高（v1\.4\.14）/);
-  assert.match(source, /Seedream 5\.0 Pro 支持 1K \/ 2K \/ 4K/);
+  assert.match(source, /自定义宽高（v\{JIMENG_CLI_SUPPORTED_VERSION\}）/);
+  assert.match(source, /Seedream 3\.0\/3\.1 支持 1K\/2K；5\.0 Pro 支持 1\.5K\/2K\/4K/);
+  assert.match(source, /图生图支持 1-10 张参考图/);
 });
 
 test('VideoNode keeps Jimeng Seedance media limits separate from Grok FAL controls', () => {
@@ -297,7 +303,11 @@ test('VideoNode keeps Jimeng Seedance media limits separate from Grok FAL contro
     executable: true,
   });
 
-  assert.match(source, /JIMENG_SEEDANCE_LIMITS = \{ images: 9, multiframeImages: 20, videos: 3, audios: 3 \}/);
+  assert.match(source, /JIMENG_CLI_SEEDANCE25_LIMITS/);
+  assert.match(source, /JIMENG_CLI_SEEDANCE20_LIMITS/);
+  assert.match(source, /jimengSeedanceDurationOptions\(externalProviderModel\)/);
+  assert.match(source, /jimengSeedanceResolutionOptions\(externalProviderModel/);
+  assert.match(source, /全能参考素材合计最多/);
   assert.match(source, /showBuiltinFalControls = !isExternalSelected && isFal/);
   assert.match(source, /accepts:\s*isJimengSeedanceSelected\s*\?\s*\['image', 'video', 'audio', 'text'\]/);
   assert.match(source, /jimengSeedanceMode === 'multiframe'[\s\S]*\['720p', '1080p'\]/);
@@ -310,9 +320,9 @@ test('SeedanceNode exposes explicit Jimeng intelligent multiframe mode only for 
   const source = fs.readFileSync(new URL('../src/components/nodes/SeedanceNode.tsx', import.meta.url), 'utf8');
 
   assert.match(source, /type SeedanceFrameMode = 'auto' \| 'first' \| 'firstlast' \| 'multiframe'/);
-  assert.match(source, /const activeFrameMode: SeedanceFrameMode = !isJimengCliSelected && frameMode === 'multiframe' \? 'auto' : frameMode/);
+  assert.match(source, /\(!isJimengCliSelected \|\| isJimengSeedance25\) && frameMode === 'multiframe'/);
   assert.match(source, /frameMode: activeFrameMode/);
-  assert.match(source, /isJimengCliSelected && \(\s*<option value="multiframe"/);
+  assert.match(source, /isJimengCliSelected && !isJimengSeedance25 && \(\s*<option value="multiframe"/);
   assert.match(source, /智能多帧\(multiframe\)/);
 });
 

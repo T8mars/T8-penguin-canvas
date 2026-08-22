@@ -1,0 +1,49 @@
+{
+  "schema": "t8-workflow-fragment",
+  "version": 1,
+  "title": "即梦 CLI Seedance 2.5 全能参考",
+  "nodes": [
+    { "id": "jimeng-cli-seedance25-multi-image", "type": "upload", "position": { "x": 0, "y": 0 }, "data": { "label": "上传参考图（最多 30 张）", "uploadType": "image", "lockedUploadType": "image" } },
+    { "id": "jimeng-cli-seedance25-multi-video", "type": "upload", "position": { "x": 0, "y": 190 }, "data": { "label": "上传参考视频（最多 10 个）", "uploadType": "video", "lockedUploadType": "video" } },
+    { "id": "jimeng-cli-seedance25-multi-audio", "type": "upload", "position": { "x": 0, "y": 380 }, "data": { "label": "上传参考音频（最多 10 个）", "uploadType": "audio", "lockedUploadType": "audio" } },
+    {
+      "id": "jimeng-cli-seedance25-multi",
+      "type": "video",
+      "position": { "x": 470, "y": 160 },
+      "data": {
+        "label": "即梦 CLI Seedance 2.5 全能参考",
+        "providerSource": "jimeng-cli",
+        "providerId": "jimeng-cli",
+        "providerModel": "seedance2.5",
+        "providerParams": { "frameMode": "omni" },
+        "prompt": "保持参考图主体身份，采用参考视频的运镜节奏，并让动作重音跟随参考音频节拍",
+        "duration": 5,
+        "ratio": "16:9",
+        "resolution": "720p",
+        "reuseResult": false
+      }
+    }
+  ],
+  "edges": [
+    { "id": "jimeng-cli-seedance25-multi-image-edge", "source": "jimeng-cli-seedance25-multi-image", "target": "jimeng-cli-seedance25-multi" },
+    { "id": "jimeng-cli-seedance25-multi-video-edge", "source": "jimeng-cli-seedance25-multi-video", "target": "jimeng-cli-seedance25-multi" },
+    { "id": "jimeng-cli-seedance25-multi-audio-edge", "source": "jimeng-cli-seedance25-multi-audio", "target": "jimeng-cli-seedance25-multi" }
+  ],
+  "nodeCount": 4,
+  "edgeCount": 3,
+  "nodeTypes": ["upload", "video"],
+  "topologyPreview": {
+    "nodes": [
+      { "id": "jimeng-cli-seedance25-multi-image", "type": "upload", "label": "上传参考图（最多 30 张）", "x": 50, "y": 50 },
+      { "id": "jimeng-cli-seedance25-multi-video", "type": "upload", "label": "上传参考视频（最多 10 个）", "x": 50, "y": 240 },
+      { "id": "jimeng-cli-seedance25-multi-audio", "type": "upload", "label": "上传参考音频（最多 10 个）", "x": 50, "y": 430 },
+      { "id": "jimeng-cli-seedance25-multi", "type": "video", "label": "即梦 CLI Seedance 2.5 全能参考", "x": 520, "y": 210 }
+    ],
+    "edges": [
+      { "id": "jimeng-cli-seedance25-multi-image-edge", "source": "jimeng-cli-seedance25-multi-image", "target": "jimeng-cli-seedance25-multi" },
+      { "id": "jimeng-cli-seedance25-multi-video-edge", "source": "jimeng-cli-seedance25-multi-video", "target": "jimeng-cli-seedance25-multi" },
+      { "id": "jimeng-cli-seedance25-multi-audio-edge", "source": "jimeng-cli-seedance25-multi-audio", "target": "jimeng-cli-seedance25-multi" }
+    ]
+  },
+  "savedAt": "2026-08-23T00:00:00.000Z"
+}

@@ -11,6 +11,9 @@ const jimengCliCompatibility = require('../shared/jimengCliCompatibility.json');
 
 const JIMENG_CLI_SUPPORTED_VERSION = jimengCliCompatibility.supportedVersion;
 const JIMENG_CLI_SUPPORTED_RELEASE_DATE = jimengCliCompatibility.releaseDate;
+const JIMENG_SEEDANCE25_MODEL = jimengCliCompatibility.seedance25.modelVersion;
+const JIMENG_SEEDANCE25_LIMITS = jimengCliCompatibility.seedance25.multimodal;
+const JIMENG_SEEDANCE20_LIMITS = jimengCliCompatibility.seedance20Multimodal;
 
 function cleanExecutablePath(provider) {
   return String(provider?.jimengConfig?.executablePath || '').trim();
@@ -106,12 +109,13 @@ function imageResolution(model, size, input = {}) {
     input.resolution_type,
     input.resolutionType,
   ) || '').trim().toLowerCase();
-  if (['1k', '2k', '4k'].includes(requested)) return requested;
+  if (['1k', '1.5k', '2k', '4k'].includes(requested)) return requested;
   if (text.includes('4k')) return '4k';
+  if (text.includes('1.5k')) return '1.5k';
   if (text.includes('1k')) return '1k';
   if (text.includes('2k')) return '2k';
   const [w, h] = parseSize(size);
-  if (imageModelVersion(model) === '5.0Pro' && w <= 2016 && h <= 2016 && (w * h) <= 1763584) return '1k';
+  if (imageModelVersion(model) === '5.0Pro' && Math.max(w, h) <= 1536) return '1.5k';
   return Math.max(w, h) > 2048 ? '4k' : '2k';
 }
 
@@ -140,6 +144,7 @@ function imageCustomDimensions(input = {}, resolutionType = '2k') {
   }
   const limits = {
     '1k': { min: 512, max: 2016, area: 1763584 },
+    '1.5k': { min: 972, max: 2268, area: 2359296 },
     '2k': { min: 768, max: 3072, area: 4194304 },
     '4k': { min: 1536, max: 6240, area: 16777216 },
   };
@@ -148,6 +153,21 @@ function imageCustomDimensions(input = {}, resolutionType = '2k') {
     throw new Error(`即梦 CLI ${resolutionType.toUpperCase()} 自定义尺寸不合法：宽高需在 ${limit.min}-${limit.max}，且总像素不能超过 ${limit.area}。`);
   }
   return { width, height };
+}
+
+function supportedImageResolutions(model) {
+  const modelVersion = imageModelVersion(model);
+  if (modelVersion === '3.0' || modelVersion === '3.1') return new Set(['1k', '2k']);
+  if (modelVersion === '5.0Pro') return new Set(['1.5k', '2k', '4k']);
+  if (modelVersion) return new Set(['2k', '4k']);
+  return new Set(['2k', '4k']);
+}
+
+function assertImageResolutionSupported(model, resolutionType) {
+  if (supportedImageResolutions(model).has(resolutionType)) return;
+  const modelVersion = imageModelVersion(model) || String(model || '当前模型');
+  const supported = Array.from(supportedImageResolutions(model)).map((item) => item.toUpperCase()).join(' / ');
+  throw new Error(`即梦 CLI ${modelVersion} 不支持 ${String(resolutionType).toUpperCase()}；请选择 ${supported}。`);
 }
 
 function firstDefined(...values) {
@@ -175,6 +195,10 @@ function imageGenerateNum(input = {}) {
 function videoResolution(model, resolution) {
   const modelVersion = videoModelVersion(model);
   const value = String(resolution || '').trim().toUpperCase();
+  if (modelVersion === JIMENG_SEEDANCE25_MODEL) {
+    if (['480P', '720P', '1080P'].includes(value)) return value;
+    return '720P';
+  }
   if (modelVersion.startsWith('seedance2.0')) {
     if (modelVersion === 'seedance2.0_vip') {
       if (['4K', 'NATIVE4K', '2160P', 'UHD'].includes(value)) return '4K';
@@ -193,15 +217,23 @@ function videoResolution(model, resolution) {
 
 function commandSupportsVideoModel(command, modelVersion) {
   if (!modelVersion) return false;
+  if (modelVersion === JIMENG_SEEDANCE25_MODEL) {
+    return jimengCliCompatibility.seedance25.commands.includes(command);
+  }
   if (modelVersion.startsWith('seedance2.0')) return command !== 'multiframe2video';
   if (modelVersion === 'seedance1.5pro') return command === 'image2video' || command === 'frames2video';
   if (modelVersion === 'seedance1.0fast') return command === 'image2video';
   return false;
 }
 
-function videoDuration(value) {
+function videoDuration(value, model) {
   const n = Number(value || 5);
-  return Math.max(4, Math.min(15, Number.isFinite(n) ? Math.round(n) : 5));
+  const modelVersion = videoModelVersion(model);
+  const candidate = Number.isFinite(n) ? Math.round(n) : 5;
+  if (modelVersion === JIMENG_SEEDANCE25_MODEL) return Math.max(4, Math.min(30, candidate));
+  if (modelVersion === 'seedance1.5pro') return Math.max(5, Math.min(12, candidate));
+  if (modelVersion === 'seedance1.0fast') return Math.max(5, Math.min(10, candidate));
+  return Math.max(4, Math.min(15, candidate));
 }
 
 function videoModelVersion(model) {
@@ -210,6 +242,8 @@ function videoModelVersion(model) {
   const flat = (value) => String(value || '').toLowerCase().replace(/[\s_.-]+/g, '');
   const matches = (key) => low.includes(key) || compact(low).includes(compact(key)) || flat(low).includes(flat(key));
   const aliases = [
+    ['seedance2.5', 'seedance2.5'],
+    ['seedance-2.5', 'seedance2.5'],
     ['seedance2.0fast_vip', 'seedance2.0fast_vip'],
     ['seedance2.0_vip', 'seedance2.0_vip'],
     ['seedance2.0mini', 'seedance2.0mini'],
@@ -223,7 +257,7 @@ function videoModelVersion(model) {
     ['seedance1.0fast', 'seedance1.0fast'],
     ['seedance1.0_fast', 'seedance1.0fast'],
     ['seedance-1.0-fast', 'seedance1.0fast'],
-    // v1.4.14 no longer exposes the old seedance1.0 name; migrate saved aliases to the supported fast model.
+    // v1.4.17 still no longer exposes the old seedance1.0 name; migrate saved aliases to the supported fast model.
     ['seedance1.0', 'seedance1.0fast'],
     ['seedance-1.0', 'seedance1.0fast'],
     ['seedance1.0pro', 'seedance1.0fast'],
@@ -244,6 +278,20 @@ function videoModelVersion(model) {
   ];
   const found = aliases.find(([key]) => matches(key));
   return found ? found[1] : '';
+}
+
+function multimodalLimits(modelVersion) {
+  return modelVersion === JIMENG_SEEDANCE25_MODEL ? JIMENG_SEEDANCE25_LIMITS : JIMENG_SEEDANCE20_LIMITS;
+}
+
+function multimodalInputError(modelVersion, images, videos, audios) {
+  const limits = multimodalLimits(modelVersion);
+  if (images > limits.images) return `即梦 CLI ${modelVersion} 全能参考最多支持 ${limits.images} 张图片。`;
+  if (videos > limits.videos) return `即梦 CLI ${modelVersion} 全能参考最多支持 ${limits.videos} 个视频。`;
+  if (audios > limits.audios) return `即梦 CLI ${modelVersion} 全能参考最多支持 ${limits.audios} 个音频。`;
+  if ((images + videos + audios) > limits.total) return `即梦 CLI ${modelVersion} 全能参考素材总数不能超过 ${limits.total} 个。`;
+  if (!limits.audioOnly && images === 0 && videos === 0) return '即梦 CLI Seedance 2.0 全能参考需要至少一张图片或一个视频。';
+  return '';
 }
 
 function videoRatio(value) {
@@ -790,13 +838,12 @@ async function generateImage(provider, input = {}, options = {}) {
   const tracker = { pollCount: 0, lastRaw: null };
   try {
     const resolutionType = imageResolution(model, input.size || '1024x1024', input);
-    if (resolutionType === '1k' && imageModelVersion(model) !== '5.0Pro') {
-      throw new Error('即梦 CLI 当前只有 Seedream 5.0 Pro 支持 1K；请改用 2K / 4K，或切换到 seedream-5.0-pro。');
-    }
+    assertImageResolutionSupported(model, resolutionType);
     const customDimensions = imageCustomDimensions(input, resolutionType);
     if (refs.length) {
-      const refPath = await resolveLocalMedia(refs[0], 'image', provider, mediaOptions);
-      args.push('image2image', `--images=${refPath}`, `--prompt=${prompt}`);
+      if (refs.length > 10) throw new Error('即梦 CLI 图生图一次最多支持 10 张参考图。');
+      const refPaths = await resolveLocalMediaList(refs, 'image', provider, mediaOptions);
+      args.push('image2image', `--images=${refPaths.join(',')}`, `--prompt=${prompt}`);
     } else {
       args.push('text2image', `--prompt=${prompt}`);
       if (!customDimensions) args.push(`--ratio=${ratioFromSize(input.size || '1024x1024')}`);
@@ -822,27 +869,54 @@ async function generateImage(provider, input = {}, options = {}) {
 
 async function generateVideo(provider, input = {}, options = {}) {
   const prompt = String(input.prompt || '').trim();
-  if (!prompt) return { ok: false, code: 'missing_prompt', providerId: provider.id, protocol: 'jimeng-cli', error: '请输入视频提示词。' };
   const model = selectedModel(input.providerModel || input.model, provider.videoModels, 'seedance2.0fast_vip');
+  const modelVersion = videoModelVersion(model);
   const refs = Array.isArray(input.images) ? input.images : [];
   const videos = Array.isArray(input.videos) ? input.videos : [];
   const audios = Array.isArray(input.audios) ? input.audios : [];
-  const duration = videoDuration(input.duration);
+  const duration = videoDuration(input.duration, model);
   const ratio = videoRatio(input.aspect_ratio || input.ratio);
   const args = [];
   const mode = videoMode(input);
+  const isMultimodalRequest = videos.length > 0 || audios.length > 0 || (mode === 'omni' && refs.length > 0);
+  if (!prompt && !isMultimodalRequest) {
+    return { ok: false, code: 'missing_prompt', providerId: provider.id, protocol: 'jimeng-cli', error: '请输入视频提示词。' };
+  }
+  if (mode === 'multiframe' && modelVersion === JIMENG_SEEDANCE25_MODEL) {
+    return {
+      ok: false,
+      code: 'jimeng_seedance25_multiframe_unsupported',
+      providerId: provider.id,
+      protocol: 'jimeng-cli',
+      error: '即梦智能多帧使用固定模型，不能选择 Seedance 2.5；请改用全能参考、首帧或首尾帧模式。',
+    };
+  }
+  if (mode === 'multiframe' && videos.length === 0 && audios.length === 0
+    && (refs.length < 2 || refs.length > jimengCliCompatibility.intelligentMultiframe.images)) {
+    return {
+      ok: false,
+      code: 'jimeng_multiframe_input_invalid',
+      providerId: provider.id,
+      protocol: 'jimeng-cli',
+      error: `即梦智能多帧必须提供 2-${jimengCliCompatibility.intelligentMultiframe.images} 张图片。`,
+    };
+  }
   const tempPaths = [];
   const mediaOptions = { ...options, tempPaths };
   const tracker = { pollCount: 0, lastRaw: null };
   try {
-    if (videos.length || audios.length || (mode === 'omni' && refs.length)) {
-      const imagePaths = await resolveLocalMediaList(refs.slice(0, 9), 'image', provider, mediaOptions);
-      const videoPaths = await resolveLocalMediaList(videos.slice(0, 3), 'video', provider, mediaOptions);
-      const audioPaths = await resolveLocalMediaList(audios.slice(0, 3), 'audio', provider, mediaOptions);
-      if (!imagePaths.length && !videoPaths.length) {
-        return { ok: false, code: 'jimeng_missing_visual_reference', providerId: provider.id, protocol: 'jimeng-cli', error: '即梦 CLI 全能参考需要至少一张图片或一个视频。' };
+    if (isMultimodalRequest) {
+      const inputError = multimodalInputError(modelVersion, refs.length, videos.length, audios.length);
+      if (inputError) {
+        return { ok: false, code: 'jimeng_multimodal_input_invalid', providerId: provider.id, protocol: 'jimeng-cli', error: inputError };
       }
-      args.push('multimodal2video', `--prompt=${prompt}`, `--duration=${duration}`);
+      const limits = multimodalLimits(modelVersion);
+      const imagePaths = await resolveLocalMediaList(refs.slice(0, limits.images), 'image', provider, mediaOptions);
+      const videoPaths = await resolveLocalMediaList(videos.slice(0, limits.videos), 'video', provider, mediaOptions);
+      const audioPaths = await resolveLocalMediaList(audios.slice(0, limits.audios), 'audio', provider, mediaOptions);
+      args.push('multimodal2video');
+      if (prompt) args.push(`--prompt=${prompt}`);
+      args.push(`--duration=${duration}`);
       if (ratio) args.push(`--ratio=${ratio}`);
       appendVideoModelResolutionArgs(args, 'multimodal2video', model, input.resolution);
       for (const p of imagePaths) args.push(`--image=${p}`);

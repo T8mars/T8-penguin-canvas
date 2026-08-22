@@ -1,0 +1,37 @@
+{
+  "schema": "t8-workflow-fragment",
+  "version": 1,
+  "title": "即梦 CLI Seedance 2.5 单图视频",
+  "nodes": [
+    { "id": "jimeng-cli-seedance25-i2v-image", "type": "upload", "position": { "x": 0, "y": 40 }, "data": { "label": "上传首帧图", "uploadType": "image", "lockedUploadType": "image" } },
+    {
+      "id": "jimeng-cli-seedance25-i2v",
+      "type": "video",
+      "position": { "x": 430, "y": 40 },
+      "data": {
+        "label": "即梦 CLI Seedance 2.5 单图视频",
+        "providerSource": "jimeng-cli",
+        "providerId": "jimeng-cli",
+        "providerModel": "seedance2.5",
+        "providerParams": { "frameMode": "first" },
+        "prompt": "保持主体外观一致，镜头平稳推进，衣角和环境光随微风自然变化",
+        "duration": 5,
+        "ratio": "16:9",
+        "resolution": "720p",
+        "reuseResult": false
+      }
+    }
+  ],
+  "edges": [{ "id": "jimeng-cli-seedance25-i2v-edge", "source": "jimeng-cli-seedance25-i2v-image", "target": "jimeng-cli-seedance25-i2v" }],
+  "nodeCount": 2,
+  "edgeCount": 1,
+  "nodeTypes": ["upload", "video"],
+  "topologyPreview": {
+    "nodes": [
+      { "id": "jimeng-cli-seedance25-i2v-image", "type": "upload", "label": "上传首帧图", "x": 50, "y": 90 },
+      { "id": "jimeng-cli-seedance25-i2v", "type": "video", "label": "即梦 CLI Seedance 2.5 单图视频", "x": 480, "y": 90 }
+    ],
+    "edges": [{ "id": "jimeng-cli-seedance25-i2v-edge", "source": "jimeng-cli-seedance25-i2v-image", "target": "jimeng-cli-seedance25-i2v" }]
+  },
+  "savedAt": "2026-08-23T00:00:00.000Z"
+}

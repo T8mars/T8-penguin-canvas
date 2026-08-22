@@ -9,8 +9,21 @@ test('Jimeng help keeps login, logout, update, and supported version in one shar
   const help = read('../src/components/nodes/JimengCliHelpButton.tsx');
   const compatibility = JSON.parse(read('../backend/src/shared/jimengCliCompatibility.json'));
 
-  assert.equal(compatibility.supportedVersion, '1.4.14');
-  assert.equal(compatibility.releaseDate, '2026-07-21');
+  assert.equal(compatibility.supportedVersion, '1.4.17');
+  assert.equal(compatibility.releaseDate, '2026-08-18');
+  assert.deepEqual(compatibility.seedance25.resolutions, ['480p', '720p', '1080p']);
+  assert.deepEqual(compatibility.seedance25.duration, { min: 4, max: 30 });
+  assert.deepEqual(compatibility.seedance25.commands, ['text2video', 'image2video', 'frames2video', 'multimodal2video']);
+  assert.deepEqual(compatibility.seedance25.multimodal, {
+    images: 30,
+    videos: 10,
+    audios: 10,
+    total: 50,
+    mediaDurationMin: 2,
+    mediaDurationMax: 30,
+    audioOnly: true,
+  });
+  assert.deepEqual(compatibility.seedream50Pro.resolutions, ['1.5k', '2k', '4k']);
   assert.equal(compatibility.installUpdateCommand, 'curl -fsSL https://jimeng.jianying.com/cli | bash');
   assert.match(config, /jimengCliCompatibility\.json/);
   assert.match(config, /dreamina login --headless/);

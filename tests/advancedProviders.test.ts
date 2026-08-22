@@ -108,8 +108,9 @@ test('normalizeAdvancedProviders merges built-in provider model defaults into ol
   assert.equal(volcengine?.imageModels[0], 'doubao-seedream-4-0-250828');
   assert.equal(volcengine?.videoModels[1], 'doubao-seedance-2-0-fast-260128');
   assert.equal(volcengine?.chatModels[0], 'doubao-seed-1-6-250615');
-  assert.deepEqual(jimeng?.videoModels.slice(0, 5), [
+  assert.deepEqual(jimeng?.videoModels.slice(0, 6), [
     'seedance2.0fast_vip',
+    'seedance2.5',
     'seedance2.0_vip',
     'seedance2.0mini',
     'seedance2.0fast',
@@ -125,6 +126,10 @@ test('normalizeAdvancedProviders merges built-in provider model defaults into ol
     'seedream-5.0',
     'seedream-5.0-pro',
   ]);
+  assert.ok(jimeng?.imageModels.includes('seedream-4.1'));
+  assert.ok(jimeng?.imageModels.includes('seedream-4.0'));
+  assert.ok(jimeng?.imageModels.includes('seedream-3.1'));
+  assert.ok(jimeng?.imageModels.includes('seedream-3.0'));
 });
 
 test('normalizeAdvancedProviders filters invalid providers and clamps unsafe fields', () => {

@@ -1,6 +1,44 @@
 {
-  "supportedVersion": "1.4.14",
-  "releaseDate": "2026-07-21",
+  "supportedVersion": "1.4.17",
+  "releaseDate": "2026-08-18",
   "installUpdateCommand": "curl -fsSL https://jimeng.jianying.com/cli | bash",
-  "officialGuideUrl": "https://bytedance.larkoffice.com/wiki/FVTwwm0bGiishxkKOoScdHR2nsg"
+  "officialGuideUrl": "https://bytedance.larkoffice.com/wiki/FVTwwm0bGiishxkKOoScdHR2nsg",
+  "seedream50Pro": {
+    "resolutions": ["1.5k", "2k", "4k"],
+    "customSize": {
+      "1.5k": { "minSide": 972, "maxSide": 2268, "maxPixels": 2359296 },
+      "2k": { "minSide": 768, "maxSide": 3072, "maxPixels": 4194304 },
+      "4k": { "minSide": 1536, "maxSide": 6240, "maxPixels": 16777216 }
+    }
+  },
+  "seedance25": {
+    "modelVersion": "seedance2.5",
+    "commands": ["text2video", "image2video", "frames2video", "multimodal2video"],
+    "duration": { "min": 4, "max": 30 },
+    "resolutions": ["480p", "720p", "1080p"],
+    "vipOnly": true,
+    "multimodal": {
+      "images": 30,
+      "videos": 10,
+      "audios": 10,
+      "total": 50,
+      "mediaDurationMin": 2,
+      "mediaDurationMax": 30,
+      "audioOnly": true
+    }
+  },
+  "seedance20Multimodal": {
+    "images": 9,
+    "videos": 3,
+    "audios": 3,
+    "total": 12,
+    "mediaDurationMin": 2,
+    "mediaDurationMax": 15,
+    "audioOnly": false
+  },
+  "intelligentMultiframe": {
+    "images": 20,
+    "resolutions": ["720p", "1080p"],
+    "modelSelectable": false
+  }
 }

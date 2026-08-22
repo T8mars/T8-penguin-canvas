@@ -1,7 +1,84 @@
 {
   "$schema": "本文件为 T8-penguin-canvas 节点清单防丢失锁,任何节点删减都需要在 roadmap.md 中说明并更新本文件。",
-  "version": "2.9.9",
-  "lastUpdated": "2026-08-22-v2.9.9-released",
+  "version": "3.0.0",
+  "lastUpdated": "2026-08-23-v3.0.0-release-authorized",
+  "jimengCliV1417Seedance25": {
+    "status": "release-authorized-v3.0.0-contract-and-live-verified",
+    "date": "2026-08-23",
+    "releaseIncluded": true,
+    "officialGuide": "https://bytedance.larkoffice.com/wiki/FVTwwm0bGiishxkKOoScdHR2nsg",
+    "officialCli": {
+      "version": "1.4.17",
+      "releaseDate": "2026-08-18",
+      "binaryCommit": "673dd28",
+      "skillMd5": "5a7867991fe42e83708569c459e07208"
+    },
+    "seedance25": {
+      "model": "seedance2.5",
+      "commands": ["text2video", "image2video", "frames2video", "multimodal2video"],
+      "durationSeconds": [4, 30],
+      "resolutions": ["480p", "720p", "1080p"],
+      "vipOnly": true,
+      "multimodal": {
+        "images": 30,
+        "videos": 10,
+        "audios": 10,
+        "total": 50,
+        "referenceMediaDurationSeconds": [2, 30],
+        "audioOnly": true
+      },
+      "fixedModelMultiframeSeparate": true
+    },
+    "seedream50Pro": {
+      "resolutions": ["1.5k", "2k", "4k"],
+      "removedResolution": "1k",
+      "imageToImageReferenceLimit": 10
+    },
+    "accountAudit": {
+      "webSession": "高级会员，页面显示 3644 积分并可见 Seedance 2.5",
+      "cliSession": "重新授权后返回 maestro 高级会员与 3644 积分，并与当前 Web 会话显示一致",
+      "sameAccountConfirmed": true,
+      "paidLiveTest": "passed-one-minimum-spec-task"
+    },
+    "liveVerification": {
+      "submissionCount": 1,
+      "model": "seedance2.5",
+      "command": "text2video",
+      "request": "4 秒 / 480p / 16:9",
+      "creditsConsumed": 48,
+      "terminalStatus": "success",
+      "downloaded": true,
+      "artifact": "output/jimeng-cli-v1417-seedance25-live/seedance25-480p-4s-live.mp4",
+      "bytes": 1315371,
+      "sha256": "787c29a9a74401ea1f111ef308c4b173914c1385650da8d1445d2e62a9d167c6",
+      "observedMedia": "MP4，854x480，H.264 + AAC，4.063991 秒",
+      "fullAudioVideoDecodePassed": true,
+      "secretFreeReport": "output/jimeng-cli-v1417-seedance25-live/report.json"
+    },
+    "workflows": [
+      "docs/workflows/jimeng-cli-seedance2.5-text2video.json",
+      "docs/workflows/jimeng-cli-seedance2.5-image2video.json",
+      "docs/workflows/jimeng-cli-seedance2.5-frames2video.json",
+      "docs/workflows/jimeng-cli-seedance2.5-multimodal.json",
+      "docs/workflows/jimeng-cli-seedance2.5-audio-only.json"
+    ],
+    "verification": [
+      "官方 v1.4.17 安装脚本、version.json、内置 SKILL.md 与全部相关子命令 -h 已逐项读取，不依据旧版本猜测参数。",
+      "后端命令路由、分辨率、时长、模型别名、图生图多参考、全能参考素材上限、纯音频、固定模型多帧边界与五份工作流的定向及相邻回归 62/62 通过。",
+      "当前 Web 高级会员账户已通过 OAuth Device Flow 重新授权给 CLI；真实 Seedance 2.5 最低规格任务完成、下载并通过 FFprobe 与 FFmpeg 全音视频解码。",
+      "发布合同回归 26/26、TypeScript、public:check、RH 工具箱、MiniMax Music3 1,022 文件完整性、31 actions / 269 runtime entries / 81/81 nodes 能力同步和 2,891 模块生产构建通过。",
+      "默认即梦视频模型仍为 seedance2.0fast_vip；旧模型、旧画布字段及智能多帧固定模型行为未回退。"
+    ],
+    "releaseEvidence": {
+      "technicalGates": "must-pass-before-publish",
+      "affectedUserInstallF8F10AndInstalledUpgrade": "deferred-not-passed",
+      "deferralApproval": "owner-approved-post-release-v3.0.0"
+    },
+    "boundaries": [
+      "现有默认 Provider、默认模型、节点类型、旧画布字段和 v2.9.9 及更早能力均保持不变。",
+      "正式发布必须从已推送的固定源码提交执行完整 Electron/NSIS、加密、运行时归档、provenance、sealed recovery、GitHub 三资产完整回下载、固定 Tag/target 与 Latest 门禁。"
+    ]
+  },
   "hunyuan3dAndGrokAug22": {
     "status": "released-v2.9.9-live-verified",
     "date": "2026-08-22",

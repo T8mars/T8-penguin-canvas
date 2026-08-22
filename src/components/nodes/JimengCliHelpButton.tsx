@@ -94,7 +94,7 @@ export default function JimengCliHelpButton() {
                 <p className="my-2 text-white/65">安装和更新使用同一条官方命令。更新后重新启动 T8 开发服务或 Electron。</p>
                 <Command>{JIMENG_CLI_INSTALL_UPDATE_COMMAND}</Command>
                 <p className="mt-2 text-[11px] text-white/50">
-                  v{JIMENG_CLI_SUPPORTED_VERSION} 起，图片必须显式提供 resolution_type，视频必须显式提供 video_resolution；本节点已按此规则提交。
+                  当前 v{JIMENG_CLI_SUPPORTED_VERSION} 契约要求图片显式提供 resolution_type、视频显式提供 video_resolution；Seedance 2.5 可选 480P / 720P / 1080P 与 4-30 秒，本节点已按模型逐项校验。
                 </p>
               </div>
 

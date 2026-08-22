@@ -106,6 +106,15 @@ import {
   SEEDANCE25_DEFAULT_DURATION,
   SEEDANCE25_DEFAULT_RESOLUTION,
 } from '../../config/seedance';
+import {
+  JIMENG_CLI_MULTIFRAME,
+  JIMENG_CLI_SEEDANCE20_LIMITS,
+  JIMENG_CLI_SEEDANCE25_LIMITS,
+  JIMENG_CLI_SUPPORTED_VERSION,
+  isJimengSeedance25Model,
+  jimengSeedanceDurationOptions,
+  jimengSeedanceResolutionOptions,
+} from '../../config/jimengCli';
 
 /**
  * VideoNode - 异步视频生成(完全对齐 gpt-image-2-web)
@@ -128,7 +137,6 @@ const VIDEO_POLL_INTERVAL_MS = 5000;
 const VIDEO_MAX_POLL = Math.ceil((VIDEO_POLL_TIMEOUT_SECONDS * 1000) / VIDEO_POLL_INTERVAL_MS);
 const VIDEO_FAL_POLL_INTERVAL_MS = 6000;
 const VIDEO_FAL_MAX_POLL = Math.ceil((VIDEO_POLL_TIMEOUT_SECONDS * 1000) / VIDEO_FAL_POLL_INTERVAL_MS);
-const JIMENG_SEEDANCE_LIMITS = { images: 9, multiframeImages: 20, videos: 3, audios: 3 };
 type JimengSeedanceMode = 'omni' | 'first' | 'firstlast' | 'multiframe';
 const JIMENG_SEEDANCE_MODE_OPTIONS: Array<{ value: JimengSeedanceMode; label: string }> = [
   { value: 'omni', label: '全能参考' },
@@ -194,10 +202,20 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
   const isAgnesExternalSelected = isExternalSelected && providerSelection.provider?.protocol === 'agnes';
   const isJimengCliSelected = isExternalSelected && providerSelection.provider?.protocol === 'jimeng-cli';
   const isJimengSeedanceSelected = isJimengCliSelected && /seedance|jimeng-video|video/i.test(externalProviderModel);
-  const jimengSeedanceMode = normalizeJimengSeedanceMode(providerParams.frameMode ?? d?.jimengFrameMode);
+  const isJimengSeedance25 = isJimengSeedanceSelected && isJimengSeedance25Model(externalProviderModel);
+  const rawJimengSeedanceMode = normalizeJimengSeedanceMode(providerParams.frameMode ?? d?.jimengFrameMode);
+  const jimengSeedanceMode = isJimengSeedance25 && rawJimengSeedanceMode === 'multiframe'
+    ? 'omni'
+    : rawJimengSeedanceMode;
+  const jimengSeedanceLimits = isJimengSeedance25
+    ? JIMENG_CLI_SEEDANCE25_LIMITS
+    : JIMENG_CLI_SEEDANCE20_LIMITS;
+  const jimengModeOptions = isJimengSeedance25
+    ? JIMENG_SEEDANCE_MODE_OPTIONS.filter((item) => item.value !== 'multiframe')
+    : JIMENG_SEEDANCE_MODE_OPTIONS;
   const jimengImageLimit = jimengSeedanceMode === 'multiframe'
-    ? JIMENG_SEEDANCE_LIMITS.multiframeImages
-    : JIMENG_SEEDANCE_LIMITS.images;
+    ? JIMENG_CLI_MULTIFRAME.images
+    : jimengSeedanceLimits.images;
   const agnesFrameRate = Number(providerParams.frameRate ?? providerParams.frame_rate ?? 24) || 24;
   const agnesNumFrames = providerParams.numFrames ?? providerParams.num_frames ?? '';
   const updateProviderParams = (patch: Record<string, any>) => update({ providerParams: { ...providerParams, ...patch } });
@@ -390,7 +408,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
     ? ['16:9', '9:16']
     : activeModelOption?.ratios || modelDef.ratios;
   const durationOptions = isJimengSeedanceSelected
-    ? [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    ? jimengSeedanceDurationOptions(externalProviderModel)
     : isAgnesExternalSelected
     ? [1, 2, 3, 4, 5, 6, 8, 10, 12, 15, 18]
     : isApimartOmni
@@ -407,11 +425,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
     ? [6]
     : activeModelOption?.durations || modelDef.durations || [];
   const resolutionOptions = isJimengSeedanceSelected
-    ? jimengSeedanceMode === 'multiframe'
-      ? ['720p', '1080p']
-      : externalProviderModel === 'seedance2.0_vip'
-        ? ['720p', '1080p', '4k']
-        : ['720p']
+    ? jimengSeedanceResolutionOptions(externalProviderModel, jimengSeedanceMode === 'multiframe')
     : isAgnesExternalSelected
     ? ['480p', '720p', '1080p']
     : isApimartOmni
@@ -588,14 +602,14 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
     ? 1
     : isApimartOmniLowprice && apimartOmniLowpriceMode === 'reference_video'
     ? 1
-    : isJimengSeedanceSelected ? JIMENG_SEEDANCE_LIMITS.videos : 0;
+    : isJimengSeedanceSelected ? jimengSeedanceLimits.videos : 0;
   const maxMentionAudios = isSeedance25 && seedance25Mode === 'multi'
     ? SEEDANCE25_MULTI_MAX_AUDIOS
     : isMinimaxH3OwAudioDrive
     ? 1
     : isHailuoH3 && hailuoMode === 'multi'
     ? 3
-    : isJimengSeedanceSelected ? JIMENG_SEEDANCE_LIMITS.audios : 0;
+    : isJimengSeedanceSelected ? jimengSeedanceLimits.audios : 0;
   const mentionMaterials = useMemo(
     () => [
       ...[...orderedImages, ...localRefMaterials.filter((m) => m.kind === 'image')].slice(0, maxMentionRefs),
@@ -1053,10 +1067,38 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
       && !(isKling && klingMode === 'i2v')
       && !(isVidu && !['t2v', 'short-play'].includes(viduMode))
       && !(isApimartOmni && (imageUrls.length > 0 || videoUrls.length > 0))
+      && !(isJimengSeedanceSelected
+        && jimengSeedanceMode === 'omni'
+        && (imageUrls.length > 0 || videoUrls.length > 0 || audioUrls.length > 0))
     ) {
       setError('未连接 text 节点也未填写 prompt');
       logBus.error('生成中止: 缺少 prompt', src);
       return;
+    }
+    const jimengUsesMultimodal = isJimengSeedanceSelected
+      && (videoUrls.length > 0 || audioUrls.length > 0 || (jimengSeedanceMode === 'omni' && imageUrls.length > 0));
+    if (jimengUsesMultimodal) {
+      const total = imageUrls.length + videoUrls.length + audioUrls.length;
+      if (imageUrls.length > jimengSeedanceLimits.images) {
+        setError(`即梦 ${externalProviderModel} 全能参考最多支持 ${jimengSeedanceLimits.images} 张图片`);
+        return;
+      }
+      if (videoUrls.length > jimengSeedanceLimits.videos) {
+        setError(`即梦 ${externalProviderModel} 全能参考最多支持 ${jimengSeedanceLimits.videos} 个视频`);
+        return;
+      }
+      if (audioUrls.length > jimengSeedanceLimits.audios) {
+        setError(`即梦 ${externalProviderModel} 全能参考最多支持 ${jimengSeedanceLimits.audios} 个音频`);
+        return;
+      }
+      if (total > jimengSeedanceLimits.total) {
+        setError(`即梦 ${externalProviderModel} 全能参考素材合计最多 ${jimengSeedanceLimits.total} 个`);
+        return;
+      }
+      if (!jimengSeedanceLimits.audioOnly && imageUrls.length === 0 && videoUrls.length === 0) {
+        setError('即梦 Seedance 2.0 全能参考需要至少一张图片或一个视频');
+        return;
+      }
     }
     if (isHappyHorse && happyHorseMode !== 't2v' && imageUrls.length === 0) {
       setError(`Happy Horse ${happyHorseMode} 至少需要 1 张参考图`);
@@ -2019,12 +2061,12 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
       update({ localRefImages: [...cur, payload.url] });
     } else if (payload.kind === 'video' && payload.url && (isJimengSeedanceSelected || isApimartOmni || (isApimartOmniLowprice && apimartOmniLowpriceMode === 'reference_video') || isUpscaler || (isFlux3 && flux3Mode === 'v2v') || (isKling && klingMode === 'edit'))) {
       const cur = Array.isArray(d?.localRefVideos) ? d.localRefVideos : [];
-      const cap = isUpscaler || isApimartOmni || isApimartOmniLowprice || (isFlux3 && flux3Mode === 'v2v') || (isKling && klingMode === 'edit') ? 1 : JIMENG_SEEDANCE_LIMITS.videos;
+      const cap = isUpscaler || isApimartOmni || isApimartOmniLowprice || (isFlux3 && flux3Mode === 'v2v') || (isKling && klingMode === 'edit') ? 1 : jimengSeedanceLimits.videos;
       if (cur.indexOf(payload.url) !== -1 || cur.length >= cap) return;
       update({ localRefVideos: [...cur, payload.url] });
     } else if (payload.kind === 'audio' && payload.url && isJimengSeedanceSelected) {
       const cur = Array.isArray(d?.localRefAudios) ? d.localRefAudios : [];
-      if (cur.indexOf(payload.url) !== -1 || cur.length >= JIMENG_SEEDANCE_LIMITS.audios) return;
+      if (cur.indexOf(payload.url) !== -1 || cur.length >= jimengSeedanceLimits.audios) return;
       update({ localRefAudios: [...cur, payload.url] });
     } else if (payload.kind === 'text' && typeof payload.text === 'string') {
       update({ prompt: payload.text });
@@ -2077,7 +2119,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
     : isApimartBudgetVideo
     ? `上游素材 · 参考图 ${Math.min(refsCount, maxMentionRefs)}/${maxMentionRefs}`
     : isJimengSeedanceSelected
-    ? `上游素材 · 图${Math.min(refsCount, jimengImageLimit)}/${jimengImageLimit} 视${Math.min(videoRefsCount, JIMENG_SEEDANCE_LIMITS.videos)}/${JIMENG_SEEDANCE_LIMITS.videos} 音${Math.min(audioRefsCount, JIMENG_SEEDANCE_LIMITS.audios)}/${JIMENG_SEEDANCE_LIMITS.audios}`
+    ? `上游素材 · 图${Math.min(refsCount, jimengImageLimit)}/${jimengImageLimit} 视${Math.min(videoRefsCount, jimengSeedanceLimits.videos)}/${jimengSeedanceLimits.videos} 音${Math.min(audioRefsCount, jimengSeedanceLimits.audios)}/${jimengSeedanceLimits.audios}`
     : `上游素材 · 参考图 ${Math.min(refsCount, maxMentionRefs)}/${maxMentionRefs}`;
 
   return (
@@ -2188,11 +2230,23 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
                       value={externalProviderModel}
                       onChange={(e) => {
                         const nextModel = e.target.value;
+                        const nextIsJimeng25 = providerSelection.provider?.protocol === 'jimeng-cli'
+                          && isJimengSeedance25Model(nextModel);
+                        const nextMode = nextIsJimeng25 && jimengSeedanceMode === 'multiframe' ? 'omni' : jimengSeedanceMode;
+                        const nextResolutions = providerSelection.provider?.protocol === 'jimeng-cli'
+                          ? jimengSeedanceResolutionOptions(nextModel, nextMode === 'multiframe')
+                          : [];
+                        const nextDurations = providerSelection.provider?.protocol === 'jimeng-cli'
+                          ? jimengSeedanceDurationOptions(nextModel)
+                          : [];
                         update({
                           providerModel: nextModel,
+                          ...(nextResolutions.length && !nextResolutions.includes(resolution)
+                            ? { resolution: nextResolutions.includes('720p') ? '720p' : nextResolutions[0] }
+                            : {}),
+                          ...(nextDurations.length && !nextDurations.includes(duration) ? { duration: 5 } : {}),
                           ...(providerSelection.provider?.protocol === 'jimeng-cli'
-                            && nextModel !== 'seedance2.0_vip'
-                            ? { resolution: '720p' }
+                            ? { providerParams: { ...providerParams, frameMode: nextMode } }
                             : {}),
                         });
                       }}
@@ -2796,12 +2850,14 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
         {isJimengSeedanceSelected && (
           <div className="rounded border border-white/10 bg-white/5 p-1.5 space-y-1">
             <div className="rounded border border-lime-300/15 bg-lime-400/[0.05] px-2 py-1 text-[10px] leading-relaxed text-lime-100/70">
-              当前按即梦 CLI v1.4.14 适配，视频分辨率为必填参数。
+              当前按即梦 CLI v{JIMENG_CLI_SUPPORTED_VERSION} 适配，视频分辨率为必填参数。
             </div>
             <div className="flex items-center justify-between gap-2">
               <label className="text-[10px] text-white/50">即梦模式</label>
               <span className="text-[9px] text-white/35">
-                {jimengSeedanceMode === 'multiframe' ? '多帧图20' : '图9 / 视3 / 音3'}
+                {jimengSeedanceMode === 'multiframe'
+                  ? `多帧图${JIMENG_CLI_MULTIFRAME.images}`
+                  : `图${jimengSeedanceLimits.images} / 视${jimengSeedanceLimits.videos} / 音${jimengSeedanceLimits.audios} / 总${jimengSeedanceLimits.total}`}
               </span>
             </div>
             <select
@@ -2817,18 +2873,20 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
               }}
               className="w-full rounded bg-white/5 border border-white/10 px-2 py-1 text-xs text-white outline-none focus:border-white/30"
             >
-              {JIMENG_SEEDANCE_MODE_OPTIONS.map((item) => (
+              {jimengModeOptions.map((item) => (
                 <option key={item.value} value={item.value} className="bg-zinc-900">{item.label}</option>
               ))}
             </select>
             <div className="text-[10px] text-white/40 leading-relaxed">
               {jimengSeedanceMode === 'omni'
-                ? '全能参考支持图片、视频和音频混合输入；纯多图也会走全能参考。'
+                ? isJimengSeedance25
+                  ? 'Seedance 2.5 全能参考支持混合素材和纯音频输入；单段及音视频总时长均须为 2-30 秒，由官方 CLI 提交前实际校验。'
+                  : 'Seedance 2.0 全能参考支持图片、视频和音频混合输入，但必须至少包含图片或视频。'
                 : jimengSeedanceMode === 'first'
                   ? '只取第 1 张图作为首帧。'
                   : jimengSeedanceMode === 'firstlast'
                     ? '取第 1 张为首帧，第 2 张为尾帧。'
-                    : '仅使用 2-20 张图片序列生成智能多帧；v1.4.14 必须选择 720P 或 1080P。'}
+                    : `仅使用 2-${JIMENG_CLI_MULTIFRAME.images} 张图片序列生成固定模型智能多帧；必须选择 720P 或 1080P。`}
             </div>
           </div>
         )}

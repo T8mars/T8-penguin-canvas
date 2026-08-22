@@ -1,0 +1,45 @@
+{
+  "schema": "t8-workflow-fragment",
+  "version": 1,
+  "title": "即梦 CLI Seedance 2.5 首尾帧视频",
+  "nodes": [
+    { "id": "jimeng-cli-seedance25-frames-first", "type": "upload", "position": { "x": 0, "y": 0 }, "data": { "label": "上传首帧图", "uploadType": "image", "lockedUploadType": "image" } },
+    { "id": "jimeng-cli-seedance25-frames-last", "type": "upload", "position": { "x": 0, "y": 200 }, "data": { "label": "上传尾帧图", "uploadType": "image", "lockedUploadType": "image" } },
+    {
+      "id": "jimeng-cli-seedance25-frames",
+      "type": "video",
+      "position": { "x": 430, "y": 90 },
+      "data": {
+        "label": "即梦 CLI Seedance 2.5 首尾帧视频",
+        "providerSource": "jimeng-cli",
+        "providerId": "jimeng-cli",
+        "providerModel": "seedance2.5",
+        "providerParams": { "frameMode": "firstlast" },
+        "prompt": "从首帧自然过渡到尾帧，主体身份、服饰纹理和空间关系稳定，动作连续无跳变",
+        "duration": 5,
+        "ratio": "16:9",
+        "resolution": "720p",
+        "reuseResult": false
+      }
+    }
+  ],
+  "edges": [
+    { "id": "jimeng-cli-seedance25-frames-first-edge", "source": "jimeng-cli-seedance25-frames-first", "target": "jimeng-cli-seedance25-frames" },
+    { "id": "jimeng-cli-seedance25-frames-last-edge", "source": "jimeng-cli-seedance25-frames-last", "target": "jimeng-cli-seedance25-frames" }
+  ],
+  "nodeCount": 3,
+  "edgeCount": 2,
+  "nodeTypes": ["upload", "video"],
+  "topologyPreview": {
+    "nodes": [
+      { "id": "jimeng-cli-seedance25-frames-first", "type": "upload", "label": "上传首帧图", "x": 50, "y": 50 },
+      { "id": "jimeng-cli-seedance25-frames-last", "type": "upload", "label": "上传尾帧图", "x": 50, "y": 250 },
+      { "id": "jimeng-cli-seedance25-frames", "type": "video", "label": "即梦 CLI Seedance 2.5 首尾帧视频", "x": 480, "y": 140 }
+    ],
+    "edges": [
+      { "id": "jimeng-cli-seedance25-frames-first-edge", "source": "jimeng-cli-seedance25-frames-first", "target": "jimeng-cli-seedance25-frames" },
+      { "id": "jimeng-cli-seedance25-frames-last-edge", "source": "jimeng-cli-seedance25-frames-last", "target": "jimeng-cli-seedance25-frames" }
+    ]
+  },
+  "savedAt": "2026-08-23T00:00:00.000Z"
+}

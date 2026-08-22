@@ -114,6 +114,7 @@ import { canonicalizeComfyFieldsByWorkflow, comfyFieldInputValue } from '../../u
 import { LocalNodeAddonSlot } from 'virtual:t8-local-extensions';
 import type { RunNodeLifecycleReporter } from '../../types/project';
 import JimengCliHelpButton from './JimengCliHelpButton';
+import { JIMENG_CLI_SUPPORTED_VERSION, jimengImageResolutionOptions } from '../../config/jimengCli';
 import {
   combinePromptWithImageAdjustments,
   normalizeImagePromptAdjustmentSelections,
@@ -251,6 +252,8 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
   const isComfyExternal = isExternalSelected && providerSelection.provider?.protocol === 'comfyui';
   const isJimengCliImageSelected = isExternalSelected && providerSelection.provider?.protocol === 'jimeng-cli';
   const isJimengCliSeedream5Pro = isJimengCliImageSelected && /seedream[-_\s]?5\.0[-_\s]?pro/i.test(externalProviderModel);
+  const jimengImageResolutions = jimengImageResolutionOptions(externalProviderModel);
+  const jimengImageResolution = String(providerParams.resolutionType || (isJimengCliSeedream5Pro ? '1.5k' : '2k')).toLowerCase();
   const jimengCliCustomSizeEnabled = isJimengCliImageSelected && providerParams?.customSizeEnabled === true;
   const jimengCliWidth = Math.round(Number(providerParams?.width) || 1024);
   const jimengCliHeight = Math.round(Number(providerParams?.height) || 1024);
@@ -614,7 +617,9 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
 
   // 参考图上限(FAL 使用 FAL_REGISTRY.maxRefs,其他走原设计)
   const maxRefs = isExternalSelected
-    ? Math.max(8, modelDef.maxReferenceImages || 0)
+    ? isJimengCliImageSelected
+      ? 10
+      : Math.max(8, modelDef.maxReferenceImages || 0)
     : isSeedreamLayerTab
       ? 1
     : isQwenImageTab
@@ -2294,12 +2299,19 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
                       value={externalProviderModel}
                       onChange={(e) => {
                         const nextModel = e.target.value;
-                        const mustLeave1k = providerSelection.provider?.protocol === 'jimeng-cli'
-                          && !/seedream[-_\s]?5\.0[-_\s]?pro/i.test(nextModel)
-                          && String(providerParams.resolutionType || '').toLowerCase() === '1k';
+                        const currentResolution = String(providerParams.resolutionType || '').toLowerCase();
+                        const nextResolutions = providerSelection.provider?.protocol === 'jimeng-cli'
+                          ? jimengImageResolutionOptions(nextModel)
+                          : [];
+                        const nextIsSeedream5Pro = /seedream[-_\s]?5\.0[-_\s]?pro/i.test(nextModel);
+                        const mustResetResolution = nextResolutions.length > 0
+                          && currentResolution !== ''
+                          && !nextResolutions.includes(currentResolution);
                         update({
                           providerModel: nextModel,
-                          ...(mustLeave1k ? { providerParams: { ...providerParams, resolutionType: '2k' } } : {}),
+                          ...(mustResetResolution
+                            ? { providerParams: { ...providerParams, resolutionType: nextIsSeedream5Pro ? '1.5k' : '2k' } }
+                            : {}),
                           ...clearModelscopeLoraParams(),
                         });
                       }}
@@ -2336,7 +2348,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
                         })}
                         className="accent-lime-400"
                       />
-                      自定义宽高（v1.4.14）
+                      自定义宽高（v{JIMENG_CLI_SUPPORTED_VERSION}）
                     </label>
                     {jimengCliCustomSizeEnabled && (
                       <div className="grid grid-cols-2 gap-2">
@@ -2369,20 +2381,20 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
                         <label className="col-span-2 space-y-1">
                           <span className="text-[10px] text-white/45">分辨率级别</span>
                           <select
-                            value={String(providerParams.resolutionType || (isJimengCliSeedream5Pro ? '1k' : '2k')).toLowerCase()}
+                            value={jimengImageResolutions.includes(jimengImageResolution) ? jimengImageResolution : (isJimengCliSeedream5Pro ? '1.5k' : '2k')}
                             onChange={(e) => patchProviderParams({ resolutionType: e.target.value })}
                             style={{ background: '#18181b', color: '#ffffff' }}
                             className="w-full rounded border border-white/10 px-2 py-1 text-xs outline-none focus:border-white/30"
                           >
-                            {isJimengCliSeedream5Pro && <option value="1k" style={{ background: '#18181b', color: '#ffffff' }}>1K</option>}
-                            <option value="2k" style={{ background: '#18181b', color: '#ffffff' }}>2K</option>
-                            <option value="4k" style={{ background: '#18181b', color: '#ffffff' }}>4K</option>
+                            {jimengImageResolutions.map((item) => (
+                              <option key={item} value={item} style={{ background: '#18181b', color: '#ffffff' }}>{item.toUpperCase()}</option>
+                            ))}
                           </select>
                         </label>
                       </div>
                     )}
                     <span className="block text-[10px] leading-relaxed text-white/40">
-                      当前按即梦 CLI v1.4.14 提交；自定义宽高会成对传入，并自动停用 ratio。Seedream 5.0 Pro 支持 1K / 2K / 4K，其他当前模型使用 2K / 4K。
+                      当前按即梦 CLI v{JIMENG_CLI_SUPPORTED_VERSION} 提交；图生图支持 1-10 张参考图，自定义宽高会成对传入并自动停用 ratio。Seedream 3.0/3.1 支持 1K/2K；5.0 Pro 支持 1.5K/2K/4K，不再发送已移除的 1K。
                     </span>
                   </div>
                 )}
