@@ -1,9 +1,9 @@
 {
   "$schema": "本文件为 T8-penguin-canvas 节点清单防丢失锁,任何节点删减都需要在 roadmap.md 中说明并更新本文件。",
   "version": "3.0.0",
-  "lastUpdated": "2026-08-23-v3.0.0-release-authorized",
+  "lastUpdated": "2026-08-23-v3.0.0-released",
   "jimengCliV1417Seedance25": {
-    "status": "release-authorized-v3.0.0-contract-and-live-verified",
+    "status": "released-v3.0.0-live-verified",
     "date": "2026-08-23",
     "releaseIncluded": true,
     "officialGuide": "https://bytedance.larkoffice.com/wiki/FVTwwm0bGiishxkKOoScdHR2nsg",
@@ -70,9 +70,30 @@
       "默认即梦视频模型仍为 seedance2.0fast_vip；旧模型、旧画布字段及智能多帧固定模型行为未回退。"
     ],
     "releaseEvidence": {
-      "technicalGates": "must-pass-before-publish",
+      "technicalGates": "passed-before-publish",
       "affectedUserInstallF8F10AndInstalledUpgrade": "deferred-not-passed",
-      "deferralApproval": "owner-approved-post-release-v3.0.0"
+      "deferralApproval": "owner-approved-post-release-v3.0.0",
+      "sourceCommit": "92ca7a4ee8748f46fdfb1b624bff26acda6b18dd",
+      "publishedAt": "2026-08-22T17:51:47Z",
+      "releaseUrl": "https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.0.0",
+      "latest": true,
+      "draft": false,
+      "prerelease": false,
+      "artifacts": {
+        "T8-PenguinCanvas-Setup-3.0.0.exe": {
+          "size": 1317121080,
+          "sha256": "16adbf4c67d5a296e213dfac7147cfb3d5c4414348a3566469b1d071d0505777"
+        },
+        "T8-PenguinCanvas-Setup-3.0.0.exe.blockmap": {
+          "size": 1371933,
+          "sha256": "6b67af9b7646bdf2c7fbee59ab2ce8027997572e5b05fe9720eddad592a5d2d3"
+        },
+        "latest.yml": {
+          "size": 362,
+          "sha256": "618dd9832f181c9bdcc661cd5e4d374a5bef66f9e56ce5822f3f2f5efd6ebfde"
+        }
+      },
+      "verification": "完整发布前和独立发布后三资产回下载均通过；Tag/target、Latest、latest.yml、密封恢复记录与恢复状态清理均通过。"
     },
     "boundaries": [
       "现有默认 Provider、默认模型、节点类型、旧画布字段和 v2.9.9 及更早能力均保持不变。",
