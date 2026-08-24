@@ -9,7 +9,7 @@
     "platform": "macOS 12+ / Apple Silicon arm64",
     "currentReleasePlan": {
       "releaseTag": "v3.0.0",
-      "sourceRef": "v3.0.0-mac.1",
+      "sourceRef": "v3.0.0-mac.2",
       "mode": "ad-hoc-signed-unnotarized-technical-preview",
       "reason": "v3.0.0 Windows Tag 已固定在旧源码且仓库尚未配置 Apple Developer ID；只允许以透明辅助源码 Tag 构建并向既有 Release 追加资产，不移动正式 Tag。"
     },
@@ -20,6 +20,7 @@
     ],
     "implementation": [
       "electron-builder 增加 arm64 DMG/ZIP 配置，Windows NSIS x64 名称、目标和三项自动更新资产保持不变。",
+      "私有发布源按 GitHub Secret 大小边界拆分为后端 4 文件和前端 4 文件两份加密 Bundle；正式构建前逐项验证，不允许缺失前端时降级。",
       "Mac 只能由真实 macos-15 Apple Silicon runner 构建；FFmpeg、FFprobe、Sharp 与 better-sqlite3 必须通过 arm64 Mach-O 和运行验证。",
       "发布器禁止 --clobber；同名资产只有 size 与 SHA-256 均一致时才允许幂等恢复，Release target 与 Windows 资产前后必须不变。",
       "发布后完整回下载 DMG、ZIP、latest-mac.yml，复核 GitHub SHA-256 及更新清单中的 ZIP size/SHA-512。"
@@ -29,6 +30,14 @@
       "首个包只有 ad-hoc 完整性签名，未经过 Apple Developer ID 签名和 notarization，必须按技术预览明示。",
       "Mac 包不携带 Windows 专用 remove-ai-watermarks/ParseHub Python 离线运行时；普通画布、云端 Provider、私有后端及原生媒体工具不得因此缺失。",
       "本条在真实 macOS workflow、上传和远端完整回下载完成前不得改写为 released。"
+    ],
+    "attempts": [
+      {
+        "sourceRef": "v3.0.0-mac.1",
+        "workflowRun": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/32720913314",
+        "result": "failed-closed-before-packaging-or-upload",
+        "reason": "首版流水线只恢复私有后端，正式 Vite 门识别到私有前端入口缺失并终止；Release 未改变。"
+      }
     ],
     "processDoc": "docs/macos-release.md"
   },

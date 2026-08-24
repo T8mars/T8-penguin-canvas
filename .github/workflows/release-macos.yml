@@ -73,20 +73,32 @@ jobs:
         shell: bash
         env:
           T8_MAC_LOCAL_PRIVATE_BUNDLE_B64: ${{ secrets.T8_MAC_LOCAL_PRIVATE_BUNDLE_B64 }}
+          T8_MAC_LOCAL_PRIVATE_FRONTEND_BUNDLE_B64: ${{ secrets.T8_MAC_LOCAL_PRIVATE_FRONTEND_BUNDLE_B64 }}
         run: |
           set -euo pipefail
           if [[ -z "${T8_MAC_LOCAL_PRIVATE_BUNDLE_B64:-}" ]]; then
             echo "T8_MAC_LOCAL_PRIVATE_BUNDLE_B64 is not configured" >&2
             exit 1
           fi
-          archive="$RUNNER_TEMP/t8-mac-local-private.tar.gz"
-          printf '%s' "$T8_MAC_LOCAL_PRIVATE_BUNDLE_B64" | base64 -D > "$archive"
-          tar -xzf "$archive" -C "$GITHUB_WORKSPACE"
+          if [[ -z "${T8_MAC_LOCAL_PRIVATE_FRONTEND_BUNDLE_B64:-}" ]]; then
+            echo "T8_MAC_LOCAL_PRIVATE_FRONTEND_BUNDLE_B64 is not configured" >&2
+            exit 1
+          fi
+          backend_archive="$RUNNER_TEMP/t8-mac-local-private-backend.tar.gz"
+          frontend_archive="$RUNNER_TEMP/t8-mac-local-private-frontend.tar.gz"
+          printf '%s' "$T8_MAC_LOCAL_PRIVATE_BUNDLE_B64" | base64 -D > "$backend_archive"
+          printf '%s' "$T8_MAC_LOCAL_PRIVATE_FRONTEND_BUNDLE_B64" | base64 -D > "$frontend_archive"
+          tar -xzf "$backend_archive" -C "$GITHUB_WORKSPACE"
+          tar -xzf "$frontend_archive" -C "$GITHUB_WORKSPACE"
           test -s local-private/extensions/backend/index.cjs
           test -s local-private/extensions/backend/grokOAuth.cjs
           test -s local-private/extensions/backend/zhenzhenGroups.cjs
           test -s local-private/recharge/backend/routes.cjs
-          rm -f "$archive"
+          test -s local-private/extensions/frontend/index.tsx
+          test -s local-private/extensions/frontend/rechargePlatformChoice.ts
+          test -s local-private/recharge/frontend/RechargeModal.tsx
+          test -s local-private/recharge/frontend/api.ts
+          rm -f "$backend_archive" "$frontend_archive"
 
       - name: Install platform-native dependencies
         run: npm ci
