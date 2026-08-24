@@ -74,7 +74,10 @@ function sha512Base64(filename) {
 
 function checkBundle() {
   assertDirectory(APP);
-  assertFile(EXECUTABLE, 1024 * 1024);
+  // Electron's macOS executable is a small Mach-O launcher; the Frameworks
+  // directory carries the runtime. Format/architecture/signature are the
+  // meaningful gates, not an arbitrary megabyte threshold.
+  assertFile(EXECUTABLE, 16 * 1024);
   assertArm64MachO(EXECUTABLE, 'main executable');
   const version = run('/usr/bin/plutil', ['-extract', 'CFBundleShortVersionString', 'raw', path.join(APP, 'Contents', 'Info.plist')]).stdout.trim();
   if (version !== pkg.version) fail(`Info.plist version ${version} does not match ${pkg.version}`);

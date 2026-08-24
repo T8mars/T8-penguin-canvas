@@ -9,7 +9,7 @@
     "platform": "macOS 12+ / Apple Silicon arm64",
     "currentReleasePlan": {
       "releaseTag": "v3.0.0",
-      "sourceRef": "v3.0.0-mac.4",
+      "sourceRef": "v3.0.0-mac.5",
       "mode": "ad-hoc-signed-unnotarized-technical-preview",
       "reason": "v3.0.0 Windows Tag 已固定在旧源码且仓库尚未配置 Apple Developer ID；只允许以透明辅助源码 Tag 构建并向既有 Release 追加资产，不移动正式 Tag。"
     },
@@ -49,6 +49,12 @@
         "workflowRun": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/32722148693",
         "result": "failed-closed-before-artifact-or-upload",
         "reason": "builder schema、私有构建、加密及原生重建均通过并进入 darwin arm64 packaging；未配置的 CSC_LINK 被 Workflow 注入为空字符串，builder 将其解析为项目根目录证书路径并终止，Release 未改变。"
+      },
+      {
+        "sourceRef": "v3.0.0-mac.4",
+        "workflowRun": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/32722595853",
+        "result": "failed-closed-after-local-artifact-before-upload",
+        "reason": "DMG、ZIP 与更新 blockmap 已在 runner 生成；post-build 将 Electron 的小型 macOS Mach-O 启动器误套 1 MiB 下限而终止，且日志证明 identity=- 被 builder 跳过、需由 afterSign 显式 ad-hoc codesign。未验证产物未上传，Release 未改变。"
       }
     ],
     "processDoc": "docs/macos-release.md"

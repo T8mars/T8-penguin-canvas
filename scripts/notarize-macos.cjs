@@ -1,6 +1,7 @@
 'use strict';
 
 const path = require('node:path');
+const { spawnSync } = require('node:child_process');
 
 function configured(value) {
   return Boolean(String(value || '').trim());
@@ -28,20 +29,39 @@ function notarizationCredentials(env = process.env) {
   return null;
 }
 
+function adHocSign(appPath) {
+  const entitlements = path.resolve(__dirname, '..', 'electron', 'build-resources', 'entitlements.mac.plist');
+  const result = spawnSync('/usr/bin/codesign', [
+    '--force',
+    '--deep',
+    '--sign', '-',
+    '--entitlements', entitlements,
+    '--options', 'runtime',
+    '--timestamp=none',
+    appPath,
+  ], { encoding: 'utf8', stdio: 'pipe' });
+  if (result.error || result.status !== 0) {
+    const detail = `${result.stdout || ''}${result.stderr || ''}`.trim();
+    throw new Error(`[notarize-macos] ad-hoc codesign failed${detail ? `: ${detail}` : ''}`);
+  }
+  console.log(`[notarize-macos] ad-hoc integrity signature applied to ${appPath}`);
+}
+
 module.exports = async function notarizeMac(context) {
   if (process.platform !== 'darwin') return;
   const requireSigning = process.env.T8_MAC_REQUIRE_SIGNING === '1';
   const credentials = notarizationCredentials();
+  const appName = context?.packager?.appInfo?.productFilename;
+  const appPath = path.join(context.appOutDir, `${appName}.app`);
   if (!credentials) {
     if (requireSigning) {
       throw new Error('[notarize-macos] signed release requires complete Apple notarization credentials');
     }
-    console.warn('[notarize-macos] Apple credentials are not configured; producing an explicit unsigned technical preview');
+    adHocSign(appPath);
+    console.warn('[notarize-macos] Apple credentials are not configured; produced an explicit ad-hoc signed technical preview');
     return;
   }
 
-  const appName = context?.packager?.appInfo?.productFilename;
-  const appPath = path.join(context.appOutDir, `${appName}.app`);
   const { notarize } = require('@electron/notarize');
   console.log(`[notarize-macos] submitting ${appPath}`);
   await notarize({ appPath, ...credentials });
@@ -49,3 +69,4 @@ module.exports = async function notarizeMac(context) {
 };
 
 module.exports.notarizationCredentials = notarizationCredentials;
+module.exports.adHocSign = adHocSign;

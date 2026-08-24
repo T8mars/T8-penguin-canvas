@@ -49,6 +49,11 @@ test('macOS release helpers prepare native media tools and fail closed on platfo
   assert.match(prepare, /lipo/);
   assert.match(prepare, /runtime-manifest\.json/);
 
+  const notarize = read('../scripts/notarize-macos.cjs');
+  assert.match(notarize, /function adHocSign/);
+  assert.match(notarize, /'--sign', '-'/);
+  assert.match(notarize, /'--timestamp=none'/);
+
   assert.match(dist, /T8_MAC_RELEASE_APPROVAL/);
   assert.match(dist, /T8_RELEASE_TARGET/);
   assert.match(dist, /--mac/);
@@ -102,11 +107,11 @@ test('macOS release process and feature boundary are documented before publicati
   const features = JSON.parse(read('../features.json'));
 
   assert.match(processDoc, /v3\.0\.0-mac\.1/);
-  assert.match(processDoc, /v3\.0\.0-mac\.4/);
+  assert.match(processDoc, /v3\.0\.0-mac\.5/);
   assert.match(processDoc, /从下个版本开始的 Windows \+ Mac 同版流程/);
   assert.match(processDoc, /--clobber/);
   assert.equal(features.macDesktopRelease.platform, 'macOS 12+ / Apple Silicon arm64');
   assert.equal(features.macDesktopRelease.currentReleasePlan.releaseTag, 'v3.0.0');
-  assert.equal(features.macDesktopRelease.currentReleasePlan.sourceRef, 'v3.0.0-mac.4');
+  assert.equal(features.macDesktopRelease.currentReleasePlan.sourceRef, 'v3.0.0-mac.5');
   assert.equal(features.macDesktopRelease.processDoc, 'docs/macos-release.md');
 });
