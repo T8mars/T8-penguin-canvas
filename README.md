@@ -18,6 +18,11 @@ My favorite girl Go YounJung
 
 ![status](https://img.shields.io/badge/version-v3.0.0-brightgreen) ![node](https://img.shields.io/badge/node-81-blue) ![react](https://img.shields.io/badge/react-19-61dafb) ![electron](https://img.shields.io/badge/electron-33-47848f) ![license](https://img.shields.io/badge/license-MIT-yellow)
 
+## 💻 桌面版下载
+
+- **Windows x64**：在 [v3.0.0 Release](https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.0.0) 下载 `T8-PenguinCanvas-Setup-3.0.0.exe`。
+- **macOS Apple Silicon**：同一 Release 已提供 `T8-PenguinCanvas-3.0.0-mac-arm64.dmg` 技术预览，支持 M1/M2/M3/M4 等 arm64 Mac，最低 macOS 12。当前包已做 ad-hoc 完整性签名，但尚无 Apple Developer ID 签名和公证；首次打开请在 Finder 中右键应用并选择“打开”。Intel Mac 暂不支持。
+
 ---
 
 ## 📺 基础功能教程

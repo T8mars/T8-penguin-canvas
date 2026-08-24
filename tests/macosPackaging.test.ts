@@ -102,7 +102,7 @@ test('macOS updater language does not tell Mac users to open an NSIS wizard', ()
   assert.match(main, /正在打开安装向导，请按提示完成安装/);
 });
 
-test('macOS release process and feature boundary are documented before publication', () => {
+test('macOS release process and live release evidence are documented after publication', () => {
   const processDoc = read('../docs/macos-release.md');
   const features = JSON.parse(read('../features.json'));
 
@@ -113,5 +113,12 @@ test('macOS release process and feature boundary are documented before publicati
   assert.equal(features.macDesktopRelease.platform, 'macOS 12+ / Apple Silicon arm64');
   assert.equal(features.macDesktopRelease.currentReleasePlan.releaseTag, 'v3.0.0');
   assert.equal(features.macDesktopRelease.currentReleasePlan.sourceRef, 'v3.0.0-mac.5');
+  assert.equal(features.macDesktopRelease.status, 'released-v3.0.0-mac-arm64-preview-live-verified');
+  assert.equal(features.macDesktopRelease.releaseIncluded, true);
+  assert.equal(features.macDesktopRelease.releaseEvidence.sourceCommit, '69fbf1182d63f7e2c4347abbc88c70496ebad491');
+  assert.equal(features.macDesktopRelease.releaseEvidence.workflowConclusion, 'success');
+  assert.equal(features.macDesktopRelease.releaseEvidence.releaseTargetUnchanged, true);
+  assert.equal(features.macDesktopRelease.releaseEvidence.macArtifacts.length, 3);
+  assert.equal(features.macDesktopRelease.releaseEvidence.macArtifacts[0].sha256, 'f4bfbcbd8eaadecdfa889e47307e531bb6b4b77a61dc54356319ff7ce1c4b6fe');
   assert.equal(features.macDesktopRelease.processDoc, 'docs/macos-release.md');
 });
