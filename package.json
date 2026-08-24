@@ -285,6 +285,7 @@
         "releaseType": "release"
       }
     ],
+    "afterSign": "scripts/notarize-macos.cjs",
     "win": {
       "target": [
         {
@@ -342,7 +343,6 @@
       "gatekeeperAssess": false,
       "entitlements": "electron/build-resources/entitlements.mac.plist",
       "entitlementsInherit": "electron/build-resources/entitlements.mac.plist",
-      "afterSign": "scripts/notarize-macos.cjs",
       "extendInfo": {
         "NSMicrophoneUsageDescription": "贞贞的无限画布仅在您选择录音或音频输入时访问麦克风。",
         "NSCameraUsageDescription": "贞贞的无限画布仅在您选择摄像头素材时访问摄像头。",

@@ -18,6 +18,8 @@ test('package metadata declares an arm64 macOS DMG/ZIP update channel without ch
   assert.equal(pkg.build.mac.minimumSystemVersion, '12.0');
   assert.ok(pkg.build.mac.entitlements.endsWith('entitlements.mac.plist'));
   assert.ok(pkg.build.mac.entitlementsInherit.endsWith('entitlements.mac.plist'));
+  assert.equal(pkg.build.afterSign, 'scripts/notarize-macos.cjs');
+  assert.equal(pkg.build.mac.afterSign, undefined);
 
   const commonResources = pkg.build.extraResources.map((item: any) => item.to);
   assert.ok(!commonResources.includes('tools/runtime-archives'));
@@ -98,11 +100,11 @@ test('macOS release process and feature boundary are documented before publicati
   const features = JSON.parse(read('../features.json'));
 
   assert.match(processDoc, /v3\.0\.0-mac\.1/);
-  assert.match(processDoc, /v3\.0\.0-mac\.2/);
+  assert.match(processDoc, /v3\.0\.0-mac\.3/);
   assert.match(processDoc, /从下个版本开始的 Windows \+ Mac 同版流程/);
   assert.match(processDoc, /--clobber/);
   assert.equal(features.macDesktopRelease.platform, 'macOS 12+ / Apple Silicon arm64');
   assert.equal(features.macDesktopRelease.currentReleasePlan.releaseTag, 'v3.0.0');
-  assert.equal(features.macDesktopRelease.currentReleasePlan.sourceRef, 'v3.0.0-mac.2');
+  assert.equal(features.macDesktopRelease.currentReleasePlan.sourceRef, 'v3.0.0-mac.3');
   assert.equal(features.macDesktopRelease.processDoc, 'docs/macos-release.md');
 });
