@@ -55,6 +55,8 @@ test('macOS release helpers prepare native media tools and fail closed on platfo
   assert.match(dist, /--arm64/);
   assert.match(dist, /_post_build_macos\.cjs/);
   assert.match(dist, /T8_REQUIRE_LOCAL_PRIVATE/);
+  assert.match(dist, /OPTIONAL_SIGNING_ENV/);
+  assert.match(dist, /delete env\[key\]/);
 
   assert.match(postBuild, /mac-arm64/);
   assert.match(postBuild, /latest-mac\.yml/);
@@ -100,11 +102,11 @@ test('macOS release process and feature boundary are documented before publicati
   const features = JSON.parse(read('../features.json'));
 
   assert.match(processDoc, /v3\.0\.0-mac\.1/);
-  assert.match(processDoc, /v3\.0\.0-mac\.3/);
+  assert.match(processDoc, /v3\.0\.0-mac\.4/);
   assert.match(processDoc, /从下个版本开始的 Windows \+ Mac 同版流程/);
   assert.match(processDoc, /--clobber/);
   assert.equal(features.macDesktopRelease.platform, 'macOS 12+ / Apple Silicon arm64');
   assert.equal(features.macDesktopRelease.currentReleasePlan.releaseTag, 'v3.0.0');
-  assert.equal(features.macDesktopRelease.currentReleasePlan.sourceRef, 'v3.0.0-mac.3');
+  assert.equal(features.macDesktopRelease.currentReleasePlan.sourceRef, 'v3.0.0-mac.4');
   assert.equal(features.macDesktopRelease.processDoc, 'docs/macos-release.md');
 });

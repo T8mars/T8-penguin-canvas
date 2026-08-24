@@ -26,14 +26,14 @@
 
 ## 首次 v3.0.0 追加 Mac 包
 
-v3.0.0 的 Windows Tag 已固定在旧源码提交。Mac 构建支持是在发布后补入的，因此只允许创建透明的递增辅助源码 Tag，不得移动 `v3.0.0`。`v3.0.0-mac.1` 的首轮实机构建正确拦截了不完整的私有前端恢复；`v3.0.0-mac.2` 继续拦截了 electron-builder `afterSign` Hook 层级错误；两轮均未上传资产。修复后的固定源码使用 `v3.0.0-mac.3`，不得移动或复用失败 Tag：
+v3.0.0 的 Windows Tag 已固定在旧源码提交。Mac 构建支持是在发布后补入的，因此只允许创建透明的递增辅助源码 Tag，不得移动 `v3.0.0`。`v3.0.0-mac.1` 拦截了不完整的私有前端恢复；`v3.0.0-mac.2` 拦截了 electron-builder `afterSign` Hook 层级错误；`v3.0.0-mac.3` 在 darwin arm64 packaging 时拦截了空 `CSC_LINK` 被当成证书路径。三轮均未上传资产。修复后的固定源码使用 `v3.0.0-mac.4`，不得移动或复用失败 Tag：
 
 1. 在核心目录完成代码、测试、文档与 `features.json`，提交并推送 `origin/main`。
-2. 将新的递增辅助 Tag（当前为 `v3.0.0-mac.3`）固定到该提交并推送；每次修复都增加序号，禁止移动旧 Tag。
+2. 将新的递增辅助 Tag（当前为 `v3.0.0-mac.4`）固定到该提交并推送；每次修复都增加序号，禁止移动旧 Tag。
 3. 确认仓库 Secret `T8_MAC_LOCAL_PRIVATE_BUNDLE_B64` 已由本机四个私有后端源制作，`T8_MAC_LOCAL_PRIVATE_FRONTEND_BUNDLE_B64` 已由四个正式前端入口/依赖制作；两者均为 tar.gz Base64。只检查“已配置”，绝不回显内容。
 4. 手动运行 `.github/workflows/release-macos.yml`：
    - `release_tag=v3.0.0`
-   - `source_ref=v3.0.0-mac.3`
+   - `source_ref=v3.0.0-mac.4`
    - `publish=true`
    - `signing=unsigned-preview`
 5. Workflow 在 `macos-15` arm64 上执行依赖安装、定向合同测试、前端构建、Electron V8 字节码加密、私有后端加密、FFmpeg/FFprobe 准备、better-sqlite3 重建、DMG/ZIP 生成、Mach-O/媒体/签名/DMG/ZIP/更新清单验证，再只追加缺失资产。

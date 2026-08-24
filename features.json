@@ -9,7 +9,7 @@
     "platform": "macOS 12+ / Apple Silicon arm64",
     "currentReleasePlan": {
       "releaseTag": "v3.0.0",
-      "sourceRef": "v3.0.0-mac.3",
+      "sourceRef": "v3.0.0-mac.4",
       "mode": "ad-hoc-signed-unnotarized-technical-preview",
       "reason": "v3.0.0 Windows Tag 已固定在旧源码且仓库尚未配置 Apple Developer ID；只允许以透明辅助源码 Tag 构建并向既有 Release 追加资产，不移动正式 Tag。"
     },
@@ -43,6 +43,12 @@
         "workflowRun": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/32721710284",
         "result": "failed-closed-before-packaging-or-upload",
         "reason": "私有前后端、生产构建、V8 加密、Mac FFmpeg/FFprobe 与 better-sqlite3 arm64 重建均通过；electron-builder schema 识别 afterSign 层级错误并在产物生成前终止，Release 未改变。"
+      },
+      {
+        "sourceRef": "v3.0.0-mac.3",
+        "workflowRun": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/32722148693",
+        "result": "failed-closed-before-artifact-or-upload",
+        "reason": "builder schema、私有构建、加密及原生重建均通过并进入 darwin arm64 packaging；未配置的 CSC_LINK 被 Workflow 注入为空字符串，builder 将其解析为项目根目录证书路径并终止，Release 未改变。"
       }
     ],
     "processDoc": "docs/macos-release.md"

@@ -9,6 +9,16 @@ const ROOT = path.resolve(__dirname, '..');
 const pkg = require(path.join(ROOT, 'package.json'));
 const approval = `mac-release-${pkg.version}`;
 const remote = process.env.T8_RELEASE_REMOTE || 'origin';
+const OPTIONAL_SIGNING_ENV = [
+  'CSC_LINK',
+  'CSC_KEY_PASSWORD',
+  'APPLE_API_KEY',
+  'APPLE_API_KEY_ID',
+  'APPLE_API_ISSUER',
+  'APPLE_ID',
+  'APPLE_APP_SPECIFIC_PASSWORD',
+  'APPLE_TEAM_ID',
+];
 
 function fail(message) {
   console.error(`[dist-macos] ${message}`);
@@ -100,6 +110,9 @@ function main() {
     T8_REQUIRE_RUNTIME_ARCHIVES: '0',
     T8_REQUIRE_UPDATE_ARTIFACTS: '1',
   };
+  for (const key of OPTIONAL_SIGNING_ENV) {
+    if (!String(env[key] || '').trim()) delete env[key];
+  }
 
   run('frontend and encrypted backend', 'npm', ['run', 'prepack:enc'], { env });
   run('native macOS FFmpeg and FFprobe runtime', 'npm', ['run', 'prepack:mac-runtime'], { env });
