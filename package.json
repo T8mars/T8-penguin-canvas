@@ -62,12 +62,17 @@
     "encrypt": "cross-env ELECTRON_RUN_AS_NODE=1 node node_modules/electron/cli.js electron/encrypt.cjs",
     "prepack:enc": "npm run rh-toolbox:check && npm run build && npm run encrypt",
     "prepack:runtimes": "node scripts/prepare-runtime-archives.cjs",
+    "prepack:mac-runtime": "node scripts/prepare-macos-runtime.cjs",
     "rebuild:electron": "electron-rebuild -f -w better-sqlite3 --arch x64",
+    "rebuild:electron:mac": "electron-rebuild -f -w better-sqlite3 --arch arm64",
     "dist:dir": "npm run prepack:enc && npm run prepack:runtimes && npm run rebuild:electron && electron-builder --win --x64 --dir --config.npmRebuild=false && cross-env T8_DIRECTORY_BUILD=1 node electron/_post_build.cjs",
     "dist": "npm run prepack:enc && npm run prepack:runtimes && npm run rebuild:electron && electron-builder --win --x64 --config.npmRebuild=false && node electron/_post_build.cjs",
     "dist:release": "node scripts/dist-release.cjs",
+    "dist:mac": "node scripts/dist-macos.cjs",
     "release:github": "node scripts/release-github.cjs",
     "release:verify": "node scripts/verify-github-release.cjs",
+    "release:mac": "node scripts/release-macos-github.cjs",
+    "release:mac:verify": "node scripts/verify-macos-release.cjs",
     "worktree:check": "node scripts/worktree-role.cjs inspect",
     "worktree:development": "node scripts/worktree-role.cjs development",
     "worktree:core": "node scripts/worktree-role.cjs core",
@@ -83,6 +88,7 @@
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
+    "@ffprobe-installer/ffprobe": "^2.1.2",
     "@mediapipe/tasks-vision": "^0.10.35",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.7.0",
@@ -113,6 +119,7 @@
   },
   "devDependencies": {
     "@babel/parser": "^7.29.3",
+    "@electron/notarize": "^2.5.0",
     "@types/qrcode": "1.5.6",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
@@ -156,6 +163,7 @@
       "!node_modules/electron/**/*",
       "!node_modules/electron-builder/**/*",
       "!node_modules/@ffmpeg-installer/**/*",
+      "!node_modules/@ffprobe-installer/**/*",
       "!node_modules/ffmpeg-static/**/*",
       "!node_modules/app-builder-bin/**/*",
       "!node_modules/7zip-bin/**/*",
@@ -241,35 +249,11 @@
         ]
       },
       {
-        "from": "tools/runtime-archives",
-        "to": "tools/runtime-archives",
-        "filter": [
-          "remove-ai-watermarks-runtime.zip",
-          "parsehub-pythonlibs.zip",
-          "runtime-archives-manifest.json"
-        ]
-      },
-      {
         "from": "tools/asset-semantic",
         "to": "tools/asset-semantic",
         "filter": [
           "semantic_runner.py"
         ]
-      },
-      {
-        "from": "tools/ffmpeg-runtime",
-        "to": "tools/ffmpeg",
-        "filter": [
-          "ffmpeg.exe",
-          "ffmpeg",
-          "ffprobe.exe",
-          "ffprobe",
-          "README.md"
-        ]
-      },
-      {
-        "from": "node_modules/ffmpeg-static/ffmpeg.exe",
-        "to": "tools/ffmpeg-compat/ffmpeg.exe"
       },
       {
         "from": "tools/parsehub-bridge",
@@ -310,7 +294,73 @@
           ]
         }
       ],
-      "artifactName": "${productName}-Setup-${version}.${ext}"
+      "artifactName": "${productName}-Setup-${version}.${ext}",
+      "extraResources": [
+        {
+          "from": "tools/runtime-archives",
+          "to": "tools/runtime-archives",
+          "filter": [
+            "remove-ai-watermarks-runtime.zip",
+            "parsehub-pythonlibs.zip",
+            "runtime-archives-manifest.json"
+          ]
+        },
+        {
+          "from": "tools/ffmpeg-runtime",
+          "to": "tools/ffmpeg",
+          "filter": [
+            "ffmpeg.exe",
+            "ffprobe.exe",
+            "README.md"
+          ]
+        },
+        {
+          "from": "node_modules/ffmpeg-static/ffmpeg.exe",
+          "to": "tools/ffmpeg-compat/ffmpeg.exe"
+        }
+      ]
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "arm64"
+          ]
+        }
+      ],
+      "artifactName": "${productName}-${version}-mac-${arch}.${ext}",
+      "category": "public.app-category.graphics-design",
+      "minimumSystemVersion": "12.0",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "electron/build-resources/entitlements.mac.plist",
+      "entitlementsInherit": "electron/build-resources/entitlements.mac.plist",
+      "afterSign": "scripts/notarize-macos.cjs",
+      "extendInfo": {
+        "NSMicrophoneUsageDescription": "贞贞的无限画布仅在您选择录音或音频输入时访问麦克风。",
+        "NSCameraUsageDescription": "贞贞的无限画布仅在您选择摄像头素材时访问摄像头。",
+        "NSScreenCaptureUsageDescription": "贞贞的无限画布仅在您主动选择屏幕采集能力时请求录屏权限。",
+        "NSDocumentsFolderUsageDescription": "用于读取和保存您明确选择的画布项目与素材。",
+        "NSDownloadsFolderUsageDescription": "用于导入和导出您明确选择的生成素材。"
+      },
+      "extraResources": [
+        {
+          "from": "build/mac-runtime",
+          "to": "tools/ffmpeg",
+          "filter": [
+            "ffmpeg",
+            "ffprobe",
+            "runtime-manifest.json"
+          ]
+        }
+      ]
     },
     "nsis": {
       "oneClick": false,

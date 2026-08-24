@@ -886,15 +886,16 @@ test('Electron release publishing requires explicit per-version approval', () =>
 test('Electron release verifies packaged media and offline runtime sidecars', () => {
   const packageJson = JSON.parse(read('../package.json'));
   const files = packageJson.build.files;
-  const resources = packageJson.build.extraResources.map((item: any) => `${item.from}->${item.to}`);
-  const ffmpegResource = packageJson.build.extraResources.find((item: any) => item.to === 'tools/ffmpeg');
+  const resources = packageJson.build.win.extraResources.map((item: any) => `${item.from}->${item.to}`);
+  const ffmpegResource = packageJson.build.win.extraResources.find((item: any) => item.to === 'tools/ffmpeg');
   const llmMedia = read('../backend/src/providers/llmMedia.js');
 
   assert.equal(packageJson.build.compression, 'normal');
   assert.ok(files.includes('!node_modules/@ffmpeg-installer/**/*'));
+  assert.ok(files.includes('!node_modules/@ffprobe-installer/**/*'));
   assert.ok(resources.includes('tools/ffmpeg-runtime->tools/ffmpeg'));
   const sharedResource = packageJson.build.extraResources.find((item: any) => item.to === 'shared');
-  assert.deepEqual(ffmpegResource.filter, ['ffmpeg.exe', 'ffmpeg', 'ffprobe.exe', 'ffprobe', 'README.md']);
+  assert.deepEqual(ffmpegResource.filter, ['ffmpeg.exe', 'ffprobe.exe', 'README.md']);
   assert.ok(sharedResource.filter.includes('videoTransitions.json'));
   assert.match(llmMedia, /resRoot && path\.join\(resRoot, 'tools', 'ffmpeg', binary\)/);
   assert.match(llmMedia, /function resolveBundledFfprobe\(\)/);

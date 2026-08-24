@@ -78,7 +78,7 @@ test('videoOps uses a separately packaged modern stable runtime for H.264 encodi
   assert.match(filters.stdout, /\bxfade\b/);
 
   const packageJson = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8'));
-  assert.ok(packageJson.build.extraResources.some((item) => (
+  assert.ok(packageJson.build.win.extraResources.some((item) => (
     item.from === 'node_modules/ffmpeg-static/ffmpeg.exe'
     && item.to === 'tools/ffmpeg-compat/ffmpeg.exe'
   )));

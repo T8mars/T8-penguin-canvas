@@ -1,0 +1,137 @@
+name: Build and publish macOS desktop release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Existing GitHub Release tag that receives the Mac assets
+        required: true
+        default: v3.0.0
+        type: string
+      source_ref:
+        description: Immutable source tag for the Mac build (for example v3.0.0-mac.1)
+        required: true
+        type: string
+      publish:
+        description: Append verified DMG/ZIP/latest-mac.yml to the existing Release
+        required: true
+        default: false
+        type: boolean
+      signing:
+        description: Apple signing boundary
+        required: true
+        default: unsigned-preview
+        type: choice
+        options:
+          - unsigned-preview
+          - signed-notarized
+
+permissions:
+  contents: write
+
+concurrency:
+  group: macos-release-${{ inputs.release_tag }}
+  cancel-in-progress: false
+
+jobs:
+  build-macos-arm64:
+    name: Apple Silicon DMG and ZIP
+    runs-on: macos-15
+    timeout-minutes: 120
+    steps:
+      - name: Check out immutable Mac source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_ref }}
+          fetch-depth: 0
+
+      - name: Use project Node runtime
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.23.0
+          cache: npm
+
+      - name: Bind version and source
+        id: meta
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(node -p "require('./package.json').version")"
+          source_sha="$(git rev-parse HEAD)"
+          if [[ "v${version}" != "${{ inputs.release_tag }}" ]]; then
+            echo "package version ${version} does not match release tag ${{ inputs.release_tag }}" >&2
+            exit 1
+          fi
+          if [[ "$(git rev-parse '${{ inputs.source_ref }}^{commit}')" != "${source_sha}" ]]; then
+            echo "source ref moved away from checked out source" >&2
+            exit 1
+          fi
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "source_sha=${source_sha}" >> "$GITHUB_OUTPUT"
+
+      - name: Restore encrypted local-private release sources
+        shell: bash
+        env:
+          T8_MAC_LOCAL_PRIVATE_BUNDLE_B64: ${{ secrets.T8_MAC_LOCAL_PRIVATE_BUNDLE_B64 }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${T8_MAC_LOCAL_PRIVATE_BUNDLE_B64:-}" ]]; then
+            echo "T8_MAC_LOCAL_PRIVATE_BUNDLE_B64 is not configured" >&2
+            exit 1
+          fi
+          archive="$RUNNER_TEMP/t8-mac-local-private.tar.gz"
+          printf '%s' "$T8_MAC_LOCAL_PRIVATE_BUNDLE_B64" | base64 -D > "$archive"
+          tar -xzf "$archive" -C "$GITHUB_WORKSPACE"
+          test -s local-private/extensions/backend/index.cjs
+          test -s local-private/extensions/backend/grokOAuth.cjs
+          test -s local-private/extensions/backend/zhenzhenGroups.cjs
+          test -s local-private/recharge/backend/routes.cjs
+          rm -f "$archive"
+
+      - name: Install platform-native dependencies
+        run: npm ci
+
+      - name: Verify macOS release contracts
+        run: npm run test:electron:ts -- tests/macosPackaging.test.ts
+
+      - name: Build and verify Mac package
+        env:
+          T8_MAC_RELEASE_APPROVAL: mac-release-${{ steps.meta.outputs.version }}
+          T8_RELEASE_TARGET: ${{ steps.meta.outputs.source_sha }}
+          T8_RELEASE_TAG: ${{ inputs.release_tag }}
+          T8_MAC_SOURCE_REF: ${{ inputs.source_ref }}
+          T8_MAC_REQUIRE_SIGNING: ${{ inputs.signing == 'signed-notarized' && '1' || '0' }}
+          CSC_IDENTITY_AUTO_DISCOVERY: ${{ inputs.signing == 'signed-notarized' && 'true' || 'false' }}
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: npm run dist:mac
+
+      - name: Preserve verified artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: T8-PenguinCanvas-${{ steps.meta.outputs.version }}-mac-arm64
+          compression-level: 0
+          if-no-files-found: error
+          path: |
+            dist_electron/T8-PenguinCanvas-${{ steps.meta.outputs.version }}-mac-arm64.dmg
+            dist_electron/T8-PenguinCanvas-${{ steps.meta.outputs.version }}-mac-arm64.zip
+            dist_electron/latest-mac.yml
+
+      - name: Append Mac assets to GitHub Release and download-verify them
+        if: ${{ inputs.publish }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          T8_RELEASE_REPO: ${{ github.repository }}
+          T8_RELEASE_TAG: ${{ inputs.release_tag }}
+          T8_RELEASE_TARGET: ${{ steps.meta.outputs.source_sha }}
+          T8_MAC_SOURCE_REF: ${{ inputs.source_ref }}
+          T8_MAC_RELEASE_APPROVAL: mac-release-${{ steps.meta.outputs.version }}
+          T8_MAC_APPEND_EXISTING_RELEASE: '1'
+          T8_MAC_REQUIRE_SIGNING: ${{ inputs.signing == 'signed-notarized' && '1' || '0' }}
+        run: npm run release:mac

@@ -1726,7 +1726,9 @@ function ensureAutoUpdater() {
       emitUpdaterStatus({
         status: 'downloaded',
         availableVersion: version || null,
-        message: '更新已下载，点击后会打开安装向导',
+        message: process.platform === 'darwin'
+          ? '更新已下载，点击后将安装并自动重启'
+          : '更新已下载，点击后会打开安装向导',
         progress: null,
         downloaded: true,
         error: null,
@@ -1811,10 +1813,19 @@ function installDownloadedUpdate() {
       status: emitUpdaterStatus({ message: '还没有已下载的更新' }),
     };
   }
-  // Keep the NSIS installer visible. Silent install made the app disappear with
-  // no obvious installer window, which is confusing for normal users.
-  setImmediate(() => ready.updater.quitAndInstall(false, true));
-  return { success: true, status: emitUpdaterStatus({ status: 'installing', message: '正在打开安装向导，请按提示完成安装' }) };
+  // Windows keeps the NSIS installer visible. macOS installs the signed ZIP
+  // through Squirrel.Mac and restarts without a separate NSIS-style wizard.
+  const isMac = process.platform === 'darwin';
+  setImmediate(() => ready.updater.quitAndInstall(isMac, true));
+  return {
+    success: true,
+    status: emitUpdaterStatus({
+      status: 'installing',
+      message: isMac
+        ? '正在安装更新，应用将自动重启'
+        : '正在打开安装向导，请按提示完成安装',
+    }),
+  };
 }
 
 function startInitialUpdateCheck() {

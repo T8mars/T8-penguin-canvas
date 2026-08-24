@@ -1,7 +1,37 @@
 {
   "$schema": "本文件为 T8-penguin-canvas 节点清单防丢失锁,任何节点删减都需要在 roadmap.md 中说明并更新本文件。",
   "version": "3.0.0",
-  "lastUpdated": "2026-08-23-v3.0.0-released",
+  "lastUpdated": "2026-08-24-v3.0.0-mac-preview-pipeline-ready",
+  "macDesktopRelease": {
+    "status": "implementation-complete-real-macos-publish-pending",
+    "date": "2026-08-24",
+    "releaseIncluded": false,
+    "platform": "macOS 12+ / Apple Silicon arm64",
+    "currentReleasePlan": {
+      "releaseTag": "v3.0.0",
+      "sourceRef": "v3.0.0-mac.1",
+      "mode": "ad-hoc-signed-unnotarized-technical-preview",
+      "reason": "v3.0.0 Windows Tag 已固定在旧源码且仓库尚未配置 Apple Developer ID；只允许以透明辅助源码 Tag 构建并向既有 Release 追加资产，不移动正式 Tag。"
+    },
+    "artifacts": [
+      "T8-PenguinCanvas-3.0.0-mac-arm64.dmg",
+      "T8-PenguinCanvas-3.0.0-mac-arm64.zip",
+      "latest-mac.yml"
+    ],
+    "implementation": [
+      "electron-builder 增加 arm64 DMG/ZIP 配置，Windows NSIS x64 名称、目标和三项自动更新资产保持不变。",
+      "Mac 只能由真实 macos-15 Apple Silicon runner 构建；FFmpeg、FFprobe、Sharp 与 better-sqlite3 必须通过 arm64 Mach-O 和运行验证。",
+      "发布器禁止 --clobber；同名资产只有 size 与 SHA-256 均一致时才允许幂等恢复，Release target 与 Windows 资产前后必须不变。",
+      "发布后完整回下载 DMG、ZIP、latest-mac.yml，复核 GitHub SHA-256 及更新清单中的 ZIP size/SHA-512。"
+    ],
+    "futureReleasePolicy": "从下一个版本开始，Windows 与 Mac 必须从同一固定源码提交和同一个正式 v<version> Tag 构建并进入同一个 Release；配置 Developer ID 与公证凭据后，Mac 必须切换为 signed-notarized。",
+    "boundaries": [
+      "首个包只有 ad-hoc 完整性签名，未经过 Apple Developer ID 签名和 notarization，必须按技术预览明示。",
+      "Mac 包不携带 Windows 专用 remove-ai-watermarks/ParseHub Python 离线运行时；普通画布、云端 Provider、私有后端及原生媒体工具不得因此缺失。",
+      "本条在真实 macOS workflow、上传和远端完整回下载完成前不得改写为 released。"
+    ],
+    "processDoc": "docs/macos-release.md"
+  },
   "jimengCliV1417Seedance25": {
     "status": "released-v3.0.0-live-verified",
     "date": "2026-08-23",

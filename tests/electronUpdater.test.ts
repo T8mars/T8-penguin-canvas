@@ -39,8 +39,10 @@ test('electron main process owns updater checks, downloads, and install IPC', ()
   assert.match(main, /ipcMain\.handle\('t8pc:updater:check'/);
   assert.match(main, /ipcMain\.handle\('t8pc:updater:download'/);
   assert.match(main, /ipcMain\.handle\('t8pc:updater:install'/);
-  assert.match(main, /quitAndInstall\(false,\s*true\)/);
+  assert.match(main, /const isMac = process\.platform === 'darwin'/);
+  assert.match(main, /quitAndInstall\(isMac,\s*true\)/);
   assert.match(main, /打开安装向导/);
+  assert.match(main, /正在安装更新，应用将自动重启/);
   assert.match(installerNsh, /!macro customInit/);
   assert.match(installerNsh, /SetSilent\s+normal/);
   assert.match(installerNsh, /!macro customInstall/);

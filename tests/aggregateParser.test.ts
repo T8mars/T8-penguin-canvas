@@ -136,10 +136,11 @@ test('aggregate parser backend is mounted and packaged', () => {
   assert.match(postBuild, /T8_REQUIRE_PARSEHUB_RUNTIME/);
   assert.match(distRelease, /T8_REQUIRE_PARSEHUB_RUNTIME/);
   assert.match(distRelease, /T8_REQUIRE_RUNTIME_ARCHIVES/);
-  const resources = pkg.build.extraResources.map((item: any) => `${item.from}->${item.to}`);
+  const resources = [...pkg.build.extraResources, ...pkg.build.win.extraResources]
+    .map((item: any) => `${item.from}->${item.to}`);
   assert.ok(resources.includes('tools/parsehub-bridge->tools/parsehub-bridge'));
   assert.ok(resources.includes('tools/runtime-archives->tools/runtime-archives'));
-  const archiveResource = pkg.build.extraResources.find((item: any) => item.to === 'tools/runtime-archives');
+  const archiveResource = pkg.build.win.extraResources.find((item: any) => item.to === 'tools/runtime-archives');
   assert.ok(archiveResource.filter.includes('parsehub-pythonlibs.zip'));
 });
 
