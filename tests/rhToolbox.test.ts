@@ -723,7 +723,7 @@ test('RH toolbox image cutout is exposed as a reusable node capability', async (
   assert.match(uploadNode, /rf\.setCenter/);
   assert.match(outputNode, /rf\.setCenter/);
   assert.match(uploadNode, /已创建 \$\{newNodes\.length\} 个输出素材节点/);
-  assert.match(outputNode, /已创建 \$\{newNodes\.length\} 个输出素材节点/);
+  assert.match(outputNode, /nodes:output\.logs\.rhImageCreated/);
   assert.match(uploadNode, /onComplete=\{\(result\) => handleProduce\(result\.imageUrls, \{ type: 'rh-capability', label: result\.tool\.title \}\)\}/);
   assert.match(outputNode, /onComplete=\{\(result\) => handleProduce\(result\.imageUrls, \{ type: 'rh-capability', label: result\.tool\.title \}\)\}/);
 });
@@ -1319,7 +1319,7 @@ test('RH stop buttons cancel the remote RunningHub task instead of only stopping
   assert.match(runningHubNode, /await cancelRh\(tid, activeRhSiteRef\.current\)/);
   assert.match(runningHubNode, /提交返回后立即取消 RH 后台任务/);
   assert.match(runningHubNode, /stopPoll\(new Error\('已取消'\)\)/);
-  assert.match(runningHubNode, /cancelling \? '取消中\.\.\.' : '停止'/);
+  assert.match(runningHubNode, /cancelling \? t\('runningHub\.cancelling'\) : t\('runningHub\.stop'\)/);
   assert.match(rhToolsNode, /cancelRh/);
   assert.match(rhToolsNode, /stopRequestedRef/);
   assert.match(rhToolsNode, /cancelInFlightRef/);

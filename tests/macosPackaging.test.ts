@@ -1,8 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 
 const read = (relativePath: string) => readFileSync(new URL(relativePath, import.meta.url), 'utf8');
+const require = createRequire(import.meta.url);
 
 test('package metadata declares an arm64 macOS DMG/ZIP update channel without changing Windows NSIS', () => {
   const pkg = JSON.parse(read('../package.json'));
@@ -77,6 +79,18 @@ test('macOS release helpers prepare native media tools and fail closed on platfo
   assert.match(verify, /downloaded macOS release asset/);
   assert.match(verify, /sha256/);
   assert.match(verify, /latest-mac\.yml/);
+});
+
+test('macOS source binding peels annotated remote tags to their commit', () => {
+  const { remoteRefCommit } = require('../scripts/dist-macos.cjs');
+  const ref = 'refs/tags/v3.0.2';
+  const tagObject = 'e2aa674e844e1edc25cdf10dcdab3845b6f424c9';
+  const commit = '24a4481b377aca3793c87dbb224b3c9aeccbe5c8';
+  const output = `${tagObject}\t${ref}\n${commit}\t${ref}^{}`;
+
+  assert.equal(remoteRefCommit(output, ref), commit);
+  assert.equal(remoteRefCommit(`${commit}\t${ref}`, ref), commit);
+  assert.equal(remoteRefCommit('', ref), '');
 });
 
 test('GitHub Actions builds current and future Mac releases on a real Apple Silicon runner', () => {

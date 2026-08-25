@@ -57,6 +57,16 @@ function sourceRemoteRef(sourceRef) {
   return `refs/heads/${sourceRef}`;
 }
 
+function remoteRefCommit(output, ref) {
+  const entries = String(output || '')
+    .split(/\r?\n/)
+    .map((line) => line.trim().split(/\s+/, 2))
+    .filter(([sha, name]) => /^[a-f0-9]{40}$/i.test(sha || '') && Boolean(name));
+  const peeled = entries.find(([, name]) => name === `${ref}^{}`);
+  const direct = entries.find(([, name]) => name === ref);
+  return String((peeled || direct || [])[0] || '').toLowerCase();
+}
+
 function assertSource() {
   if (process.platform !== 'darwin') fail('macOS packages must be built on a real Mac');
   if (process.arch !== 'arm64') fail(`Apple Silicon release requires arm64, got ${process.arch}`);
@@ -71,7 +81,7 @@ function assertSource() {
   const sourceRef = String(process.env.T8_MAC_SOURCE_REF || '').trim();
   if (!sourceRef) fail('T8_MAC_SOURCE_REF is required for reproducible remote source binding');
   const ref = sourceRemoteRef(sourceRef);
-  const remoteTarget = capture('git', ['ls-remote', remote, ref]).split(/\s+/)[0]?.toLowerCase();
+  const remoteTarget = remoteRefCommit(capture('git', ['ls-remote', remote, ref, `${ref}^{}`]), ref);
   if (remoteTarget !== target) fail(`${remote}/${ref} points to ${remoteTarget || '(missing)'}, expected ${target}`);
 
   const tracked = capture('git', ['status', '--porcelain=v1', '--untracked-files=no']);
@@ -132,4 +142,4 @@ function main() {
 
 if (require.main === module) main();
 
-module.exports = { sourceRemoteRef };
+module.exports = { remoteRefCommit, sourceRemoteRef };

@@ -1,6 +1,6 @@
 import schemaManifest from '../../backend/src/shared/canvasNodeSchema.json' with { type: 'json' };
 import type { NodeMeta } from '../types/canvas';
-import { nodeDescriptionKey, nodeLabelKey } from '../i18n/nodeCatalog';
+import { nodeDescriptionKey, nodeLabelKey } from '../i18n/nodeCatalog.ts';
 
 interface CanvasNodeSchemaManifest {
   schema: 't8-canvas-node-schema-v1';

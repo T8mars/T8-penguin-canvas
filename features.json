@@ -1,13 +1,40 @@
 {
   "$schema": "本文件为 T8-penguin-canvas 节点清单防丢失锁,任何节点删减都需要在 roadmap.md 中说明并更新本文件。",
-  "version": "3.0.2",
-  "lastUpdated": "2026-08-26-v3.0.2-release-authorized",
-  "electronReleaseV302": {
+  "version": "3.0.3",
+  "lastUpdated": "2026-08-26-v3.0.3-release-authorized",
+  "electronReleaseV303": {
     "status": "release-authorized-build-pending",
     "date": "2026-08-26",
     "releaseIncluded": false,
+    "version": "3.0.3",
+    "tag": "v3.0.3",
+    "scope": [
+      "完整保留 v3.0.2 Windows 已发布的 Wan 3.0、主题、英文界面、悬浮工具、Output 自适应和大画布性能能力，不回退默认值、旧画布、历史节点或工作流。",
+      "修复 macOS 固定源码门对 annotated tag 的解析：git ls-remote 同时读取标签对象与 peeled commit，并优先按 refs/tags/<tag>^{} 绑定真实提交。",
+      "新增 annotated、lightweight 与缺失远端引用的回归覆盖；远端真实 v3.0.2 失败日志已证明旧实现错误比较标签对象 SHA。",
+      "Windows 与 Mac 重新从同一 v3.0.3 固定提交和正式 Tag 构建，进入同一 GitHub Release；v3.0.2 与 v3.0.1 标签均保持冻结且不复用。"
+    ],
+    "evidenceBoundary": {
+      "technicalGates": "must-pass-before-publish",
+      "affectedUserInstallF8F10AndInstalledUpgrade": "deferred-not-passed",
+      "deferralApproval": "owner-approved-post-release-v3.0.3",
+      "rule": "证据后补只适用于反馈用户安装、多端协作、F8-F10 与安装升级；测试、构建、加密、运行时、NSIS、provenance、sealed recovery、固定 Tag/target、Windows/Mac 完整回下载和 Latest 不可延期。"
+    }
+  },
+  "electronReleaseV302": {
+    "status": "windows-released-mac-blocked-before-upload",
+    "date": "2026-08-26",
+    "releaseIncluded": true,
     "version": "3.0.2",
     "tag": "v3.0.2",
+    "releaseUrl": "https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.0.2",
+    "sourceCommit": "24a4481b377aca3793c87dbb224b3c9aeccbe5c8",
+    "windowsPublishedAt": "2026-08-25T18:08:41Z",
+    "macBlockedAttempt": {
+      "workflowUrl": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/32882092427",
+      "stage": "dist-macos-source-binding-before-build",
+      "reason": "旧脚本将 annotated tag 对象 SHA 与 HEAD commit 直接比较，未读取 refs/tags/v3.0.2^{}；在任何 Mac 构建或资产上传前失败关闭。"
+    },
     "abortedAttempt": {
       "tag": "v3.0.1",
       "sourceCommit": "41a2530eafa433c640dead817c6a8df06a9edd7f",
@@ -24,7 +51,7 @@
     ],
     "platformPlan": {
       "windows": "核心目录固定源码通过低资源单核/BelowNormal/零压缩级别的 dist:release，发布 EXE、blockmap 与 latest.yml。",
-      "mac": "同一正式 v3.0.2 Tag 在真实 macos-15 arm64 runner 生成 DMG、ZIP 与 latest-mac.yml，并追加到同一 Release；未配置 Developer ID 时明确标记 unsigned-preview。"
+      "mac": "v3.0.2 的真实 macos-15 尝试因 annotated tag 解析缺陷在构建前失败且未上传资产；修复递增到 v3.0.3，不移动或复用本 Tag。"
     },
     "evidenceBoundary": {
       "technicalGates": "must-pass-before-publish",
@@ -34,7 +61,7 @@
     }
   },
   "wan30VideoModels": {
-    "status": "development-live-verified-release-authorized-v3.0.2",
+    "status": "released-v3.0.2-windows-included-v3.0.3",
     "date": "2026-08-25",
     "releaseIncluded": true,
     "provider": "seedance-nz",
@@ -14023,7 +14050,7 @@
     ]
   },
   "githubIssues222425Implementation": {
-    "status": "release-authorized-v3.0.2-development-verified",
+    "status": "released-v3.0.2-windows-included-v3.0.3",
     "date": "2026-08-25",
     "releaseIncluded": true,
     "issues": {
@@ -14046,7 +14073,7 @@
       "The temporary Vite development service was stopped after validation and port 11422 had no listener; the existing packaged application on port 18766 was identified and deliberately left running."
     ],
     "boundaries": [
-      "This implementation is included in the fixed v3.0.2 release source; technical packaging and remote evidence are recorded only after the formal pipeline converges.",
+      "This implementation shipped in the fixed v3.0.2 Windows release and is carried unchanged into v3.0.3 for the unified Windows and Mac release.",
       "Issue #24 must not close before real affected-canvas five-minute recovery and packaged-platform evidence; Issue #25 must not close before Provider English gold paths plus full zoom/screen-reader acceptance.",
       "The runtime English audit is opt-in only and explicitly excludes user/provider/runtime-diagnostic content."
     ]

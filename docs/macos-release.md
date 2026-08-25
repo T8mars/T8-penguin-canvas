@@ -85,3 +85,8 @@ Developer ID 正式发布另需以下两组之一的公证凭据，并需要 `CS
 - Windows 正式入口保持：`npm run dist:release`
 
 这些命令都有版本级授权、源码 SHA、远端 Ref、平台、架构和资产漂移门，不能绕过脚本直接用 electron-builder 或 `gh release upload --clobber` 代替。
+# v3.0.2 annotated tag 失败与 v3.0.3 修复（2026-08-26）
+
+v3.0.2 的 Windows 三项自动更新资产已通过正式门禁并发布。随后同一正式标签触发的真实 `macos-15` arm64 workflow `32882092427` 在任何 Mac 构建与资产上传前失败关闭：旧 `dist-macos.cjs` 只读取 `git ls-remote origin refs/tags/v3.0.2` 的首项，将 annotated tag 对象 SHA 当成提交 SHA，与正确的 `HEAD` / `T8_RELEASE_TARGET` 比较后误判漂移。
+
+v3.0.2 标签与资产保持冻结，不移动、不覆盖、不复用。v3.0.3 起，源码门同时请求直接引用和 `refs/tags/<tag>^{}`，优先取 peeled commit；lightweight tag 仍回退到直接引用，缺失引用仍失败关闭。修复由 annotated/lightweight/missing 三类测试锁定，Windows 与 Mac 重新从同一个 v3.0.3 固定提交和正式标签发布。
