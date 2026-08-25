@@ -120,7 +120,7 @@ test('macOS updater language does not tell Mac users to open an NSIS wizard', ()
   assert.notEqual(catalog['en-US'].updater.installingMac, catalog['en-US'].updater.installingWindows);
 });
 
-test('macOS release process preserves the previous evidence while v3.0.4 is pending', () => {
+test('macOS release process records live v3.0.4 evidence without discarding previous evidence', () => {
   const processDoc = read('../docs/macos-release.md');
   const features = JSON.parse(read('../features.json'));
 
@@ -131,12 +131,18 @@ test('macOS release process preserves the previous evidence while v3.0.4 is pend
   assert.equal(features.macDesktopRelease.platform, 'macOS 12+ / Apple Silicon arm64');
   assert.equal(features.macDesktopRelease.currentReleasePlan.releaseTag, 'v3.0.4');
   assert.equal(features.macDesktopRelease.currentReleasePlan.sourceRef, 'v3.0.4');
-  assert.equal(features.macDesktopRelease.status, 'release-authorized-v3.0.4-mac-arm64-pending');
+  assert.equal(features.macDesktopRelease.status, 'released-v3.0.4-mac-arm64-preview-live-verified');
   assert.equal(features.macDesktopRelease.releaseIncluded, true);
   assert.equal(features.macDesktopRelease.previousReleaseEvidence.sourceCommit, '64d9a708dd92d38a77b710e06855ddcf6b4e652c');
   assert.equal(features.macDesktopRelease.previousReleaseEvidence.workflowConclusion, 'success');
   assert.equal(features.macDesktopRelease.previousReleaseEvidence.releaseTargetUnchanged, true);
   assert.equal(features.macDesktopRelease.previousReleaseEvidence.macArtifacts.length, 3);
   assert.equal(features.macDesktopRelease.previousReleaseEvidence.macArtifacts[0].sha256, '18ab11a8dfbf4f23a6a66f8167160a6bae1f00c758ddcd9ca796e181b890dfa5');
+  assert.equal(features.macDesktopRelease.releaseEvidence.sourceCommit, '916007dd3b05abd3e7f84e7a6ac69fc010ac42b7');
+  assert.equal(features.macDesktopRelease.releaseEvidence.workflowConclusion, 'success');
+  assert.equal(features.macDesktopRelease.releaseEvidence.releaseTargetUnchanged, true);
+  assert.equal(features.macDesktopRelease.releaseEvidence.windowsAssetsUnchanged.length, 3);
+  assert.equal(features.macDesktopRelease.releaseEvidence.macArtifacts.length, 3);
+  assert.equal(features.macDesktopRelease.releaseEvidence.macArtifacts[0].sha256, '8834401dec5f5969e16687b52527459ddaeb7dc87c0386c867190605054462e5');
   assert.equal(features.macDesktopRelease.processDoc, 'docs/macos-release.md');
 });

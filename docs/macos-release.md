@@ -85,9 +85,11 @@ Developer ID 正式发布另需以下两组之一的公证凭据，并需要 `CS
 - Windows 正式入口保持：`npm run dist:release`
 
 这些命令都有版本级授权、源码 SHA、远端 Ref、平台、架构和资产漂移门，不能绕过脚本直接用 electron-builder 或 `gh release upload --clobber` 代替。
-# v3.0.4 同源发布计划（2026-08-26）
+# v3.0.4 同源发布完成（2026-08-26）
 
-v3.0.4 继续执行 Windows 与 Mac 同一固定提交、同一个正式 `v3.0.4` Tag、同一个 GitHub Release 的规则。Windows 先在核心目录通过低资源 `dist:release` 发布 NSIS、blockmap 与 `latest.yml`；Mac 随后由真实 `macos-15` arm64 workflow 从 `v3.0.4` 构建并追加 DMG、ZIP 与 `latest-mac.yml`。未配置 Developer ID 时继续使用 ad-hoc 完整性签名并明示技术预览。任何真实 workflow、上传和完整回下载完成前，features 只能记录 pipeline pending，不能预填通过状态、运行号或资产摘要。
+v3.0.4 已按 Windows 与 Mac 同一固定提交、同一个正式 `v3.0.4` Tag、同一个 GitHub Release 的规则完成发布。固定源码为 `916007dd3b05abd3e7f84e7a6ac69fc010ac42b7`；Windows 在核心目录通过低资源 `dist:release` 完成 NSIS、blockmap、`latest.yml` 和三资产完整回下载，Mac 由真实 `macos-15` arm64 workflow <https://github.com/T8mars/T8-penguin-canvas/actions/runs/32902049267> 完成构建、ad-hoc 签名、追加上传和三资产完整回下载。正式 Release 为 <https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.0.4>，非草稿、非预发布且为 Latest，target 与 Tag 的 peeled commit 均保持固定源码不变。
+
+Mac DMG 为 468,308,603 bytes / SHA-256 `8834401dec5f5969e16687b52527459ddaeb7dc87c0386c867190605054462e5`，ZIP 为 461,121,544 bytes / `c32d0134bd59880581b9ea7c120e10e1c2be66682c9e2fb842e1e96a2eabc386`，`latest-mac.yml` 为 536 bytes / `21ddada43a45b9d8479b72b8a7b126e280813988db4e4ab1bfc472036c577afc`。同一 Release 的 Windows 安装包为 1,354,295,401 bytes / `62a00ca1f534f0e83b3a6db8bf2169858ee0d7a63a66815c5f6529f4d3643c26`，blockmap 为 1,414,035 bytes / `d60adf03a5f002a08503a07c233e4726bf6001234b394855bcb01be72c49c0df`，`latest.yml` 为 362 bytes / `55593e4d9d07e2109876aa9021f5b08226c2c7277f9cf41d65d2404d0c7e414e`。Mac 仍未使用 Apple Developer ID、未 notarize，维持明确的技术预览边界。
 
 # v3.0.2 annotated tag 失败与 v3.0.3 修复（2026-08-26）
 
