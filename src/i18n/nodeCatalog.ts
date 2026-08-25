@@ -7,6 +7,11 @@ export interface EnglishNodeCopy {
   aliases?: string[];
 }
 
+export const DEV_ENGLISH_NODE_CATALOG: Record<string, EnglishNodeCopy> = {
+  'rh-toolbox-maker': { label: 'RH Toolbox Builder', description: 'Developer-only editor for RH Toolbox manifest templates.' },
+  'fal-toolbox-maker': { label: 'FAL App Builder', description: 'Developer-only generator for Fal Marketplace manifests from Fal.ai API documentation.' },
+};
+
 /**
  * English display copy is keyed by the stable node type. Chinese remains the
  * canonical copy in canvasNodeSchema.json. Keeping the second locale separate
@@ -47,10 +52,9 @@ export const ENGLISH_NODE_CATALOG: Record<string, EnglishNodeCopy> = {
   'rh-config': { label: 'RH Configuration', description: 'Inject parameters into RunningHub workflows.' },
   'rh-tools': { label: 'RH Marketplace', description: 'Browse, search, and run categorized RunningHub AI applications from one launcher.' },
   'rh-toolbox': { label: 'RH Toolbox', description: 'Curated read-only RunningHub tools reusable by image, video, text, and audio nodes.' },
-  'rh-toolbox-maker': { label: 'RH Toolbox Builder', description: 'Developer-only editor for RH Toolbox manifest templates.' },
+  ...(import.meta.env?.DEV ? DEV_ENGLISH_NODE_CATALOG : {}),
   vibex: { label: 'VibeX Workspace', description: 'Embed local or online VibeX and return video, image, audio, and prompts to the canvas.' },
   'fal-toolbox': { label: 'Fal Marketplace', description: 'Run categorized Fal.ai capabilities from upstream text, image, video, or audio.' },
-  'fal-toolbox-maker': { label: 'FAL App Builder', description: 'Developer-only generator for Fal Marketplace manifests from Fal.ai API documentation.' },
   'grok-oauth-agent': { label: 'Grok OAuth Agent', description: 'Standalone Grok/xAI OAuth workspace for streaming chat, image, video, TTS, and STT.' },
   'codex-cli-agent': { label: 'Codex CLI Agent', description: 'Creator-focused Codex CLI workspace with streaming chat, image prompts, skills, assets, and version history.' },
   'codex-image-conjure': { label: 'Codex Image Workspace', description: 'Image workspace powered by Codex image generation, prompt templates, fragments, references, and a public gallery.' },

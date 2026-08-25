@@ -2,7 +2,7 @@ import { readFileSync, readdirSync, statSync, writeFileSync, existsSync } from '
 import { resolve, relative, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { enUS, zhCN } from '../src/i18n/resources';
-import { ENGLISH_NODE_CATALOG } from '../src/i18n/nodeCatalog';
+import { ENGLISH_NODE_CATALOG, DEV_ENGLISH_NODE_CATALOG } from '../src/i18n/nodeCatalog';
 
 const root = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const baselinePath = resolve(root, 'scripts/i18n-visible-string-baseline.json');
@@ -71,15 +71,19 @@ const en = flatten(enUS);
 const failures: string[] = [];
 const schemaNodeTypes = new Set((nodeSchema.types || []).map((item) => String(item.type || '')).filter(Boolean));
 const developmentNodeTypes = new Set(['rh-toolbox-maker', 'fal-toolbox-maker']);
+const ENGLISH_NODE_COVERAGE_CATALOG = {
+  ...ENGLISH_NODE_CATALOG,
+  ...DEV_ENGLISH_NODE_CATALOG,
+};
 for (const type of [...schemaNodeTypes, ...developmentNodeTypes]) {
-  const copy = ENGLISH_NODE_CATALOG[type];
+  const copy = ENGLISH_NODE_COVERAGE_CATALOG[type];
   if (!copy?.label.trim()) failures.push(`node catalog missing en-US label: ${type}`);
   if (!copy?.description.trim()) failures.push(`node catalog missing en-US description: ${type}`);
   if (copy && /[\u3400-\u9fff]/.test(`${copy.label}\n${copy.description}`)) {
     failures.push(`node catalog en-US copy still contains CJK text: ${type}`);
   }
 }
-for (const type of Object.keys(ENGLISH_NODE_CATALOG)) {
+for (const type of Object.keys(ENGLISH_NODE_COVERAGE_CATALOG)) {
   if (!schemaNodeTypes.has(type) && !developmentNodeTypes.has(type)) failures.push(`orphan node catalog entry: ${type}`);
 }
 const registrySource = readFileSync(resolve(root, 'src/config/nodeRegistry.ts'), 'utf8');

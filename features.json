@@ -1,33 +1,40 @@
 {
   "$schema": "本文件为 T8-penguin-canvas 节点清单防丢失锁,任何节点删减都需要在 roadmap.md 中说明并更新本文件。",
-  "version": "3.0.1",
-  "lastUpdated": "2026-08-26-v3.0.1-release-authorized",
-  "electronReleaseV301": {
+  "version": "3.0.2",
+  "lastUpdated": "2026-08-26-v3.0.2-release-authorized",
+  "electronReleaseV302": {
     "status": "release-authorized-build-pending",
     "date": "2026-08-26",
     "releaseIncluded": false,
-    "version": "3.0.1",
-    "tag": "v3.0.1",
+    "version": "3.0.2",
+    "tag": "v3.0.2",
+    "abortedAttempt": {
+      "tag": "v3.0.1",
+      "sourceCommit": "41a2530eafa433c640dead817c6a8df06a9edd7f",
+      "stage": "post-build-before-upload",
+      "reason": "生产双语可见文本目录无条件包含 RH/FAL 开发制作器文案与稳定类型名，Electron 安全门在任何 GitHub Release 或资产上传前终止；Tag 保持冻结且不复用。"
+    },
     "scope": [
       "Wan Video 现有 Tab 新增 8 个 Wan 3.0 I2V/R2V、Global 与 Prime 精确模型，保留旧默认模型、旧画布字段和其他 Provider。",
       "新增 8 份无凭据 Wan 3.0 工作流；8/8 模型均真实提交成功，结果完整下载并通过 FFprobe/FFmpeg 解码。",
       "修复新节点在白天模式仍使用黑色固定外壳、英文界面残留内置中文和画布左侧重复悬浮工具的问题。",
+      "RH/FAL 开发制作器的可见文案与英文节点目录按 DEV 边界独立，生产 bundle 对组件名、中文名和稳定类型名保持 0 命中，安全扫描规则不放宽。",
       "OutputNode 增加版本化自适应/自由/比例视图及按需原图查看器；大画布增加可解释性能档、组代理、离屏重节点冷壳、轻量边和可取消稳定性证据器。",
       "#24 与 #25 继续保持开放，等待真实受影响重画布、安装版资源回落、Provider 英文金路径、全浮层、缩放和读屏验收；发布不等于关闭这些问题。"
     ],
     "platformPlan": {
       "windows": "核心目录固定源码通过低资源单核/BelowNormal/零压缩级别的 dist:release，发布 EXE、blockmap 与 latest.yml。",
-      "mac": "同一正式 v3.0.1 Tag 在真实 macos-15 arm64 runner 生成 DMG、ZIP 与 latest-mac.yml，并追加到同一 Release；未配置 Developer ID 时明确标记 unsigned-preview。"
+      "mac": "同一正式 v3.0.2 Tag 在真实 macos-15 arm64 runner 生成 DMG、ZIP 与 latest-mac.yml，并追加到同一 Release；未配置 Developer ID 时明确标记 unsigned-preview。"
     },
     "evidenceBoundary": {
       "technicalGates": "must-pass-before-publish",
       "affectedUserInstallF8F10AndInstalledUpgrade": "deferred-not-passed",
-      "deferralApproval": "owner-approved-post-release-v3.0.1",
+      "deferralApproval": "owner-approved-post-release-v3.0.2",
       "rule": "用户授权先发布、证据后补只适用于反馈用户安装、多端协作、F8-F10 与安装升级证据；测试、构建、加密、运行时、NSIS、provenance、sealed recovery、固定 Tag/target、Windows/Mac 资产回下载及 Latest 均不可延期。"
     }
   },
   "wan30VideoModels": {
-    "status": "development-live-verified-release-authorized-v3.0.1",
+    "status": "development-live-verified-release-authorized-v3.0.2",
     "date": "2026-08-25",
     "releaseIncluded": true,
     "provider": "seedance-nz",
@@ -14016,7 +14023,7 @@
     ]
   },
   "githubIssues222425Implementation": {
-    "status": "release-authorized-v3.0.1-development-verified",
+    "status": "release-authorized-v3.0.2-development-verified",
     "date": "2026-08-25",
     "releaseIncluded": true,
     "issues": {
@@ -14039,7 +14046,7 @@
       "The temporary Vite development service was stopped after validation and port 11422 had no listener; the existing packaged application on port 18766 was identified and deliberately left running."
     ],
     "boundaries": [
-      "This implementation is included in the fixed v3.0.1 release source; technical packaging and remote evidence are recorded only after the formal pipeline converges.",
+      "This implementation is included in the fixed v3.0.2 release source; technical packaging and remote evidence are recorded only after the formal pipeline converges.",
       "Issue #24 must not close before real affected-canvas five-minute recovery and packaged-platform evidence; Issue #25 must not close before Provider English gold paths plus full zoom/screen-reader acceptance.",
       "The runtime English audit is opt-in only and explicitly excludes user/provider/runtime-diagnostic content."
     ]
