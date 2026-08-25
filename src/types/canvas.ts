@@ -92,6 +92,7 @@ export type NodeType =
   | 'upload'
   | 'material-set'
   | 'generation-target'
+  | 'volcengine-assets'
   | 'feishu-bitable-input'
   | 'feishu-bitable-output'
   | 'output';

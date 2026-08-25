@@ -137,6 +137,15 @@ export const zhCN = {
       promptLibrary: '提示词模板库', expandEditor: '放大编辑', expandEditorWithShortcut: '放大编辑（{{shortcut}}）', expandPrompt: '放大编辑提示词', editorStats: '{{chars}} 字 · {{lines}} 行 · Alt+Enter 打开 · Ctrl+Enter 完成 · Esc 取消',
       copyTextPrompt: '复制文本：', jsonFormatted: 'JSON 已格式化', jsonValid: 'JSON 格式正确', jsonInvalid: 'JSON 格式错误：{{message}}', parseFailed: '无法解析', linesNormalized: '已整理为空行去重列表', formatJson: '格式化 JSON', validateJson: '校验 JSON', normalizeList: '整理列表', readOnlyField: '当前字段为只读，可查看或复制。', writeBackHint: '完成后会写回原节点字段。', copyCurrent: '复制当前文本', copy: '复制', cancel: '取消', done: '完成', close: '关闭',
     },
+    volcengineAssets: {
+      title: '火山素材库', subtitle: '火山方舟私域素材 · {{project}}', configured: '已配置', notConfigured: '待配置',
+      projectPlaceholder: '项目名（留空使用 API 设置默认值）', allGroups: '全部素材组', refresh: '刷新素材库', newGroupPlaceholder: '新素材组名称', createGroup: '创建组',
+      importPublicUrl: '从公网 URL 导入火山素材', publicUrlPlaceholder: 'https://cdn.example.com/material.png', nameOptional: '素材名称（可选）', import: '导入', importHint: '仅接受公网 HTTP(S) 地址；本机、私网、data: 和 asset: 地址会在提交前拒绝。',
+      selection: '已选 {{selected}} / {{max}} · 仅 Active 素材可输出', page: '第 {{page}} 页', empty: '尚未加载到素材，点击刷新或切换素材组。', tagsPlaceholder: '标签，逗号分隔', saveTags: '保存标签', previous: '上一页', next: '下一页',
+      securityHint: 'AK/SK 只保存在本机后端的 API 设置；画布只保存素材 ID、类型和标签，不保存凭据或临时预览签名 URL。',
+      kinds: { image: '图像', video: '视频', audio: '音频' }, status: { active: '可用', processing: '处理中', failed: '失败' },
+      errors: { status: '读取火山素材配置失败', groups: '加载素材组失败', assets: '加载素材失败', notConfigured: '请先在 API 设置的火山引擎高级项中填写 AK/SK', refresh: '刷新火山素材库失败', maxSelection: '最多选择 {{count}} 个素材', createGroup: '创建素材组失败', importFields: '请选择素材组并填写公网 URL', import: '导入素材失败', tags: '保存标签失败' },
+    },
     promptTemplates: {
       title: '提示词模板库', subtitle: '图像 / 视频双库 · 我的模板可带图像 / 视频 / 音频附件 · 支持导入导出、资源库保存', contentLanguageToggle: '切换模板内容语言',
       image: '图像', video: '视频', audio: '音频', mine: '我的', builtin: '内置', all: '全部', builtInCount: '{{count}} · 内置 {{builtIn}}',
@@ -616,6 +625,15 @@ export const enUS = {
       upstreamMaterials: 'Upstream materials', materialText: 'Text', materialImage: 'Image', materialVideo: 'Video', materialAudio: 'Audio', restoreExcluded: 'Restore upstream materials excluded from this node', restoreCount: 'Restore {{count}}', uploadLocal: 'Upload local material', removeLocal: 'Remove local material', excludeUpstream: 'Exclude this upstream material from the current node',
       promptLibrary: 'Prompt template library', expandEditor: 'Expand editor', expandEditorWithShortcut: 'Expand editor ({{shortcut}})', expandPrompt: 'Expanded prompt editor', editorStats: '{{chars}} characters · {{lines}} lines · Alt+Enter to open · Ctrl+Enter to apply · Esc to cancel',
       copyTextPrompt: 'Copy text:', jsonFormatted: 'JSON formatted', jsonValid: 'JSON is valid', jsonInvalid: 'Invalid JSON: {{message}}', parseFailed: 'Could not parse', linesNormalized: 'Blank and duplicate lines removed', formatJson: 'Format JSON', validateJson: 'Validate JSON', normalizeList: 'Clean list', readOnlyField: 'This field is read-only; you can view or copy it.', writeBackHint: 'Applying writes the value back to the original node field.', copyCurrent: 'Copy current text', copy: 'Copy', cancel: 'Cancel', done: 'Done', close: 'Close',
+    },
+    volcengineAssets: {
+      title: 'Volcengine Asset Library', subtitle: 'Private Volcengine Ark assets · {{project}}', configured: 'Configured', notConfigured: 'Setup required',
+      projectPlaceholder: 'Project name (empty uses API Settings default)', allGroups: 'All asset groups', refresh: 'Refresh asset library', newGroupPlaceholder: 'New asset group name', createGroup: 'Create group',
+      importPublicUrl: 'Import from a public URL', publicUrlPlaceholder: 'https://cdn.example.com/material.png', nameOptional: 'Asset name (optional)', import: 'Import', importHint: 'Only public HTTP(S) URLs are accepted. Local, private-network, data:, and asset: URLs are rejected before submission.',
+      selection: '{{selected}} / {{max}} selected · only Active assets are output', page: 'Page {{page}}', empty: 'No assets loaded. Refresh or choose another group.', tagsPlaceholder: 'Tags, comma-separated', saveTags: 'Save tags', previous: 'Previous', next: 'Next',
+      securityHint: 'AK/SK stays in the local backend API Settings. Canvas data stores asset IDs, types, and tags only—not credentials or temporary signed preview URLs.',
+      kinds: { image: 'Image', video: 'Video', audio: 'Audio' }, status: { active: 'Active', processing: 'Processing', failed: 'Failed' },
+      errors: { status: 'Could not read Volcengine asset settings', groups: 'Could not load asset groups', assets: 'Could not load assets', notConfigured: 'Add Volcengine AK/SK in the advanced API Settings first', refresh: 'Could not refresh the Volcengine asset library', maxSelection: 'Select at most {{count}} assets', createGroup: 'Could not create the asset group', importFields: 'Choose an asset group and enter a public URL', import: 'Could not import the asset', tags: 'Could not save tags' },
     },
     promptTemplates: {
       title: 'Prompt template library', subtitle: 'Image and video libraries · custom templates can include image, video, and audio attachments · import, export, and resource-library saving', contentLanguageToggle: 'Switch template content language',

@@ -157,6 +157,15 @@
         }
       ]
     },
+    "volcengine-assets": {
+      "resolver": "static",
+      "inputs": [],
+      "outputs": [
+        { "id": "image", "kinds": ["image"], "required": false, "minConnections": 0, "maxConnections": null },
+        { "id": "video", "kinds": ["video"], "required": false, "minConnections": 0, "maxConnections": null },
+        { "id": "audio", "kinds": ["audio"], "required": false, "minConnections": 0, "maxConnections": null }
+      ]
+    },
     "feishu-bitable-input": {
       "resolver": "static",
       "inputs": [],
@@ -2442,6 +2451,33 @@
       "generation": {
         "allowedDataFields": {},
         "defaults": {}
+      }
+    },
+    {
+      "type": "volcengine-assets",
+      "label": "火山素材库",
+      "category": "input",
+      "description": "浏览、导入、标记并输出火山方舟私域图像、视频和音频素材",
+      "icon": "LibraryBig",
+      "color": "orange",
+      "ports": { "inputs": [], "outputs": ["image", "video", "audio"] },
+      "executable": true,
+      "generatable": false,
+      "generation": {
+        "allowedDataFields": {
+          "volcengineAssetsProfileId": { "type": "string", "maxLength": 128 },
+          "volcengineAssetsProjectName": { "type": "string", "maxLength": 128 },
+          "volcengineAssetsGroupId": { "type": "string", "maxLength": 256 },
+          "volcengineAssetsPageNumber": { "type": "integer", "minimum": 1, "maximum": 10000 },
+          "selectedAssets": { "type": "array", "maxItems": 15, "items": { "type": "object" } }
+        },
+        "defaults": {
+          "volcengineAssetsProfileId": "volcengine",
+          "volcengineAssetsProjectName": "",
+          "volcengineAssetsGroupId": "",
+          "volcengineAssetsPageNumber": 1,
+          "selectedAssets": []
+        }
       }
     },
     {

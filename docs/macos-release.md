@@ -85,6 +85,10 @@ Developer ID 正式发布另需以下两组之一的公证凭据，并需要 `CS
 - Windows 正式入口保持：`npm run dist:release`
 
 这些命令都有版本级授权、源码 SHA、远端 Ref、平台、架构和资产漂移门，不能绕过脚本直接用 electron-builder 或 `gh release upload --clobber` 代替。
+# v3.0.4 同源发布计划（2026-08-26）
+
+v3.0.4 继续执行 Windows 与 Mac 同一固定提交、同一个正式 `v3.0.4` Tag、同一个 GitHub Release 的规则。Windows 先在核心目录通过低资源 `dist:release` 发布 NSIS、blockmap 与 `latest.yml`；Mac 随后由真实 `macos-15` arm64 workflow 从 `v3.0.4` 构建并追加 DMG、ZIP 与 `latest-mac.yml`。未配置 Developer ID 时继续使用 ad-hoc 完整性签名并明示技术预览。任何真实 workflow、上传和完整回下载完成前，features 只能记录 pipeline pending，不能预填通过状态、运行号或资产摘要。
+
 # v3.0.2 annotated tag 失败与 v3.0.3 修复（2026-08-26）
 
 v3.0.2 的 Windows 三项自动更新资产已通过正式门禁并发布。随后同一正式标签触发的真实 `macos-15` arm64 workflow `32882092427` 在任何 Mac 构建与资产上传前失败关闭：旧 `dist-macos.cjs` 只读取 `git ls-remote origin refs/tags/v3.0.2` 的首项，将 annotated tag 对象 SHA 当成提交 SHA，与正确的 `HEAD` / `T8_RELEASE_TARGET` 比较后误判漂移。

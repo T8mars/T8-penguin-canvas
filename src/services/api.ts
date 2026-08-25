@@ -3542,6 +3542,47 @@ export function writeFeishuBitableRecords(payload: {
   });
 }
 
+export interface VolcengineAssetsProfileStatus {
+  profileId: string;
+  project: string;
+  region: string;
+  configured: boolean;
+}
+
+export function getVolcengineAssetsStatus(profileId = 'volcengine') {
+  return safeRequest<VolcengineAssetsProfileStatus>(`${BASE}/volcengine-assets/status?profileId=${encodeURIComponent(profileId)}`);
+}
+
+export function listVolcengineAssetGroups(payload: { profileId?: string; projectName?: string } = {}) {
+  return safeRequest<any>(`${BASE}/volcengine-assets/groups/list`, { method: 'POST', body: JSON.stringify(payload) });
+}
+
+export function createVolcengineAssetGroup(payload: { profileId?: string; projectName?: string; name: string; description?: string }) {
+  return safeRequest<any>(`${BASE}/volcengine-assets/groups/create`, { method: 'POST', body: JSON.stringify(payload) });
+}
+
+export function listVolcengineAssets(payload: { profileId?: string; projectName?: string; groupId?: string; pageNumber?: number; pageSize?: number } = {}) {
+  return safeRequest<any>(`${BASE}/volcengine-assets/assets/list`, { method: 'POST', body: JSON.stringify(payload) });
+}
+
+export function getVolcengineAsset(payload: { profileId?: string; projectName?: string; assetId: string }) {
+  return safeRequest<any>(`${BASE}/volcengine-assets/assets/get`, { method: 'POST', body: JSON.stringify(payload) });
+}
+
+export function importVolcengineAsset(payload: { profileId?: string; projectName?: string; groupId: string; kind: 'Image' | 'Video' | 'Audio'; url: string; name?: string }) {
+  return safeRequest<any>(`${BASE}/volcengine-assets/assets/import`, { method: 'POST', body: JSON.stringify(payload) });
+}
+
+export function getVolcengineAssetTags(assetIds: string[]) {
+  return safeRequest<{ assets: Record<string, string[]> }>(`${BASE}/volcengine-assets/assets/tags?assetIds=${encodeURIComponent(assetIds.slice(0, 100).join(','))}`);
+}
+
+export function saveVolcengineAssetTags(assetId: string, tags: string[]) {
+  return safeRequest<{ assetId: string; tags: string[] }>(`${BASE}/volcengine-assets/assets/${encodeURIComponent(assetId)}/tags`, {
+    method: 'PUT', body: JSON.stringify({ tags }),
+  });
+}
+
 export interface RhToolboxManifestPersistenceResult {
   manifest: RhToolboxManifest;
   path?: string;

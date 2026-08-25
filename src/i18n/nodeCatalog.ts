@@ -28,6 +28,7 @@ export const ENGLISH_NODE_CATALOG: Record<string, EnglishNodeCopy> = {
   'material-set': { label: 'Material Set', description: 'Collect and reorder same-kind text, image, video, or audio materials for generation and RH nodes.' },
   'generation-target': { label: 'Generation Target', description: 'Reserve an output position, then replace it with generated or edited image results.' },
   output: { label: 'Output Material', description: 'Preview upstream text, image, video, audio, and 3D results with native aspect ratios.' },
+  'volcengine-assets': { label: 'Volcengine Asset Library', description: 'Browse, organize, import, tag, and reference private Volcengine Ark image, video, and audio assets.' },
   'feishu-bitable-input': { label: 'Feishu Bitable Input', description: 'Read Feishu or Lark Bitable records as text, image, video, audio, and row metadata.' },
   'feishu-bitable-output': { label: 'Feishu Bitable Output', description: 'Create or update Feishu or Lark Bitable records with text and attachment fields.' },
   text: { label: 'Text', description: 'Prompt text node.' },

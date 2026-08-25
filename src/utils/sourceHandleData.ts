@@ -45,7 +45,9 @@ export function selectSourceHandleData(
   handles: ReadonlySet<string | null | undefined>,
 ): SourceHandleData[] {
   const source = data && typeof data === 'object' ? data : {};
-  const outputs = source.subflowOutputs;
+  const outputs = source.subflowOutputs && typeof source.subflowOutputs === 'object' && !Array.isArray(source.subflowOutputs)
+    ? source.subflowOutputs
+    : source.outputs;
   if (!outputs || typeof outputs !== 'object' || Array.isArray(outputs)) return [source];
 
   const requested = [...handles].filter((handle): handle is string => typeof handle === 'string' && Boolean(handle));

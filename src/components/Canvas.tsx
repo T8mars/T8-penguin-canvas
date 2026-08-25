@@ -1390,6 +1390,7 @@ const RHToolboxNode = lazyCanvasNode(() => import('./nodes/RHToolboxNode'), 'RHT
 const FalToolboxNode = lazyCanvasNode(() => import('./nodes/FalToolboxNode'), 'FalToolboxNode');
 const Model3DPreviewNode = lazyCanvasNode(() => import('./nodes/Model3DPreviewNode'), 'Model3DPreviewNode');
 const Model3DNode = lazyCanvasNode(() => import('./nodes/Model3DNode'), 'Model3DNode');
+const VolcengineAssetsNode = lazyCanvasNode(() => import('./nodes/VolcengineAssetsNode'), 'VolcengineAssetsNode');
 const GrokImageToolsNode = lazyCanvasNode(() => import('./nodes/GrokImageToolsNode'), 'GrokImageToolsNode');
 const FaceExpression3DNode = lazyCanvasNode(() => import('./nodes/FaceExpression3DNode'), 'FaceExpression3DNode');
 const PrevisStudioNode = lazyCanvasNode(() => import('./nodes/PrevisStudioNode'), 'PrevisStudioNode');
@@ -1542,6 +1543,7 @@ const SPECIFIC_NODES: Record<string, any> = {
   upload: UploadNode,
   // Output (1) - 输出素材(文本/图像/视频/音频 预览 + 文本双击编辑)
   output: OutputNode,
+  'volcengine-assets': VolcengineAssetsNode,
   'feishu-bitable-input': FeishuBitableInputNode,
   'feishu-bitable-output': FeishuBitableOutputNode,
 };
@@ -2594,6 +2596,17 @@ const INITIAL_DATA: Record<string, Record<string, any>> = {
     imageUrls: [],
     videoUrls: [],
     audioUrls: [],
+    status: 'idle',
+  },
+  'volcengine-assets': {
+    volcengineAssetsProfileId: 'volcengine',
+    volcengineAssetsProjectName: '',
+    volcengineAssetsResolvedProject: 'default',
+    volcengineAssetsGroupId: '',
+    volcengineAssetsPageNumber: 1,
+    selectedAssets: [],
+    outputs: { image: { imageUrl: '', imageUrls: [] }, video: { videoUrl: '', videoUrls: [] }, audio: { audioUrl: '', audioUrls: [] } },
+    imageUrl: '', imageUrls: [], videoUrl: '', videoUrls: [], audioUrl: '', audioUrls: [],
     status: 'idle',
   },
   'feishu-bitable-output': {

@@ -18,10 +18,10 @@
   },
   "sourceDigests": {
     "creativeCapabilityManifest": "16c15dab6eef440bbbee2e44ccf69dfe75bba70d6a61585ca0fb717279353b1d",
-    "canvasNodeSchema": "83c6e41656f42d157868169b5170b2937968758846ef0c192f02638adfc601e7",
-    "canvasNodeSchemaFile": "772652c353605329d13dbc1697d09f0b1bcc25af00f8eb72893ce7da9d6534e0",
-    "i18nNodeCatalog": "d96560c358bd76fab08b0fe0b1b5efdd5560c0e1a2b2a6c318ba212ed1a809c6",
-    "i18nRendererResources": "6686184a713205fa0841347b7b3c28ac3430a6bd940a62e97146cd5decea80ab",
+    "canvasNodeSchema": "30c9b5bff818f709f51a0851b14db443f8137f5e2d921b251ac31ad9b9b6621a",
+    "canvasNodeSchemaFile": "74414962e2394f19db774e235484005d99aaf65f760f54ec3e9d6ce806b1b8d8",
+    "i18nNodeCatalog": "d3724fe26ec0d0613dd29498db6679512e217e09172f484c6f7aac2339ae2df1",
+    "i18nRendererResources": "deb8ad4df23957730cbdcc4eae1b8bda79e24374a1b1bbc2b6a634dbf826b2ac",
     "i18nElectronCatalog": "409cf6403ce3d7bd3bfc96e996e43008b57b248a53bf9fb0f38b9bcf2fbea2d7",
     "runtimeCatalogSources": "b50ab361fe888d6ff7668ba18d25099e7d43cac6c3a28b18aedecaf7a9639574",
     "runtimeCatalogArtifact": "328fdeab9cc87b837e3fdac429ef09b76d2011a92ff8211ccafd706920fc492e",
@@ -30,7 +30,7 @@
     "coverageReceiptCompiler": "68c02167cb5317107edd346223a5e5999168e447bacbb977ff8e9678e6753fe7",
     "canonicalTextDigestCompiler": "b0afcf28a257fbbd8f391edc117348f8f2ede1b4a039ae91bce25a8d563ac0cf"
   },
-  "aggregateDigest": "cb18441c2aa7e3d39a898d7e00d0fc71e48d0dec76cd6acf22dbcb3cd6e6edde",
+  "aggregateDigest": "d4fae27f0a3f1a55a3fc2e0104b1efeb3d6829f064b3a155ea6cccd0fdec67a1",
   "principles": {
     "oneSentenceStart": true,
     "directCanvasMutation": false,
@@ -42,16 +42,16 @@
   "counts": {
     "capabilities": 31,
     "handlers": 31,
-    "nodes": 81,
-    "executableNodes": 62,
+    "nodes": 82,
+    "executableNodes": 63,
     "generatableNodes": 12,
-    "referencedNodes": 72,
+    "referencedNodes": 73,
     "unreferencedNodes": 9,
-    "directCapabilityNodes": 72,
+    "directCapabilityNodes": 73,
     "internalCompatNodes": 1,
     "semanticSupersededNodes": 8,
     "publicCapabilityGapNodes": 0,
-    "accountedNodes": 81,
+    "accountedNodes": 82,
     "unexplainedNodes": 0,
     "fullyOperableNodes": 19,
     "runtimeEntries": 277,
@@ -514,6 +514,7 @@
         "generation-target",
         "output",
         "feishu-bitable-input",
+        "volcengine-assets",
         "feishu-bitable-output",
         "text",
         "image",
@@ -3185,6 +3186,50 @@
         "video",
         "audio",
         "metadata"
+      ],
+      "capabilityIds": [
+        "canvas.node-add"
+      ],
+      "handlerIds": [
+        "creative-action:graph.node-add"
+      ],
+      "coverage": {
+        "understand": true,
+        "plan": true,
+        "preview": true,
+        "apply": true,
+        "run": false,
+        "verify": true,
+        "resume": false,
+        "rollback": true,
+        "recover": true
+      }
+    },
+    {
+      "type": "volcengine-assets",
+      "label": "火山素材库",
+      "description": "浏览、导入、标记并输出火山方舟私域图像、视频和音频素材",
+      "category": "input",
+      "hidden": false,
+      "executable": true,
+      "generatable": false,
+      "agentExposure": "direct-capability",
+      "coverageReason": "registered-capability-reference",
+      "accounting": {
+        "status": "direct-capability",
+        "reasonCode": "registered-capability-reference",
+        "semanticCapabilityIds": [
+          "canvas.node-add"
+        ],
+        "evidence": [
+          "tools/zcanvas-cli/creativeCapabilityManifest.json"
+        ]
+      },
+      "inputs": [],
+      "outputs": [
+        "image",
+        "video",
+        "audio"
       ],
       "capabilityIds": [
         "canvas.node-add"
@@ -12346,6 +12391,7 @@
       "material-set",
       "generation-target",
       "feishu-bitable-input",
+      "volcengine-assets",
       "feishu-bitable-output",
       "video",
       "fashvsr-video-upscale",
@@ -12681,15 +12727,15 @@
     "schema": "t8-creative-capability-coverage-receipt-v1",
     "sourceDigests": {
       "capabilityManifest": "16c15dab6eef440bbbee2e44ccf69dfe75bba70d6a61585ca0fb717279353b1d",
-      "nodeSchema": "83c6e41656f42d157868169b5170b2937968758846ef0c192f02638adfc601e7",
+      "nodeSchema": "30c9b5bff818f709f51a0851b14db443f8137f5e2d921b251ac31ad9b9b6621a",
       "runtimeCatalog": "b50ab361fe888d6ff7668ba18d25099e7d43cac6c3a28b18aedecaf7a9639574",
       "handlerBindings": "7f689a24a0d9afd39cb2788f5ecdcbdcbc6446adc357bc36373d1ab2461cd4bd",
       "receiptCompiler": "68c02167cb5317107edd346223a5e5999168e447bacbb977ff8e9678e6753fe7"
     },
     "inventory": {
       "nodes": {
-        "total": 81,
-        "executable": 62,
+        "total": 82,
+        "executable": 63,
         "generatable": 12
       },
       "runtime": {
@@ -12711,6 +12757,6 @@
       "missingCompatibilityEdges": []
     },
     "complete": true,
-    "digest": "7d80844ba543c8ca0c4e92cf7b0751f00f0f037d70143bb92959602f6f579ad9"
+    "digest": "f425e4dcf82fdcdb81870a710e55b52f76c8f4b1d31ddec04d95d97c142a8437"
   }
 }

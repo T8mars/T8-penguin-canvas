@@ -201,6 +201,33 @@ test('Volcengine video generation normalizes Ark root base URL and multimodal re
   assert.deepEqual(result.videoUrls, ['https://volc.example.com/root.mp4']);
 });
 
+test('Volcengine generation preserves strict asset:// references for Ark private assets', async () => {
+  const calls: any[] = [];
+  const provider = {
+    id: 'volcengine',
+    protocol: 'volcengine',
+    baseUrl: 'https://ark.cn-beijing.volces.com/api/v3',
+    apiKey: 'ark-secret',
+    videoModels: ['doubao-seedance-2-0-fast-260128'],
+  };
+  const result = await volcengine.generateVideo(provider, {
+    prompt: 'private asset reference',
+    model: 'doubao-seedance-2-0-fast-260128',
+    images: ['Asset://asset-AbC_123'],
+  }, {
+    pollIntervalMs: 1,
+    fetchImpl: async (url: string, init: any = {}) => {
+      if (init.method === 'POST') {
+        calls.push(JSON.parse(init.body));
+        return jsonResponse({ id: 'asset-task' });
+      }
+      return jsonResponse({ status: 'SUCCESS', data: { video_url: 'https://volc.example.com/asset.mp4' } });
+    },
+  });
+  assert.equal(result.ok, true);
+  assert.equal(calls[0].content[1].image_url.url, 'asset://asset-AbC_123');
+});
+
 test('Volcengine video generation extracts nested Ark task content video URL', async () => {
   const calls: any[] = [];
   const provider = {

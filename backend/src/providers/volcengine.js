@@ -1,5 +1,6 @@
 const openaiCompatible = require('./openaiCompatible');
 const { resolveMediaRef } = require('./mediaResolver');
+const { normalizeVolcengineAssetUri } = require('./volcengineAssets');
 const { mergeProviderTrace, providerTrace } = require('./providerTrace');
 
 const GENERATION_TIMEOUT_MS = 60 * 60 * 1000;
@@ -214,6 +215,10 @@ async function resolveRefs(refs, options = {}) {
   for (const ref of Array.isArray(refs) ? refs : []) {
     const value = typeof ref === 'string' ? ref : ref?.url || ref?.imageUrl || ref?.value;
     if (!value) continue;
+    if (/^asset:\/\//i.test(value)) {
+      out.push(normalizeVolcengineAssetUri(value));
+      continue;
+    }
     const resolved = await resolveMediaRef(value, {
       target: 'data-url',
       baseUrl: options.baseUrl,
@@ -230,13 +235,18 @@ async function resolveMediaItems(refs, options = {}) {
       ? ref
       : ref?.url || ref?.imageUrl || ref?.videoUrl || ref?.audioUrl || ref?.value;
     if (!value) continue;
+    const role = typeof ref === 'object' && ref ? String(ref.role || ref.mediaRole || '').trim() : '';
+    if (/^asset:\/\//i.test(value)) {
+      out.push({ url: normalizeVolcengineAssetUri(value), role });
+      continue;
+    }
     const resolved = await resolveMediaRef(value, {
       target: 'data-url',
       baseUrl: options.baseUrl,
     });
     out.push({
       url: resolved.dataUrl || resolved.url || value,
-      role: typeof ref === 'object' && ref ? String(ref.role || ref.mediaRole || '').trim() : '',
+      role,
     });
   }
   return out;

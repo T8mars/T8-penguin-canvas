@@ -67,3 +67,15 @@ test('nested subflow output handle wins over aggregate fields', () => {
   };
   assert.deepEqual(selectSingleSourceHandleData(data, 'mask', 'image'), { imageUrl: 'mask.png' });
 });
+
+test('multi-output core nodes route their explicit outputs map', () => {
+  const data = {
+    imageUrls: ['aggregate.png'],
+    outputs: {
+      image: { imageUrl: 'image.png', imageUrls: ['image.png'] },
+      video: { videoUrl: 'video.mp4', videoUrls: ['video.mp4'] },
+    },
+  };
+  assert.deepEqual(selectSourceHandleData(data, new Set(['image'])), [data.outputs.image]);
+  assert.deepEqual(selectSourceHandleData(data, new Set(['video'])), [data.outputs.video]);
+});
