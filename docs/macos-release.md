@@ -90,3 +90,5 @@ Developer ID 正式发布另需以下两组之一的公证凭据，并需要 `CS
 v3.0.2 的 Windows 三项自动更新资产已通过正式门禁并发布。随后同一正式标签触发的真实 `macos-15` arm64 workflow `32882092427` 在任何 Mac 构建与资产上传前失败关闭：旧 `dist-macos.cjs` 只读取 `git ls-remote origin refs/tags/v3.0.2` 的首项，将 annotated tag 对象 SHA 当成提交 SHA，与正确的 `HEAD` / `T8_RELEASE_TARGET` 比较后误判漂移。
 
 v3.0.2 标签与资产保持冻结，不移动、不覆盖、不复用。v3.0.3 起，源码门同时请求直接引用和 `refs/tags/<tag>^{}`，优先取 peeled commit；lightweight tag 仍回退到直接引用，缺失引用仍失败关闭。修复由 annotated/lightweight/missing 三类测试锁定，Windows 与 Mac 重新从同一个 v3.0.3 固定提交和正式标签发布。
+
+v3.0.3 已由固定提交 `64d9a708dd92d38a77b710e06855ddcf6b4e652c` 正式发布到 <https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.0.3>。真实 Mac workflow <https://github.com/T8mars/T8-penguin-canvas/actions/runs/32886208665> 成功通过源码绑定、私有源恢复、arm64 构建、ad-hoc 签名、FFmpeg/FFprobe、DMG/ZIP/清单验证及三资产完整回下载；DMG 为 468,133,250 bytes / SHA-256 `18ab11a8dfbf4f23a6a66f8167160a6bae1f00c758ddcd9ca796e181b890dfa5`，ZIP 为 461,084,588 bytes / `98ca092ffd2d5047276774880cec969dc7c99b9a82ebe3913681ee81a9be5aa0`，`latest-mac.yml` 为 536 bytes / `e8cc436f720968f90a26cafdeef4a7a6c0d08af399da635e20e296ab321471e1`。同一 Release 的 Windows 三资产也已完整回下载，并保持同一 target 与 Latest。
