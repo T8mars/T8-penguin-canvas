@@ -11,29 +11,29 @@ export const SYSTEM_UI_FONT_STACK =
 export const UI_FONT_PRESETS = [
   {
     id: 'readable',
-    label: '清晰推荐',
-    description: '优先使用 Windows 中文 UI 字体，缩小时更稳。',
+    labelKey: 'fonts.presets.readable.label',
+    descriptionKey: 'fonts.presets.readable.description',
     stack: READABLE_UI_FONT_STACK,
   },
   {
     id: 'system',
-    label: '系统默认',
-    description: '跟随浏览器和系统 UI 字体。',
+    labelKey: 'fonts.presets.system.label',
+    descriptionKey: 'fonts.presets.system.description',
     stack: SYSTEM_UI_FONT_STACK,
   },
   {
     id: 'theme',
-    label: '跟随主题',
-    description: '使用当前主题模板自带字体。',
+    labelKey: 'fonts.presets.theme.label',
+    descriptionKey: 'fonts.presets.theme.description',
     stack: '',
   },
   {
     id: 'custom',
-    label: '自定义',
-    description: '输入自己的字体栈，本机安装后生效。',
+    labelKey: 'fonts.presets.custom.label',
+    descriptionKey: 'fonts.presets.custom.description',
     stack: '',
   },
-] satisfies Array<{ id: UiFontPresetId; label: string; description: string; stack: string }>;
+] satisfies Array<{ id: UiFontPresetId; labelKey: string; descriptionKey: string; stack: string }>;
 
 export function normalizeUiFontPresetId(value: unknown): UiFontPresetId {
   if (value === 'readable' || value === 'system' || value === 'theme' || value === 'custom') {

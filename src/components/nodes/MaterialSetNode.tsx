@@ -42,6 +42,7 @@ import {
   type MaterialSetKind,
 } from '../../utils/materialSet';
 import { defaultSizeOf, placeBatchNodes, type Rect as PlacementRect } from '../../utils/nodePlacement';
+import NodeVisible from '../../i18n/NodeVisible';
 
 const KIND_LABEL: Record<MaterialSetKind, string> = {
   text: '文本',
@@ -439,7 +440,8 @@ const MaterialSetNode = ({ id, data, selected }: NodeProps) => {
   const sourceTitle = kind ? `输出${KIND_LABEL[kind]}素材集` : '请先加入素材';
 
   return (
-    <div
+    <NodeVisible>
+      <div
       className="relative rounded-xl border-2 transition-colors"
       style={{
         width: 320,
@@ -756,7 +758,8 @@ const MaterialSetNode = ({ id, data, selected }: NodeProps) => {
           </div>
         )}
       </div>
-    </div>
+      </div>
+    </NodeVisible>
   );
 };
 

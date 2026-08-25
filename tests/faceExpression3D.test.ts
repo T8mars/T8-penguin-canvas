@@ -211,19 +211,24 @@ test('node is registered as executable 3D image/metadata producer and persists l
 
 test('editor exposes every required professional workflow tab and photo analysis uses FaceLandmarker', () => {
   const editor = read('src/components/face-expression-3d/FaceExpression3DEditor.tsx');
+  const resources = read('src/i18n/resources.ts');
   const analysis = read('src/utils/facePhotoAnalysis.ts');
   const scene = read('src/three/faceExpression/FaceExpressionScene.ts');
-  for (const label of ['表情', '表情预设', '头眼', '相机', '灯光', '输出', '批量']) assert.match(editor, new RegExp(label));
-  assert.match(editor, /\{ id: 'expression', label: '表情'.*\{ id: 'presets', label: '表情预设'.*\{ id: 'pose', label: '头眼'/s);
+  for (const id of ['expression', 'presets', 'pose', 'camera', 'lighting', 'output', 'batch']) {
+    assert.match(editor, new RegExp(`\\{ id: '${id}', labelKey: 'tabs\\.${id}'`));
+  }
+  assert.match(editor, /useTranslation\('nodes'\)/);
+  assert.match(editor, /faceExpression3d\.editor/);
   assert.match(editor, /data-testid="face-expression-preset-library"/);
   assert.match(editor, /filteredLibraryPresets\.length\}\/100/);
-  assert.match(editor, /专业 52/);
-  assert.match(editor, /mouthSmileLeft:\s*'微笑'/);
-  assert.match(editor, /mouthFrownLeft:\s*'嘴角下压'/);
-  assert.match(editor, /eyeBlinkLeft:\s*'眨眼'/);
-  assert.match(editor, /label=\{SIMPLE_CHANNEL_LABELS\[channel\]\}/);
-  assert.match(editor, /label=\{FACE_CHANNEL_LABELS\[channel\]\}/);
-  assert.match(editor, /照片功能只校准/);
+  assert.match(editor, /editorT\('professional52'\)/);
+  assert.match(editor, /simpleChannels\.\$\{channel\}/);
+  assert.match(editor, /channels\.\$\{channel\}/);
+  assert.match(editor, /editorT\('photoBoundary'\)/);
+  assert.match(resources, /professional52: '专业 52'/);
+  assert.match(resources, /professional52: 'Pro 52'/);
+  assert.match(resources, /mouthSmileLeft: '微笑'/);
+  assert.match(resources, /mouthSmileLeft: 'Smile'/);
   assert.match(analysis, /FaceLandmarker/);
   assert.match(analysis, /outputFaceBlendshapes: true/);
   assert.match(scene, /GLTFLoader/);
@@ -231,9 +236,9 @@ test('editor exposes every required professional workflow tab and photo analysis
   assert.match(scene, /loadModel\(BUILTIN_FACE_MODEL_URL, 'builtin'\)/);
   assert.doesNotMatch(scene, /this\.procedural/);
   assert.doesNotMatch(scene, /createProceduralHead|T8NeutralClayHead|SphereGeometry|BoxGeometry/);
-  assert.match(editor, /中性对照/);
-  assert.match(editor, /模型体检与来源/);
-  assert.match(editor, /ICT Face Model Light/);
+  assert.match(editor, /editorT\('neutralCompare'\)/);
+  assert.match(editor, /editorT\('modelHealthSource'\)/);
+  assert.match(resources, /ICT Face Model Light/);
   assert.match(scene, /exportImage/);
   assert.match(scene, /4096/);
 });

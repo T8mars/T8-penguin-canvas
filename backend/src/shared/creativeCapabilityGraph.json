@@ -3,6 +3,9 @@
   "generatedFrom": {
     "capabilityManifest": "tools/zcanvas-cli/creativeCapabilityManifest.json",
     "canvasNodeSchema": "backend/src/shared/canvasNodeSchema.json",
+    "i18nNodeCatalog": "src/i18n/nodeCatalog.ts",
+    "i18nRendererResources": "src/i18n/resources.ts",
+    "i18nElectronCatalog": "electron/i18n-catalog.json",
     "runtimeCatalog": [
       "src/providers/models.ts",
       "src/config/seedance.ts",
@@ -17,14 +20,17 @@
     "creativeCapabilityManifest": "16c15dab6eef440bbbee2e44ccf69dfe75bba70d6a61585ca0fb717279353b1d",
     "canvasNodeSchema": "83c6e41656f42d157868169b5170b2937968758846ef0c192f02638adfc601e7",
     "canvasNodeSchemaFile": "772652c353605329d13dbc1697d09f0b1bcc25af00f8eb72893ce7da9d6534e0",
-    "runtimeCatalogSources": "d0cc923fc64179e0a3cf12910e6f8d7cc263e6851d4fea127af74e587f34e017",
-    "runtimeCatalogArtifact": "70aee553873e06f79c06e18ae75d19f9f60357e694b1af661a808b5ff8940eb6",
+    "i18nNodeCatalog": "2b57f8847beadd82d459adb44cda5f76b89d8781eb864bad5b9352faab053f51",
+    "i18nRendererResources": "6686184a713205fa0841347b7b3c28ac3430a6bd940a62e97146cd5decea80ab",
+    "i18nElectronCatalog": "409cf6403ce3d7bd3bfc96e996e43008b57b248a53bf9fb0f38b9bcf2fbea2d7",
+    "runtimeCatalogSources": "b50ab361fe888d6ff7668ba18d25099e7d43cac6c3a28b18aedecaf7a9639574",
+    "runtimeCatalogArtifact": "328fdeab9cc87b837e3fdac429ef09b76d2011a92ff8211ccafd706920fc492e",
     "handlerBindings": "7f689a24a0d9afd39cb2788f5ecdcbdcbc6446adc357bc36373d1ab2461cd4bd",
-    "capabilityGraphCompiler": "1a611d7e91dcf523e0536a92e9adb6ba2d884689a65fa10274bcda3a05ef9840",
+    "capabilityGraphCompiler": "a3716d239b91e1c4775f5996b3865ba3ab8fd652263138feef0a56de40851c24",
     "coverageReceiptCompiler": "68c02167cb5317107edd346223a5e5999168e447bacbb977ff8e9678e6753fe7",
     "canonicalTextDigestCompiler": "b0afcf28a257fbbd8f391edc117348f8f2ede1b4a039ae91bce25a8d563ac0cf"
   },
-  "aggregateDigest": "97e7660e157eaa26514935ce07c5afb4c3c5e8302983d4721555941c5a496823",
+  "aggregateDigest": "ebc5bab6acc5ec3de1328009d9722ca6fcc76a02c7133727d387a49b0beb9173",
   "principles": {
     "oneSentenceStart": true,
     "directCanvasMutation": false,
@@ -48,17 +54,17 @@
     "accountedNodes": 81,
     "unexplainedNodes": 0,
     "fullyOperableNodes": 19,
-    "runtimeEntries": 269,
+    "runtimeEntries": 277,
     "runtimeByKind": {
       "llm": 34,
       "image": 45,
-      "video": 115,
+      "video": 123,
       "audio": 17,
       "actions": 58
     },
     "runtimeByProvider": {
       "grok-oauth": 2,
-      "seedance-nz": 204,
+      "seedance-nz": 212,
       "zhenzhen": 56,
       "fal": 7
     },
@@ -6560,7 +6566,7 @@
   ],
   "runtime": {
     "schema": "t8-creative-runtime-catalog-v1",
-    "sourceDigest": "d0cc923fc64179e0a3cf12910e6f8d7cc263e6851d4fea127af74e587f34e017",
+    "sourceDigest": "b50ab361fe888d6ff7668ba18d25099e7d43cac6c3a28b18aedecaf7a9639574",
     "platforms": [
       {
         "id": "zhenzhen",
@@ -11263,6 +11269,166 @@
         }
       },
       {
+        "id": "video:seedance-nz:wan-3.0-global-i2v",
+        "kind": "video",
+        "provider": "seedance-nz",
+        "platformLabel": "贞贞的平价AI小屋",
+        "model": "wan-3.0-global-i2v",
+        "label": "wan-3.0-global-i2v（首尾帧图生视频）",
+        "family": "wan-2.7-spicy",
+        "available": true,
+        "catalogSection": "video",
+        "compatibility": {
+          "known": true,
+          "installed": true,
+          "credentialReady": null,
+          "regionReady": true,
+          "executable": false,
+          "available": true,
+          "requiresRuntimeCheck": true
+        }
+      },
+      {
+        "id": "video:seedance-nz:wan-3.0-global-prime-i2v",
+        "kind": "video",
+        "provider": "seedance-nz",
+        "platformLabel": "贞贞的平价AI小屋",
+        "model": "wan-3.0-global-prime-i2v",
+        "label": "wan-3.0-global-prime-i2v（首尾帧图生视频）",
+        "family": "wan-2.7-spicy",
+        "available": true,
+        "catalogSection": "video",
+        "compatibility": {
+          "known": true,
+          "installed": true,
+          "credentialReady": null,
+          "regionReady": true,
+          "executable": false,
+          "available": true,
+          "requiresRuntimeCheck": true
+        }
+      },
+      {
+        "id": "video:seedance-nz:wan-3.0-global-prime-r2v",
+        "kind": "video",
+        "provider": "seedance-nz",
+        "platformLabel": "贞贞的平价AI小屋",
+        "model": "wan-3.0-global-prime-r2v",
+        "label": "wan-3.0-global-prime-r2v（多模态参考生视频）",
+        "family": "wan-2.7-spicy",
+        "available": true,
+        "catalogSection": "video",
+        "compatibility": {
+          "known": true,
+          "installed": true,
+          "credentialReady": null,
+          "regionReady": true,
+          "executable": false,
+          "available": true,
+          "requiresRuntimeCheck": true
+        }
+      },
+      {
+        "id": "video:seedance-nz:wan-3.0-global-r2v",
+        "kind": "video",
+        "provider": "seedance-nz",
+        "platformLabel": "贞贞的平价AI小屋",
+        "model": "wan-3.0-global-r2v",
+        "label": "wan-3.0-global-r2v（多模态参考生视频）",
+        "family": "wan-2.7-spicy",
+        "available": true,
+        "catalogSection": "video",
+        "compatibility": {
+          "known": true,
+          "installed": true,
+          "credentialReady": null,
+          "regionReady": true,
+          "executable": false,
+          "available": true,
+          "requiresRuntimeCheck": true
+        }
+      },
+      {
+        "id": "video:seedance-nz:wan-3.0-i2v",
+        "kind": "video",
+        "provider": "seedance-nz",
+        "platformLabel": "贞贞的平价AI小屋",
+        "model": "wan-3.0-i2v",
+        "label": "wan-3.0-i2v（首尾帧图生视频）",
+        "family": "wan-2.7-spicy",
+        "available": true,
+        "catalogSection": "video",
+        "compatibility": {
+          "known": true,
+          "installed": true,
+          "credentialReady": null,
+          "regionReady": true,
+          "executable": false,
+          "available": true,
+          "requiresRuntimeCheck": true
+        }
+      },
+      {
+        "id": "video:seedance-nz:wan-3.0-prime-i2v",
+        "kind": "video",
+        "provider": "seedance-nz",
+        "platformLabel": "贞贞的平价AI小屋",
+        "model": "wan-3.0-prime-i2v",
+        "label": "wan-3.0-prime-i2v（首尾帧图生视频）",
+        "family": "wan-2.7-spicy",
+        "available": true,
+        "catalogSection": "video",
+        "compatibility": {
+          "known": true,
+          "installed": true,
+          "credentialReady": null,
+          "regionReady": true,
+          "executable": false,
+          "available": true,
+          "requiresRuntimeCheck": true
+        }
+      },
+      {
+        "id": "video:seedance-nz:wan-3.0-prime-r2v",
+        "kind": "video",
+        "provider": "seedance-nz",
+        "platformLabel": "贞贞的平价AI小屋",
+        "model": "wan-3.0-prime-r2v",
+        "label": "wan-3.0-prime-r2v（多模态参考生视频）",
+        "family": "wan-2.7-spicy",
+        "available": true,
+        "catalogSection": "video",
+        "compatibility": {
+          "known": true,
+          "installed": true,
+          "credentialReady": null,
+          "regionReady": true,
+          "executable": false,
+          "available": true,
+          "requiresRuntimeCheck": true
+        }
+      },
+      {
+        "id": "video:seedance-nz:wan-3.0-r2v",
+        "kind": "video",
+        "provider": "seedance-nz",
+        "platformLabel": "贞贞的平价AI小屋",
+        "model": "wan-3.0-r2v",
+        "label": "wan-3.0-r2v（多模态参考生视频）",
+        "family": "wan-2.7-spicy",
+        "available": true,
+        "catalogSection": "video",
+        "compatibility": {
+          "known": true,
+          "installed": true,
+          "credentialReady": null,
+          "regionReady": true,
+          "executable": false,
+          "available": true,
+          "requiresRuntimeCheck": true
+        }
+      },
+      {
         "id": "video:seedance-nz:zhenzhen-upscaler",
         "kind": "video",
         "provider": "seedance-nz",
@@ -12463,6 +12629,14 @@
       "video:seedance-nz:vidu-q3-turbo-start-end",
       "video:seedance-nz:vidu-q3-turbo-t2v",
       "video:seedance-nz:wan-2.7-spicy-i2v",
+      "video:seedance-nz:wan-3.0-global-i2v",
+      "video:seedance-nz:wan-3.0-global-prime-i2v",
+      "video:seedance-nz:wan-3.0-global-prime-r2v",
+      "video:seedance-nz:wan-3.0-global-r2v",
+      "video:seedance-nz:wan-3.0-i2v",
+      "video:seedance-nz:wan-3.0-prime-i2v",
+      "video:seedance-nz:wan-3.0-prime-r2v",
+      "video:seedance-nz:wan-3.0-r2v",
       "video:seedance-nz:zhenzhen-upscaler",
       "video:seedance-nz:zhenzhen-video-g-omni-flash",
       "video:seedance-nz:zhenzhen-video-g-omni-flash-lowprice",
@@ -12508,7 +12682,7 @@
     "sourceDigests": {
       "capabilityManifest": "16c15dab6eef440bbbee2e44ccf69dfe75bba70d6a61585ca0fb717279353b1d",
       "nodeSchema": "83c6e41656f42d157868169b5170b2937968758846ef0c192f02638adfc601e7",
-      "runtimeCatalog": "d0cc923fc64179e0a3cf12910e6f8d7cc263e6851d4fea127af74e587f34e017",
+      "runtimeCatalog": "b50ab361fe888d6ff7668ba18d25099e7d43cac6c3a28b18aedecaf7a9639574",
       "handlerBindings": "7f689a24a0d9afd39cb2788f5ecdcbdcbc6446adc357bc36373d1ab2461cd4bd",
       "receiptCompiler": "68c02167cb5317107edd346223a5e5999168e447bacbb977ff8e9678e6753fe7"
     },
@@ -12521,7 +12695,7 @@
       "runtime": {
         "llm": 34,
         "image": 45,
-        "video": 115,
+        "video": 123,
         "audio": 17,
         "actions": 58
       },
@@ -12537,6 +12711,6 @@
       "missingCompatibilityEdges": []
     },
     "complete": true,
-    "digest": "cc588a67266cc53c415052dd21dfefc18804136125f7941e5f94571b27276795"
+    "digest": "7d80844ba543c8ca0c4e92cf7b0751f00f0f037d70143bb92959602f6f579ad9"
   }
 }

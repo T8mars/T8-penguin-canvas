@@ -62,7 +62,7 @@ const DEFAULT: ApiSettings = {
     defaultLabel: '',
   },
   taskCompletionSound: { mode: 'default', url: '' },
-  preferences: { theme: 'dark', language: 'zh-CN' },
+  preferences: { theme: 'dark', uiLocale: 'zh-CN', language: 'zh-CN' },
 };
 
 export const useApiKeysStore = create<ApiKeysState>((set) => ({

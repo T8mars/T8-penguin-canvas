@@ -1,5 +1,7 @@
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
+import { localizeLegacyRuntimeText } from '../../i18n/legacyRuntimeText';
 import { Handle, Position, useNodeConnections, type NodeProps } from '@xyflow/react';
 import {
   AlertCircle,
@@ -726,6 +728,11 @@ function PortLabel({ side, top, children }: { side: 'left' | 'right'; top: strin
 }
 
 function MvMusicMasterNode({ id, data, selected }: NodeProps) {
+  const { t: translate, i18n } = useTranslation(['nodes', 'common']);
+  const mvT = (key: string, options?: Record<string, unknown>) => translate(`nodes:mvMusicMaster.editor.${key}`, options);
+  const mvRuntimeText = (value: unknown) => localizeLegacyRuntimeText('mvMusicMaster', i18n.resolvedLanguage || i18n.language, value);
+  const stageDisplayLabel = (stage: MvStage) => mvT(`stages.${stage}`, { defaultValue: STAGES.find((item) => item.id === stage)?.label || stage });
+  const candidateStatusLabel = (status?: string) => mvT(`statuses.${status || 'missing'}`, { defaultValue: status || mvT('missing') });
   const d = data as any;
   const update = useUpdateNodeData(id);
   const upstream = useUpstreamMaterials(id);
@@ -3550,13 +3557,13 @@ function MvMusicMasterNode({ id, data, selected }: NodeProps) {
   })) || [], [project.segmentPlan, project.lyricUnits]);
 
   const workbench = workbenchOpen && typeof document !== 'undefined' ? createPortal(
-    <div className="fixed inset-0 z-[10020] flex bg-[#09090d] text-white" role="dialog" aria-modal="true" aria-label="MV 音乐大师工作台">
+    <div className="fixed inset-0 z-[10020] flex bg-[#09090d] text-white" role="dialog" aria-modal="true" aria-label={mvT('workbenchAria')}>
       <aside className="flex w-[190px] shrink-0 flex-col border-r border-white/10 bg-[#101017] p-3">
         <div className="mb-4 flex items-center gap-2 px-1">
           <Clapperboard size={20} className="text-fuchsia-300" />
           <div>
-            <div className="text-sm font-bold">MV 音乐大师</div>
-            <div className="text-[10px] text-white/40">高质量导演确认模式</div>
+            <div className="text-sm font-bold">{translate('nodes:mvMusicMaster.title')}</div>
+            <div className="text-[10px] text-white/40">{mvT('directorReviewMode')}</div>
           </div>
         </div>
         <nav className="space-y-1">
@@ -3572,76 +3579,76 @@ function MvMusicMasterNode({ id, data, selected }: NodeProps) {
                 onClick={() => setActiveStage(stage.id)}
                 className={`flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-xs ${current ? 'bg-fuchsia-500/20 text-fuchsia-100 ring-1 ring-fuchsia-400/30' : enabled ? 'text-white/65 hover:bg-white/5' : 'cursor-not-allowed text-white/20'}`}
               >
-                <span>{stage.label}</span>
+                <span>{stageDisplayLabel(stage.id)}</span>
                 {complete ? <CheckCircle2 size={13} className="text-emerald-400" /> : <ChevronRight size={13} />}
               </button>
             );
           })}
         </nav>
         <div className="mt-auto rounded-lg border border-white/10 bg-white/[0.03] p-2 text-[10px] leading-4 text-white/45">
-          付费生成只在对应阶段明确确认后发生。候选追加保存，不覆盖已采纳版本。
+          {mvT('paidGenerationNote')}
         </div>
       </aside>
 
       <main className="flex min-w-0 flex-1 flex-col">
         <header className="flex h-14 shrink-0 items-center justify-between border-b border-white/10 px-5">
           <div>
-            <div className="text-sm font-semibold">{STAGES.find((stage) => stage.id === activeStage)?.label}</div>
-            <div className="text-[10px] text-white/40">工程 revision {project.revision} · 默认 LLM {MV_DEFAULT_LLM_MODEL}</div>
+            <div className="text-sm font-semibold">{stageDisplayLabel(activeStage)}</div>
+            <div className="text-[10px] text-white/40">{mvT('projectMeta', { revision: project.revision, model: MV_DEFAULT_LLM_MODEL })}</div>
           </div>
-          <button type="button" onClick={() => setWorkbenchOpen(false)} className="rounded-lg border border-white/10 p-2 text-white/55 hover:bg-white/5 hover:text-white" aria-label="关闭工作台"><X size={17} /></button>
+          <button type="button" onClick={() => setWorkbenchOpen(false)} className="rounded-lg border border-white/10 p-2 text-white/55 hover:bg-white/5 hover:text-white" aria-label={mvT('closeWorkbench')}><X size={17} /></button>
         </header>
 
         <section className="min-h-0 flex-1 overflow-auto p-5">
           <div className="mx-auto mb-4 max-w-7xl rounded-xl border border-amber-400/20 bg-amber-400/[0.05] p-4">
             <div className="flex flex-wrap items-start justify-between gap-3">
-              <div><div className="text-xs font-semibold text-amber-100">授权与真实计费确认</div><div className="mt-1 text-[10px] leading-4 text-white/45">确认只约束本 MV 工程。价格由所选 Provider 实时结算，本节点不猜测费用；超过单批上限会在提交前阻断。</div></div>
-              <label className="flex items-center gap-2 text-[10px] text-white/55">单批最多任务<input type="number" min="1" max="200" value={approvals.maxTasksPerBatch} onChange={(event) => updateApprovals({ maxTasksPerBatch: Math.max(1, Math.min(200, Math.trunc(Number(event.target.value) || 1))) })} className="w-20 rounded border border-white/10 bg-black/30 px-2 py-1 text-xs text-white" /></label>
+              <div><div className="text-xs font-semibold text-amber-100">{mvT('approvalTitle')}</div><div className="mt-1 text-[10px] leading-4 text-white/45">{mvT('approvalNote')}</div></div>
+              <label className="flex items-center gap-2 text-[10px] text-white/55">{mvT('maxTasksPerBatch')}<input type="number" min="1" max="200" value={approvals.maxTasksPerBatch} onChange={(event) => updateApprovals({ maxTasksPerBatch: Math.max(1, Math.min(200, Math.trunc(Number(event.target.value) || 1))) })} className="w-20 rounded border border-white/10 bg-black/30 px-2 py-1 text-xs text-white" /></label>
             </div>
             <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
               {([
-                ['musicRights', '我拥有歌曲/录音使用授权'],
-                ['portraitConsent', '人物已同意用于 AI 生成'],
-                ['styleReferenceRights', '我有权使用风格参考图'],
-                ['paidGeneration', '我确认调用真实 Provider 并计费'],
-              ] as const).map(([key, label]) => <label key={key} className="flex items-center gap-2 rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-[10px] text-white/65"><input type="checkbox" checked={approvals[key]} onChange={(event) => updateApprovals({ [key]: event.target.checked })} />{label}</label>)}
+                ['musicRights', 'approvalMusicRights'],
+                ['portraitConsent', 'approvalPortraitConsent'],
+                ['styleReferenceRights', 'approvalStyleRights'],
+                ['paidGeneration', 'approvalPaidGeneration'],
+              ] as const).map(([key, labelKey]) => <label key={key} className="flex items-center gap-2 rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-[10px] text-white/65"><input type="checkbox" checked={approvals[key]} onChange={(event) => updateApprovals({ [key]: event.target.checked })} />{mvT(labelKey)}</label>)}
             </div>
           </div>
-          {configurationDriftMessage && <div className="mx-auto mb-4 flex max-w-7xl items-start gap-2 rounded-xl border border-rose-400/30 bg-rose-400/10 px-4 py-3 text-xs text-rose-100"><AlertCircle size={15} className="mt-0.5 shrink-0" /><span>{configurationDriftMessage} 在修正前不会调用任何 Provider，也不会静默改用默认计费配置。</span></div>}
+          {configurationDriftMessage && <div className="mx-auto mb-4 flex max-w-7xl items-start gap-2 rounded-xl border border-rose-400/30 bg-rose-400/10 px-4 py-3 text-xs text-rose-100"><AlertCircle size={15} className="mt-0.5 shrink-0" /><span>{mvT('configurationDrift', { message: mvRuntimeText(configurationDriftMessage) })}</span></div>}
           {activeStage === 'materials' && (
             <div className="mx-auto grid max-w-6xl gap-4 lg:grid-cols-[1.1fr_.9fr]">
               <div className="rounded-xl border border-white/10 bg-white/[0.025] p-4">
-                <h2 className="mb-3 text-sm font-semibold">歌曲与歌词</h2>
+                <h2 className="mb-3 text-sm font-semibold">{mvT('songAndLyrics')}</h2>
                 <div className="mb-3 rounded-lg border border-white/10 bg-black/20 p-3 text-xs">
-                  <div className="flex items-center gap-2 text-white/70"><Music2 size={15} />{audio?.label || '尚未连接歌曲'}</div>
-                  {project.audio && <div className="mt-1 text-[10px] text-white/40">{durationLabel(project.audio.durationUs)} · {project.audio.sampleRate} Hz · {project.audio.channelCount} 声道 · PCM {project.audio.totalSamples.toLocaleString()} samples</div>}
+                  <div className="flex items-center gap-2 text-white/70"><Music2 size={15} />{audio?.label || mvT('songNotConnected')}</div>
+                  {project.audio && <div className="mt-1 text-[10px] text-white/40">{mvT('audioMeta', { duration: durationLabel(project.audio.durationUs), sampleRate: project.audio.sampleRate, channels: project.audio.channelCount, samples: project.audio.totalSamples.toLocaleString() })}</div>}
                 </div>
-                <FieldLabel>准确歌词（纯文本 / LRC / SRT）</FieldLabel>
+                <FieldLabel>{mvT('authoritativeLyrics')}</FieldLabel>
                 <textarea value={lyricsText} readOnly={hasUpstreamLyrics} onChange={(event) => {
                   if (hasUpstreamLyrics) return;
                   const value = event.target.value;
                   const reset: MvProjectState = { ...EMPTY_PROJECT, revision: project.revision + 1 };
                   update({ ...CLEARED_DELIVERY_OUTPUTS, lyricsText: value, mvProject: reset, status: 'idle', error: '' });
                   setActiveStage('materials');
-                }} rows={16} className="w-full resize-y rounded-lg border border-white/10 bg-black/25 p-3 text-xs leading-5 text-white outline-none focus:border-fuchsia-400/50 read-only:cursor-not-allowed read-only:opacity-60" placeholder="连接文本节点，或在这里粘贴准确歌词。歌词是唯一权威文字来源。" />
-                {hasUpstreamLyrics && <div className="mt-2 text-[10px] text-cyan-200/70">当前歌词由上游文本端口实时提供；如需手工粘贴，请先断开歌词连线。</div>}
+                }} rows={16} className="w-full resize-y rounded-lg border border-white/10 bg-black/25 p-3 text-xs leading-5 text-white outline-none focus:border-fuchsia-400/50 read-only:cursor-not-allowed read-only:opacity-60" placeholder={mvT('lyricsPlaceholder')} />
+                {hasUpstreamLyrics && <div className="mt-2 text-[10px] text-cyan-200/70">{mvT('upstreamLyricsNote')}</div>}
               </div>
               <div className="space-y-4">
                 <div className="rounded-xl border border-white/10 bg-white/[0.025] p-4">
-                  <h2 className="mb-3 text-sm font-semibold">视觉素材角色</h2>
+                  <h2 className="mb-3 text-sm font-semibold">{mvT('visualMaterialRoles')}</h2>
                   <div className="grid grid-cols-2 gap-2">
                     {upstream.images.map((image, index) => (
                       <div key={image.id} className="overflow-hidden rounded-lg border border-white/10 bg-black/20">
-                        <img src={image.url} alt={image.label || `参考图 ${index + 1}`} className="aspect-video w-full object-cover" />
-                        <div className="p-2 text-[10px] text-white/60">{index === 0 ? '人设身份（默认）' : index === 1 ? '风格参考（默认）' : `补充参考 ${index + 1}`}</div>
+                        <img src={image.url} alt={image.label || mvT('referenceImageIndex', { index: index + 1 })} className="aspect-video w-full object-cover" />
+                        <div className="p-2 text-[10px] text-white/60">{index === 0 ? mvT('identityDefault') : index === 1 ? mvT('styleDefault') : mvT('extraReferenceIndex', { index: index + 1 })}</div>
                       </div>
                     ))}
                   </div>
-                  {!upstream.images.length && <div className="rounded-lg border border-amber-400/20 bg-amber-400/10 p-3 text-xs text-amber-100">至少连接一张人设图。风格图可由明确的纯文字风格替代。</div>}
+                  {!upstream.images.length && <div className="rounded-lg border border-amber-400/20 bg-amber-400/10 p-3 text-xs text-amber-100">{mvT('identityRequired')}</div>}
                 </div>
                 <button type="button" onClick={requestRun} disabled={busy} className="flex w-full items-center justify-center gap-2 rounded-xl bg-fuchsia-500 px-4 py-3 text-sm font-semibold hover:bg-fuchsia-400 disabled:opacity-50">
                   {busy ? <Loader2 size={16} className="animate-spin" /> : <AudioLines size={16} />}
-                  解码歌曲并解析歌词
+                  {mvT('decodeAndParse')}
                 </button>
               </div>
             </div>
@@ -3652,26 +3659,26 @@ function MvMusicMasterNode({ id, data, selected }: NodeProps) {
               <div className="rounded-xl border border-white/10 bg-white/[0.025] p-4">
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <h2 className="text-sm font-semibold">整曲波形与试听</h2>
+                    <h2 className="text-sm font-semibold">{mvT('waveformAndPreview')}</h2>
                     <p className="text-[10px] text-white/40">
                       {project.audio?.bpmEvidence?.verified
-                        ? `本地信号分析：${project.audio.bpmEvidence.bpm} BPM · 置信度 ${(project.audio.bpmEvidence.confidence * 100).toFixed(1)}% · 已用于节拍候选`
-                        : `本地 BPM 未通过证据阈值${project.audio?.bpmEvidence ? `（候选 ${project.audio.bpmEvidence.bpm} BPM / ${(project.audio.bpmEvidence.confidence * 100).toFixed(1)}%）` : ''}；“按 BPM”会明确回退到语义时长`}
+                        ? mvT('verifiedBpmEvidence', { bpm: project.audio.bpmEvidence.bpm, confidence: (project.audio.bpmEvidence.confidence * 100).toFixed(1) })
+                        : mvT('unverifiedBpmEvidence', { candidate: project.audio?.bpmEvidence ? mvT('bpmCandidate', { bpm: project.audio.bpmEvidence.bpm, confidence: (project.audio.bpmEvidence.confidence * 100).toFixed(1) }) : '' })}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <button type="button" disabled={busy || !project.audio} onClick={() => requestAction({ kind: 'align-lyrics', forceNew: ['submitting', 'ambiguous'].includes(String(project.asrSubmission?.status || '')) })} className="rounded-lg border border-cyan-400/25 bg-cyan-400/10 px-3 py-2 text-[11px] text-cyan-100 disabled:opacity-40">{['submitting', 'ambiguous'].includes(String(project.asrSubmission?.status || '')) ? '已核对旧任务后新建 ASR 修订' : 'Whisper 对齐权威歌词 · 1 次 API'}</button>
-                    {previewRange && <button type="button" onClick={() => { audioPreviewRef.current?.pause(); setPreviewRange(null); }} className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-[11px]">停止 A-B</button>}
+                    <button type="button" disabled={busy || !project.audio} onClick={() => requestAction({ kind: 'align-lyrics', forceNew: ['submitting', 'ambiguous'].includes(String(project.asrSubmission?.status || '')) })} className="rounded-lg border border-cyan-400/25 bg-cyan-400/10 px-3 py-2 text-[11px] text-cyan-100 disabled:opacity-40">{['submitting', 'ambiguous'].includes(String(project.asrSubmission?.status || '')) ? mvT('newAsrRevision') : mvT('whisperAlign')}</button>
+                    {previewRange && <button type="button" onClick={() => { audioPreviewRef.current?.pause(); setPreviewRange(null); }} className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-[11px]">{mvT('stopAB')}</button>}
                   </div>
                 </div>
                 <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-white/10 bg-black/20 p-2">
-                  <span className="text-[10px] text-white/45">人工校正 BPM</span>
+                  <span className="text-[10px] text-white/45">{mvT('manualBpm')}</span>
                   <input type="number" min="30" max="300" step="0.01" value={manualBpm} onChange={(event) => setManualBpm(event.target.value)} placeholder={String(project.audio?.bpmEvidence?.bpm || 120)} className="w-24 rounded border border-white/10 bg-black/30 px-2 py-1 text-xs outline-none" />
-                  <button type="button" onClick={() => applyManualBpm(Number(manualBpm))} className="rounded border border-cyan-400/20 bg-cyan-400/10 px-2 py-1 text-[10px] text-cyan-100">确认人工 BPM</button>
-                  {project.audio?.bpmEvidence?.bpm && project.audio.bpmEvidence.bpm / 2 >= 30 && <button type="button" onClick={() => applyManualBpm(project.audio!.bpmEvidence!.bpm / 2)} className="rounded border border-white/10 bg-white/5 px-2 py-1 text-[10px]">采用 0.5×（{(project.audio.bpmEvidence.bpm / 2).toFixed(1)}）</button>}
-                  {project.audio?.bpmEvidence?.bpm && project.audio.bpmEvidence.bpm * 2 <= 300 && <button type="button" onClick={() => applyManualBpm(project.audio!.bpmEvidence!.bpm * 2)} className="rounded border border-white/10 bg-white/5 px-2 py-1 text-[10px]">采用 2×（{(project.audio.bpmEvidence.bpm * 2).toFixed(1)}）</button>}
+                  <button type="button" onClick={() => applyManualBpm(Number(manualBpm))} className="rounded border border-cyan-400/20 bg-cyan-400/10 px-2 py-1 text-[10px] text-cyan-100">{mvT('confirmManualBpm')}</button>
+                  {project.audio?.bpmEvidence?.bpm && project.audio.bpmEvidence.bpm / 2 >= 30 && <button type="button" onClick={() => applyManualBpm(project.audio!.bpmEvidence!.bpm / 2)} className="rounded border border-white/10 bg-white/5 px-2 py-1 text-[10px]">{mvT('useHalfBpm', { bpm: (project.audio.bpmEvidence.bpm / 2).toFixed(1) })}</button>}
+                  {project.audio?.bpmEvidence?.bpm && project.audio.bpmEvidence.bpm * 2 <= 300 && <button type="button" onClick={() => applyManualBpm(project.audio!.bpmEvidence!.bpm * 2)} className="rounded border border-white/10 bg-white/5 px-2 py-1 text-[10px]">{mvT('useDoubleBpm', { bpm: (project.audio.bpmEvidence.bpm * 2).toFixed(1) })}</button>}
                 </div>
-                <div className="mb-2 flex h-16 items-end gap-px overflow-hidden rounded-lg border border-white/10 bg-black/30 px-2 py-2" aria-label="歌曲振幅概览">
+                <div className="mb-2 flex h-16 items-end gap-px overflow-hidden rounded-lg border border-white/10 bg-black/30 px-2 py-2" aria-label={mvT('waveformAria')}>
                   {(project.audio?.waveformPeaks || []).map((peak, index) => <span key={index} className="min-w-0 flex-1 rounded-t bg-gradient-to-t from-fuchsia-500/60 to-cyan-300/80" style={{ height: `${Math.max(4, peak * 100)}%` }} />)}
                 </div>
                 {project.audio && <audio
@@ -3688,26 +3695,26 @@ function MvMusicMasterNode({ id, data, selected }: NodeProps) {
                     else { player.pause(); setPreviewRange(null); }
                   }}
                 />}
-                {previewRange && <div className="mt-2 text-[10px] text-cyan-200">正在试听：{previewRange.label} · {previewRange.start.toFixed(3)}–{previewRange.end.toFixed(3)}s{previewRange.loop ? ' · 循环' : ''}</div>}
+                {previewRange && <div className="mt-2 text-[10px] text-cyan-200">{mvT('previewingRange', { label: previewRange.label, start: previewRange.start.toFixed(3), end: previewRange.end.toFixed(3), loop: previewRange.loop ? mvT('loopSuffix') : '' })}</div>}
               </div>
               <div className="grid gap-4 xl:grid-cols-[1fr_1.2fr]">
                 <div className="rounded-xl border border-white/10 bg-white/[0.025] p-4">
                   <div className="mb-3 flex items-center justify-between">
                     <div>
-                      <h2 className="text-sm font-semibold">歌词时间证据</h2>
-                      <p className="text-[10px] text-white/40">{project.lyricFormat?.toUpperCase() || '未解析'} · {project.lyricUnits.length} 个不可从中间切开的歌词单元</p>
+                      <h2 className="text-sm font-semibold">{mvT('lyricTimingEvidence')}</h2>
+                      <p className="text-[10px] text-white/40">{mvT('lyricUnitMeta', { format: project.lyricFormat?.toUpperCase() || mvT('unparsed'), count: project.lyricUnits.length })}</p>
                     </div>
                     {project.lyricUnits.some((unit) => unit.startUs === undefined || unit.endUs === undefined) && (
-                      <button type="button" onClick={buildManualTimingDraft} className="rounded-lg border border-amber-400/25 bg-amber-400/10 px-3 py-2 text-[11px] text-amber-100">建立人工对齐草案</button>
+                      <button type="button" onClick={buildManualTimingDraft} className="rounded-lg border border-amber-400/25 bg-amber-400/10 px-3 py-2 text-[11px] text-amber-100">{mvT('buildManualTimingDraft')}</button>
                     )}
                   </div>
                   <div className="max-h-[56vh] overflow-auto rounded-lg border border-white/10">
                     {project.lyricUnits.map((unit) => (
                       <div key={unit.id} className="grid grid-cols-[76px_76px_1fr_auto] items-center gap-2 border-b border-white/5 p-2 last:border-b-0">
-                        <input type="number" step="0.001" min="0" value={unit.startUs === undefined ? '' : seconds(unit.startUs)} onChange={(event) => updateLyricTime(unit.id, 'startUs', Number(event.target.value))} className="rounded border border-white/10 bg-black/30 px-2 py-1 text-[11px] outline-none" aria-label={`${unit.id} 开始秒`} />
-                        <input type="number" step="0.001" min="0" value={unit.endUs === undefined ? '' : seconds(unit.endUs)} onChange={(event) => updateLyricTime(unit.id, 'endUs', Number(event.target.value))} className="rounded border border-white/10 bg-black/30 px-2 py-1 text-[11px] outline-none" aria-label={`${unit.id} 结束秒`} />
-                        <div className="min-w-0 whitespace-pre-wrap text-xs leading-5 text-white/75"><span className="mr-2 text-[9px] text-fuchsia-300">#{unit.occurrence}</span>{unit.originalText}<div className="text-[9px] text-white/30">{unit.timingSource || '无时间证据'}{unit.timingConfidence !== undefined ? ` · ${(unit.timingConfidence * 100).toFixed(0)}%` : ''}</div></div>
-                        <button type="button" disabled={unit.startUs === undefined || unit.endUs === undefined} onClick={() => playPreviewRange(unit.startUs || 0, unit.endUs || 0, `歌词 ${unit.id}`, true)} className="rounded border border-white/10 bg-white/5 px-2 py-1 text-[10px] disabled:opacity-30">循环试听</button>
+                        <input type="number" step="0.001" min="0" value={unit.startUs === undefined ? '' : seconds(unit.startUs)} onChange={(event) => updateLyricTime(unit.id, 'startUs', Number(event.target.value))} className="rounded border border-white/10 bg-black/30 px-2 py-1 text-[11px] outline-none" aria-label={mvT('lyricStartAria', { id: unit.id })} />
+                        <input type="number" step="0.001" min="0" value={unit.endUs === undefined ? '' : seconds(unit.endUs)} onChange={(event) => updateLyricTime(unit.id, 'endUs', Number(event.target.value))} className="rounded border border-white/10 bg-black/30 px-2 py-1 text-[11px] outline-none" aria-label={mvT('lyricEndAria', { id: unit.id })} />
+                        <div className="min-w-0 whitespace-pre-wrap text-xs leading-5 text-white/75"><span className="mr-2 text-[9px] text-fuchsia-300">#{unit.occurrence}</span>{unit.originalText}<div className="text-[9px] text-white/30">{unit.timingSource || mvT('noTimingEvidence')}{unit.timingConfidence !== undefined ? ` · ${(unit.timingConfidence * 100).toFixed(0)}%` : ''}</div></div>
+                        <button type="button" disabled={unit.startUs === undefined || unit.endUs === undefined} onClick={() => playPreviewRange(unit.startUs || 0, unit.endUs || 0, mvT('lyricPreviewLabel', { id: unit.id }), true)} className="rounded border border-white/10 bg-white/5 px-2 py-1 text-[10px] disabled:opacity-30">{mvT('loopPreview')}</button>
                       </div>
                     ))}
                   </div>
@@ -3716,24 +3723,24 @@ function MvMusicMasterNode({ id, data, selected }: NodeProps) {
                 <div className="rounded-xl border border-white/10 bg-white/[0.025] p-4">
                   <div className="mb-3 flex items-center justify-between">
                     <div>
-                      <h2 className="text-sm font-semibold">全局语义安全切分</h2>
-                      <p className="text-[10px] text-white/40">硬约束 {MV_SEGMENT_MIN_MS / 1000}–{MV_SEGMENT_MAX_MS / 1000} 秒；15.000 秒不合法</p>
+                      <h2 className="text-sm font-semibold">{mvT('semanticSafeSegmentation')}</h2>
+                      <p className="text-[10px] text-white/40">{mvT('segmentHardConstraint', { min: MV_SEGMENT_MIN_MS / 1000, max: MV_SEGMENT_MAX_MS / 1000 })}</p>
                     </div>
-                    <button type="button" onClick={solveSegments} className="inline-flex items-center gap-2 rounded-lg bg-sky-500 px-3 py-2 text-[11px] font-semibold hover:bg-sky-400"><Scissors size={14} />自动求解</button>
+                    <button type="button" onClick={solveSegments} className="inline-flex items-center gap-2 rounded-lg bg-sky-500 px-3 py-2 text-[11px] font-semibold hover:bg-sky-400"><Scissors size={14} />{mvT('solveAutomatically')}</button>
                   </div>
                   <div className="max-h-[56vh] space-y-2 overflow-auto pr-1">
                     {segmentRows.map((segment) => (
                       <div key={segment.id} className="rounded-lg border border-emerald-400/20 bg-emerald-400/[0.04] p-3">
                         <div className="mb-1 flex items-center justify-between text-xs">
-                          <span className="font-semibold">段 {segment.ordinal}</span>
+                          <span className="font-semibold">{mvT('segmentOrdinal', { ordinal: segment.ordinal })}</span>
                           <span className="font-mono text-emerald-200">{durationLabel(segment.durationUs)}</span>
                         </div>
                         <div className="text-[10px] text-white/40">{durationLabel(segment.startUs)} → {durationLabel(segment.endUs)} · {segment.durationSamples.toLocaleString()} samples</div>
-                        <div className="mt-2 whitespace-pre-wrap text-xs leading-5 text-white/70">{segment.lyrics || '（前奏 / 间奏 / 尾奏，无歌词）'}</div>
-                        <div className="mt-2 flex gap-2"><button type="button" onClick={() => playPreviewRange(segment.startUs, segment.endUs, `分段 ${segment.ordinal}`, true)} className="rounded border border-emerald-400/20 bg-emerald-400/10 px-2 py-1 text-[10px] text-emerald-100">整段循环</button><button type="button" onClick={() => playPreviewRange(Math.max(0, segment.endUs - 750_000), Math.min(project.audio?.durationUs || segment.endUs, segment.endUs + 750_000), `切点 ${segment.ordinal} 前后`, false)} className="rounded border border-white/10 bg-white/5 px-2 py-1 text-[10px]">切点前后 1.5s</button></div>
+                        <div className="mt-2 whitespace-pre-wrap text-xs leading-5 text-white/70">{segment.lyrics || mvT('instrumentalSegment')}</div>
+                        <div className="mt-2 flex gap-2"><button type="button" onClick={() => playPreviewRange(segment.startUs, segment.endUs, mvT('segmentPreviewLabel', { ordinal: segment.ordinal }), true)} className="rounded border border-emerald-400/20 bg-emerald-400/10 px-2 py-1 text-[10px] text-emerald-100">{mvT('loopWholeSegment')}</button><button type="button" onClick={() => playPreviewRange(Math.max(0, segment.endUs - 750_000), Math.min(project.audio?.durationUs || segment.endUs, segment.endUs + 750_000), mvT('cutPreviewLabel', { ordinal: segment.ordinal }), false)} className="rounded border border-white/10 bg-white/5 px-2 py-1 text-[10px]">{mvT('aroundCut')}</button></div>
                       </div>
                     ))}
-                    {!segmentRows.length && <div className="flex min-h-48 items-center justify-center rounded-lg border border-dashed border-white/10 text-xs text-white/30">校正歌词时间后点击“自动求解”</div>}
+                    {!segmentRows.length && <div className="flex min-h-48 items-center justify-center rounded-lg border border-dashed border-white/10 text-xs text-white/30">{mvT('solveAfterTiming')}</div>}
                   </div>
                 </div>
               </div>
@@ -3744,37 +3751,37 @@ function MvMusicMasterNode({ id, data, selected }: NodeProps) {
           {activeStage === 'brief-review' && (
             <div className="mx-auto grid max-w-6xl gap-4 lg:grid-cols-2">
               <div className="rounded-xl border border-white/10 bg-white/[0.025] p-4">
-                <h2 className="mb-4 text-sm font-semibold">全片创意 Brief</h2>
+                <h2 className="mb-4 text-sm font-semibold">{mvT('creativeBrief')}</h2>
                 <div className="grid grid-cols-2 gap-3">
-                  <div><FieldLabel>MV 类型</FieldLabel><select value={String(d.mvType || 'hybrid')} onChange={(event) => updateCreativeSetting({ mvType: event.target.value })} className="w-full rounded-lg border border-white/10 bg-zinc-900 p-2 text-xs"><option value="narrative">剧情</option><option value="performance">表演</option><option value="dance">舞蹈</option><option value="abstract">抽象视觉</option><option value="lyric-visual">歌词视觉化</option><option value="hybrid">混合</option></select></div>
-                  <div><FieldLabel>创意度</FieldLabel><select value={String(d.creativity || 'balanced')} onChange={(event) => updateCreativeSetting({ creativity: event.target.value })} className="w-full rounded-lg border border-white/10 bg-zinc-900 p-2 text-xs"><option value="conservative">保守</option><option value="balanced">均衡</option><option value="creative">创意</option><option value="custom">自定义</option></select></div>
-                  <div><FieldLabel>镜头策略</FieldLabel><select value={String(d.shotMode || 'bpm-auto')} onChange={(event) => updateCreativeSetting({ shotMode: event.target.value })} className="w-full rounded-lg border border-white/10 bg-zinc-900 p-2 text-xs"><option value="bpm-auto">按 BPM 自动（无证据时明确回退）</option><option value="semantic-auto">按歌词语义自动</option><option value="fixed">每段固定数量</option></select></div>
-                  <div><FieldLabel>固定镜头数</FieldLabel><select disabled={d.shotMode !== 'fixed'} value={Number(d.fixedShotCount || 4)} onChange={(event) => updateCreativeSetting({ fixedShotCount: Number(event.target.value) })} className="w-full rounded-lg border border-white/10 bg-zinc-900 p-2 text-xs disabled:opacity-40">{Array.from({ length: 20 }, (_, index) => <option key={index + 1} value={index + 1}>{index + 1} 镜头 / 段</option>)}</select></div>
-                  <div><FieldLabel>画幅</FieldLabel><select value={String(d.aspectRatio || '16:9')} onChange={(event) => updateCreativeSetting({ aspectRatio: event.target.value })} className="w-full rounded-lg border border-white/10 bg-zinc-900 p-2 text-xs">{['16:9', '9:16', '1:1', '4:3', '3:4', '21:9'].map((value) => <option key={value}>{value}</option>)}</select></div>
-                  <div><FieldLabel>歌词字幕</FieldLabel><select value={String(d.subtitlePolicy || 'lyrics')} onChange={(event) => updateCreativeSetting({ subtitlePolicy: event.target.value })} className="w-full rounded-lg border border-white/10 bg-zinc-900 p-2 text-xs"><option value="lyrics">底部歌词字幕</option><option value="spatial-lyrics">画面中部歌词字幕</option><option value="none">不烧录字幕</option></select></div>
-                  <div><FieldLabel>LLM 渠道</FieldLabel><select value={isExternal ? providerSelection.providerId : isSeedanceNz ? 'seedance-nz' : 'zhenzhen'} onChange={(event) => selectLlmProvider(event.target.value)} className="w-full rounded-lg border border-white/10 bg-zinc-900 p-2 text-xs"><option value="seedance-nz">贞贞的平价AI小屋（默认）</option><option value="zhenzhen">贞贞的AI工坊</option>{llmAdvancedProviders.map((provider) => <option key={provider.id} value={provider.id}>{provider.label || provider.id}</option>)}</select></div>
+                  <div><FieldLabel>{mvT('mvType')}</FieldLabel><select value={String(d.mvType || 'hybrid')} onChange={(event) => updateCreativeSetting({ mvType: event.target.value })} className="w-full rounded-lg border border-white/10 bg-zinc-900 p-2 text-xs"><option value="narrative">{mvT('mvTypes.narrative')}</option><option value="performance">{mvT('mvTypes.performance')}</option><option value="dance">{mvT('mvTypes.dance')}</option><option value="abstract">{mvT('mvTypes.abstract')}</option><option value="lyric-visual">{mvT('mvTypes.lyric-visual')}</option><option value="hybrid">{mvT('mvTypes.hybrid')}</option></select></div>
+                  <div><FieldLabel>{mvT('creativity')}</FieldLabel><select value={String(d.creativity || 'balanced')} onChange={(event) => updateCreativeSetting({ creativity: event.target.value })} className="w-full rounded-lg border border-white/10 bg-zinc-900 p-2 text-xs"><option value="conservative">{mvT('creativityOptions.conservative')}</option><option value="balanced">{mvT('creativityOptions.balanced')}</option><option value="creative">{mvT('creativityOptions.creative')}</option><option value="custom">{mvT('creativityOptions.custom')}</option></select></div>
+                  <div><FieldLabel>{mvT('shotStrategy')}</FieldLabel><select value={String(d.shotMode || 'bpm-auto')} onChange={(event) => updateCreativeSetting({ shotMode: event.target.value })} className="w-full rounded-lg border border-white/10 bg-zinc-900 p-2 text-xs"><option value="bpm-auto">{mvT('shotModes.bpm-auto')}</option><option value="semantic-auto">{mvT('shotModes.semantic-auto')}</option><option value="fixed">{mvT('shotModes.fixed')}</option></select></div>
+                  <div><FieldLabel>{mvT('fixedShotCount')}</FieldLabel><select disabled={d.shotMode !== 'fixed'} value={Number(d.fixedShotCount || 4)} onChange={(event) => updateCreativeSetting({ fixedShotCount: Number(event.target.value) })} className="w-full rounded-lg border border-white/10 bg-zinc-900 p-2 text-xs disabled:opacity-40">{Array.from({ length: 20 }, (_, index) => <option key={index + 1} value={index + 1}>{mvT('shotsPerSegment', { count: index + 1 })}</option>)}</select></div>
+                  <div><FieldLabel>{mvT('aspectRatio')}</FieldLabel><select value={String(d.aspectRatio || '16:9')} onChange={(event) => updateCreativeSetting({ aspectRatio: event.target.value })} className="w-full rounded-lg border border-white/10 bg-zinc-900 p-2 text-xs">{['16:9', '9:16', '1:1', '4:3', '3:4', '21:9'].map((value) => <option key={value}>{value}</option>)}</select></div>
+                  <div><FieldLabel>{mvT('lyricSubtitles')}</FieldLabel><select value={String(d.subtitlePolicy || 'lyrics')} onChange={(event) => updateCreativeSetting({ subtitlePolicy: event.target.value })} className="w-full rounded-lg border border-white/10 bg-zinc-900 p-2 text-xs"><option value="lyrics">{mvT('subtitleOptions.lyrics')}</option><option value="spatial-lyrics">{mvT('subtitleOptions.spatial-lyrics')}</option><option value="none">{mvT('subtitleOptions.none')}</option></select></div>
+                  <div><FieldLabel>{mvT('llmProvider')}</FieldLabel><select value={isExternal ? providerSelection.providerId : isSeedanceNz ? 'seedance-nz' : 'zhenzhen'} onChange={(event) => selectLlmProvider(event.target.value)} className="w-full rounded-lg border border-white/10 bg-zinc-900 p-2 text-xs"><option value="seedance-nz">{mvT('budgetProviderDefault')}</option><option value="zhenzhen">{mvT('workshopProvider')}</option>{llmAdvancedProviders.map((provider) => <option key={provider.id} value={provider.id}>{provider.label || provider.id}</option>)}</select></div>
                 </div>
-                <div className="mt-3"><FieldLabel>LLM 模型（须支持图像理解）</FieldLabel>{isExternal ? <select value={activeModel} onChange={(event) => updateCreativeSetting({ providerModel: event.target.value, mvExternalVisionConfirmed: false })} className="w-full rounded-lg border border-white/10 bg-zinc-900 p-2 text-xs">{externalModels.map((model) => <option key={model}>{model}</option>)}</select> : isSeedanceNz ? <select value={activeModel} onChange={(event) => updateCreativeSetting({ providerModel: event.target.value })} className="w-full rounded-lg border border-white/10 bg-zinc-900 p-2 text-xs">{SEEDANCE_NZ_MV_VISION_MODELS.map((model) => <option key={model}>{model}</option>)}</select> : <select value={activeModel} onChange={(event) => updateCreativeSetting({ model: event.target.value })} className="w-full rounded-lg border border-white/10 bg-zinc-900 p-2 text-xs">{ZHENZHEN_LLM_MODELS.map((model) => <option key={model.id} value={model.id}>{model.label}</option>)}</select>}<div className="mt-1 text-[10px] text-white/35">当前：{providerLabel} · {activeModel || '未选模型'}。内置渠道仅展示已声明视觉输入能力的模型；失效时失败关闭，不静默切换。</div>{isExternal && <label className="mt-2 flex items-start gap-2 rounded-lg border border-amber-400/15 bg-amber-400/[0.04] p-2 text-[10px] text-amber-100"><input type="checkbox" checked={d.mvExternalVisionConfirmed === true} onChange={(event) => updateCreativeSetting({ mvExternalVisionConfirmed: event.target.checked })} className="mt-0.5" /><span>我已从该扩展渠道文档确认当前模型支持 OpenAI 兼容 image_url 图像输入。未确认时阻止视觉圣经调用，避免只看文件名猜图。</span></label>}</div>
-                <div className="mt-3"><FieldLabel>风格、色彩、光影、年代、质感与禁用项</FieldLabel><textarea value={String(d.styleDescription || '')} onChange={(event) => updateCreativeSetting({ styleDescription: event.target.value })} rows={8} className="w-full resize-y rounded-lg border border-white/10 bg-black/25 p-3 text-xs leading-5 outline-none" placeholder="描述喜欢的风格；已连接的风格参考图会作为独立角色，不与人设图混用。" /></div>
+                <div className="mt-3"><FieldLabel>{mvT('visionLlmModel')}</FieldLabel>{isExternal ? <select value={activeModel} onChange={(event) => updateCreativeSetting({ providerModel: event.target.value, mvExternalVisionConfirmed: false })} className="w-full rounded-lg border border-white/10 bg-zinc-900 p-2 text-xs">{externalModels.map((model) => <option key={model}>{model}</option>)}</select> : isSeedanceNz ? <select value={activeModel} onChange={(event) => updateCreativeSetting({ providerModel: event.target.value })} className="w-full rounded-lg border border-white/10 bg-zinc-900 p-2 text-xs">{SEEDANCE_NZ_MV_VISION_MODELS.map((model) => <option key={model}>{model}</option>)}</select> : <select value={activeModel} onChange={(event) => updateCreativeSetting({ model: event.target.value })} className="w-full rounded-lg border border-white/10 bg-zinc-900 p-2 text-xs">{ZHENZHEN_LLM_MODELS.map((model) => <option key={model.id} value={model.id}>{model.label}</option>)}</select>}<div className="mt-1 text-[10px] text-white/35">{mvT('currentVisionModel', { provider: providerLabel, model: activeModel || mvT('modelNotSelected') })}</div>{isExternal && <label className="mt-2 flex items-start gap-2 rounded-lg border border-amber-400/15 bg-amber-400/[0.04] p-2 text-[10px] text-amber-100"><input type="checkbox" checked={d.mvExternalVisionConfirmed === true} onChange={(event) => updateCreativeSetting({ mvExternalVisionConfirmed: event.target.checked })} className="mt-0.5" /><span>{mvT('externalVisionConfirmation')}</span></label>}</div>
+                <div className="mt-3"><FieldLabel>{mvT('styleDirection')}</FieldLabel><textarea value={String(d.styleDescription || '')} onChange={(event) => updateCreativeSetting({ styleDescription: event.target.value })} rows={8} className="w-full resize-y rounded-lg border border-white/10 bg-black/25 p-3 text-xs leading-5 outline-none" placeholder={mvT('stylePlaceholder')} /></div>
                 <div className="mt-3 rounded-xl border border-cyan-400/15 bg-cyan-400/[0.03] p-3">
-                  <div className="mb-2 text-xs font-semibold">视频能力预检（出图前锁定）</div>
+                  <div className="mb-2 text-xs font-semibold">{mvT('videoCapabilityPreflight')}</div>
                   <div className="grid grid-cols-3 gap-2">
-                    <div><FieldLabel>家族</FieldLabel><select value={videoFamily} onChange={(event) => updateCreativeSetting({ mvVideoFamily: event.target.value, mvVideoProvider: 'seedance-nz', mvVideoModel: event.target.value === 'hailuo' ? 'hailuo-h3-multi' : 'fast', mvVideoResolution: event.target.value === 'hailuo' ? '2K' : '720p' })} className="w-full rounded-lg border border-white/10 bg-zinc-900 p-2 text-xs"><option value="seedance">Seedance 2.0</option><option value="hailuo">MiniMax / Hailuo H3</option></select></div>
-                    <div><FieldLabel>渠道</FieldLabel><select value={videoProvider} disabled={videoFamily === 'hailuo'} onChange={(event) => updateCreativeSetting({ mvVideoProvider: event.target.value, mvVideoModel: event.target.value === 'seedance-nz' ? 'fast' : 'doubao-seedance-2-0-fast-260128', mvVideoResolution: '720p' })} className="w-full rounded-lg border border-white/10 bg-zinc-900 p-2 text-xs disabled:opacity-40"><option value="seedance-nz">平价AI小屋</option><option value="zhenzhen">AI工坊</option></select></div>
-                    <div><FieldLabel>模型</FieldLabel><select value={videoModel} onChange={(event) => updateCreativeSetting({ mvVideoModel: event.target.value, mvVideoResolution: event.target.value.startsWith('minimax-h3-ow-') ? '720p' : event.target.value.startsWith('hailuo-h3-') ? '2K' : '720p' })} className="w-full rounded-lg border border-white/10 bg-zinc-900 p-2 text-xs">{(videoFamily === 'hailuo' ? HAILUO_VIDEO_MODELS : selectableSeedanceModels).map((model) => <option key={model}>{model}</option>)}</select></div>
+                    <div><FieldLabel>{mvT('family')}</FieldLabel><select value={videoFamily} onChange={(event) => updateCreativeSetting({ mvVideoFamily: event.target.value, mvVideoProvider: 'seedance-nz', mvVideoModel: event.target.value === 'hailuo' ? 'hailuo-h3-multi' : 'fast', mvVideoResolution: event.target.value === 'hailuo' ? '2K' : '720p' })} className="w-full rounded-lg border border-white/10 bg-zinc-900 p-2 text-xs"><option value="seedance">Seedance 2.0</option><option value="hailuo">MiniMax / Hailuo H3</option></select></div>
+                    <div><FieldLabel>{mvT('provider')}</FieldLabel><select value={videoProvider} disabled={videoFamily === 'hailuo'} onChange={(event) => updateCreativeSetting({ mvVideoProvider: event.target.value, mvVideoModel: event.target.value === 'seedance-nz' ? 'fast' : 'doubao-seedance-2-0-fast-260128', mvVideoResolution: '720p' })} className="w-full rounded-lg border border-white/10 bg-zinc-900 p-2 text-xs disabled:opacity-40"><option value="seedance-nz">{mvT('budgetProvider')}</option><option value="zhenzhen">{mvT('workshopShort')}</option></select></div>
+                    <div><FieldLabel>{mvT('model')}</FieldLabel><select value={videoModel} onChange={(event) => updateCreativeSetting({ mvVideoModel: event.target.value, mvVideoResolution: event.target.value.startsWith('minimax-h3-ow-') ? '720p' : event.target.value.startsWith('hailuo-h3-') ? '2K' : '720p' })} className="w-full rounded-lg border border-white/10 bg-zinc-900 p-2 text-xs">{(videoFamily === 'hailuo' ? HAILUO_VIDEO_MODELS : selectableSeedanceModels).map((model) => <option key={model}>{model}</option>)}</select></div>
                   </div>
-                  <div className={`mt-2 text-[10px] ${videoBindsSegmentAudio ? 'text-emerald-300' : 'text-amber-200'}`}>{videoBindsSegmentAudio ? `真实绑定每段原曲音频；最多 ${videoImageReferenceLimit} 张分镜参考。` : `此模型不接音频参考，只能按提示词近似节奏；最终仍会替换成完整原曲。最多 ${videoImageReferenceLimit} 张分镜参考。`}<br />选择值：{videoModel} · 实际上游模型：{canonicalVideoModelPreview}</div>
+                  <div className={`mt-2 text-[10px] ${videoBindsSegmentAudio ? 'text-emerald-300' : 'text-amber-200'}`}>{videoBindsSegmentAudio ? mvT('videoBindsAudio', { limit: videoImageReferenceLimit }) : mvT('videoWithoutAudio', { limit: videoImageReferenceLimit })}<br />{mvT('canonicalModelPreview', { selected: videoModel, canonical: canonicalVideoModelPreview })}</div>
                 </div>
               </div>
               <div className="space-y-4">
                 <div className="rounded-xl border border-fuchsia-400/20 bg-fuchsia-400/[0.05] p-4">
-                  <h2 className="mb-2 text-sm font-semibold">已锁定分段</h2>
+                  <h2 className="mb-2 text-sm font-semibold">{mvT('lockedSegments')}</h2>
                   <div className="text-3xl font-bold text-fuchsia-200">{segmentCount}</div>
-                  <div className="mt-1 text-xs text-white/45">每段 1–20 个视觉镜头；音频段数不会被镜头数量反向改变。</div>
-                  {project.segmentConfirmation && <div className="mt-3 flex items-center gap-2 text-[10px] text-emerald-300"><LockKeyhole size={13} />确认回执 {project.segmentConfirmation.planDigest.slice(0, 12)}…</div>}
+                  <div className="mt-1 text-xs text-white/45">{mvT('lockedSegmentsNote')}</div>
+                  {project.segmentConfirmation && <div className="mt-3 flex items-center gap-2 text-[10px] text-emerald-300"><LockKeyhole size={13} />{mvT('confirmationReceipt', { digest: project.segmentConfirmation.planDigest.slice(0, 12) })}</div>}
                 </div>
                 <div className="rounded-xl border border-white/10 bg-white/[0.025] p-4 text-xs leading-6 text-white/60">
-                  下一步先用 1 次紧凑请求生成不可变全局核心，再按最多 6 段 / 6000 字的批次续写 Segment Arc；逐段 Prompt 也顺序分批并继承上一批交接，避免多份视觉规则互相冲突。
+                  {mvT('promptBatchingNote')}
                 </div>
               </div>
             </div>
@@ -3785,8 +3792,8 @@ function MvMusicMasterNode({ id, data, selected }: NodeProps) {
               <div className="space-y-4">
                 <div className="rounded-xl border border-white/10 bg-white/[0.025] p-4">
                   <div className="mb-3 flex items-center justify-between">
-                    <div><h2 className="text-sm font-semibold">全片视觉圣经</h2><div className="text-[10px] text-white/40">{(project.bibleCandidates || []).length} 个版本 · 当前 {acceptedBible ? '已采用' : '待采用'}</div></div>
-                    <button type="button" onClick={() => requestAction({ kind: 'visual-bible', forceNew: visualBibleSubmissionUnresolved })} disabled={running} className="rounded-lg border border-fuchsia-400/25 bg-fuchsia-400/10 px-3 py-2 text-[11px] text-fuchsia-100 disabled:opacity-50">{visualBibleSubmissionUnresolved ? '已核对旧请求后续跑缺失请求' : '追加生成 1 个版本'}</button>
+                    <div><h2 className="text-sm font-semibold">{mvT('visualBible')}</h2><div className="text-[10px] text-white/40">{mvT('visualBibleMeta', { count: (project.bibleCandidates || []).length, status: acceptedBible ? mvT('adopted') : mvT('pendingAdoption') })}</div></div>
+                    <button type="button" onClick={() => requestAction({ kind: 'visual-bible', forceNew: visualBibleSubmissionUnresolved })} disabled={running} className="rounded-lg border border-fuchsia-400/25 bg-fuchsia-400/10 px-3 py-2 text-[11px] text-fuchsia-100 disabled:opacity-50">{visualBibleSubmissionUnresolved ? mvT('resumeMissingRequests') : mvT('appendBibleVersion')}</button>
                   </div>
                   {latestBible ? (
                     <div className="max-h-[62vh] space-y-3 overflow-auto pr-1">
@@ -3794,16 +3801,16 @@ function MvMusicMasterNode({ id, data, selected }: NodeProps) {
                         <summary className="cursor-pointer text-sm font-semibold text-fuchsia-100">v{candidate.revision} · {candidate.bible.title}</summary>
                         <div className="mt-2 text-xs leading-5 text-white/65">{candidate.bible.visualThesis}</div><div className="mt-2 text-[10px] text-white/35">{candidate.provider} · {candidate.model} · SHA {candidate.contentHash?.slice(0, 12)}…</div>
                         <div className="mt-2 max-h-52 overflow-auto rounded border border-white/10 bg-black/20 p-2 text-[10px] leading-4 text-white/60"><pre className="whitespace-pre-wrap font-sans">{JSON.stringify(candidate.bible, null, 2)}</pre></div>
-                        <div className="mt-2 grid grid-cols-2 gap-2"><button type="button" onClick={() => markTextCandidateReviewed('visual-bible', candidate)} className="rounded-lg border border-cyan-400/25 bg-cyan-400/10 px-3 py-2 text-xs text-cyan-100">{project.reviewReceipts?.[candidate.id] ? '已标记完整审阅' : '标记已完整审阅'}</button><button type="button" disabled={!project.reviewReceipts?.[candidate.id]} onClick={() => acceptBible(candidate.id)} className={`flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold disabled:opacity-30 ${project.acceptedBibleId === candidate.id ? 'bg-emerald-500/20 text-emerald-200 ring-1 ring-emerald-400/30' : 'bg-emerald-500 hover:bg-emerald-400'}`}><CheckCircle2 size={14} />{project.acceptedBibleId === candidate.id ? '此版本已采用' : '采用此历史版本'}</button></div>
+                        <div className="mt-2 grid grid-cols-2 gap-2"><button type="button" onClick={() => markTextCandidateReviewed('visual-bible', candidate)} className="rounded-lg border border-cyan-400/25 bg-cyan-400/10 px-3 py-2 text-xs text-cyan-100">{project.reviewReceipts?.[candidate.id] ? mvT('markedFullReview') : mvT('markFullReview')}</button><button type="button" disabled={!project.reviewReceipts?.[candidate.id]} onClick={() => acceptBible(candidate.id)} className={`flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold disabled:opacity-30 ${project.acceptedBibleId === candidate.id ? 'bg-emerald-500/20 text-emerald-200 ring-1 ring-emerald-400/30' : 'bg-emerald-500 hover:bg-emerald-400'}`}><CheckCircle2 size={14} />{project.acceptedBibleId === candidate.id ? mvT('versionAdopted') : mvT('adoptHistoricalVersion')}</button></div>
                       </details>)}
                     </div>
-                  ) : <div className="flex min-h-56 items-center justify-center rounded-lg border border-dashed border-white/10 text-xs text-white/30">确认 Brief 后先生成 1 次全片视觉圣经</div>}
+                  ) : <div className="flex min-h-56 items-center justify-center rounded-lg border border-dashed border-white/10 text-xs text-white/30">{mvT('generateBibleAfterBrief')}</div>}
                 </div>
               </div>
               <div className="rounded-xl border border-white/10 bg-white/[0.025] p-4">
                 <div className="mb-3 flex items-center justify-between gap-3">
-                  <div><h2 className="text-sm font-semibold">逐段 PromptPack</h2><div className="text-[10px] text-white/40">已采用 {acceptedPromptCount}/{promptSegments.length} · 一次视频调用对应一个音频段</div></div>
-                  <button type="button" onClick={() => requestAction({ kind: 'prompt-packs', forceNew: promptSubmissionUnresolved })} disabled={running || !acceptedBible} className="rounded-lg bg-sky-500 px-3 py-2 text-[11px] font-semibold disabled:opacity-40">{promptSubmissionUnresolved ? '已核对旧请求后续跑缺失段落' : `生成全部缺失 · ${buildMvPromptBatches(promptSegments.filter((segment) => !(project.promptCandidates?.[segment.segmentId] || []).length)).length} 批请求`}</button>
+                  <div><h2 className="text-sm font-semibold">{mvT('segmentPromptPacks')}</h2><div className="text-[10px] text-white/40">{mvT('promptPackMeta', { accepted: acceptedPromptCount, total: promptSegments.length })}</div></div>
+                  <button type="button" onClick={() => requestAction({ kind: 'prompt-packs', forceNew: promptSubmissionUnresolved })} disabled={running || !acceptedBible} className="rounded-lg bg-sky-500 px-3 py-2 text-[11px] font-semibold disabled:opacity-40">{promptSubmissionUnresolved ? mvT('resumeMissingSegments') : mvT('generateAllMissingBatches', { count: buildMvPromptBatches(promptSegments.filter((segment) => !(project.promptCandidates?.[segment.segmentId] || []).length)).length })}</button>
                 </div>
                 <div className="max-h-[68vh] space-y-3 overflow-auto pr-1">
                   {promptSegments.map((segment) => {
@@ -3812,9 +3819,9 @@ function MvMusicMasterNode({ id, data, selected }: NodeProps) {
                     const acceptedId = project.acceptedPromptIds?.[segment.segmentId];
                     return (
                       <details key={segment.segmentId} className="rounded-lg border border-white/10 bg-black/20 p-3" open={!acceptedId}>
-                        <summary className="cursor-pointer list-none"><div className="flex items-center justify-between gap-3"><div><div className="text-xs font-semibold">段 {segment.ordinal} · {segment.shotCount} 镜头</div><div className="mt-1 max-w-xl truncate text-[10px] text-white/40">{segment.lyricsExact || '无歌词段'}</div></div><div className={`text-[10px] ${acceptedId ? 'text-emerald-300' : latest ? 'text-amber-300' : 'text-white/30'}`}>{acceptedId ? '已采用' : latest ? '待检查' : '缺失'}</div></div></summary>
+                        <summary className="cursor-pointer list-none"><div className="flex items-center justify-between gap-3"><div><div className="text-xs font-semibold">{mvT('segmentShotCount', { ordinal: segment.ordinal, count: segment.shotCount })}</div><div className="mt-1 max-w-xl truncate text-[10px] text-white/40">{segment.lyricsExact || mvT('noLyricsSegment')}</div></div><div className={`text-[10px] ${acceptedId ? 'text-emerald-300' : latest ? 'text-amber-300' : 'text-white/30'}`}>{acceptedId ? mvT('adopted') : latest ? mvT('pendingReview') : mvT('missing')}</div></div></summary>
                         <div className="mt-3 space-y-2">
-                          {latest ? <><div className="space-y-2">{candidates.map((candidate) => <details key={candidate.id} open={acceptedId === candidate.id || candidate.id === latest.id} className={`rounded border p-2 ${acceptedId === candidate.id ? 'border-emerald-400/50 bg-emerald-400/[0.04]' : 'border-white/10 bg-black/30'}`}><summary className="cursor-pointer text-[10px]">v{candidate.revision} · {candidate.provider} · {candidate.model}</summary><pre className="mt-2 max-h-44 overflow-auto whitespace-pre-wrap font-sans text-[10px] leading-4 text-white/60">{JSON.stringify(candidate.pack, null, 2)}</pre><div className="mt-2 grid grid-cols-2 gap-2"><button type="button" onClick={() => markTextCandidateReviewed(`prompt:${segment.segmentId}`, candidate)} className="rounded border border-cyan-400/25 bg-cyan-400/10 px-2 py-1 text-[10px] text-cyan-100">{project.reviewReceipts?.[candidate.id] ? '已标记审阅' : '标记已审阅'}</button><button type="button" disabled={!project.reviewReceipts?.[candidate.id]} onClick={() => acceptPromptCandidate(segment.segmentId, candidate.id)} className="rounded bg-emerald-500 px-3 py-2 text-[10px] font-semibold disabled:opacity-30">{acceptedId === candidate.id ? '此版本已采用' : '采用此历史版本'}</button></div></details>)}</div><button type="button" onClick={() => requestAction({ kind: 'prompt-packs', segmentIds: [segment.segmentId], forceNew: promptSubmissionUnresolved })} disabled={running} className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-[11px]">{promptSubmissionUnresolved ? '已核对旧请求后新建本段修订' : '追加重生成本段'}</button><div className="text-[9px] text-white/30">Provider Prompt 会在真实图片/音频绑定后最终编译</div></> : <button type="button" onClick={() => requestAction({ kind: 'prompt-packs', segmentIds: [segment.segmentId], forceNew: promptSubmissionUnresolved })} disabled={running || !acceptedBible} className="w-full rounded-lg border border-sky-400/25 bg-sky-400/10 px-3 py-2 text-[11px] text-sky-100 disabled:opacity-40">{promptSubmissionUnresolved ? '已核对旧请求后生成本段修订' : '只生成本段'}</button>}
+                          {latest ? <><div className="space-y-2">{candidates.map((candidate) => <details key={candidate.id} open={acceptedId === candidate.id || candidate.id === latest.id} className={`rounded border p-2 ${acceptedId === candidate.id ? 'border-emerald-400/50 bg-emerald-400/[0.04]' : 'border-white/10 bg-black/30'}`}><summary className="cursor-pointer text-[10px]">v{candidate.revision} · {candidate.provider} · {candidate.model}</summary><pre className="mt-2 max-h-44 overflow-auto whitespace-pre-wrap font-sans text-[10px] leading-4 text-white/60">{JSON.stringify(candidate.pack, null, 2)}</pre><div className="mt-2 grid grid-cols-2 gap-2"><button type="button" onClick={() => markTextCandidateReviewed(`prompt:${segment.segmentId}`, candidate)} className="rounded border border-cyan-400/25 bg-cyan-400/10 px-2 py-1 text-[10px] text-cyan-100">{project.reviewReceipts?.[candidate.id] ? mvT('markedReview') : mvT('markReviewed')}</button><button type="button" disabled={!project.reviewReceipts?.[candidate.id]} onClick={() => acceptPromptCandidate(segment.segmentId, candidate.id)} className="rounded bg-emerald-500 px-3 py-2 text-[10px] font-semibold disabled:opacity-30">{acceptedId === candidate.id ? mvT('versionAdopted') : mvT('adoptHistoricalVersion')}</button></div></details>)}</div><button type="button" onClick={() => requestAction({ kind: 'prompt-packs', segmentIds: [segment.segmentId], forceNew: promptSubmissionUnresolved })} disabled={running} className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-[11px]">{promptSubmissionUnresolved ? mvT('newSegmentRevision') : mvT('regenerateSegment')}</button><div className="text-[9px] text-white/30">{mvT('providerPromptCompileNote')}</div></> : <button type="button" onClick={() => requestAction({ kind: 'prompt-packs', segmentIds: [segment.segmentId], forceNew: promptSubmissionUnresolved })} disabled={running || !acceptedBible} className="w-full rounded-lg border border-sky-400/25 bg-sky-400/10 px-3 py-2 text-[11px] text-sky-100 disabled:opacity-40">{promptSubmissionUnresolved ? mvT('generateSegmentRevision') : mvT('generateThisSegment')}</button>}
                         </div>
                       </details>
                     );
@@ -3828,10 +3835,10 @@ function MvMusicMasterNode({ id, data, selected }: NodeProps) {
             <div className="mx-auto max-w-7xl space-y-4">
               <div className="flex flex-wrap items-end justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.025] p-4">
                 <div className="grid min-w-[520px] flex-1 grid-cols-2 gap-3">
-                  <div><FieldLabel>图像渠道</FieldLabel><select value={imageProvider} onChange={(event) => update({ mvImageProvider: event.target.value, mvImageModel: event.target.value === 'zhenzhen' ? 'gpt-image-2' : 'zhenzhen-image-g2-i2i' })} className="w-full rounded-lg border border-white/10 bg-zinc-900 p-2 text-xs"><option value="seedance-nz">贞贞的平价AI小屋（默认）</option><option value="zhenzhen">贞贞的AI工坊</option></select></div>
-                  <div><FieldLabel>真实模型 ID</FieldLabel><select value={imageModel} onChange={(event) => update({ mvImageModel: event.target.value })} className="w-full rounded-lg border border-white/10 bg-zinc-900 p-2 text-xs">{(imageProvider === 'seedance-nz' ? BUDGET_IMAGE_MODELS : WORKSHOP_IMAGE_MODELS).map((model) => <option key={model}>{model}</option>)}</select></div>
+                  <div><FieldLabel>{mvT('imageProvider')}</FieldLabel><select value={imageProvider} onChange={(event) => update({ mvImageProvider: event.target.value, mvImageModel: event.target.value === 'zhenzhen' ? 'gpt-image-2' : 'zhenzhen-image-g2-i2i' })} className="w-full rounded-lg border border-white/10 bg-zinc-900 p-2 text-xs"><option value="seedance-nz">{mvT('budgetProviderDefault')}</option><option value="zhenzhen">{mvT('workshopProvider')}</option></select></div>
+                  <div><FieldLabel>{mvT('actualModelId')}</FieldLabel><select value={imageModel} onChange={(event) => update({ mvImageModel: event.target.value })} className="w-full rounded-lg border border-white/10 bg-zinc-900 p-2 text-xs">{(imageProvider === 'seedance-nz' ? BUDGET_IMAGE_MODELS : WORKSHOP_IMAGE_MODELS).map((model) => <option key={model}>{model}</option>)}</select></div>
                 </div>
-                <div className="text-right"><div className="text-[10px] text-white/40">将提交 {shotTasks.filter((task) => !(project.imageCandidates?.[task.shot.shotId] || []).some((candidate) => candidate.status === 'succeeded')).length} 个缺失单图任务 · 顺序执行</div><button type="button" disabled={running || !shotTasks.length} onClick={() => requestAction({ kind: 'images' })} className="mt-2 inline-flex items-center gap-2 rounded-lg bg-sky-500 px-4 py-2 text-xs font-semibold disabled:opacity-40"><ImageIcon size={14} />只生成缺失分镜</button></div>
+                <div className="text-right"><div className="text-[10px] text-white/40">{mvT('missingImageTasks', { count: shotTasks.filter((task) => !(project.imageCandidates?.[task.shot.shotId] || []).some((candidate) => candidate.status === 'succeeded')).length })}</div><button type="button" disabled={running || !shotTasks.length} onClick={() => requestAction({ kind: 'images' })} className="mt-2 inline-flex items-center gap-2 rounded-lg bg-sky-500 px-4 py-2 text-xs font-semibold disabled:opacity-40"><ImageIcon size={14} />{mvT('generateMissingStoryboards')}</button></div>
               </div>
               <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                 {shotTasks.map((task) => {
@@ -3841,17 +3848,17 @@ function MvMusicMasterNode({ id, data, selected }: NodeProps) {
                   const hasAmbiguous = candidates.some(mvSubmissionRequiresManualResolution);
                   return (
                     <div key={task.shot.shotId} className={`overflow-hidden rounded-xl border bg-white/[0.025] ${acceptedId ? 'border-emerald-400/35' : 'border-white/10'}`}>
-                      <div className="flex items-center justify-between px-3 py-2"><div><div className="text-xs font-semibold">段 {task.segment.ordinal} · 镜头 {task.shot.ordinal}</div><div className="text-[9px] text-white/35">{task.shot.shotId} · {candidates.length} 个候选</div></div><span className={`text-[10px] ${acceptedId ? 'text-emerald-300' : latest?.status === 'failed' ? 'text-rose-300' : 'text-amber-200'}`}>{acceptedId ? '已采用' : latest?.status || '缺失'}</span></div>
+                      <div className="flex items-center justify-between px-3 py-2"><div><div className="text-xs font-semibold">{mvT('segmentShotOrdinal', { segment: task.segment.ordinal, shot: task.shot.ordinal })}</div><div className="text-[9px] text-white/35">{mvT('candidateCount', { id: task.shot.shotId, count: candidates.length })}</div></div><span className={`text-[10px] ${acceptedId ? 'text-emerald-300' : latest?.status === 'failed' ? 'text-rose-300' : 'text-amber-200'}`}>{acceptedId ? mvT('adopted') : candidateStatusLabel(latest?.status)}</span></div>
                       <div className="space-y-2 p-3">
                         <div className="line-clamp-3 text-[10px] leading-4 text-white/55">{task.shot.imagePrompt}</div>
                         <div className="grid grid-cols-2 gap-2">
                           {candidates.map((candidate) => <div key={candidate.id} className={`overflow-hidden rounded-lg border ${acceptedId === candidate.id ? 'border-emerald-400/60' : 'border-white/10'} bg-black/30`}>
-                            {candidate.outputUrl ? <button type="button" onClick={() => setViewingImage({ shotId: task.shot.shotId, candidateId: candidate.id, url: candidate.outputUrl! })} className="block aspect-video w-full bg-black"><img src={candidate.outputUrl} alt={`${task.shot.shotId} 候选 v${candidate.revision}`} className="h-full w-full object-contain" /></button> : <div className="flex aspect-video items-center justify-center px-2 text-center text-[9px] text-white/30">{candidate.status === 'failed' ? candidate.error : candidate.status}</div>}
-                            <div className="space-y-1 p-2"><div className="text-[9px] text-white/35">v{candidate.revision} · {candidate.model}<br />{candidate.contentHash ? `SHA ${candidate.contentHash.slice(0, 10)}…` : candidate.status}</div><button type="button" disabled={!candidate.viewedAt || !candidate.contentHash} onClick={() => acceptImageCandidate(task.shot.shotId, candidate.id)} className="w-full rounded bg-emerald-500 px-2 py-1 text-[9px] font-semibold disabled:opacity-30">{acceptedId === candidate.id ? '已采用' : candidate.viewedAt ? '采用此版本' : '先点击放大查看'}</button></div>
+                            {candidate.outputUrl ? <button type="button" onClick={() => setViewingImage({ shotId: task.shot.shotId, candidateId: candidate.id, url: candidate.outputUrl! })} className="block aspect-video w-full bg-black"><img src={candidate.outputUrl} alt={mvT('imageCandidateAlt', { id: task.shot.shotId, revision: candidate.revision })} className="h-full w-full object-contain" /></button> : <div className="flex aspect-video items-center justify-center px-2 text-center text-[9px] text-white/30">{candidate.status === 'failed' ? candidate.error : candidateStatusLabel(candidate.status)}</div>}
+                            <div className="space-y-1 p-2"><div className="text-[9px] text-white/35">v{candidate.revision} · {candidate.model}<br />{candidate.contentHash ? `SHA ${candidate.contentHash.slice(0, 10)}…` : candidateStatusLabel(candidate.status)}</div><button type="button" disabled={!candidate.viewedAt || !candidate.contentHash} onClick={() => acceptImageCandidate(task.shot.shotId, candidate.id)} className="w-full rounded bg-emerald-500 px-2 py-1 text-[9px] font-semibold disabled:opacity-30">{acceptedId === candidate.id ? mvT('adopted') : candidate.viewedAt ? mvT('adoptThisVersion') : mvT('enlargeBeforeAdopt')}</button></div>
                           </div>)}
-                          {!candidates.length && <div className="col-span-2 flex aspect-video items-center justify-center rounded-lg border border-dashed border-white/10 text-[10px] text-white/25">尚未生成</div>}
+                          {!candidates.length && <div className="col-span-2 flex aspect-video items-center justify-center rounded-lg border border-dashed border-white/10 text-[10px] text-white/25">{mvT('notGenerated')}</div>}
                         </div>
-                        <button type="button" disabled={running} onClick={() => requestAction({ kind: 'images', shotIds: [task.shot.shotId], forceNew: true })} className="inline-flex w-full items-center justify-center gap-1 rounded-lg border border-white/10 bg-white/5 px-2 py-2 text-[10px] disabled:opacity-40"><RefreshCw size={12} />{hasAmbiguous ? '已核对旧任务后新建修订' : '追加重生成（保留全部历史）'}</button>
+                        <button type="button" disabled={running} onClick={() => requestAction({ kind: 'images', shotIds: [task.shot.shotId], forceNew: true })} className="inline-flex w-full items-center justify-center gap-1 rounded-lg border border-white/10 bg-white/5 px-2 py-2 text-[10px] disabled:opacity-40"><RefreshCw size={12} />{hasAmbiguous ? mvT('newRevisionAfterReview') : mvT('regenerateKeepHistory')}</button>
                       </div>
                     </div>
                   );
@@ -3864,13 +3871,13 @@ function MvMusicMasterNode({ id, data, selected }: NodeProps) {
             <div className="mx-auto max-w-7xl space-y-4">
               <div className="flex flex-wrap items-end justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.025] p-4">
                 <div className="grid min-w-[650px] flex-1 grid-cols-4 gap-3">
-                  <div><FieldLabel>视频家族</FieldLabel><select value={videoFamily} onChange={(event) => update({ mvVideoFamily: event.target.value, mvVideoProvider: 'seedance-nz', mvVideoModel: event.target.value === 'hailuo' ? 'hailuo-h3-multi' : 'fast', mvVideoResolution: event.target.value === 'hailuo' ? '2K' : '720p' })} className="w-full rounded-lg border border-white/10 bg-zinc-900 p-2 text-xs"><option value="seedance">Seedance 2.0</option><option value="hailuo">MiniMax / Hailuo H3</option></select></div>
-                  <div><FieldLabel>渠道</FieldLabel><select value={videoProvider} disabled={videoFamily === 'hailuo'} onChange={(event) => update({ mvVideoProvider: event.target.value, mvVideoModel: event.target.value === 'seedance-nz' ? 'fast' : 'doubao-seedance-2-0-fast-260128', mvVideoResolution: '720p' })} className="w-full rounded-lg border border-white/10 bg-zinc-900 p-2 text-xs disabled:opacity-40"><option value="seedance-nz">贞贞的平价AI小屋</option><option value="zhenzhen">贞贞的AI工坊</option></select></div>
-                  <div><FieldLabel>模型选择</FieldLabel><select value={videoModel} onChange={(event) => update({ mvVideoModel: event.target.value, mvVideoResolution: event.target.value.startsWith('minimax-h3-ow-') ? '720p' : event.target.value.startsWith('hailuo-h3-') ? '2K' : '720p' })} className="w-full rounded-lg border border-white/10 bg-zinc-900 p-2 text-xs">{(videoFamily === 'hailuo' ? HAILUO_VIDEO_MODELS : selectableSeedanceModels).map((model) => <option key={model}>{model}</option>)}</select></div>
-                  <div><FieldLabel>分辨率</FieldLabel><select value={effectiveVideoResolution} onChange={(event) => update({ mvVideoResolution: event.target.value })} className="w-full rounded-lg border border-white/10 bg-zinc-900 p-2 text-xs">{videoResolutionOptions.map((value) => <option key={value}>{value}</option>)}</select></div>
+                  <div><FieldLabel>{mvT('videoFamily')}</FieldLabel><select value={videoFamily} onChange={(event) => update({ mvVideoFamily: event.target.value, mvVideoProvider: 'seedance-nz', mvVideoModel: event.target.value === 'hailuo' ? 'hailuo-h3-multi' : 'fast', mvVideoResolution: event.target.value === 'hailuo' ? '2K' : '720p' })} className="w-full rounded-lg border border-white/10 bg-zinc-900 p-2 text-xs"><option value="seedance">Seedance 2.0</option><option value="hailuo">MiniMax / Hailuo H3</option></select></div>
+                  <div><FieldLabel>{mvT('provider')}</FieldLabel><select value={videoProvider} disabled={videoFamily === 'hailuo'} onChange={(event) => update({ mvVideoProvider: event.target.value, mvVideoModel: event.target.value === 'seedance-nz' ? 'fast' : 'doubao-seedance-2-0-fast-260128', mvVideoResolution: '720p' })} className="w-full rounded-lg border border-white/10 bg-zinc-900 p-2 text-xs disabled:opacity-40"><option value="seedance-nz">{mvT('budgetProvider')}</option><option value="zhenzhen">{mvT('workshopProvider')}</option></select></div>
+                  <div><FieldLabel>{mvT('modelSelection')}</FieldLabel><select value={videoModel} onChange={(event) => update({ mvVideoModel: event.target.value, mvVideoResolution: event.target.value.startsWith('minimax-h3-ow-') ? '720p' : event.target.value.startsWith('hailuo-h3-') ? '2K' : '720p' })} className="w-full rounded-lg border border-white/10 bg-zinc-900 p-2 text-xs">{(videoFamily === 'hailuo' ? HAILUO_VIDEO_MODELS : selectableSeedanceModels).map((model) => <option key={model}>{model}</option>)}</select></div>
+                  <div><FieldLabel>{mvT('resolution')}</FieldLabel><select value={effectiveVideoResolution} onChange={(event) => update({ mvVideoResolution: event.target.value })} className="w-full rounded-lg border border-white/10 bg-zinc-900 p-2 text-xs">{videoResolutionOptions.map((value) => <option key={value}>{value}</option>)}</select></div>
                 </div>
-                <div className="mt-2 text-[10px] text-cyan-100/55">选择值：{videoModel} · 实际上游模型：{canonicalVideoModelPreview}</div>
-                <div className="text-right"><div className="text-[10px] text-white/40">将提交 {promptSegments.filter((segment) => !(project.videoCandidates?.[segment.segmentId] || []).some((candidate) => candidate.status === 'succeeded')).length} 个缺失视频任务 · 顺序执行</div><button type="button" disabled={running || !promptSegments.length} onClick={() => requestAction({ kind: 'videos' })} className="mt-2 inline-flex items-center gap-2 rounded-lg bg-fuchsia-500 px-4 py-2 text-xs font-semibold disabled:opacity-40"><Clapperboard size={14} />只生成缺失视频</button></div>
+                <div className="mt-2 text-[10px] text-cyan-100/55">{mvT('canonicalModelPreview', { selected: videoModel, canonical: canonicalVideoModelPreview })}</div>
+                <div className="text-right"><div className="text-[10px] text-white/40">{mvT('missingVideoTasks', { count: promptSegments.filter((segment) => !(project.videoCandidates?.[segment.segmentId] || []).some((candidate) => candidate.status === 'succeeded')).length })}</div><button type="button" disabled={running || !promptSegments.length} onClick={() => requestAction({ kind: 'videos' })} className="mt-2 inline-flex items-center gap-2 rounded-lg bg-fuchsia-500 px-4 py-2 text-xs font-semibold disabled:opacity-40"><Clapperboard size={14} />{mvT('generateMissingVideos')}</button></div>
               </div>
               <div className="grid gap-3 lg:grid-cols-2">
                 {promptSegments.map((segment) => {
@@ -3880,15 +3887,15 @@ function MvMusicMasterNode({ id, data, selected }: NodeProps) {
                   const hasAmbiguous = candidates.some(mvSubmissionRequiresManualResolution);
                   return (
                     <div key={segment.segmentId} className={`overflow-hidden rounded-xl border bg-white/[0.025] ${acceptedId ? 'border-emerald-400/35' : 'border-white/10'}`}>
-                      <div className="flex items-center justify-between px-3 py-2"><div><div className="text-xs font-semibold">段 {segment.ordinal} · {seconds(segment.durationUs)} 秒</div><div className="text-[9px] text-white/35">{segment.segmentId} · {candidates.length} 个候选 · 请求 {requestedVideoDuration(segment.durationUs)} 秒后精确裁短</div></div><span className={`text-[10px] ${acceptedId ? 'text-emerald-300' : latest?.status === 'failed' ? 'text-rose-300' : 'text-amber-200'}`}>{acceptedId ? '已采用' : latest?.status || '缺失'}</span></div>
+                      <div className="flex items-center justify-between px-3 py-2"><div><div className="text-xs font-semibold">{mvT('segmentDuration', { ordinal: segment.ordinal, seconds: seconds(segment.durationUs) })}</div><div className="text-[9px] text-white/35">{mvT('videoCandidateMeta', { id: segment.segmentId, count: candidates.length, seconds: requestedVideoDuration(segment.durationUs) })}</div></div><span className={`text-[10px] ${acceptedId ? 'text-emerald-300' : latest?.status === 'failed' ? 'text-rose-300' : 'text-amber-200'}`}>{acceptedId ? mvT('adopted') : candidateStatusLabel(latest?.status)}</span></div>
                       <div className="space-y-3 p-3">
-                        <div className="line-clamp-3 text-[10px] leading-4 text-white/55">最终 Provider Prompt 已按实际分镜资产、本段音频资产与运镜参考编译并保存到候选请求回执。</div>
+                        <div className="line-clamp-3 text-[10px] leading-4 text-white/55">{mvT('finalProviderPromptNote')}</div>
                         {candidates.map((candidate) => <div key={candidate.id} className={`overflow-hidden rounded-lg border ${acceptedId === candidate.id ? 'border-emerald-400/60' : 'border-white/10'} bg-black/30`}>
-                          {candidate.outputUrl ? <video src={candidate.outputUrl} controls preload="metadata" className="aspect-video w-full bg-black object-contain" onPlay={(event) => beginPlaybackAudit(event.currentTarget)} onTimeUpdate={(event) => flushPlaybackAudit(event.currentTarget)} onPause={(event) => flushPlaybackAudit(event.currentTarget, false)} onSeeking={(event) => { invalidatePlaybackAudit(event.currentTarget, 'seek'); setLocalError('候选审阅发生跳播；请回到开头以 1× 重新完整播放。'); }} onRateChange={(event) => { if (Math.abs(event.currentTarget.playbackRate - 1) > 0.01) { invalidatePlaybackAudit(event.currentTarget, 'rate'); setLocalError('候选审阅必须使用 1× 播放速度；本次播放已失效。'); } }} onError={(event) => invalidatePlaybackAudit(event.currentTarget, 'error')} onEnded={(event) => finishVideoCandidatePlayback(event.currentTarget, segment.segmentId, candidate.id)} /> : <div className="flex aspect-video w-full items-center justify-center px-6 text-center text-[10px] text-white/25">{candidate.status === 'failed' ? candidate.error : `任务 ${candidate.status}；保留 taskId 后可恢复`}</div>}
-                          <div className="grid grid-cols-[1fr_auto] items-center gap-2 p-2"><div className="text-[9px] text-white/35">v{candidate.revision} · {candidate.model} · {candidate.actualDurationSeconds?.toFixed(3) || '-'}s<br />{candidate.contentHash ? `SHA ${candidate.contentHash.slice(0, 12)}…` : candidate.taskId || candidate.status}</div><button type="button" disabled={!candidate.viewedAt || !candidate.contentHash} onClick={() => acceptVideoCandidate(segment.segmentId, candidate.id)} className="rounded bg-emerald-500 px-3 py-2 text-[9px] font-semibold disabled:opacity-30">{acceptedId === candidate.id ? '已采用' : candidate.viewedAt ? '采用此版本' : '先以 1× 完整播放'}</button></div>
+                          {candidate.outputUrl ? <video src={candidate.outputUrl} controls preload="metadata" className="aspect-video w-full bg-black object-contain" onPlay={(event) => beginPlaybackAudit(event.currentTarget)} onTimeUpdate={(event) => flushPlaybackAudit(event.currentTarget)} onPause={(event) => flushPlaybackAudit(event.currentTarget, false)} onSeeking={(event) => { invalidatePlaybackAudit(event.currentTarget, 'seek'); setLocalError(mvT('candidateSeekInvalid')); }} onRateChange={(event) => { if (Math.abs(event.currentTarget.playbackRate - 1) > 0.01) { invalidatePlaybackAudit(event.currentTarget, 'rate'); setLocalError(mvT('candidateRateInvalid')); } }} onError={(event) => invalidatePlaybackAudit(event.currentTarget, 'error')} onEnded={(event) => finishVideoCandidatePlayback(event.currentTarget, segment.segmentId, candidate.id)} /> : <div className="flex aspect-video w-full items-center justify-center px-6 text-center text-[10px] text-white/25">{candidate.status === 'failed' ? candidate.error : mvT('taskRecoverable', { status: candidateStatusLabel(candidate.status) })}</div>}
+                          <div className="grid grid-cols-[1fr_auto] items-center gap-2 p-2"><div className="text-[9px] text-white/35">v{candidate.revision} · {candidate.model} · {candidate.actualDurationSeconds?.toFixed(3) || '-'}s<br />{candidate.contentHash ? `SHA ${candidate.contentHash.slice(0, 12)}…` : candidate.taskId || candidateStatusLabel(candidate.status)}</div><button type="button" disabled={!candidate.viewedAt || !candidate.contentHash} onClick={() => acceptVideoCandidate(segment.segmentId, candidate.id)} className="rounded bg-emerald-500 px-3 py-2 text-[9px] font-semibold disabled:opacity-30">{acceptedId === candidate.id ? mvT('adopted') : candidate.viewedAt ? mvT('adoptThisVersion') : mvT('playFullAt1x')}</button></div>
                         </div>)}
-                        {!candidates.length && <div className="flex aspect-video items-center justify-center rounded-lg border border-dashed border-white/10 text-[10px] text-white/25">尚未生成</div>}
-                        <button type="button" disabled={running} onClick={() => requestAction({ kind: 'videos', segmentIds: [segment.segmentId], forceNew: true })} className="inline-flex w-full items-center justify-center gap-1 rounded-lg border border-white/10 bg-white/5 px-2 py-2 text-[10px] disabled:opacity-40"><RefreshCw size={12} />{hasAmbiguous ? '已核对旧任务后新建修订' : '追加重生成本段（保留全部历史）'}</button>
+                        {!candidates.length && <div className="flex aspect-video items-center justify-center rounded-lg border border-dashed border-white/10 text-[10px] text-white/25">{mvT('notGenerated')}</div>}
+                        <button type="button" disabled={running} onClick={() => requestAction({ kind: 'videos', segmentIds: [segment.segmentId], forceNew: true })} className="inline-flex w-full items-center justify-center gap-1 rounded-lg border border-white/10 bg-white/5 px-2 py-2 text-[10px] disabled:opacity-40"><RefreshCw size={12} />{hasAmbiguous ? mvT('newRevisionAfterReview') : mvT('regenerateSegmentKeepHistory')}</button>
                       </div>
                     </div>
                   );
@@ -3901,23 +3908,23 @@ function MvMusicMasterNode({ id, data, selected }: NodeProps) {
             <div className="mx-auto max-w-4xl space-y-4">
               <div className="rounded-2xl border border-fuchsia-400/20 bg-fuchsia-400/[0.04] p-8 text-center">
                 {running ? <Loader2 size={34} className="mx-auto mb-3 animate-spin text-fuchsia-300" /> : <Sparkles size={34} className="mx-auto mb-3 text-fuchsia-300" />}
-                <div className="text-lg font-semibold">原曲唯一主音轨合成</div>
-                <div className="mx-auto mt-2 max-w-2xl text-xs leading-6 text-white/50">按确认后的分段精确裁短画面，剥离所有生成视频音轨；完整原曲只做一次 AAC 编码并仅写入一条音轨。歌词字幕按导演设置烧录。</div>
+                <div className="text-lg font-semibold">{mvT('masterTrackComposition')}</div>
+                <div className="mx-auto mt-2 max-w-2xl text-xs leading-6 text-white/50">{mvT('masterTrackCompositionNote')}</div>
                 <div className="mt-4 grid grid-cols-3 gap-3 text-left text-[11px]">
-                  <div className="rounded-lg border border-white/10 bg-black/20 p-3"><div className="text-white/35">已确认视频</div><div className="mt-1 text-base font-semibold">{acceptedVideoCount}/{promptSegments.length}</div></div>
-                  <div className="rounded-lg border border-white/10 bg-black/20 p-3"><div className="text-white/35">字幕策略</div><div className="mt-1 text-base font-semibold">{creativeBrief.subtitles === 'none' ? '不烧录' : creativeBrief.subtitles === 'spatial-lyrics' ? '中部歌词' : '底部歌词'}</div></div>
-                  <div className="rounded-lg border border-white/10 bg-black/20 p-3"><div className="text-white/35">任务状态</div><div className="mt-1 text-base font-semibold">{project.finalComposition?.status || '待开始'}</div></div>
+                  <div className="rounded-lg border border-white/10 bg-black/20 p-3"><div className="text-white/35">{mvT('confirmedVideos')}</div><div className="mt-1 text-base font-semibold">{acceptedVideoCount}/{promptSegments.length}</div></div>
+                  <div className="rounded-lg border border-white/10 bg-black/20 p-3"><div className="text-white/35">{mvT('subtitlePolicy')}</div><div className="mt-1 text-base font-semibold">{creativeBrief.subtitles === 'none' ? mvT('subtitleOptions.noneShort') : creativeBrief.subtitles === 'spatial-lyrics' ? mvT('subtitleOptions.spatialShort') : mvT('subtitleOptions.bottomShort')}</div></div>
+                  <div className="rounded-lg border border-white/10 bg-black/20 p-3"><div className="text-white/35">{mvT('taskStatus')}</div><div className="mt-1 text-base font-semibold">{candidateStatusLabel(project.finalComposition?.status || 'pending')}</div></div>
                 </div>
-                {project.finalComposition?.jobId && <div className="mt-3 font-mono text-[10px] text-white/35">本地持久任务 {project.finalComposition.jobId}</div>}
+                {project.finalComposition?.jobId && <div className="mt-3 font-mono text-[10px] text-white/35">{mvT('localPersistentJob', { id: project.finalComposition.jobId })}</div>}
                 {project.finalComposition?.error && <div className="mt-3 rounded-lg border border-rose-400/25 bg-rose-400/10 p-3 text-left text-xs text-rose-100">{project.finalComposition.error}</div>}
               </div>
               {project.finalComposition?.status === 'succeeded' && project.finalComposition.result?.videoUrl && (
                 <div className="space-y-3 rounded-2xl border border-emerald-400/25 bg-black/30 p-3">
-                  <video src={project.finalComposition.result.videoUrl} controls preload="metadata" onPlay={(event) => beginPlaybackAudit(event.currentTarget)} onTimeUpdate={(event) => flushPlaybackAudit(event.currentTarget)} onPause={(event) => flushPlaybackAudit(event.currentTarget, false)} onSeeking={(event) => { invalidatePlaybackAudit(event.currentTarget, 'seek'); setLocalError('最终 QC 发生跳播；请回到开头以 1× 重新完整播放。'); }} onRateChange={(event) => { if (Math.abs(event.currentTarget.playbackRate - 1) > 0.01) { invalidatePlaybackAudit(event.currentTarget, 'rate'); setLocalError('最终 QC 必须使用 1× 播放速度；本次播放已失效。'); } }} onError={(event) => invalidatePlaybackAudit(event.currentTarget, 'error')} onEnded={(event) => markFinalViewed(event.currentTarget)} className="aspect-video w-full rounded-xl bg-black object-contain" />
+                  <video src={project.finalComposition.result.videoUrl} controls preload="metadata" onPlay={(event) => beginPlaybackAudit(event.currentTarget)} onTimeUpdate={(event) => flushPlaybackAudit(event.currentTarget)} onPause={(event) => flushPlaybackAudit(event.currentTarget, false)} onSeeking={(event) => { invalidatePlaybackAudit(event.currentTarget, 'seek'); setLocalError(mvT('finalSeekInvalid')); }} onRateChange={(event) => { if (Math.abs(event.currentTarget.playbackRate - 1) > 0.01) { invalidatePlaybackAudit(event.currentTarget, 'rate'); setLocalError(mvT('finalRateInvalid')); } }} onError={(event) => invalidatePlaybackAudit(event.currentTarget, 'error')} onEnded={(event) => markFinalViewed(event.currentTarget)} className="aspect-video w-full rounded-xl bg-black object-contain" />
                   <div className="grid gap-2 text-[10px] md:grid-cols-3">
                     <div className="rounded-lg border border-white/10 p-2">EDL <span className="font-mono text-emerald-200">{project.finalComposition.edlDigest?.slice(0, 12)}…</span></div>
-                    <div className="rounded-lg border border-white/10 p-2">QC <span className={project.finalComposition.qcReport ? 'text-emerald-200' : 'text-amber-200'}>{project.finalComposition.qcReport ? '完整播放结束回执已签发' : '物理校验通过 / 待完整播放至结束'}</span></div>
-                    <div className="rounded-lg border border-white/10 p-2">最终审阅 <span className={project.finalComposition.viewedAt ? 'text-emerald-200' : 'text-amber-200'}>{project.finalComposition.viewedAt ? '已播放' : '请先播放'}</span></div>
+                    <div className="rounded-lg border border-white/10 p-2">QC <span className={project.finalComposition.qcReport ? 'text-emerald-200' : 'text-amber-200'}>{project.finalComposition.qcReport ? mvT('playbackReceiptSigned') : mvT('physicalCheckAwaitPlayback')}</span></div>
+                    <div className="rounded-lg border border-white/10 p-2">{mvT('finalReview')} <span className={project.finalComposition.viewedAt ? 'text-emerald-200' : 'text-amber-200'}>{project.finalComposition.viewedAt ? mvT('played') : mvT('playFirst')}</span></div>
                   </div>
                 </div>
               )}
@@ -3929,53 +3936,53 @@ function MvMusicMasterNode({ id, data, selected }: NodeProps) {
               <div className="overflow-hidden rounded-2xl border border-emerald-400/25 bg-black/30">
                 {project.finalComposition?.result?.videoUrl
                   ? <video src={project.finalComposition.result.videoUrl} controls preload="metadata" className="aspect-video w-full bg-black object-contain" />
-                  : <div className="flex aspect-video items-center justify-center text-sm text-white/30">交付文件地址缺失</div>}
+                  : <div className="flex aspect-video items-center justify-center text-sm text-white/30">{mvT('deliveryUrlMissing')}</div>}
               </div>
               <div className="grid gap-3 md:grid-cols-4">
-                <div className="rounded-xl border border-white/10 bg-white/[0.025] p-3 text-xs"><div className="text-white/35">内容 SHA256</div><div className="mt-1 break-all font-mono text-[10px] text-emerald-200">{project.finalComposition?.contentHash}</div></div>
-                <div className="rounded-xl border border-white/10 bg-white/[0.025] p-3 text-xs"><div className="text-white/35">音轨 QC</div><div className="mt-1 font-semibold text-emerald-200">1 条 · 原曲替换</div></div>
-                <div className="rounded-xl border border-white/10 bg-white/[0.025] p-3 text-xs"><div className="text-white/35">原曲策略</div><div className="mt-1 font-semibold text-emerald-200">{project.finalComposition?.masterAudioMode || '待回执'}</div></div>
-                <div className="rounded-xl border border-white/10 bg-white/[0.025] p-3 text-xs"><div className="text-white/35">时长漂移</div><div className="mt-1 font-semibold text-emerald-200">{(project.finalComposition?.durationDriftSeconds || 0).toFixed(4)} 秒</div></div>
+                <div className="rounded-xl border border-white/10 bg-white/[0.025] p-3 text-xs"><div className="text-white/35">{mvT('contentSha')}</div><div className="mt-1 break-all font-mono text-[10px] text-emerald-200">{project.finalComposition?.contentHash}</div></div>
+                <div className="rounded-xl border border-white/10 bg-white/[0.025] p-3 text-xs"><div className="text-white/35">{mvT('audioTrackQc')}</div><div className="mt-1 font-semibold text-emerald-200">{mvT('singleOriginalTrack')}</div></div>
+                <div className="rounded-xl border border-white/10 bg-white/[0.025] p-3 text-xs"><div className="text-white/35">{mvT('masterAudioPolicy')}</div><div className="mt-1 font-semibold text-emerald-200">{project.finalComposition?.masterAudioMode || mvT('awaitingReceipt')}</div></div>
+                <div className="rounded-xl border border-white/10 bg-white/[0.025] p-3 text-xs"><div className="text-white/35">{mvT('durationDrift')}</div><div className="mt-1 font-semibold text-emerald-200">{mvT('secondsValue', { value: (project.finalComposition?.durationDriftSeconds || 0).toFixed(4) })}</div></div>
               </div>
-              {project.finalComposition?.result?.videoUrl && <a href={project.finalComposition.result.videoUrl} download={project.finalComposition.result.fileName || 'mv-final.mp4'} className="flex w-full items-center justify-center rounded-xl bg-emerald-500 px-4 py-3 text-sm font-semibold hover:bg-emerald-400">下载最终 MV</a>}
+              {project.finalComposition?.result?.videoUrl && <a href={project.finalComposition.result.videoUrl} download={project.finalComposition.result.fileName || 'mv-final.mp4'} className="flex w-full items-center justify-center rounded-xl bg-emerald-500 px-4 py-3 text-sm font-semibold hover:bg-emerald-400">{mvT('downloadFinalMv')}</a>}
             </div>
           )}
         </section>
 
         <footer className="flex min-h-16 shrink-0 items-center justify-between gap-3 border-t border-white/10 bg-[#101017] px-5 py-3">
-          <div className="min-w-0 text-xs text-rose-200">{localError || d.error || ''}</div>
+          <div className="min-w-0 text-xs text-rose-200">{mvRuntimeText(localError || d.error || '')}</div>
           <div className="flex shrink-0 items-center gap-2">
-            {running && ['images', 'videos', 'compose'].includes(pendingActionRef.current.kind) && <button type="button" onClick={stopLocalPolling} className="inline-flex items-center gap-2 rounded-lg border border-amber-400/30 bg-amber-400/10 px-4 py-2 text-xs font-semibold text-amber-100"><Pause size={15} />停止本地轮询</button>}
+            {running && ['images', 'videos', 'compose'].includes(pendingActionRef.current.kind) && <button type="button" onClick={stopLocalPolling} className="inline-flex items-center gap-2 rounded-lg border border-amber-400/30 bg-amber-400/10 px-4 py-2 text-xs font-semibold text-amber-100"><Pause size={15} />{mvT('stopLocalPolling')}</button>}
             {activeStage === 'segment-review' && project.segmentPlan && (
-              <button type="button" onClick={confirmSegments} className="inline-flex items-center gap-2 rounded-lg bg-emerald-500 px-4 py-2 text-xs font-semibold hover:bg-emerald-400"><CheckCircle2 size={15} />确认分段并进入导演设置</button>
+              <button type="button" onClick={confirmSegments} className="inline-flex items-center gap-2 rounded-lg bg-emerald-500 px-4 py-2 text-xs font-semibold hover:bg-emerald-400"><CheckCircle2 size={15} />{mvT('confirmSegments')}</button>
             )}
             {activeStage === 'brief-review' && (
-              <button type="button" onClick={() => requestAction({ kind: 'visual-bible', forceNew: visualBibleSubmissionUnresolved })} disabled={busy} className="inline-flex items-center gap-2 rounded-lg bg-fuchsia-500 px-4 py-2 text-xs font-semibold hover:bg-fuchsia-400 disabled:opacity-50"><Sparkles size={15} />{visualBibleSubmissionUnresolved ? '已核对旧请求后续跑缺失请求' : `确认 Brief：全局核心 1 次 + Arc ${buildMvPromptBatches(promptSegments).length} 批`}</button>
+              <button type="button" onClick={() => requestAction({ kind: 'visual-bible', forceNew: visualBibleSubmissionUnresolved })} disabled={busy} className="inline-flex items-center gap-2 rounded-lg bg-fuchsia-500 px-4 py-2 text-xs font-semibold hover:bg-fuchsia-400 disabled:opacity-50"><Sparkles size={15} />{visualBibleSubmissionUnresolved ? mvT('resumeMissingRequests') : mvT('confirmBrief', { count: buildMvPromptBatches(promptSegments).length })}</button>
             )}
             {activeStage === 'prompt-review' && acceptedPromptCount === promptSegments.length && promptSegments.length > 0 && (
-              <button type="button" onClick={finishPromptReview} className="inline-flex items-center gap-2 rounded-lg bg-emerald-500 px-4 py-2 text-xs font-semibold hover:bg-emerald-400"><CheckCircle2 size={15} />确认全部 Prompt 并进入分镜图</button>
+              <button type="button" onClick={finishPromptReview} className="inline-flex items-center gap-2 rounded-lg bg-emerald-500 px-4 py-2 text-xs font-semibold hover:bg-emerald-400"><CheckCircle2 size={15} />{mvT('confirmAllPrompts')}</button>
             )}
             {activeStage === 'image-review' && acceptedImageCount === shotTasks.length && shotTasks.length > 0 && (
-              <button type="button" onClick={finishImageReview} className="inline-flex items-center gap-2 rounded-lg bg-emerald-500 px-4 py-2 text-xs font-semibold hover:bg-emerald-400"><CheckCircle2 size={15} />确认全部分镜并进入视频生成</button>
+              <button type="button" onClick={finishImageReview} className="inline-flex items-center gap-2 rounded-lg bg-emerald-500 px-4 py-2 text-xs font-semibold hover:bg-emerald-400"><CheckCircle2 size={15} />{mvT('confirmAllStoryboards')}</button>
             )}
             {activeStage === 'video-review' && acceptedVideoCount === promptSegments.length && promptSegments.length > 0 && (
-              <button type="button" onClick={finishVideoReview} className="inline-flex items-center gap-2 rounded-lg bg-emerald-500 px-4 py-2 text-xs font-semibold hover:bg-emerald-400"><CheckCircle2 size={15} />确认全部视频并进入原曲单轨合成</button>
+              <button type="button" onClick={finishVideoReview} className="inline-flex items-center gap-2 rounded-lg bg-emerald-500 px-4 py-2 text-xs font-semibold hover:bg-emerald-400"><CheckCircle2 size={15} />{mvT('confirmAllVideos')}</button>
             )}
             {activeStage === 'composing' && (
               <>
                 {project.finalComposition?.status === 'succeeded'
-                  ? <button type="button" onClick={() => requestAction({ kind: 'deliver' })} disabled={busy || !project.finalComposition.qcReport} className="inline-flex items-center gap-2 rounded-lg bg-emerald-500 px-4 py-2 text-xs font-semibold hover:bg-emerald-400 disabled:opacity-40"><CheckCircle2 size={15} />确认 QC 并正式交付</button>
-                  : <button type="button" onClick={() => requestAction({ kind: 'compose' })} disabled={busy} className="inline-flex items-center gap-2 rounded-lg bg-fuchsia-500 px-4 py-2 text-xs font-semibold hover:bg-fuchsia-400 disabled:opacity-40">{busy ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />}{project.finalComposition?.jobId ? '检查并继续已有合成任务' : '开始原曲单轨合成'}</button>}
-                {project.finalComposition?.jobId && ['failed', 'recoverable'].includes(project.finalComposition.status) && <button type="button" onClick={() => requestAction({ kind: 'compose', forceNew: true })} disabled={busy} className="rounded-lg border border-rose-400/30 bg-rose-400/10 px-4 py-2 text-xs font-semibold text-rose-100 disabled:opacity-40">放弃旧任务并重新合成</button>}
+                  ? <button type="button" onClick={() => requestAction({ kind: 'deliver' })} disabled={busy || !project.finalComposition.qcReport} className="inline-flex items-center gap-2 rounded-lg bg-emerald-500 px-4 py-2 text-xs font-semibold hover:bg-emerald-400 disabled:opacity-40"><CheckCircle2 size={15} />{mvT('confirmQcAndDeliver')}</button>
+                  : <button type="button" onClick={() => requestAction({ kind: 'compose' })} disabled={busy} className="inline-flex items-center gap-2 rounded-lg bg-fuchsia-500 px-4 py-2 text-xs font-semibold hover:bg-fuchsia-400 disabled:opacity-40">{busy ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />}{project.finalComposition?.jobId ? mvT('resumeComposition') : mvT('startComposition')}</button>}
+                {project.finalComposition?.jobId && ['failed', 'recoverable'].includes(project.finalComposition.status) && <button type="button" onClick={() => requestAction({ kind: 'compose', forceNew: true })} disabled={busy} className="rounded-lg border border-rose-400/30 bg-rose-400/10 px-4 py-2 text-xs font-semibold text-rose-100 disabled:opacity-40">{mvT('abandonAndRecompose')}</button>}
               </>
             )}
           </div>
         </footer>
       </main>
-      {viewingImage && <div className="fixed inset-0 z-[10040] flex items-center justify-center bg-black/90 p-8" onClick={() => setViewingImage(null)} role="dialog" aria-modal="true" aria-label="查看分镜候选">
+      {viewingImage && <div className="fixed inset-0 z-[10040] flex items-center justify-center bg-black/90 p-8" onClick={() => setViewingImage(null)} role="dialog" aria-modal="true" aria-label={mvT('viewStoryboardCandidate')}>
         <div className="max-h-full max-w-[92vw]" onClick={(event) => event.stopPropagation()}>
-          <img src={viewingImage.url} alt="分镜候选大图" onLoad={() => markImageViewed(viewingImage.shotId, viewingImage.candidateId)} className="max-h-[82vh] max-w-full rounded-xl object-contain" />
-          <div className="mt-3 flex items-center justify-between gap-3"><div className="text-xs text-white/55">图片成功加载后记录查看回执：{viewingImage.candidateId}</div><button type="button" onClick={() => setViewingImage(null)} className="rounded-lg bg-white/10 px-4 py-2 text-xs">关闭</button></div>
+          <img src={viewingImage.url} alt={mvT('storyboardCandidateImage')} onLoad={() => markImageViewed(viewingImage.shotId, viewingImage.candidateId)} className="max-h-[82vh] max-w-full rounded-xl object-contain" />
+          <div className="mt-3 flex items-center justify-between gap-3"><div className="text-xs text-white/55">{mvT('imageViewReceipt', { id: viewingImage.candidateId })}</div><button type="button" onClick={() => setViewingImage(null)} className="rounded-lg bg-white/10 px-4 py-2 text-xs">{mvT('close')}</button></div>
         </div>
       </div>}
     </div>,
@@ -3990,43 +3997,43 @@ function MvMusicMasterNode({ id, data, selected }: NodeProps) {
         <Handle id="identity-image" type="target" position={Position.Left} style={{ top: '52%' }} className="!h-3 !w-3 !border-2 !border-[#0d0d12] !bg-sky-400" />
         <Handle id="style-image" type="target" position={Position.Left} style={{ top: '64%' }} className="!h-3 !w-3 !border-2 !border-[#0d0d12] !bg-violet-400" />
         <Handle id="motion-reference" type="target" position={Position.Left} style={{ top: '76%' }} className="!h-3 !w-3 !border-2 !border-[#0d0d12] !bg-orange-400" />
-        <PortLabel side="left" top="28%">歌曲</PortLabel><PortLabel side="left" top="40%">歌词</PortLabel><PortLabel side="left" top="52%">人设</PortLabel><PortLabel side="left" top="64%">风格</PortLabel><PortLabel side="left" top="76%">运镜</PortLabel>
+        <PortLabel side="left" top="28%">{mvT('ports.song')}</PortLabel><PortLabel side="left" top="40%">{mvT('ports.lyrics')}</PortLabel><PortLabel side="left" top="52%">{mvT('ports.identity')}</PortLabel><PortLabel side="left" top="64%">{mvT('ports.style')}</PortLabel><PortLabel side="left" top="76%">{mvT('ports.motion')}</PortLabel>
 
         <Handle id="final-video" type="source" position={Position.Right} style={{ top: '28%' }} className="!h-3 !w-3 !border-2 !border-[#0d0d12] !bg-cyan-400" />
         <Handle id="master-audio" type="source" position={Position.Right} style={{ top: '40%' }} className="!h-3 !w-3 !border-2 !border-[#0d0d12] !bg-amber-400" />
         <Handle id="storyboards" type="source" position={Position.Right} style={{ top: '52%' }} className="!h-3 !w-3 !border-2 !border-[#0d0d12] !bg-sky-400" />
         <Handle id="prompt-pack" type="source" position={Position.Right} style={{ top: '64%' }} className="!h-3 !w-3 !border-2 !border-[#0d0d12] !bg-emerald-400" />
         <Handle id="manifest" type="source" position={Position.Right} style={{ top: '76%' }} className="!h-3 !w-3 !border-2 !border-[#0d0d12] !bg-fuchsia-400" />
-        <PortLabel side="right" top="28%">成片</PortLabel><PortLabel side="right" top="40%">原曲</PortLabel><PortLabel side="right" top="52%">分镜</PortLabel><PortLabel side="right" top="64%">Prompt</PortLabel><PortLabel side="right" top="76%">清单</PortLabel>
+        <PortLabel side="right" top="28%">{mvT('ports.finalVideo')}</PortLabel><PortLabel side="right" top="40%">{mvT('ports.masterAudio')}</PortLabel><PortLabel side="right" top="52%">{mvT('ports.storyboards')}</PortLabel><PortLabel side="right" top="64%">Prompt</PortLabel><PortLabel side="right" top="76%">{mvT('ports.manifest')}</PortLabel>
 
         <div className={`overflow-hidden rounded-2xl border-2 bg-[#111117]/95 transition ${selected ? 'border-fuchsia-400 shadow-2xl shadow-fuchsia-500/20' : 'border-white/15 hover:border-white/30'}`}>
           <div className="flex items-center gap-3 border-b border-white/10 px-4 py-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-fuchsia-500/20 text-fuchsia-200 ring-1 ring-fuchsia-400/30"><Clapperboard size={19} /></div>
-            <div className="min-w-0 flex-1"><div className="truncate text-sm font-bold text-white">MV 音乐大师</div><div className="truncate text-[10px] text-white/40">整曲导演 · 分镜 · 视频 · 原曲单轨成片</div></div>
+            <div className="min-w-0 flex-1"><div className="truncate text-sm font-bold text-white">{translate('nodes:mvMusicMaster.title')}</div><div className="truncate text-[10px] text-white/40">{mvT('compactSubtitle')}</div></div>
             {running ? <Loader2 size={17} className="animate-spin text-fuchsia-300" /> : d.status === 'success' ? <CheckCircle2 size={17} className="text-emerald-400" /> : null}
           </div>
 
           <div className="nodrag nowheel space-y-3 p-4" onMouseDown={(event) => event.stopPropagation()}>
             <div className="grid grid-cols-4 gap-2 text-center">
-              <div className="rounded-lg border border-white/10 bg-white/[0.025] p-2"><div className="text-lg font-bold text-white">{upstream.audios.length}</div><div className="text-[9px] text-white/35">歌曲</div></div>
-              <div className="rounded-lg border border-white/10 bg-white/[0.025] p-2"><div className="text-lg font-bold text-white">{project.lyricUnits.length || upstream.texts.length}</div><div className="text-[9px] text-white/35">歌词单元</div></div>
-              <div className="rounded-lg border border-white/10 bg-white/[0.025] p-2"><div className="text-lg font-bold text-white">{upstream.images.length}</div><div className="text-[9px] text-white/35">参考图</div></div>
-              <div className="rounded-lg border border-white/10 bg-white/[0.025] p-2"><div className="text-lg font-bold text-fuchsia-200">{segmentCount}</div><div className="text-[9px] text-white/35">音频段</div></div>
+              <div className="rounded-lg border border-white/10 bg-white/[0.025] p-2"><div className="text-lg font-bold text-white">{upstream.audios.length}</div><div className="text-[9px] text-white/35">{mvT('song')}</div></div>
+              <div className="rounded-lg border border-white/10 bg-white/[0.025] p-2"><div className="text-lg font-bold text-white">{project.lyricUnits.length || upstream.texts.length}</div><div className="text-[9px] text-white/35">{mvT('lyricUnits')}</div></div>
+              <div className="rounded-lg border border-white/10 bg-white/[0.025] p-2"><div className="text-lg font-bold text-white">{upstream.images.length}</div><div className="text-[9px] text-white/35">{mvT('referenceImages')}</div></div>
+              <div className="rounded-lg border border-white/10 bg-white/[0.025] p-2"><div className="text-lg font-bold text-fuchsia-200">{segmentCount}</div><div className="text-[9px] text-white/35">{mvT('audioSegments')}</div></div>
             </div>
 
             <div className="rounded-xl border border-white/10 bg-black/20 p-3">
-              <div className="mb-2 flex items-center justify-between text-[10px]"><span className="text-white/45">当前阶段</span><span className="font-semibold text-fuchsia-200">{STAGES.find((stage) => stage.id === project.stage)?.label || '1 素材'}</span></div>
+              <div className="mb-2 flex items-center justify-between text-[10px]"><span className="text-white/45">{mvT('currentStage')}</span><span className="font-semibold text-fuchsia-200">{stageDisplayLabel(project.stage)}</span></div>
               <div className="h-1.5 overflow-hidden rounded-full bg-white/5"><div className="h-full rounded-full bg-gradient-to-r from-fuchsia-500 to-cyan-400" style={{ width: `${((currentStageIndex + 1) / STAGES.length) * 100}%` }} /></div>
-              <div className="mt-2 flex items-center gap-2 text-[10px] text-white/40"><Clock3 size={12} />{project.audio ? `${durationLabel(project.audio.durationUs)} · ${project.audio.sampleRate} Hz` : '等待歌曲解码'}</div>
+              <div className="mt-2 flex items-center gap-2 text-[10px] text-white/40"><Clock3 size={12} />{project.audio ? `${durationLabel(project.audio.durationUs)} · ${project.audio.sampleRate} Hz` : mvT('waitingSongDecode')}</div>
             </div>
 
-            {(localError || d.error) && <div className="flex items-start gap-2 rounded-lg border border-rose-400/25 bg-rose-400/10 px-3 py-2 text-[10px] leading-4 text-rose-100"><AlertCircle size={13} className="mt-0.5 shrink-0" />{localError || String(d.error)}</div>}
+            {(localError || d.error) && <div className="flex items-start gap-2 rounded-lg border border-rose-400/25 bg-rose-400/10 px-3 py-2 text-[10px] leading-4 text-rose-100"><AlertCircle size={13} className="mt-0.5 shrink-0" />{mvRuntimeText(localError || String(d.error))}</div>}
 
             <div className="grid grid-cols-[1fr_auto] gap-2">
-              <button type="button" onClick={requestRun} disabled={running} className="flex items-center justify-center gap-2 rounded-xl bg-fuchsia-500 px-3 py-2.5 text-xs font-semibold text-white hover:bg-fuchsia-400 disabled:opacity-50">{running ? <Loader2 size={14} className="animate-spin" /> : project.stage === 'materials' ? <Play size={14} /> : <Pause size={14} />}{project.stage === 'materials' ? '开始本地分析' : '继续当前工程'}</button>
-              <button type="button" onClick={() => { setActiveStage(project.stage); setWorkbenchOpen(true); }} className="rounded-xl border border-white/10 bg-white/[0.04] px-3 text-white/60 hover:bg-white/10 hover:text-white" title="打开全屏工作台"><Maximize2 size={16} /></button>
+              <button type="button" onClick={requestRun} disabled={running} className="flex items-center justify-center gap-2 rounded-xl bg-fuchsia-500 px-3 py-2.5 text-xs font-semibold text-white hover:bg-fuchsia-400 disabled:opacity-50">{running ? <Loader2 size={14} className="animate-spin" /> : project.stage === 'materials' ? <Play size={14} /> : <Pause size={14} />}{project.stage === 'materials' ? mvT('startLocalAnalysis') : mvT('continueProject')}</button>
+              <button type="button" onClick={() => { setActiveStage(project.stage); setWorkbenchOpen(true); }} className="rounded-xl border border-white/10 bg-white/[0.04] px-3 text-white/60 hover:bg-white/10 hover:text-white" title={mvT('openFullscreenWorkbench')}><Maximize2 size={16} /></button>
             </div>
-            <div className="text-center text-[9px] leading-4 text-white/30">分析与分段在本地执行；任何付费生成都会在工作台显示请求范围并要求确认。</div>
+            <div className="text-center text-[9px] leading-4 text-white/30">{mvT('compactPaidSafetyNote')}</div>
           </div>
         </div>
       </div>

@@ -1,4 +1,5 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Handle,
   Position,
@@ -8,7 +9,8 @@ import {
   type NodeProps,
   type Node,
 } from '@xyflow/react';
-import { Box, Camera, MonitorPlay, Type as TypeIcon, Image as ImageIcon, Video as VideoIcon, Music, Download, Pencil, Check, Edit3, GitCompare, Trash2 } from 'lucide-react';
+import { Box, Camera, MonitorPlay, Type as TypeIcon, Image as ImageIcon, Video as VideoIcon, Music, Download, Pencil, Check, Edit3, GitCompare, Trash2, Ratio, MoveDiagonal2 } from 'lucide-react';
+import { useCanvasNodeRenderMode } from '../CanvasNodeRenderMode';
 import { useUpdateNodeData } from './useUpdateNodeData';
 import { useThemeStore } from '../../stores/theme';
 import { logBus } from '../../stores/logs';
@@ -18,6 +20,7 @@ import ImageEditModal, { type ImageEditProduceMeta } from './ImageEditModal';
 import ImageCompareModal from '../ImageCompareModal';
 import CollectionSplitButton from '../CollectionSplitButton';
 import ImageHoverPreview from '../ImageHoverPreview';
+import ImageDetailViewer from '../ImageDetailViewer';
 import LoopingVideo from '../LoopingVideo';
 import MediaMetadataBadge from '../MediaMetadataBadge';
 import RhImageCapabilityRail from '../RhImageCapabilityRail';
@@ -71,6 +74,12 @@ import {
 import type { RunNodeLifecycleReporter } from '../../types/project';
 import SmartTranslateButton from '../SmartTranslateButton';
 import type { SmartTranslationRecord } from '../../utils/smartTranslation';
+import {
+  computeOutputAspectSize,
+  normalizeOutputViewState,
+  resolveOutputGridColumns,
+  type OutputViewState,
+} from '../../utils/outputView';
 
 type OutputProduceMeta =
   | ImageEditProduceMeta
@@ -110,18 +119,18 @@ const isVideoUrl = (u: string) => /\.(mp4|webm|mov|m4v|mkv)(\?|$)/i.test(u);
 const isAudioUrl = (u: string) => /\.(mp3|wav|ogg|m4a|flac)(\?|$)/i.test(u);
 const isModel3DUrl = (u: string) => /\.(glb|gltf|obj|fbx|stl|usdz|zip)(\?|$)/i.test(u) || /^data:model\//i.test(u);
 
-const NODE_INPUT_LABELS: Record<string, string> = {
-  upload: '上传图',
-  output: '上游输出图',
-  image: '上游生成图',
-  'frame-pair': '抽帧图',
-  resize: '尺寸调整图',
-  combine: '合成图',
-  'grid-crop': '宫格切图',
-  'grid-editor': '宫格拼图',
-  'remove-bg': '抠图结果',
-  upscale: '放大结果',
-  relay: '中继图',
+const NODE_INPUT_LABEL_KEYS: Record<string, string> = {
+  upload: 'nodes:output.inputLabels.upload',
+  output: 'nodes:output.inputLabels.output',
+  image: 'nodes:output.inputLabels.image',
+  'frame-pair': 'nodes:output.inputLabels.framePair',
+  resize: 'nodes:output.inputLabels.resize',
+  combine: 'nodes:output.inputLabels.combine',
+  'grid-crop': 'nodes:output.inputLabels.gridCrop',
+  'grid-editor': 'nodes:output.inputLabels.gridEditor',
+  'remove-bg': 'nodes:output.inputLabels.removeBg',
+  upscale: 'nodes:output.inputLabels.upscale',
+  relay: 'nodes:output.inputLabels.relay',
 };
 
 interface Collected {
@@ -133,11 +142,15 @@ interface Collected {
 }
 
 const OutputNode = ({ id, data, selected }: NodeProps) => {
+  const canvasRenderMode = useCanvasNodeRenderMode();
+  const { t } = useTranslation(['nodes', 'common']);
   const update = useUpdateNodeData(id);
   const { theme, templateId, customTemplates } = useThemeStore();
   const isDark = theme === 'dark';
   const d = (data as any) || {};
   const rf = useReactFlow();
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const mediaAspectByUrlRef = useRef(new Map<string, number>());
   const queueSecondaryAction = useCallback<QueueSecondaryProviderAction>((draft) => {
     const action = createSecondaryProviderActionForNode(id, 'output', draft);
     update(secondaryProviderActionNodePatch(action));
@@ -145,11 +158,11 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
       if (!requestCanvasSecondaryProviderAction(action)) {
         const current = secondaryProviderActionFromNodeData(rf.getNode(id)?.data);
         if (current?.requestId === action.requestId) update(secondaryProviderActionNodePatch(null));
-        logBus.error('无法请求次级 Provider action 运行体检', `secondary-output:${id}`);
+        logBus.error(t('nodes:output.errors.secondaryHealth'), `secondary-output:${id}`);
       }
     });
     return action;
-  }, [id, rf, update]);
+  }, [id, rf, t, update]);
   const [rhCapabilityBusy, setRhCapabilityBusy] = useState(false);
   const [rhVideoCapabilityBusy, setRhVideoCapabilityBusy] = useState(false);
   const [capturingFrameKey, setCapturingFrameKey] = useState<string | null>(null);
@@ -172,7 +185,11 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
   // 节点本地尺寸 state: 默认 (320, 高度由内容撑开)
   // 拖角后由 ResizableCorners onResize 同步具体 px — 保证节点始终有具体尺寸 → wrapper measured 准确
   // → keepAspectRatio 生效 (同比例缩放) + handleBounds 准确 (连线稳定)
-  const [size, setSize] = useState<{ w: number; h?: number }>({ w: 320 });
+  const [outputView, setOutputView] = useState<OutputViewState>(() => normalizeOutputViewState(d.outputView));
+  const [size, setSize] = useState<{ w: number; h?: number }>(() => ({
+    w: normalizeOutputViewState(d.outputView).width || 320,
+    h: normalizeOutputViewState(d.outputView).height,
+  }));
 
   // 订阅连入本节点 target handle 的连接变化
   const connections = useNodeConnections({ id, handleType: 'target' });
@@ -545,6 +562,18 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
   });
   const displayImageUrls = imageLongEdge.previewUrls;
   const publishedImageUrls = imageLongEdge.outputUrls;
+  const [detailImageIndex, setDetailImageIndex] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (detailImageIndex === null) return;
+    if (displayImageUrls.length === 0) {
+      setDetailImageIndex(null);
+      return;
+    }
+    if (detailImageIndex >= displayImageUrls.length) {
+      setDetailImageIndex(displayImageUrls.length - 1);
+    }
+  }, [detailImageIndex, displayImageUrls.length]);
 
   // 文本编辑
   const overrideText: string = typeof d.outputText === 'string' ? d.outputText : '';
@@ -643,6 +672,57 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
   const effectiveHandle = isRhDuckOutput ? '#ff345f' : isYyhPortraitOutput ? '#ff4fd8' : HANDLE;
 
   const total = collected.texts.length + collected.images.length + collected.videos.length + collected.audios.length + collected.models.length;
+  const mediaCount = displayImageUrls.length + collected.videos.length + collected.audios.length + collected.models.length;
+  const singleAspectMediaUrl = mediaCount === 1 && displayImageUrls.length === 1
+    ? displayImageUrls[0]
+    : mediaCount === 1 && collected.videos.length === 1
+      ? collected.videos[0]
+      : '';
+  const hasExplicitSize = outputView.mode !== 'legacy-auto' && Number.isFinite(size.h);
+  const imageGridColumns = resolveOutputGridColumns(displayImageUrls.length, size.w);
+
+  const persistOutputView = useCallback((next: OutputViewState) => {
+    const normalized = normalizeOutputViewState(next);
+    setOutputView(normalized);
+    update({ outputView: normalized });
+  }, [update]);
+
+  const applyAspectView = useCallback(() => {
+    if (!singleAspectMediaUrl) return;
+    const ratio = mediaAspectByUrlRef.current.get(singleAspectMediaUrl);
+    const root = rootRef.current;
+    const media = root?.querySelector<HTMLElement>('[data-output-primary-media="true"]');
+    if (!ratio || !Number.isFinite(ratio) || ratio <= 0 || !root || !media) return;
+    const rootRect = root.getBoundingClientRect();
+    const mediaRect = media.getBoundingClientRect();
+    const { width, height } = computeOutputAspectSize({
+      rootWidth: rootRect.width || size.w,
+      rootHeight: rootRect.height,
+      mediaWidth: mediaRect.width,
+      mediaHeight: mediaRect.height,
+      aspect: ratio,
+    });
+    const next: OutputViewState = { version: 1, mode: 'aspect', width, height };
+    setSize({ w: width, h: height });
+    persistOutputView(next);
+    rf.setNodes((nodes) => nodes.map((node) => node.id === id
+      ? {
+          ...node,
+          width,
+          height,
+          style: { ...(node.style || {}), width, height },
+          data: { ...(node.data as object), outputView: next },
+        }
+      : node));
+  }, [id, persistOutputView, rf, singleAspectMediaUrl, size.w]);
+
+  const switchToFreeView = useCallback(() => {
+    const rootRect = rootRef.current?.getBoundingClientRect();
+    const width = Math.max(260, Math.round(rootRect?.width || size.w));
+    const height = Math.max(160, Math.round(rootRect?.height || size.h || 320));
+    setSize({ w: width, h: height });
+    persistOutputView({ version: 1, mode: 'free', width, height });
+  }, [persistOutputView, size.h, size.w]);
 
   // === 双击图片 → 裁剪/宫格弹窗 ===
   // 仅针对 collected.images 中的单张图生效; 产物“不”修改本节点, 而是
@@ -681,12 +761,16 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
         const inputNode = nodeMap.get(edge.source);
         if (!inputNode) continue;
         const inputType = String(inputNode.type || '');
-        const labelBase = NODE_INPUT_LABELS[inputType] || '上游输入图';
+        const labelBase = t(NODE_INPUT_LABEL_KEYS[inputType] || 'nodes:output.inputLabels.default');
         const imgs = extractImagesFromData(inputNode.data, edge.sourceHandle ?? null);
         imgs.forEach((u, i) => {
           const label = inputType === 'frame-pair'
-            ? (edge.sourceHandle === 'last' ? '尾帧' : edge.sourceHandle === 'first' ? '首帧' : `抽帧图 ${i + 1}`)
-            : `${labelBase} ${i + 1}`;
+            ? (edge.sourceHandle === 'last'
+                ? t('nodes:output.inputLabels.lastFrame')
+                : edge.sourceHandle === 'first'
+                  ? t('nodes:output.inputLabels.firstFrame')
+                  : t('nodes:output.inputLabels.extractedFrame', { index: i + 1 }))
+            : t('nodes:output.inputLabels.indexed', { label: labelBase, index: i + 1 });
           push(u, label, inputNode.id, inputType);
         });
         out.push(...extractInputCandidatesFromData(inputNode.data, inputNode.id, inputType, seen));
@@ -694,7 +778,7 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
     }
 
     collected.images.forEach((u, i) => {
-      push(u, `当前输出 ${i + 1}`, id, 'output');
+      push(u, t('nodes:output.inputLabels.currentOutput', { index: i + 1 }), id, 'output');
     });
 
     return out;
@@ -754,7 +838,7 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
   ) => {
     const logSource = `annotation-edit-output:${id}`;
     if (cleanUrls.length < 2) {
-      const error = new Error('标注改图需要同时包含干净原图和标注图');
+      const error = new Error(t('nodes:output.errors.annotationSources'));
       logBus.warn(error.message, logSource);
       throw error;
     }
@@ -773,7 +857,7 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
         ...(targetNode ? { targetNodeId: targetNode.id } : {}),
       },
     });
-    logBus.info('标注改图已绑定参数，等待运行体检确认', logSource);
+    logBus.info(t('nodes:output.logs.annotationBound'), logSource);
   };
 
   const executeAnnotationEditAction = async (
@@ -785,7 +869,7 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
     let providerRequested = false;
     let providerResponded = false;
     try {
-      logBus.info('正在按标注说明生成改图结果', logSource);
+      logBus.info(t('nodes:output.logs.annotationRunning'), logSource);
       const request = buildAnnotationEditRequest({
         sourceNodeId: id,
         sourceImageUrl: params.sourceImageUrl,
@@ -800,7 +884,7 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
         ? rf.getNode(params.targetNodeId) || null
         : null;
       if (params.targetNodeId && (!targetNode || targetNode.type !== CREATIVE_TARGET_NODE_TYPE)) {
-        throw new Error('已绑定的生成目标框已删除或变化，已停止调用 Provider');
+        throw new Error(t('nodes:output.errors.annotationTargetChanged'));
       }
       await reporter.providerRequest({
         provider: params.providerId,
@@ -817,7 +901,7 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
         n: 1,
       });
       const resultUrls = (Array.isArray(result.urls) ? result.urls : []).map((url) => String(url || '').trim()).filter(Boolean);
-      if (resultUrls.length === 0) throw new Error('标注改图完成但没有返回图片');
+      if (resultUrls.length === 0) throw new Error(t('nodes:output.errors.annotationNoResult'));
       await reporter.providerResponse({
         provider: params.providerId,
         model: params.providerModel,
@@ -851,9 +935,9 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
         status: 'succeeded',
         assets: resultUrls.map((url) => ({ kind: 'image', sourceUrl: url })),
       });
-      logBus.success(targetNode ? '标注改图结果已填入生成目标框' : '标注改图结果已创建到右侧', logSource);
+      logBus.success(targetNode ? t('nodes:output.logs.annotationFilledTarget') : t('nodes:output.logs.annotationCreatedRight'), logSource);
     } catch (error: any) {
-      logBus.error(error?.message || '标注改图失败', logSource);
+      logBus.error(error?.message || t('nodes:output.errors.annotationFailed'), logSource);
       if (providerRequested && !providerResponded) {
         await reporter.providerResponse({
           provider: params.providerId,
@@ -873,7 +957,7 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
       return queueAnnotationEditProduce(cleanUrls, _meta);
     }
     if (cleanUrls.length === 0) {
-      if (isRhCapabilityOutput) logBus.warn(`${_meta.label || 'RH 图像能力'}完成但没有可创建的图像 URL`, logSource);
+      if (isRhCapabilityOutput) logBus.warn(t('nodes:output.logs.rhImageNoUrl', { label: _meta.label || t('nodes:output.rhImageCapability') }), logSource);
       return;
     }
     const me = rf.getNode(id);
@@ -888,7 +972,7 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
     // v1.2.10.5: 整组防重叠 —— 先算期望 3 列宫格, 再求公共偏移
     const _sz = defaultSizeOf('output');
     if (isRhCapabilityOutput) {
-      logBus.info(`${_meta.label || 'RH 图像能力'}准备创建 ${cleanUrls.length} 个输出素材节点`, logSource);
+      logBus.info(t('nodes:output.logs.rhImagePreparing', { label: _meta.label || t('nodes:output.rhImageCapability'), count: cleanUrls.length }), logSource);
     }
     const _desired: PlacementRect[] = cleanUrls.map((_, i) => ({
       x: baseX + (i % COLS) * COL_W,
@@ -930,7 +1014,7 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
           }
         }, 0);
       }
-      logBus.success(`${_meta.label || 'RH 图像能力'}已创建 ${newNodes.length} 个输出素材节点`, logSource);
+      logBus.success(t('nodes:output.logs.rhImageCreated', { label: _meta.label || t('nodes:output.rhImageCapability'), count: newNodes.length }), logSource);
     } else {
       rf.addNodes(newNodes);
     }
@@ -941,7 +1025,7 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
     const isRhCapabilityOutput = _meta?.type === 'rh-video-capability';
     const logSource = `rh-video-output:${id}`;
     if (cleanUrls.length === 0) {
-      if (isRhCapabilityOutput) logBus.warn(`${_meta.label || 'RH 视频能力'}完成但没有可创建的视频 URL`, logSource);
+      if (isRhCapabilityOutput) logBus.warn(t('nodes:output.logs.rhVideoNoUrl', { label: _meta.label || t('nodes:output.rhVideoCapability') }), logSource);
       return;
     }
     const me = rf.getNode(id);
@@ -955,7 +1039,7 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
     const ts = Date.now();
     const _sz = defaultSizeOf('output');
     if (isRhCapabilityOutput) {
-      logBus.info(`${_meta.label || 'RH 视频能力'}准备创建 ${cleanUrls.length} 个视频输出素材节点`, logSource);
+      logBus.info(t('nodes:output.logs.rhVideoPreparing', { label: _meta.label || t('nodes:output.rhVideoCapability'), count: cleanUrls.length }), logSource);
     }
     const _desired: PlacementRect[] = cleanUrls.map((_, i) => ({
       x: baseX + (i % COLS) * COL_W,
@@ -1009,7 +1093,7 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
           }
         }, 0);
       }
-      logBus.success(`${_meta.label || 'RH 视频能力'}已创建 ${newNodes.length} 个视频输出素材节点`, logSource);
+      logBus.success(t('nodes:output.logs.rhVideoCreated', { label: _meta.label || t('nodes:output.rhVideoCapability'), count: newNodes.length }), logSource);
     } else {
       rf.addNodes(newNodes);
     }
@@ -1023,14 +1107,14 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
     const frameKey = `${index}:${videoUrl}`;
     if (capturingFrameKey) return;
     const frameTime = Math.max(0, Number(videoFrameTimesRef.current.get(frameKey)) || 0);
-    const sourceName = fileNameFromUrl(videoUrl) || `视频 ${index + 1}`;
+    const sourceName = fileNameFromUrl(videoUrl) || t('nodes:output.videoIndexed', { index: index + 1 });
     setCapturingFrameKey(frameKey);
     setVideoFrameError('');
     try {
       const snapshot = await snapshotVideoFrameAsync({
         id: `output-video-frame-${id}-${index}`,
         sourceNodeId: id,
-        sourceLabel: '输出节点视频',
+        sourceLabel: t('nodes:output.outputVideo'),
         name: sourceName,
         url: videoUrl,
         directUrl: videoUrl,
@@ -1038,18 +1122,18 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
         status: 'ready',
       }, frameTime, {
         format: 'png',
-        sourceLabel: `${sourceName} · 当前帧`,
+        sourceLabel: t('nodes:output.currentFrameSource', { name: sourceName }),
       });
       await Promise.resolve(handleProduce([snapshot.imageUrl], {
         type: 'video-frame-extract',
-        label: '当前帧截图',
+        label: t('nodes:output.currentFrameSnapshot'),
       }));
       logBus.success(
-        `已截取 ${snapshot.time.toFixed(2)} 秒画面，图片已保存并输出`,
+        t('nodes:output.logs.frameCaptured', { time: snapshot.time.toFixed(2) }),
         `video-frame:output:${id}`,
       );
     } catch (captureError: any) {
-      const message = captureError?.message || '当前帧截取失败，请确认视频仍可播放后重试';
+      const message = captureError?.message || t('nodes:output.errors.frameCaptureFailed');
       setVideoFrameError(message);
       logBus.error(message, `video-frame:output:${id}`);
     } finally {
@@ -1211,7 +1295,7 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
       nodeData: rf.getNode(id)?.data,
       runContext: reporter.runContext,
     });
-    if (!action) throw new Error('输出节点缺少已确认的次级 Provider action，已停止调用 Provider');
+    if (!action) throw new Error(t('nodes:output.errors.missingSecondaryAction'));
     try {
       if (action.actionId === 'image-edit.annotation') {
         await executeAnnotationEditAction(action, reporter);
@@ -1226,10 +1310,35 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
 
   useRunTrigger(id, runSecondaryAction, undefined, { lifecycleAware: true });
 
+  if (canvasRenderMode === 'cold' && !editingUrl && !compareState && detailImageIndex === null) {
+    const materialCount = collected.texts.length + collected.images.length + collected.videos.length + collected.audios.length + collected.models.length;
+    return (
+      <div
+        ref={rootRef}
+        className="t8-node-cold-shell"
+        data-t8-node-cold-shell="output"
+        data-output-view-mode={outputView.mode}
+        style={{ width: size.w, height: size.h, minWidth: 260, minHeight: size.h ? 160 : 112 }}
+      >
+        <Handle type="target" position={Position.Left} className="!border-0" style={{ background: effectiveHandle, width: 12, height: 12, left: -6 }} />
+        <Handle type="source" position={Position.Right} className="!border-0" style={{ background: effectiveHandle, width: 12, height: 12, right: -6 }} />
+        <div className="t8-node-cold-shell__header">
+          <Box size={16} className="shrink-0" style={{ color: effectiveAccent }} />
+          <div className="t8-node-cold-shell__copy">
+            <strong>{t('nodes:output.title')}</strong>
+            <small>{t('nodes:output.materialCount', { count: materialCount, defaultValue: `${materialCount} items` })} · {t('common:performance.offscreenPreview')}</small>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
+      ref={rootRef}
       data-rh-duck-output={isRhDuckOutput ? 'true' : undefined}
       data-yyh-portrait-hidden-output={isYyhPortraitOutput ? 'true' : undefined}
+      data-output-view-mode={outputView.mode}
       className="relative flex flex-col"
       style={{ width: size.w, height: size.h, minWidth: 260 }}
       {...dropProps}
@@ -1240,7 +1349,17 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
         minWidth={260}
         minHeight={160}
         accent={effectiveAccent}
-        onResize={(_e, p) => setSize({ w: p.width, h: p.height })}
+        keepAspectRatio={outputView.mode === 'aspect'}
+        onResize={(_e, p) => {
+          if (outputView.mode === 'legacy-auto') {
+            setOutputView({ version: 1, mode: 'free', width: p.width, height: p.height });
+          }
+          setSize({ w: p.width, h: p.height });
+        }}
+        onResizeEnd={(_e, p) => {
+          const mode = outputView.mode === 'aspect' ? 'aspect' : 'free';
+          persistOutputView({ version: 1, mode, width: p.width, height: p.height });
+        }}
       />
       {/* 选中时浮动图像操作按钮 — Edit 保持本地编辑，RH 图像能力走左侧轨道 */}
       {canEditImage && (
@@ -1262,7 +1381,7 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
             className="nodrag nopan"
             onClick={onClickEditTopBtn}
             onMouseDown={(e) => e.stopPropagation()}
-            title="编辑图像（裁剪 / 宫格切分），等同双击预览图"
+            title={t('nodes:output.editImageTitle')}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -1304,7 +1423,7 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
           display: showRhVideoCapabilityRail ? 'flex' : 'none',
           ...(showRhCapabilityRail ? { left: -96 } : {}),
         }}
-        onFramesComplete={(imageUrls) => handleProduce(imageUrls, { type: 'video-frame-extract', label: '首尾帧获取' })}
+        onFramesComplete={(imageUrls) => handleProduce(imageUrls, { type: 'video-frame-extract', label: t('nodes:output.framePairExtract') })}
         onVideosComplete={(result) => handleVideoProduce(result.videoUrls, {
           type: 'rh-video-capability',
           label: result.tool.title,
@@ -1331,7 +1450,7 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
           zIndex: 12,
           pointerEvents: 'all',
         }}
-        title="文本 / 图像 / 视频 / 音频 / 3D模型 任意类型可连入"
+        title={t('nodes:output.inputHandleTitle')}
       />
       {/* source handle (右侧) - 作为中继节点可继续向下游透传 (any) */}
       <Handle
@@ -1350,7 +1469,7 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
           zIndex: 12,
           pointerEvents: 'all',
         }}
-        title="透传 文本 / 图像 / 视频 / 音频 / 3D模型 到下游"
+        title={t('nodes:output.outputHandleTitle')}
       />
 
       {/* 内层裁切容器: 圆角 + 越界裁切, 不影响外层 handle */}
@@ -1359,10 +1478,10 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
       <div
         data-rh-duck-output-frame={isRhDuckOutput ? 'true' : undefined}
         data-yyh-portrait-hidden-output-frame={isYyhPortraitOutput ? 'true' : undefined}
-        className={`rounded-xl border-2 transition-colors ${size.h ? 'flex-1 min-h-0' : ''}`}
+        className={`rounded-xl border-2 transition-colors ${hasExplicitSize ? 'flex flex-1 min-h-0 flex-col' : ''}`}
         style={{
           background: isDark ? 'rgb(20,20,22)' : 'rgb(255,255,255)',
-          overflow: 'auto',
+          overflow: hasExplicitSize ? 'hidden' : 'auto',
           width: '100%',
           borderColor: isAccepting
             ? effectiveAccent
@@ -1392,15 +1511,33 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
           <MonitorPlay size={13} />
         </div>
         <div className={`flex-1 text-sm font-semibold ${isDark ? 'text-white' : 'text-zinc-900'}`}>
-          输出素材
+          {t('nodes:output.title')}
         </div>
         <span className={`text-[10px] ${isDark ? 'text-white/40' : 'text-zinc-400'}`}>
-          {total} 项
+          {t('common:units.items', { count: total })}
         </span>
+        {singleAspectMediaUrl ? (
+          <button
+            type="button"
+            className={`nodrag nopan t8-btn t8-mini-icon-button ${outputView.mode === 'aspect' ? 'is-active' : ''}`}
+            title={outputView.mode === 'aspect' ? t('nodes:output.freeSize') : t('nodes:output.fitAspect')}
+            aria-label={outputView.mode === 'aspect' ? t('nodes:output.freeSize') : t('nodes:output.fitAspect')}
+            onPointerDown={(event) => event.stopPropagation()}
+            onMouseDown={(event) => event.stopPropagation()}
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              if (outputView.mode === 'aspect') switchToFreeView();
+              else applyAspectView();
+            }}
+          >
+            {outputView.mode === 'aspect' ? <MoveDiagonal2 size={12} /> : <Ratio size={12} />}
+          </button>
+        ) : null}
       </div>
 
       {/* body */}
-      <div className="p-2.5 space-y-3" onMouseDown={(e) => e.stopPropagation()}>
+      <div className={`t8-output-node__body p-2.5 ${hasExplicitSize ? 'flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto' : 'space-y-3'}`} onMouseDown={(e) => e.stopPropagation()}>
         {total === 0 && (
           <div
             className={`rounded flex items-center justify-center text-[11px] py-3 px-2 text-center ${
@@ -1408,8 +1545,8 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
             }`}
           >
             {upstreamHasLoop
-              ? '循环器不输出素材 · 请在「循环器 → EXEC 节点 → OutputNode」链路中查看累积结果'
-              : '连入上游 文本 / 图像 / 视频 / 音频 / 3D模型 节点'}
+              ? t('nodes:output.loopHint')
+              : t('nodes:output.inputHint')}
           </div>
         )}
 
@@ -1418,7 +1555,7 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
           <div className="space-y-1">
             <div className={`flex items-center gap-1.5 text-[10px] ${isDark ? 'text-white/50' : 'text-zinc-500'}`}>
               <TypeIcon size={11} />
-              <span className="flex-1">文本{isEdited ? ' · 已编辑' : ''}</span>
+              <span className="flex-1">{t('nodes:output.text')}{isEdited ? ` · ${t('nodes:output.edited')}` : ''}</span>
               <SmartTranslateButton
                 text={displayText}
                 nodeId={id}
@@ -1430,7 +1567,7 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
                 <button
                   onClick={enterEdit}
                   className={`p-0.5 rounded ${isDark ? 'hover:bg-white/10' : 'hover:bg-black/10'}`}
-                  title="双击文本或点此编辑"
+                  title={t('nodes:output.editHint')}
                 >
                   <Pencil size={10} />
                 </button>
@@ -1439,23 +1576,25 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
                 <button
                   onClick={restoreLive}
                   className={`text-[10px] px-1 rounded ${isDark ? 'hover:bg-white/10 text-white/60' : 'hover:bg-black/10 text-zinc-600'}`}
-                  title="恢复为上游 live 文本"
+                  title={t('nodes:output.restoreLive')}
                 >
-                  恢复
+                  {t('common:actions.restore')}
                 </button>
               )}
             </div>
             {!editing ? (
               <div
+                data-user-content={isEdited ? 'true' : undefined}
+                data-provider-content={!isEdited ? 'true' : undefined}
                 onDoubleClick={enterEdit}
                 onWheelCapture={(e) => e.stopPropagation()}
                 className={`nowheel whitespace-pre-wrap break-words text-[12px] leading-relaxed rounded px-2 py-1.5 cursor-text ${
                   isDark ? 'bg-white/5 text-white/85' : 'bg-black/5 text-zinc-800'
                 }`}
                 style={{ maxHeight: 200, overflow: 'auto' }}
-                title="双击编辑"
+                title={t('nodes:output.editHint')}
               >
-                {displayText || <span className="opacity-50">(空)</span>}
+                {displayText || <span className="opacity-50">{t('common:empty')}</span>}
               </div>
             ) : (
               <div className="space-y-1">
@@ -1482,18 +1621,18 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
                       isDark ? 'bg-white/5 hover:bg-white/10 text-white/70' : 'bg-black/5 hover:bg-black/10 text-zinc-700'
                     }`}
                   >
-                    取消
+                    {t('common:actions.cancel')}
                   </button>
                   <button
                     onClick={saveEdit}
                     className="text-[10px] px-2 py-0.5 rounded flex items-center gap-1 text-zinc-900"
                     style={{ background: effectiveAccent }}
                   >
-                    <Check size={10} /> 保存
+                    <Check size={10} /> {t('common:actions.save')}
                   </button>
                 </div>
                 <div className={`text-[10px] ${isDark ? 'text-white/30' : 'text-zinc-400'}`}>
-                  Ctrl+Enter 保存 / Esc 取消
+                  {t('nodes:output.editShortcut')}
                 </div>
               </div>
             )}
@@ -1502,12 +1641,12 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
 
         {/* 图像区 */}
         {displayImageUrls.length > 0 && (
-          <div className="group/output-images space-y-1">
+          <div className={`group/output-images t8-output-node__media-section ${hasExplicitSize ? 'is-sized' : ''} space-y-1`}>
             <div className={`flex items-center gap-1.5 text-[10px] ${isDark ? 'text-white/50' : 'text-zinc-500'}`}>
               <ImageIcon size={11} />
               <span className="flex-1">
-                图像 ({displayImageUrls.length})
-                {imageLongEdge.busy ? ' · 缩放中' : ''}
+                {t('nodes:output.images', { count: displayImageUrls.length })}
+                {imageLongEdge.busy ? ` · ${t('nodes:output.resizing')}` : ''}
               </span>
               <ImageLongEdgeButtons
                 value={imageLongEdge.limit}
@@ -1517,7 +1656,7 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
               {(imageLongEdge.limit === 0 || imageLongEdge.ready) && (
                 <CollectionSplitButton
                   count={displayImageUrls.length}
-                  kindLabel="图像"
+                  kindLabel={t('nodes:output.kind.image')}
                   onSplit={() => splitOutputCollection('image', publishedImageUrls)}
                   className="opacity-100 transition sm:opacity-0 sm:group-hover/output-images:opacity-100 sm:focus-within:opacity-100"
                 />
@@ -1530,15 +1669,14 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
             )}
             {/* 单张：全宽大图预览；多张：2 列原比例预览，操作按钮放在图片上方，避免遮挡下载。 */}
             <div
-              className={
-                displayImageUrls.length >= 2
-                  ? 'grid grid-cols-2 gap-1.5'
-                  : 'space-y-1'
-              }
+              className={`t8-output-node__image-grid ${hasExplicitSize ? 'is-sized' : ''} ${
+                displayImageUrls.length >= 2 ? 'grid gap-1.5' : 'space-y-1'
+              }`}
+              style={displayImageUrls.length >= 2 ? { gridTemplateColumns: `repeat(${imageGridColumns}, minmax(0, 1fr))` } : undefined}
             >
               {displayImageUrls.map((u, i) => (
-                <div key={i} className="group group/output-image-card space-y-0.5">
-                  <div className="relative">
+                <div key={i} className={`group group/output-image-card t8-output-node__image-card ${hasExplicitSize ? 'is-sized' : ''} space-y-0.5`}>
+                  <div className={`relative ${hasExplicitSize ? 't8-output-node__media-stage' : ''}`}>
                     <div
                       className={
                         displayImageUrls.length >= 2
@@ -1549,8 +1687,8 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
                       <button
                         type="button"
                         className="nodrag nopan t8-btn t8-mini-icon-button t8-image-compare-button t8-material-action-button p-0 shadow-md transition"
-                        title="对比输入图与结果图"
-                        aria-label="对比输入图与结果图"
+                        title={t('nodes:output.compareImage')}
+                        aria-label={t('nodes:output.compareImage')}
                         onPointerDown={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
@@ -1569,15 +1707,17 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
                       </button>
                       <ImageHoverPreview
                         src={u}
-                        alt={`图像 ${i + 1}`}
+                        alt={t('nodes:output.imageIndexed', { index: i + 1 })}
                         iconSize={displayImageUrls.length >= 2 ? 10 : 14}
                         buttonClassName="t8-material-action-button p-0 shadow-md transition"
+                        title={t('nodes:output.hoverDetail')}
+                        onOpen={() => setDetailImageIndex(i)}
                       />
                       <button
                         type="button"
                         className="nodrag nopan t8-btn t8-mini-icon-button t8-material-delete-button t8-material-action-button p-0 shadow-md transition"
-                        title={`删除素材 ${i + 1}`}
-                        aria-label={`删除素材 ${i + 1}`}
+                        title={t('nodes:output.removeMaterial', { index: i + 1 })}
+                        aria-label={t('nodes:output.removeMaterial', { index: i + 1 })}
                         style={{ color: 'var(--t8-danger, #ef4444)' }}
                         onPointerDown={(e) => {
                           e.preventDefault();
@@ -1600,14 +1740,16 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
                     </div>
                     <SmartImage
                       src={u}
-                      alt={`图像 ${i + 1}`}
+                      alt={t('nodes:output.imageIndexed', { index: i + 1 })}
                       className={`t8-output-image-media${displayImageUrls.length >= 2 ? ' t8-output-image-media--grid' : ''} w-full rounded block cursor-zoom-in`}
                       thumbSize={displayImageUrls.length >= 2 ? 420 : 720}
                       style={{
                         background: '#0008',
                         objectFit: 'contain',
-                        maxHeight: displayImageUrls.length >= 2 ? 180 : 480,
+                        maxHeight: hasExplicitSize ? 'none' : displayImageUrls.length >= 2 ? 180 : 480,
+                        height: hasExplicitSize ? '100%' : undefined,
                       }}
+                      data-output-primary-media={singleAspectMediaUrl === u ? 'true' : undefined}
                       data-drag-source={imageLongEdge.limit === 0 || imageLongEdge.ready ? true : undefined}
                       data-drag-kind="image"
                       data-drag-url={u}
@@ -1627,7 +1769,13 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
                         e.stopPropagation();
                         setEditingUrl(u);
                       }}
-                      title="双击编辑 (裁剪 / 宫格切分) · Ctrl+拖拽可送到其他节点"
+                      onLoad={(event) => {
+                        const image = event.currentTarget;
+                        if (image.naturalWidth > 0 && image.naturalHeight > 0) {
+                          mediaAspectByUrlRef.current.set(u, image.naturalWidth / image.naturalHeight);
+                        }
+                      }}
+                      title={t('nodes:output.editDragTitle')}
                     />
                   </div>
                   <div className={`flex items-center gap-1 text-[10px] ${isDark ? 'text-white/40' : 'text-zinc-400'}`}>
@@ -1642,7 +1790,7 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
                         isDark ? 'hover:bg-white/10 text-white/60' : 'hover:bg-black/10 text-zinc-600'
                       } ${imageLongEdge.limit !== 0 && !imageLongEdge.ready ? 'pointer-events-none opacity-40' : ''}`}
                     >
-                      <Download size={10} /> 下载
+                      <Download size={10} /> {t('common:actions.download')}
                     </a>
                   </div>
                 </div>
@@ -1653,24 +1801,25 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
 
         {/* 视频区 */}
         {collected.videos.length > 0 && (
-          <div className="group/output-videos space-y-1">
+          <div className={`group/output-videos t8-output-node__media-section ${hasExplicitSize ? 'is-sized' : ''} space-y-1`}>
             <div className={`flex items-center gap-1.5 text-[10px] ${isDark ? 'text-white/50' : 'text-zinc-500'}`}>
               <VideoIcon size={11} />
-              <span className="flex-1">视频 ({collected.videos.length})</span>
+              <span className="flex-1">{t('nodes:output.videos', { count: collected.videos.length })}</span>
               <CollectionSplitButton
                 count={collected.videos.length}
-                kindLabel="视频"
+                kindLabel={t('nodes:output.kind.video')}
                 onSplit={() => splitOutputCollection('video', collected.videos)}
                 className="opacity-100 transition sm:opacity-0 sm:group-hover/output-videos:opacity-100 sm:focus-within:opacity-100"
               />
             </div>
             {collected.videos.map((u, i) => (
-              <div key={i} className="space-y-0.5">
+              <div key={i} className={`t8-output-node__video-card ${hasExplicitSize ? 'is-sized' : ''} space-y-0.5`}>
                 <LoopingVideo
                   src={u}
                   controls
-                  className="w-full h-auto rounded block"
-                  style={{ background: '#000', objectFit: 'contain', maxHeight: 480 }}
+                  className="t8-output-node__video-media w-full h-auto rounded block"
+                  style={{ background: '#000', objectFit: 'contain', maxHeight: hasExplicitSize ? 'none' : 480, height: hasExplicitSize ? '100%' : undefined }}
+                  data-output-primary-media={singleAspectMediaUrl === u ? 'true' : undefined}
                   data-drag-source
                   data-drag-kind="video"
                   data-drag-url={u}
@@ -1681,7 +1830,13 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
                   data-prompt-template-category="video-image-to-video"
                   data-prompt-template-prompt={mediaPromptByUrl.get(u)?.prompt || displayText}
                   data-prompt-template-negative={mediaPromptByUrl.get(u)?.negative || ''}
-                  onLoadedMetadata={(event) => rememberVideoFrameTime(`${i}:${u}`, event.currentTarget.currentTime)}
+                  onLoadedMetadata={(event) => {
+                    rememberVideoFrameTime(`${i}:${u}`, event.currentTarget.currentTime);
+                    const video = event.currentTarget;
+                    if (video.videoWidth > 0 && video.videoHeight > 0) {
+                      mediaAspectByUrlRef.current.set(u, video.videoWidth / video.videoHeight);
+                    }
+                  }}
                   onTimeUpdate={(event) => rememberVideoFrameTime(`${i}:${u}`, event.currentTarget.currentTime)}
                   onSeeked={(event) => rememberVideoFrameTime(`${i}:${u}`, event.currentTarget.currentTime)}
                   onMouseDown={(e) =>
@@ -1697,8 +1852,8 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
                     className={`nodrag nopan flex shrink-0 items-center gap-0.5 rounded px-1.5 py-0.5 ${
                       isDark ? 'hover:bg-white/10 text-white/60' : 'hover:bg-black/10 text-zinc-600'
                     } disabled:cursor-wait disabled:opacity-55`}
-                    title="截取当前播放画面，保存到 T8 输出目录并创建图片输出节点"
-                    aria-label={`截取视频 ${i + 1} 当前帧`}
+                    title={t('nodes:output.captureFrameTitle')}
+                    aria-label={t('nodes:output.captureFrameAria', { index: i + 1 })}
                     disabled={capturingFrameKey !== null}
                     onPointerDown={(e) => e.stopPropagation()}
                     onMouseDown={(e) => e.stopPropagation()}
@@ -1709,7 +1864,7 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
                     }}
                   >
                     <Camera size={10} />
-                    {capturingFrameKey === `${i}:${u}` ? '截取中' : '当前帧'}
+                    {capturingFrameKey === `${i}:${u}` ? t('nodes:output.capturing') : t('nodes:output.currentFrame')}
                   </button>
                   <a
                     href={u}
@@ -1720,13 +1875,13 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
                       isDark ? 'hover:bg-white/10 text-white/60' : 'hover:bg-black/10 text-zinc-600'
                     }`}
                   >
-                    <Download size={10} /> 下载
+                    <Download size={10} /> {t('common:actions.download')}
                   </a>
                   <button
                     type="button"
                     className={`nodrag nopan p-0.5 rounded ${isDark ? 'hover:bg-white/10' : 'hover:bg-black/10'}`}
-                    title={`删除素材 ${i + 1}`}
-                    aria-label={`删除素材 ${i + 1}`}
+                    title={t('nodes:output.removeMaterial', { index: i + 1 })}
+                    aria-label={t('nodes:output.removeMaterial', { index: i + 1 })}
                     style={{ color: 'var(--t8-danger, #ef4444)' }}
                     onMouseDown={(e) => e.stopPropagation()}
                     onClick={(e) => {
@@ -1753,10 +1908,10 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
           <div className="group/output-audios space-y-1">
             <div className={`flex items-center gap-1.5 text-[10px] ${isDark ? 'text-white/50' : 'text-zinc-500'}`}>
               <Music size={11} />
-              <span className="flex-1">音频 ({collected.audios.length})</span>
+              <span className="flex-1">{t('nodes:output.audios', { count: collected.audios.length })}</span>
               <CollectionSplitButton
                 count={collected.audios.length}
-                kindLabel="音频"
+                kindLabel={t('nodes:output.kind.audio')}
                 onSplit={() => splitOutputCollection('audio', collected.audios)}
                 className="opacity-100 transition sm:opacity-0 sm:group-hover/output-audios:opacity-100 sm:focus-within:opacity-100"
               />
@@ -1792,13 +1947,13 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
                       isDark ? 'hover:bg-white/10 text-white/60' : 'hover:bg-black/10 text-zinc-600'
                     }`}
                   >
-                    <Download size={10} /> 下载
+                    <Download size={10} /> {t('common:actions.download')}
                   </a>
                   <button
                     type="button"
                     className={`nodrag nopan p-0.5 rounded ${isDark ? 'hover:bg-white/10' : 'hover:bg-black/10'}`}
-                    title={`删除素材 ${i + 1}`}
-                    aria-label={`删除素材 ${i + 1}`}
+                    title={t('nodes:output.removeMaterial', { index: i + 1 })}
+                    aria-label={t('nodes:output.removeMaterial', { index: i + 1 })}
                     style={{ color: 'var(--t8-danger, #ef4444)' }}
                     onMouseDown={(e) => e.stopPropagation()}
                     onClick={(e) => {
@@ -1820,10 +1975,10 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
           <div className="group/output-models space-y-1">
             <div className={`flex items-center gap-1.5 text-[10px] ${isDark ? 'text-white/50' : 'text-zinc-500'}`}>
               <Box size={11} />
-              <span className="flex-1">3D模型 ({collected.models.length})</span>
+              <span className="flex-1">{t('nodes:output.models', { count: collected.models.length })}</span>
               <CollectionSplitButton
                 count={collected.models.length}
-                kindLabel="3D模型"
+                kindLabel={t('nodes:output.kind.model3d')}
                 onSplit={() => splitOutputCollection('model3d', collected.models)}
                 className="opacity-100 transition sm:opacity-0 sm:group-hover/output-models:opacity-100 sm:focus-within:opacity-100"
               />
@@ -1845,10 +2000,10 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className={`truncate text-[11px] font-semibold ${isDark ? 'text-white/80' : 'text-zinc-800'}`} title={u}>
-                        {fileNameFromUrl(u) || `3D模型 ${i + 1}`}
+                        {fileNameFromUrl(u) || t('nodes:output.modelIndexed', { index: i + 1 })}
                       </div>
                       <div className={`truncate text-[10px] ${isDark ? 'text-white/40' : 'text-zinc-500'}`} title={u}>
-                        连接到 3D模型预览节点查看 · {u}
+                        {t('nodes:output.modelPreviewHint')} · {u}
                       </div>
                     </div>
                     <a
@@ -1861,15 +2016,15 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
                       }`}
                       onMouseDown={(e) => e.stopPropagation()}
                     >
-                      <Download size={10} /> 下载
+                      <Download size={10} /> {t('common:actions.download')}
                     </a>
                     <button
                       type="button"
                       className={`nodrag nopan inline-flex items-center justify-center rounded px-1.5 py-0.5 text-[10px] ${
                         isDark ? 'hover:bg-white/10' : 'hover:bg-black/10'
                       }`}
-                      title={`删除素材 ${i + 1}`}
-                      aria-label={`删除素材 ${i + 1}`}
+                      title={t('nodes:output.removeMaterial', { index: i + 1 })}
+                      aria-label={t('nodes:output.removeMaterial', { index: i + 1 })}
                       style={{ color: 'var(--t8-danger, #ef4444)' }}
                       onMouseDown={(e) => e.stopPropagation()}
                       onClick={(e) => {
@@ -1905,6 +2060,14 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
           onClose={() => setCompareState(null)}
         />
       )}
+      <ImageDetailViewer
+        images={displayImageUrls}
+        index={detailImageIndex ?? 0}
+        open={detailImageIndex !== null}
+        title={t('nodes:output.originalDetail')}
+        onClose={() => setDetailImageIndex(null)}
+        onIndexChange={setDetailImageIndex}
+      />
     </div>
   );
 };

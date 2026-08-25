@@ -82,9 +82,25 @@ const DEFAULT_SETTINGS = {
   // 其他偏好
   preferences: {
     theme: 'dark',
+    // UI locale is deliberately separate from prompt/content language.
+    uiLocale: 'zh-CN',
     language: 'zh-CN',
   },
 };
+
+function normalizeUiPreferences(raw, fallback = DEFAULT_SETTINGS.preferences) {
+  const value = raw && typeof raw === 'object' ? raw : {};
+  const base = fallback && typeof fallback === 'object' ? fallback : DEFAULT_SETTINGS.preferences;
+  return {
+    ...base,
+    ...value,
+    theme: value.theme === 'light' ? 'light' : value.theme === 'dark' ? 'dark' : base.theme,
+    uiLocale: value.uiLocale === 'en-US' ? 'en-US' : value.uiLocale === 'zh-CN' ? 'zh-CN' : base.uiLocale,
+    language: typeof value.language === 'string' && value.language.trim()
+      ? value.language.trim().slice(0, 40)
+      : base.language,
+  };
+}
 
 function normalizeTaskCompletionSoundSettings(raw) {
   const value = raw && typeof raw === 'object' ? raw : {};
@@ -236,6 +252,7 @@ function loadSettings({ persistMigrations = true } = {}) {
     merged.advancedProviders = normalizeAdvancedProviders(data.advancedProviders);
     merged.cloudUploadTargets = normalizeCloudUploadTargets(data.cloudUploadTargets);
     merged.taskCompletionSound = normalizeTaskCompletionSoundSettings(data.taskCompletionSound);
+    merged.preferences = normalizeUiPreferences(data.preferences);
     const migrated = migrateLegacyDefaultPaths(merged);
     if (persistMigrations && migrated.changed) {
       saveSettings(migrated.settings);
@@ -448,6 +465,7 @@ router.post('/', (req, res) => {
     ? normalizeCloudUploadTargets(incoming.cloudUploadTargets, current.cloudUploadTargets)
     : normalizeCloudUploadTargets(current.cloudUploadTargets);
   merged.taskCompletionSound = normalizeTaskCompletionSoundSettings(current.taskCompletionSound);
+  merged.preferences = normalizeUiPreferences(incoming.preferences, current.preferences);
   saveSettings(merged);
   // User-selected paths may live on a sleeping removable drive or disconnected
   // UNC/NAS share. Persist the preference first and validate it off the request

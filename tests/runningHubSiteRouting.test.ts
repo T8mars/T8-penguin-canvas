@@ -98,12 +98,12 @@ test('RunningHub settings and RH node surfaces expose independent domestic and o
 
   assert.match(settingsRoute, /rhIntlApiKey:\s*''/);
   assert.match(settingsRoute, /rhIntlApiKey:\s*maskKey\(settings\.rhIntlApiKey\)/);
-  assert.match(apiSettings, /RH APIKEY国内/);
-  assert.match(apiSettings, /RH APIKEY海外/);
+  assert.match(apiSettings, /keys\.rhCn\.label/);
+  assert.match(apiSettings, /keys\.rhIntl\.label/);
   assert.match(generation, /site\?: RhSite/);
   assert.match(generation, /site=\$\{encodeURIComponent\(site\)\}/);
-  assert.match(runningHubNode, /国内站 · runninghub\.cn/);
-  assert.match(runningHubNode, /海外站 · runninghub\.ai/);
+  assert.match(runningHubNode, /runningHub\.siteCn/);
+  assert.match(runningHubNode, /runningHub\.siteIntl/);
   assert.match(runningHubNode, /resolveRunningHubDisplaySite\(storedRhSite, webappId, appInfo\)/);
   assert.match(runningHubNode, /update\(\{ rhSite: resolvedAppInfoSite \}\)/);
   assert.match(runningHubNode, /webappId: e\.target\.value,\s+appInfo: null,/);

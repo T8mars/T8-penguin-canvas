@@ -1,4 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Moon, Settings, Sun, Wifi, WifiOff, Sparkles, Cloud, ExternalLink, Copy, Check, Gift, Heart, Youtube, PlayCircle, Bell, Wand2, Globe, MessageCircle, CalendarDays, Rocket, Library, Palette, Skull, Sailboat, BookOpen, Shield, Crown, PanelLeftClose, PanelLeftOpen, Puzzle, KeyRound } from 'lucide-react';
 import { useThemeStore } from './stores/theme';
 import { seedDragonBallRadarForShenronTest, useDragonBallRadarStore } from './stores/dragonBallRadar';
@@ -6,6 +7,7 @@ import { seedSaintSeiyaGoldClothsForHadesTest, useSaintSeiyaSanctuaryStore } fro
 import { trackAchievementEvent } from './stores/achievements';
 import { useApiKeysStore } from './stores/apiKeys';
 import { useShortcutStore } from './stores/shortcuts';
+import { useUiLocaleStore } from './stores/locale';
 import { stopCanvasCatalogRecoveryPolling, useCanvasStore } from './stores/canvas';
 import Sidebar from './components/Sidebar';
 import type { AddNodeFn, InsertWorkflowFn } from './components/Canvas';
@@ -33,6 +35,8 @@ import { matchesAnyShortcut } from './utils/keyboardShortcuts';
 import { portraitResourceToNodeData } from './utils/portraitResource';
 import { createUploadDataFromItems, type MediaKind } from './utils/mediaCollection';
 import { applyUiFontPreference } from './utils/uiFont';
+import { markCanvasPerformance } from './utils/canvasPerformanceProbe';
+import { localizeThemeName } from './i18n/themeCatalog';
 import { LocalModalSlot, LocalTopbarSlot } from 'virtual:t8-local-extensions';
 
 const Canvas = lazy(() => import('./components/Canvas'));
@@ -91,29 +95,41 @@ const API_ACQUISITION_LINKS = [
   {
     id: 'zhenzhen-cn',
     title: '贞贞的平价AI小屋（国内版）',
+    titleEn: 'Zhenzhen Affordable AI Hub (China)',
     description: '主要调用国内模型，非盈利运营，仅保留 5%-10% 网站维护费用；国内模型价格约为海外版的 7.5-8 折（新网站）。',
+    descriptionEn: 'Focused on China-region models. Non-profit operation with only a 5%–10% maintenance margin; China-region models are typically priced below the global site.',
     action: '获取国内版 API Key',
+    actionEn: 'Get China API Key',
     url: 'https://api.seedance.nz/sign-up?aff=5f4w',
   },
   {
     id: 'zhenzhen-intl',
     title: '贞贞的AI工坊（海外版）',
+    titleEn: 'Zhenzhen AI Workshop (Global)',
     description: '主要调用海外模型并服务海外用户，也包含国内模型；由于整体成本较高，国内模型价格不具优势。',
+    descriptionEn: 'Focused on global models and users, while also carrying some China-region models; China-region pricing may be less competitive here.',
     action: '获取海外版 API Key',
+    actionEn: 'Get global API Key',
     url: 'https://ai.t8star.org/register?aff=dP7j',
   },
   {
     id: 'runninghub-cn',
     title: 'RunningHub APIKEY 国内版',
+    titleEn: 'RunningHub API Key (China)',
     description: '适配更多 AI 应用，并提供最新模型体验。',
+    descriptionEn: 'Supports more AI apps and access to recent models.',
     action: '获取国内版 RH API Key',
+    actionEn: 'Get China RH API Key',
     url: 'https://www.runninghub.cn/user-center/1819214514410942465/webapp?inviteCode=rh-v1121',
   },
   {
     id: 'runninghub-intl',
     title: 'RunningHub APIKEY 海外版',
+    titleEn: 'RunningHub API Key (Global)',
     description: '审核规则更宽松，支持更多海外模型。',
+    descriptionEn: 'Offers broader moderation rules and more global models.',
     action: '获取海外版 RH API Key',
+    actionEn: 'Get global RH API Key',
     url: 'https://www.runninghub.ai/user-center/1907375370302308353/webapp?inviteCode=rh-v1121',
   },
 ] as const;
@@ -270,39 +286,55 @@ const CANVAS_TUTORIALS = [
 const CANVAS_PLUGIN_INSTALL_GUIDES = [
   {
     name: 'T8 Photoshop Link',
+    nameEn: 'T8 Photoshop Link',
     target: 'Photoshop UXP 面板',
+    targetEn: 'Photoshop UXP panel',
     devPath: 'tools\\photoshop-bridge\\plugin\\manifest.json',
     packagedPath: 'resources\\tools\\photoshop-bridge\\plugin\\manifest.json',
     install: 'Adobe UXP Developer Tool -> Add Plugin 选择 manifest.json，然后 Load / Load & Watch；升级 manifest 时先 Unload，若仍指向旧目录则 Remove 后从当前目录重新 Add。',
+    installEn: 'In Adobe UXP Developer Tool, choose Add Plugin and select manifest.json, then use Load or Load & Watch. Unload before upgrades; remove and add the current folder again if the old path remains.',
     use: '画布图片可发送到 PS，PS 当前画面可上传回 T8，插件内可浏览资产并把生成结果置入当前文档。',
+    useEn: 'Send canvas images to Photoshop, upload the current Photoshop view back to T8, browse assets, and place generated results into the current document.',
     safety: '只连接 localhost / 127.0.0.1 的本机端口，不保存 T8 平台 API Key。',
+    safetyEn: 'Connects only to localhost / 127.0.0.1 and does not store T8 platform API keys.',
   },
   {
     name: 'T8 Penguin Canvas Bridge',
+    nameEn: 'T8 Penguin Canvas Bridge',
     target: 'Figma 开发插件',
+    targetEn: 'Figma development plugin',
     devPath: 'tools\\figma-bridge\\plugin\\manifest.json',
     packagedPath: 'resources\\tools\\figma-bridge\\plugin\\manifest.json',
     install: 'Figma Desktop -> Plugins -> Development -> Import plugin from manifest...，不要走 Widget 导入；必要时可运行 npm run figma:bridge。',
+    installEn: 'In Figma Desktop, use Plugins → Development → Import plugin from manifest. Do not import it as a widget; run npm run figma:bridge if needed.',
     use: '把画布素材发送到本机 Figma Bridge 队列，保持 Figma 插件窗口打开后会自动导入当前文件。',
+    useEn: 'Send canvas assets to the local Figma Bridge queue. Keep the Figma plugin open to import them into the current file.',
     safety: 'Bridge 走本机 localhost:3845 / 127.0.0.1，不把素材上传到远端中转服务。',
+    safetyEn: 'The bridge uses localhost:3845 / 127.0.0.1 and does not upload assets to a remote relay.',
   },
   {
     name: '网页图片反推与素材采集 Chrome 扩展',
+    nameEn: 'Web Image Reverse-Prompt and Asset Capture Extension',
     target: '浏览器扩展',
+    targetEn: 'Browser extension',
     devPath: 'extension\\manifest.json',
     packagedPath: 'resources/extension/web-image-reverse/',
     install: 'Chrome 扩展程序打开开发者模式，选择“加载已解压的扩展程序”，开发版选 extension，打包版选 resources/extension/web-image-reverse/。',
+    installEn: 'Enable Developer mode in Chrome Extensions and choose Load unpacked. Use extension in development or resources/extension/web-image-reverse/ in the packaged app.',
     use: '网页图片右键反推提示词、生成图片；点击扩展图标可在 Popup 或 Side Panel 扫描图片、背景图、srcset、canvas，筛选后批量导入为一个上传素材节点，也可截取当前视口。',
+    useEn: 'Reverse-prompt or generate from web images, scan images/backgrounds/srcset/canvas in the popup or side panel, batch-import selected items into one upload node, or capture the current viewport.',
     safety: '扩展不内置用户密钥。批量素材先写入本机 T8 input，再通过带会话令牌的本机桥接发送；公网 URL 回退会拒绝内网地址并限制单图与批次大小。',
+    safetyEn: 'The extension embeds no user keys. Batch assets first enter the local T8 input directory and use a session-token bridge; public-URL fallback blocks private addresses and limits item and batch size.',
   },
 ] as const;
 
 function InfiniteCanvasBootLoading() {
+  const { t } = useTranslation('shell');
   return (
-    <div className="t8-boot-screen" role="status" aria-label="正在打开画布工作台">
+    <div className="t8-boot-screen" role="status" aria-label={t('loading.canvas')}>
       <img className="t8-boot-art" src="/infinite-canvas-loading.png" alt="" aria-hidden="true" />
       <div className="t8-boot-progress-shell" aria-hidden="true">
-        <span className="t8-boot-progress-label">正在启动...</span>
+        <span className="t8-boot-progress-label">{t('loading.starting')}</span>
         <div className="t8-boot-progress-track">
           <span className="t8-boot-progress-fill" />
           <span className="t8-boot-progress-spark" />
@@ -318,6 +350,10 @@ function InfiniteCanvasBootLoading() {
  * 布局: [侧边栏(画布管理 + 节点列表)] [画布主体] + 头部状态栏
  */
 function App() {
+  const { t } = useTranslation(['shell', 'common']);
+  useEffect(() => markCanvasPerformance('app-shell-visible'), []);
+  const uiLocale = useUiLocaleStore((state) => state.locale);
+  const setUiLocale = useUiLocaleStore((state) => state.setLocale);
   const {
     theme,
     style,
@@ -329,7 +365,7 @@ function App() {
     toggleTheme,
     loadCustomTemplates,
   } = useThemeStore();
-  const { load: loadSettings } = useApiKeysStore();
+  const { load: loadSettings, save: saveSettings, settings } = useApiKeysStore();
   const bootstrapCanvases = useCanvasStore((state) => state.bootstrapCanvases);
   const shortcuts = useShortcutStore((s) => s.shortcuts);
   const currentTemplate = useMemo(
@@ -418,6 +454,16 @@ function App() {
   const toggleSidebarCollapsed = useCallback(() => {
     setSidebarCollapsed((collapsed) => !collapsed);
   }, []);
+
+  const changeUiLocale = useCallback((locale: 'zh-CN' | 'en-US') => {
+    setUiLocale(locale);
+    void saveSettings({
+      preferences: {
+        ...(settings.preferences || {}),
+        uiLocale: locale,
+      },
+    });
+  }, [saveSettings, setUiLocale, settings.preferences]);
 
   // 「在线画布」浮层: 点击容器外部 / 按 ESC 自动关闭
   useEffect(() => {
@@ -627,7 +673,7 @@ function App() {
       window.setTimeout(() => setWxCopied(false), 1600);
     } catch {
       // 兼容: 不支持 clipboard API 时降级 prompt 让用户手动复制
-      window.prompt('复制企鹅微信号:', 'Lovexy_0222');
+      window.prompt(t('shell:promotionDetails.cloudCanvas.copyPrompt'), 'Lovexy_0222');
     }
   };
 
@@ -979,13 +1025,13 @@ function App() {
           className="fixed left-1/2 top-14 z-[250] flex -translate-x-1/2 items-center gap-3 rounded-md border border-amber-400/60 bg-zinc-950 px-3 py-2 text-xs text-amber-100 shadow-xl"
           title={themeCssFailure.message}
         >
-          <span>主题样式加载失败，已显示基础主题。</span>
+          <span>{t('shell:themeCssFailed')}</span>
           <button
             type="button"
             className="rounded border border-amber-300/50 px-2 py-1 font-semibold hover:bg-amber-300/10"
             onClick={() => setThemeCssLoadAttempt((attempt) => attempt + 1)}
           >
-            重试 {themeCssFailure.style}
+            {t('common:actions.retry')} {themeCssFailure.style}
           </button>
         </div>
       )}
@@ -1007,7 +1053,7 @@ function App() {
               </span>
               <div className="min-w-0">
                 <h1 className="t8-op-brand__title text-[14px] font-black leading-none">
-                  ONE PIECE · 贞贞的无限画布
+                  {t('shell:brand.onePiece')}
                 </h1>
                 <div className="t8-op-brand__sub text-[9px] font-bold tracking-wide leading-none mt-0.5">
                   GRAND LINE CANVAS
@@ -1022,7 +1068,7 @@ function App() {
               </span>
               <div className="min-w-0">
                 <h1 className="t8-rh-brand__title text-[14px] font-black leading-none">
-                  RH · 贞贞的无限画布
+                  {t('shell:brand.runningHub')}
                 </h1>
                 <div className="t8-rh-brand__sub text-[9px] font-bold tracking-wide leading-none mt-0.5">
                   RUNNINGHUB WORKSPACE
@@ -1036,7 +1082,7 @@ function App() {
               </span>
               <div className="min-w-0">
                 <h1 className="t8-naruto-brand__title text-[14px] font-black leading-none">
-                  火影 · 贞贞的无限画布
+                  {t('shell:brand.naruto')}
                 </h1>
                 <div className="t8-naruto-brand__sub text-[9px] font-bold tracking-wide leading-none mt-0.5">
                   SHINOBI CHAKRA CANVAS
@@ -1050,7 +1096,7 @@ function App() {
               </span>
               <div className="min-w-0">
                 <h1 className="t8-eva-brand__title text-[14px] font-black leading-none">
-                  EVA · 贞贞的无限画布
+                  {t('shell:brand.eva')}
                 </h1>
                 <div className="t8-eva-brand__sub text-[9px] font-bold tracking-wide leading-none mt-0.5">
                   NERV HQ - TOKYO-3 / MAGI SYSTEM ONLINE
@@ -1065,7 +1111,7 @@ function App() {
               </span>
               <div className="min-w-0">
                 <h1 className="t8-yyh-brand__title text-[14px] font-black leading-none">
-                  幽游白书 · 贞贞的无限画布
+                  {t('shell:brand.yyh')}
                 </h1>
                 <div className="t8-yyh-brand__sub text-[9px] font-bold tracking-wide leading-none mt-0.5">
                   SPIRIT DETECTIVE CANVAS / REI MAP ONLINE
@@ -1080,7 +1126,7 @@ function App() {
               </span>
               <div className="min-w-0">
                 <h1 className="t8-slamdunk-brand__title text-[14px] font-black leading-none">
-                  灌篮高手 · 贞贞的无限画布
+                  {t('shell:brand.slamDunk')}
                 </h1>
                 <div className="t8-slamdunk-brand__sub text-[9px] font-bold tracking-wide leading-none mt-0.5">
                   FULL COURT CANVAS / BUZZER BEATER READY
@@ -1095,7 +1141,7 @@ function App() {
               </span>
               <div className="min-w-0">
                 <h1 className="t8-soccer-brand__title text-[14px] font-black leading-none">
-                  足球小将 · 贞贞的无限画布
+                  {t('shell:brand.soccer')}
                 </h1>
                 <div className="t8-soccer-brand__sub text-[9px] font-bold tracking-wide leading-none mt-0.5">
                   CAPTAIN TSUBASA CANVAS / GOLDEN GOAL READY
@@ -1110,7 +1156,7 @@ function App() {
               </span>
               <div className="min-w-0">
                 <h1 className="t8-dragonball-brand__title text-[14px] font-black leading-none">
-                  {shenronModeActive ? '神龙模式 · 贞贞的无限画布' : '七龙珠 · 贞贞的无限画布'}
+                  {shenronModeActive ? t('shell:brand.shenron') : t('shell:brand.dragonBall')}
                 </h1>
                 <div className="t8-dragonball-brand__sub text-[9px] font-bold tracking-wide leading-none mt-0.5">
                   {shenronModeActive ? 'SHENRON MODE ONLINE / DRAGON RADAR LOCKED' : 'CAPSULE CORP CANVAS / DRAGON RADAR ONLINE'}
@@ -1133,7 +1179,7 @@ function App() {
               </span>
               <div className="min-w-0">
                 <h1 className="t8-saint-brand__title text-[14px] font-black leading-none">
-                  {hadesModeActive ? '冥界篇 · 贞贞的无限画布' : '圣斗士 · 十二宫'}
+                  {hadesModeActive ? t('shell:brand.hades') : t('shell:brand.saintSeiya')}
                 </h1>
                 <div className="t8-saint-brand__sub text-[9px] font-bold tracking-wide leading-none mt-0.5">
                   {hadesModeActive ? 'HADES CHAPTER / ATHENA RESCUED' : 'SANCTUARY CANVAS / COSMO READY'}
@@ -1148,12 +1194,12 @@ function App() {
           ) : isPixel ? (
             <>
               <h1 className="px-title text-[14px] font-bold tracking-wide leading-none">
-                贞贞的无限画布
+                {t('shell:appName')}
               </h1>
-              <span className="px-chip px-chip--pink text-[10px]">企鹅共创版</span>
+              <span className="px-chip px-chip--pink text-[10px]">{t('shell:coopEdition')}</span>
             </>
           ) : (
-            <h1 className="text-sm font-semibold">贞贞的无限画布（企鹅共创版）</h1>
+            <h1 className="text-sm font-semibold">{t('shell:appNameCoop')}</h1>
           )}
           <span
             className={
@@ -1178,9 +1224,9 @@ function App() {
               }`}
             >
               {backendStatus === 'ok' ? <Wifi size={11} /> : <WifiOff size={11} />}
-              {backendStatus === 'ok' && '后端已连接'}
-              {backendStatus === 'error' && '后端未连接'}
-              {backendStatus === 'checking' && '检测中...'}
+              {backendStatus === 'ok' && t('shell:backend.connected')}
+              {backendStatus === 'error' && t('shell:backend.disconnected')}
+              {backendStatus === 'checking' && t('shell:backend.checking')}
             </span>
           ) : (
             <div
@@ -1193,9 +1239,9 @@ function App() {
               }`}
             >
               {backendStatus === 'ok' ? <Wifi size={12} /> : <WifiOff size={12} />}
-              {backendStatus === 'ok' && '后端已连接'}
-              {backendStatus === 'error' && '后端未连接'}
-              {backendStatus === 'checking' && '检测中...'}
+              {backendStatus === 'ok' && t('shell:backend.connected')}
+              {backendStatus === 'error' && t('shell:backend.disconnected')}
+              {backendStatus === 'checking' && t('shell:backend.checking')}
             </div>
           )}
         </div>
@@ -1222,10 +1268,10 @@ function App() {
                           : 'bg-emerald-50 border-emerald-300 text-emerald-700 hover:bg-emerald-100'
                     }`
               }
-              title="图图打标器 · 打标和模型训练工具"
+              title={t('shell:promotions.tagger.title')}
             >
               <ExternalLink size={14} />
-              <span className="text-[11px]">图图打标器</span>
+              <span className="text-[11px]">{t('shell:promotions.tagger.label')}</span>
             </button>
 
             {zhaotutuOpen && (
@@ -1244,7 +1290,7 @@ function App() {
               >
                 <div className={`flex items-center gap-2 ${isPixel ? '' : isDark ? 'text-emerald-300' : 'text-emerald-700'}`}>
                   <ExternalLink size={16} className={isPixel ? '' : 'shrink-0'} />
-                  <span className={`text-sm font-bold ${isPixel ? 'px-title' : ''}`}>图图打标器</span>
+                  <span className={`text-sm font-bold ${isPixel ? 'px-title' : ''}`}>{t('shell:promotionDetails.tagger.heading')}</span>
                 </div>
 
                 <div
@@ -1252,7 +1298,7 @@ function App() {
                     isPixel ? '' : isDark ? 'text-white/75' : 'text-zinc-700'
                   }`}
                 >
-                  {ZHAOTUTU_TAGGER_TRAINER_LABEL.replace('：点击获取', '')}
+                  {uiLocale === 'en-US' ? t('shell:promotionDetails.tagger.description') : ZHAOTUTU_TAGGER_TRAINER_LABEL.replace('：点击获取', '')}
                 </div>
 
                 <button
@@ -1269,7 +1315,7 @@ function App() {
                   }
                 >
                   <ExternalLink size={13} />
-                  <span>点击获取</span>
+                  <span>{t('shell:promotionDetails.tagger.open')}</span>
                 </button>
               </div>
             )}
@@ -1297,10 +1343,10 @@ function App() {
                           : 'bg-violet-50 border-violet-300 text-violet-700 hover:bg-violet-100'
                     }`
               }
-              title="API获取 · 国内与海外 API Key 注册入口"
+              title={t('shell:promotions.apiKeys.title')}
             >
               <KeyRound size={14} />
-              <span className="text-[11px]">API获取</span>
+              <span className="text-[11px]">{t('shell:promotions.apiKeys.label')}</span>
             </button>
 
             {apiAcquisitionOpen && (
@@ -1319,10 +1365,10 @@ function App() {
               >
                 <div className={`flex items-center gap-2 ${isPixel ? '' : isDark ? 'text-violet-300' : 'text-violet-700'}`}>
                   <KeyRound size={16} className={isPixel ? '' : 'shrink-0'} />
-                  <span className={`text-sm font-bold ${isPixel ? 'px-title' : ''}`}>API 获取</span>
+                  <span className={`text-sm font-bold ${isPixel ? 'px-title' : ''}`}>{t('shell:promotionDetails.api.heading')}</span>
                 </div>
                 <div className={`mt-1 text-[11px] leading-relaxed ${isPixel ? '' : isDark ? 'text-white/65' : 'text-zinc-600'}`}>
-                  根据服务区域选择对应版本，国内与海外站的账号和 API Key 相互独立。
+                  {t('shell:promotionDetails.api.description')}
                 </div>
 
                 <div className="mt-3 grid max-h-[70vh] gap-2 overflow-y-auto pr-1 sm:grid-cols-2">
@@ -1340,10 +1386,10 @@ function App() {
                       }
                     >
                       <h3 className={`text-[12px] font-bold leading-snug ${isPixel ? '' : isDark ? 'text-violet-100' : 'text-violet-950'}`}>
-                        {item.title}
+                        {uiLocale === 'en-US' ? item.titleEn : item.title}
                       </h3>
                       <p className={`mt-1.5 flex-1 text-[10px] leading-relaxed ${isPixel ? '' : isDark ? 'text-white/70' : 'text-zinc-700'}`}>
-                        {item.description}
+                        {uiLocale === 'en-US' ? item.descriptionEn : item.description}
                       </p>
                       <button
                         type="button"
@@ -1357,10 +1403,10 @@ function App() {
                                   : 'bg-violet-100 border-violet-300 text-violet-800 hover:bg-violet-200'
                               }`
                         }
-                        title={item.action}
+                        title={uiLocale === 'en-US' ? item.actionEn : item.action}
                       >
                         <ExternalLink size={12} />
-                        <span>{item.action}</span>
+                        <span>{uiLocale === 'en-US' ? item.actionEn : item.action}</span>
                       </button>
                     </section>
                   ))}
@@ -1390,10 +1436,10 @@ function App() {
                           : 'bg-cyan-50 border-cyan-300 text-cyan-700 hover:bg-cyan-100'
                     }`
               }
-              title="插件安装 · 本机联动插件说明"
+              title={t('shell:promotions.plugins.title')}
             >
               <Puzzle size={14} />
-              <span className="text-[11px]">插件安装</span>
+              <span className="text-[11px]">{t('shell:promotions.plugins.label')}</span>
             </button>
 
             {pluginInstallOpen && (
@@ -1412,7 +1458,7 @@ function App() {
               >
                 <div className={`flex items-center gap-2 ${isPixel ? '' : isDark ? 'text-cyan-300' : 'text-cyan-700'}`}>
                   <Puzzle size={16} className={isPixel ? '' : 'shrink-0'} />
-                  <span className={`text-sm font-bold ${isPixel ? 'px-title' : ''}`}>插件安装</span>
+                  <span className={`text-sm font-bold ${isPixel ? 'px-title' : ''}`}>{t('shell:promotionDetails.plugins.heading')}</span>
                 </div>
 
                 <div
@@ -1420,7 +1466,7 @@ function App() {
                     isPixel ? '' : isDark ? 'text-white/75' : 'text-zinc-700'
                   }`}
                 >
-                  这些功能已经随源码或 Electron 包携带，但 Photoshop、Figma、Chrome 这类宿主软件仍需要手动导入插件或扩展。
+                  {t('shell:promotionDetails.plugins.description')}
                 </div>
 
                 <div className="mt-3 grid max-h-[70vh] gap-2 overflow-y-auto pr-1">
@@ -1439,7 +1485,7 @@ function App() {
                     >
                       <div className="flex flex-wrap items-center gap-1.5">
                         <span className={`text-[12px] font-bold ${isPixel ? '' : isDark ? 'text-cyan-100' : 'text-cyan-950'}`}>
-                          {guide.name}
+                          {uiLocale === 'en-US' ? guide.nameEn : guide.name}
                         </span>
                         <span
                           className={
@@ -1452,19 +1498,19 @@ function App() {
                                 }`
                           }
                         >
-                          {guide.target}
+                          {uiLocale === 'en-US' ? guide.targetEn : guide.target}
                         </span>
                       </div>
                       <div className={`mt-1 grid gap-1 text-[10px] leading-relaxed ${isPixel ? '' : isDark ? 'text-white/70' : 'text-zinc-700'}`}>
                         <div>
-                          开发版：<code className={isPixel ? '' : isDark ? 'text-cyan-100' : 'text-cyan-900'}>{guide.devPath}</code>
+                          {t('shell:promotionDetails.plugins.development')}：<code className={isPixel ? '' : isDark ? 'text-cyan-100' : 'text-cyan-900'}>{guide.devPath}</code>
                         </div>
                         <div>
-                          打包版：<code className={isPixel ? '' : isDark ? 'text-cyan-100' : 'text-cyan-900'}>{guide.packagedPath}</code>
+                          {t('shell:promotionDetails.plugins.packaged')}：<code className={isPixel ? '' : isDark ? 'text-cyan-100' : 'text-cyan-900'}>{guide.packagedPath}</code>
                         </div>
-                        <div>安装：{guide.install}</div>
-                        <div>用途：{guide.use}</div>
-                        <div>安全：{guide.safety}</div>
+                        <div>{t('shell:promotionDetails.plugins.install')}：{uiLocale === 'en-US' ? guide.installEn : guide.install}</div>
+                        <div>{t('shell:promotionDetails.plugins.usage')}：{uiLocale === 'en-US' ? guide.useEn : guide.use}</div>
+                        <div>{t('shell:promotionDetails.plugins.safety')}：{uiLocale === 'en-US' ? guide.safetyEn : guide.safety}</div>
                       </div>
                     </div>
                   ))}
@@ -1494,10 +1540,10 @@ function App() {
                           : 'bg-amber-50 border-amber-300 text-amber-700 hover:bg-amber-100'
                     }`
               }
-              title="画布教程 · T8 教程合集"
+              title={t('shell:promotions.tutorials.title')}
             >
               <BookOpen size={14} />
-              <span className="text-[11px]">画布教程</span>
+              <span className="text-[11px]">{t('shell:promotions.tutorials.label')}</span>
             </button>
 
             {canvasTutorialOpen && (
@@ -1516,7 +1562,7 @@ function App() {
               >
                 <div className={`flex items-center gap-2 ${isPixel ? '' : isDark ? 'text-amber-300' : 'text-amber-700'}`}>
                   <BookOpen size={16} className={isPixel ? '' : 'shrink-0'} />
-                  <span className={`text-sm font-bold ${isPixel ? 'px-title' : ''}`}>画布教程 · T8 系列</span>
+                  <span className={`text-sm font-bold ${isPixel ? 'px-title' : ''}`}>{t('shell:promotionDetails.tutorials.heading')}</span>
                 </div>
 
                 <div
@@ -1524,7 +1570,7 @@ function App() {
                     isPixel ? '' : isDark ? 'text-white/75' : 'text-zinc-700'
                   }`}
                 >
-                  从基础功能到 3D 全景、资产库、即梦 CLI、ComfyUI 和自定义主题，按集数往下看就能把画布工作流串起来。
+                  {t('shell:promotionDetails.tutorials.description')}
                 </div>
 
                 <div className="mt-3 grid gap-2 max-h-[70vh] overflow-y-auto pr-1">
@@ -1556,7 +1602,7 @@ function App() {
                             {index + 1}
                           </span>
                           <div className={`text-[12px] font-bold leading-snug ${isPixel ? '' : isDark ? 'text-white' : 'text-zinc-900'}`}>
-                            {tutorial.title}
+                            {uiLocale === 'en-US' ? t('shell:promotionDetails.tutorials.episode', { index: index + 1 }) : tutorial.title}
                           </div>
                         </div>
 
@@ -1566,7 +1612,7 @@ function App() {
                             target="_blank"
                             rel="noopener noreferrer"
                             onClick={() => setCanvasTutorialOpen(false)}
-                            title={`B站教程：${tutorial.bilibili}`}
+                            title={t('shell:promotionDetails.tutorials.bilibiliTitle', { url: tutorial.bilibili })}
                             className={
                               isPixel
                                 ? 'px-btn px-btn--sm px-btn--pink justify-start min-w-0'
@@ -1587,7 +1633,7 @@ function App() {
                               B
                             </span>
                             <span className="min-w-0">
-                              <span className="block leading-tight">B站教程</span>
+                              <span className="block leading-tight">{t('shell:promotionDetails.tutorials.bilibili')}</span>
                               <span className="block truncate text-[9px] opacity-70">{tutorial.bilibili}</span>
                             </span>
                             <ExternalLink size={10} className="ml-auto shrink-0 opacity-70" />
@@ -1598,7 +1644,7 @@ function App() {
                             target="_blank"
                             rel="noopener noreferrer"
                             onClick={() => setCanvasTutorialOpen(false)}
-                            title={`Youtube教程：${tutorial.youtube}`}
+                            title={t('shell:promotionDetails.tutorials.youtubeTitle', { url: tutorial.youtube })}
                             className={
                               isPixel
                                 ? 'px-btn px-btn--sm px-btn--mint justify-start min-w-0'
@@ -1611,7 +1657,7 @@ function App() {
                           >
                             <Youtube size={14} className="shrink-0" />
                             <span className="min-w-0">
-                              <span className="block leading-tight">Youtube教程</span>
+                              <span className="block leading-tight">{t('shell:promotionDetails.tutorials.youtube')}</span>
                               <span className="block truncate text-[9px] opacity-70">{tutorial.youtube}</span>
                             </span>
                             <ExternalLink size={10} className="ml-auto shrink-0 opacity-70" />
@@ -1641,10 +1687,10 @@ function App() {
                           : 'bg-orange-50 border-orange-300 text-orange-700 hover:bg-orange-100'
                     }`
               }
-              title="最新应用 · RunningHub 工作流"
+              title={t('shell:promotions.latestApps.title')}
             >
               <Rocket size={14} />
-              <span className="text-[11px]">最新应用</span>
+              <span className="text-[11px]">{t('shell:promotions.latestApps.label')}</span>
             </button>
 
             {/* 推广浮层 */}
@@ -1665,7 +1711,7 @@ function App() {
                 {/* 标题 */}
                 <div className={`flex items-center gap-2 ${isPixel ? '' : isDark ? 'text-orange-300' : 'text-orange-700'}`}>
                   <Rocket size={16} className={isPixel ? '' : 'shrink-0'} />
-                  <span className={`text-sm font-bold ${isPixel ? 'px-title' : ''}`}>最新应用 · RunningHub</span>
+                  <span className={`text-sm font-bold ${isPixel ? 'px-title' : ''}`}>{t('shell:promotionDetails.latestApps.heading')}</span>
                 </div>
 
                 {/* 副标 */}
@@ -1674,7 +1720,7 @@ function App() {
                     isPixel ? '' : isDark ? 'text-white/80' : 'text-zinc-700'
                   }`}
                 >
-                  T8 每日教学必用平台，每日同步更新最新工作流、AI 应用、节点、模型，免费教学！强烈推荐 ✨
+                  {t('shell:promotionDetails.latestApps.description')} ✨
                 </div>
 
                 {/* 国内站跳转按钮 */}
@@ -1694,7 +1740,7 @@ function App() {
                   }
                 >
                   <Globe size={14} className={isPixel ? '' : 'shrink-0'} />
-                  <span>国内站 RunningHub.cn</span>
+                  <span>{t('shell:promotionDetails.latestApps.china')}</span>
                   <ExternalLink size={11} className="opacity-70" />
                 </a>
 
@@ -1715,7 +1761,7 @@ function App() {
                   }
                 >
                   <Globe size={14} className={isPixel ? '' : 'shrink-0'} />
-                  <span>海外站 RunningHub.ai</span>
+                  <span>{t('shell:promotionDetails.latestApps.global')}</span>
                   <ExternalLink size={11} className="opacity-70" />
                 </a>
 
@@ -1736,9 +1782,9 @@ function App() {
                     }`}
                   />
                   <span>
-                    使用邀请码
+                    {t('shell:promotionDetails.latestApps.invitePrefix')}
                     <span className={isPixel ? 'font-bold' : `font-semibold ${isDark ? 'text-emerald-200' : 'text-emerald-900'}`}> rh-v1121 </span>
-                    注册，免费领取1000积分！
+                    {t('shell:promotionDetails.latestApps.inviteSuffix')}
                   </span>
                 </div>
               </div>
@@ -1762,10 +1808,10 @@ function App() {
                           : 'bg-cyan-50 border-cyan-300 text-cyan-700 hover:bg-cyan-100'
                     }`
               }
-              title="AIX产品 · T8公司AIX产品"
+              title={t('shell:promotions.aix.title')}
             >
               <Sparkles size={14} />
-              <span className="text-[11px]">AIX产品</span>
+              <span className="text-[11px]">{t('shell:promotions.aix.label')}</span>
             </button>
 
             {/* 推广浮层 */}
@@ -1786,7 +1832,7 @@ function App() {
                 {/* 标题 */}
                 <div className={`flex items-center gap-2 ${isPixel ? '' : isDark ? 'text-cyan-300' : 'text-cyan-700'}`}>
                   <Sparkles size={16} className={isPixel ? '' : 'shrink-0'} />
-                  <span className={`text-sm font-bold ${isPixel ? 'px-title' : ''}`}>AIX 产品</span>
+                  <span className={`text-sm font-bold ${isPixel ? 'px-title' : ''}`}>{t('shell:promotionDetails.aix.heading')}</span>
                 </div>
 
                 {/* 副标 */}
@@ -1795,7 +1841,7 @@ function App() {
                     isPixel ? '' : isDark ? 'text-white/80' : 'text-zinc-700'
                   }`}
                 >
-                  T8公司AIX产品，欢迎体验
+                  {t('shell:promotionDetails.aix.description')}
                 </div>
 
                 {/* 主行动 CTA: 跳转链接(新窗口) */}
@@ -1815,7 +1861,7 @@ function App() {
                   }
                 >
                   <ExternalLink size={13} />
-                  <span>跳转体验（新窗口打开）</span>
+                  <span>{t('shell:promotionDetails.aix.open')}</span>
                 </a>
               </div>
             )}
@@ -1838,10 +1884,10 @@ function App() {
                           : 'bg-violet-50 border-violet-300 text-violet-700 hover:bg-violet-100'
                     }`
               }
-              title="贞贞工坊 · 海外站与 Discord"
+              title={t('shell:promotions.workshop.title')}
             >
               <Wand2 size={14} />
-              <span className="text-[11px]">贞贞工坊</span>
+              <span className="text-[11px]">{t('shell:promotions.workshop.label')}</span>
             </button>
 
             {/* 推广浮层 */}
@@ -1862,7 +1908,7 @@ function App() {
                 {/* 标题 */}
                 <div className={`flex items-center gap-2 ${isPixel ? '' : isDark ? 'text-violet-300' : 'text-violet-700'}`}>
                   <Wand2 size={16} className={isPixel ? '' : 'shrink-0'} />
-                  <span className={`text-sm font-bold ${isPixel ? 'px-title' : ''}`}>贞贞工坊 · AI 创作社区</span>
+                  <span className={`text-sm font-bold ${isPixel ? 'px-title' : ''}`}>{t('shell:promotionDetails.workshop.heading')}</span>
                 </div>
 
                 {/* 副标 */}
@@ -1871,7 +1917,7 @@ function App() {
                     isPixel ? '' : isDark ? 'text-white/80' : 'text-zinc-700'
                   }`}
                 >
-                  访问海外站点，加入 Discord 社区，与全球创作者一起玩转 AI。
+                  {t('shell:promotionDetails.workshop.description')}
                 </div>
 
                 {/* 海外站跳转按钮 */}
@@ -1891,7 +1937,7 @@ function App() {
                   }
                 >
                   <Globe size={14} className={isPixel ? '' : 'shrink-0'} />
-                  <span>海外站 ai.t8star.org</span>
+                  <span>{t('shell:promotionDetails.workshop.global')}</span>
                   <ExternalLink size={11} className="opacity-70" />
                 </a>
 
@@ -1912,7 +1958,7 @@ function App() {
                   }
                 >
                   <MessageCircle size={14} className={isPixel ? '' : 'shrink-0'} />
-                  <span>Discord 社区群组</span>
+                  <span>{t('shell:promotionDetails.workshop.discord')}</span>
                   <ExternalLink size={11} className="opacity-70" />
                 </a>
 
@@ -1933,9 +1979,9 @@ function App() {
                     }`}
                   />
                   <span>
-                    贞贞的 AI 工坊预计于
-                    <span className={isPixel ? 'font-bold' : `font-semibold ${isDark ? 'text-amber-200' : 'text-amber-900'}`}> 5月27日 — 5月29日 </span>
-                    开始恢复注册！
+                    {t('shell:promotionDetails.workshop.noticePrefix')}
+                    <span className={isPixel ? 'font-bold' : `font-semibold ${isDark ? 'text-amber-200' : 'text-amber-900'}`}> {t('shell:promotionDetails.workshop.noticeDate')} </span>
+                    {t('shell:promotionDetails.workshop.noticeSuffix')}
                   </span>
                 </div>
               </div>
@@ -1959,10 +2005,10 @@ function App() {
                           : 'bg-rose-50 border-rose-300 text-rose-700 hover:bg-rose-100'
                     }`
               }
-              title="视频教程 · 关注 T8 获取免费版本更新"
+              title={t('shell:promotions.videoTutorials.title')}
             >
               <PlayCircle size={14} />
-              <span className="text-[11px]">视频教程</span>
+              <span className="text-[11px]">{t('shell:promotions.videoTutorials.label')}</span>
             </button>
 
             {/* 推广浮层 */}
@@ -1983,7 +2029,7 @@ function App() {
                 {/* 标题 */}
                 <div className={`flex items-center gap-2 ${isPixel ? '' : isDark ? 'text-rose-300' : 'text-rose-700'}`}>
                   <PlayCircle size={16} className={isPixel ? '' : 'shrink-0'} />
-                  <span className={`text-sm font-bold ${isPixel ? 'px-title' : ''}`}>视频教程 · T8老师</span>
+                  <span className={`text-sm font-bold ${isPixel ? 'px-title' : ''}`}>{t('shell:promotionDetails.videoTutorials.heading')}</span>
                 </div>
 
                 {/* 副标 */}
@@ -1992,7 +2038,7 @@ function App() {
                     isPixel ? '' : isDark ? 'text-white/80' : 'text-zinc-700'
                   }`}
                 >
-                  跳转以下平台观看本画布与最新 AI 教程～
+                  {t('shell:promotionDetails.videoTutorials.description')}
                 </div>
 
                 {/* B 站 跳转按钮 */}
@@ -2021,7 +2067,7 @@ function App() {
                   >
                     B
                   </span>
-                  <span>在 B 站订阅（新窗口打开）</span>
+                  <span>{t('shell:promotionDetails.videoTutorials.bilibili')}</span>
                   <ExternalLink size={11} className="opacity-70" />
                 </a>
 
@@ -2042,7 +2088,7 @@ function App() {
                   }
                 >
                   <Youtube size={14} className={isPixel ? '' : 'shrink-0'} />
-                  <span>在 YouTube 订阅（新窗口打开）</span>
+                  <span>{t('shell:promotionDetails.videoTutorials.youtube')}</span>
                   <ExternalLink size={11} className="opacity-70" />
                 </a>
 
@@ -2059,9 +2105,9 @@ function App() {
                     }`}
                   />
                   <span>
-                    记得关注 <span className={isPixel ? 'font-bold' : `font-semibold ${isDark ? 'text-rose-300' : 'text-rose-700'}`}>T8</span>，随时获取
-                    <span className={isPixel ? 'font-bold' : `font-semibold ${isDark ? 'text-emerald-300' : 'text-emerald-700'}`}> 免费版本更新 </span>
-                    及最新 AI 教程。
+                    {t('shell:promotionDetails.videoTutorials.followPrefix')} <span className={isPixel ? 'font-bold' : `font-semibold ${isDark ? 'text-rose-300' : 'text-rose-700'}`}>T8</span>{t('shell:promotionDetails.videoTutorials.followMiddle')}
+                    <span className={isPixel ? 'font-bold' : `font-semibold ${isDark ? 'text-emerald-300' : 'text-emerald-700'}`}> {t('shell:promotionDetails.videoTutorials.freeUpdates')} </span>
+                    {t('shell:promotionDetails.videoTutorials.followSuffix')}
                   </span>
                 </div>
               </div>
@@ -2085,10 +2131,10 @@ function App() {
                           : 'bg-emerald-50 border-emerald-300 text-emerald-700 hover:bg-emerald-100'
                     }`
               }
-              title="云端创作 · 企鹅画布(还送 10 鹅卵石)"
+              title={t('shell:promotions.cloudCanvas.title')}
             >
               <Cloud size={14} />
-              <span className="text-[11px]">在线画布</span>
+              <span className="text-[11px]">{t('shell:promotions.cloudCanvas.label')}</span>
             </button>
 
             {/* 推广浮层 */}
@@ -2109,7 +2155,7 @@ function App() {
                 {/* 标题 */}
                 <div className={`flex items-center gap-2 ${isPixel ? '' : isDark ? 'text-emerald-300' : 'text-emerald-700'}`}>
                   <Cloud size={16} className={isPixel ? '' : 'shrink-0'} />
-                  <span className={`text-sm font-bold ${isPixel ? 'px-title' : ''}`}>云端创作 · 企鹅画布</span>
+                  <span className={`text-sm font-bold ${isPixel ? 'px-title' : ''}`}>{t('shell:promotionDetails.cloudCanvas.heading')}</span>
                 </div>
 
                 {/* 副标 + 鹅卵石提示 */}
@@ -2118,7 +2164,7 @@ function App() {
                     isPixel ? '' : isDark ? 'text-white/80' : 'text-zinc-700'
                   }`}
                 >
-                  云端也能爽用<span className={isPixel ? 'font-bold' : `font-semibold ${isDark ? 'text-emerald-300' : 'text-emerald-700'}`}>企鹅画布</span>～
+                  {t('shell:promotionDetails.cloudCanvas.descriptionPrefix')} <span className={isPixel ? 'font-bold' : `font-semibold ${isDark ? 'text-emerald-300' : 'text-emerald-700'}`}>{t('shell:promotionDetails.cloudCanvas.product')}</span>
                   <span
                     className={
                       isPixel
@@ -2128,7 +2174,7 @@ function App() {
                           }`
                     }
                   >
-                    <Gift size={10} /> 还送 10 鹅卵石
+                    <Gift size={10} /> {t('shell:promotionDetails.cloudCanvas.gift')}
                   </span>
                 </div>
 
@@ -2149,7 +2195,7 @@ function App() {
                   }
                 >
                   <ExternalLink size={13} />
-                  <span>立即开通（新窗口打开）</span>
+                  <span>{t('shell:promotionDetails.cloudCanvas.open')}</span>
                 </a>
 
                 {/* 微信号 + 一键复制 */}
@@ -2163,7 +2209,7 @@ function App() {
                   }`}
                 >
                   <div className={`text-[10px] mb-1 ${isPixel ? '' : isDark ? 'text-white/50' : 'text-zinc-500'}`}>
-                    加群 · 加企鹅微信
+                    {t('shell:promotionDetails.cloudCanvas.group')}
                   </div>
                   <div className="flex items-center gap-2">
                     <code
@@ -2192,10 +2238,10 @@ function App() {
                                   : 'bg-white border-zinc-300 text-zinc-600 hover:bg-zinc-50'
                             }`
                       }
-                      title={wxCopied ? '已复制' : '一键复制微信号'}
+                      title={wxCopied ? t('shell:promotionDetails.cloudCanvas.copied') : t('shell:promotionDetails.cloudCanvas.copyTitle')}
                     >
                       {wxCopied ? <Check size={11} /> : <Copy size={11} />}
-                      <span>{wxCopied ? '已复制' : '复制'}</span>
+                      <span>{wxCopied ? t('shell:promotionDetails.cloudCanvas.copied') : t('shell:promotionDetails.cloudCanvas.copy')}</span>
                     </button>
                   </div>
                 </div>
@@ -2213,7 +2259,7 @@ function App() {
                     }`}
                   />
                   <span>
-                    感谢企鹅在我制作本画布时候的帮助，大家多多支持！<span className="text-base">🐧</span>
+                    {t('shell:promotionDetails.cloudCanvas.thanks')}<span className="text-base">🐧</span>
                   </span>
                 </div>
               </div>
@@ -2232,54 +2278,54 @@ function App() {
                       : 'bg-sky-50 border-sky-300 text-sky-700 hover:bg-sky-100'
                   }`
             }
-            title="主题模板"
+            title={t('shell:themeTemplate')}
           >
             <Palette size={14} />
-            <span className="text-[11px] truncate">{currentTemplate.name}</span>
+            <span className="text-[11px] truncate">{localizeThemeName(currentTemplate, uiLocale)}</span>
           </button>
           {isDragonBall && shenronUnlockedAt && (
-            <div className="t8-dragonball-mode-switch" role="group" aria-label="七龙珠主题模式">
+            <div className="t8-dragonball-mode-switch" role="group" aria-label={t('shell:themeModes.dragonBallGroup')}>
               <button
                 type="button"
                 className={`t8-dragonball-mode-switch__option ${!shenronModeActive ? 'is-active' : ''}`}
                 aria-pressed={!shenronModeActive}
                 onClick={() => handleDragonBallModeSwitch(false)}
-                title="切回七龙珠普通模式"
+                title={t('shell:themeModes.dragonBallTitle')}
               >
-                七龙珠
+                {t('shell:themeModes.dragonBall')}
               </button>
               <button
                 type="button"
                 className={`t8-dragonball-mode-switch__option ${shenronModeActive ? 'is-active' : ''}`}
                 aria-pressed={shenronModeActive}
                 onClick={() => handleDragonBallModeSwitch(true)}
-                title="切换到神龙隐藏模式"
+                title={t('shell:themeModes.shenronTitle')}
               >
                 <Sparkles size={12} />
-                神龙
+                {t('shell:themeModes.shenron')}
               </button>
             </div>
           )}
           {isSaintSeiya && hadesUnlockedAt && (
-            <div className="t8-saint-mode-switch" role="group" aria-label="圣斗士主题模式">
+            <div className="t8-saint-mode-switch" role="group" aria-label={t('shell:themeModes.saintGroup')}>
               <button
                 type="button"
                 className={`t8-saint-mode-switch__option ${!hadesModeActive ? 'is-active' : ''}`}
                 aria-pressed={!hadesModeActive}
                 onClick={() => handleSaintSeiyaModeSwitch(false)}
-                title="切回十二宫模式"
+                title={t('shell:themeModes.sanctuaryTitle')}
               >
-                十二宫
+                {t('shell:themeModes.sanctuary')}
               </button>
               <button
                 type="button"
                 className={`t8-saint-mode-switch__option ${hadesModeActive ? 'is-active' : ''}`}
                 aria-pressed={hadesModeActive}
                 onClick={() => handleSaintSeiyaModeSwitch(true)}
-                title="切换到冥界篇"
+                title={t('shell:themeModes.hadesTitle')}
               >
                 <Sparkles size={12} />
-                冥界篇
+                {t('shell:themeModes.hades')}
               </button>
             </div>
           )}
@@ -2296,12 +2342,32 @@ function App() {
                       : 'bg-fuchsia-50 border-fuchsia-300 text-fuchsia-700 hover:bg-fuchsia-100'
                   }`
             }
-            title="资源库"
+            title={t('shell:resources')}
           >
             <Library size={14} />
-            <span className="text-[11px]">资源库</span>
+            <span className="text-[11px]">{t('shell:resources')}</span>
           </button>
           <AppUpdaterButton isPixel={isPixel} isDark={isDark} />
+          <label
+            className={
+              isPixel
+                ? 'px-btn px-btn--sm px-btn--ghost flex items-center gap-1'
+                : `flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] ${isDark ? 'border-white/15 bg-white/5' : 'border-black/10 bg-black/[0.03]'}`
+            }
+            title={t('shell:locale.label')}
+          >
+            <Globe size={13} />
+            <select
+              className="nodrag bg-transparent text-[11px] outline-none"
+              data-i18n-skip
+              value={uiLocale}
+              aria-label={t('shell:locale.label')}
+              onChange={(event) => changeUiLocale(event.target.value as 'zh-CN' | 'en-US')}
+            >
+              <option value="zh-CN">{t('shell:locale.zhCN')}</option>
+              <option value="en-US">{t('shell:locale.enUS')}</option>
+            </select>
+          </label>
           <button
             onClick={() => setSettingsOpen(true)}
             className={
@@ -2309,7 +2375,7 @@ function App() {
                 ? 'px-btn px-btn--icon px-btn--ghost'
                 : `p-2 rounded-md ${isDark ? 'hover:bg-white/10' : 'hover:bg-black/5'}`
             }
-            title="API 设置"
+            title={t('shell:settings')}
           >
             <Settings size={isPixel ? 14 : 16} />
           </button>
@@ -2320,7 +2386,7 @@ function App() {
                 ? 'px-btn px-btn--icon px-btn--ghost'
                 : `p-2 rounded-md ${isDark ? 'hover:bg-white/10' : 'hover:bg-black/5'}`
             }
-            title={`切换到${isDark ? '浅色' : '深色'}主题`}
+            title={isDark ? t('shell:theme.toLight') : t('shell:theme.toDark')}
           >
             {isDark ? <Sun size={isPixel ? 14 : 16} /> : <Moon size={isPixel ? 14 : 16} />}
           </button>
@@ -2336,14 +2402,14 @@ function App() {
         <button
           type="button"
           className={`t8-sidebar-toggle t8-mini-icon-button${sidebarCollapsed ? ' is-collapsed' : ''}`}
-          aria-label={sidebarCollapsed ? '显示侧边栏' : '隐藏侧边栏'}
-          title={sidebarCollapsed ? '显示侧边栏 (H)' : '隐藏侧边栏 (H)'}
+          aria-label={sidebarCollapsed ? t('shell:sidebar.show') : t('shell:sidebar.hide')}
+          title={`${sidebarCollapsed ? t('shell:sidebar.show') : t('shell:sidebar.hide')} (H)`}
           aria-pressed={sidebarCollapsed}
           onClick={toggleSidebarCollapsed}
         >
           {sidebarCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
         </button>
-        <ErrorBoundary fallbackTitle="画布渲染出错了，已被错误边界捕获">
+        <ErrorBoundary fallbackTitle={t('shell:canvasError')}>
           <Suspense fallback={<InfiniteCanvasBootLoading />}>
             <Canvas onAddNodeRef={addNodeRef} onInsertWorkflowRef={insertWorkflowRef} themeStyleOverride={appliedThemeStyle} />
           </Suspense>

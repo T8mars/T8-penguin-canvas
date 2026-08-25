@@ -25,23 +25,38 @@ function isNodeSelectedFromStore(state: any, nodeId: string) {
   return Boolean(fromArray?.selected);
 }
 
+let activeThemeEdgeCountCache: {
+  edges: unknown;
+  nodes: unknown;
+  nodeLookup: unknown;
+  count: number;
+} | null = null;
+
 function countActiveThemeEdges(state: any) {
   const edges = Array.isArray(state?.edges) ? state.edges : [];
+  const nodes = Array.isArray(state?.nodes) ? state.nodes : [];
+  const nodeLookup = state?.nodeLookup;
+  if (activeThemeEdgeCountCache
+    && activeThemeEdgeCountCache.edges === edges
+    && activeThemeEdgeCountCache.nodes === nodes
+    && activeThemeEdgeCountCache.nodeLookup === nodeLookup) {
+    return activeThemeEdgeCountCache.count;
+  }
   const selectedNodeIds = new Set<string>();
-  if (state?.nodeLookup?.forEach) {
-    state.nodeLookup.forEach((node: any, nodeId: string) => {
+  if (nodeLookup?.forEach) {
+    nodeLookup.forEach((node: any, nodeId: string) => {
       if (node?.selected) selectedNodeIds.add(nodeId || node.id);
     });
   }
-  if (Array.isArray(state?.nodes)) {
-    for (const node of state.nodes) {
-      if (node?.selected) selectedNodeIds.add(node.id);
-    }
+  for (const node of nodes) {
+    if (node?.selected) selectedNodeIds.add(node.id);
   }
-  return edges.reduce((count: number, edge: any) => {
-    if (!edge) return count;
-    return count + (edge.selected || selectedNodeIds.has(edge.source) || selectedNodeIds.has(edge.target) ? 1 : 0);
+  const count = edges.reduce((total: number, edge: any) => {
+    if (!edge) return total;
+    return total + (edge.selected || selectedNodeIds.has(edge.source) || selectedNodeIds.has(edge.target) ? 1 : 0);
   }, 0);
+  activeThemeEdgeCountCache = { edges, nodes, nodeLookup, count };
+  return count;
 }
 
 function edgeDelay(id: string) {

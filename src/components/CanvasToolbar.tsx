@@ -1,4 +1,5 @@
 import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Undo2,
   Redo2,
@@ -129,6 +130,7 @@ export default function CanvasToolbar({
   onAlignSelection,
   children,
 }: CanvasToolbarProps) {
+  const { t } = useTranslation('canvas');
   const { theme, style } = useThemeStore();
   const isDark = theme === 'dark';
   const isPixel = style === 'pixel';
@@ -349,7 +351,7 @@ export default function CanvasToolbar({
           <button
             className={`${baseBtn} ${runningCls}`}
             onClick={onCancelRun}
-            title={`停止批量运行 (${batchDone}/${batchTotal})`}
+            title={t('toolbar.stopRun', { done: batchDone, total: batchTotal })}
           >
             <Square size={14} fill="currentColor" />
             {batchTotal > 0 && (
@@ -368,7 +370,7 @@ export default function CanvasToolbar({
           <button
             className={`${baseBtn} ${runningCls}`}
             onClick={onRunAll}
-            title="批量运行画布（拓扑顺序串行可执行节点）"
+            title={t('toolbar.runAll')}
           >
             <Play size={15} fill="currentColor" />
           </button>
@@ -386,7 +388,7 @@ export default function CanvasToolbar({
               : ''
           }`}
           onClick={onToggleSnap}
-          title={snapEnabled ? '关闭网格吸附 + 对齐辅助线' : '开启网格吸附 + 对齐辅助线'}
+          title={snapEnabled ? t('toolbar.snapOff') : t('toolbar.snapOn')}
         >
           <Magnet size={15} />
         </button>
@@ -394,8 +396,8 @@ export default function CanvasToolbar({
           <button
             className={`${baseBtn} ${selectedCount === 0 ? disabledCls : ''}`}
             onClick={() => setAlignOpen((v) => !v)}
-            title={selectedCount > 0 ? `对齐/整理选区 · ${selectedCount} 个节点` : '先选择节点再对齐'}
-            aria-label="对齐/整理选区"
+            title={selectedCount > 0 ? t('toolbar.alignCount', { count: selectedCount }) : t('toolbar.alignSelect')}
+            aria-label={t('toolbar.align')}
           >
             <LayoutGrid size={15} />
           </button>
@@ -442,8 +444,8 @@ export default function CanvasToolbar({
               : ''
           }`}
           onClick={toggleCompletionSound}
-          title={completionSoundEnabled ? '关闭任务完成提示音' : '开启任务完成提示音'}
-          aria-label={completionSoundEnabled ? '关闭任务完成提示音' : '开启任务完成提示音'}
+          title={completionSoundEnabled ? t('toolbar.soundOff') : t('toolbar.soundOn')}
+          aria-label={completionSoundEnabled ? t('toolbar.soundOff') : t('toolbar.soundOn')}
           aria-pressed={completionSoundEnabled}
         >
           {completionSoundEnabled ? <Bell size={15} /> : <BellOff size={15} />}
@@ -461,10 +463,10 @@ export default function CanvasToolbar({
           onClick={onToggleOutputMaterialPersistence}
           title={
             outputMaterialPersistenceEnabled
-              ? '关闭输出素材持久化：中断或重跑后允许自动清理输出素材'
-              : '开启输出素材持久化：中断或重跑后保留已生成的输出素材'
+              ? t('toolbar.persistenceOffDetail')
+              : t('toolbar.persistenceOnDetail')
           }
-          aria-label={outputMaterialPersistenceEnabled ? '关闭输出素材持久化' : '开启输出素材持久化'}
+          aria-label={outputMaterialPersistenceEnabled ? t('toolbar.persistenceOff') : t('toolbar.persistenceOn')}
           aria-pressed={outputMaterialPersistenceEnabled}
         >
           <Archive size={15} />
@@ -480,8 +482,8 @@ export default function CanvasToolbar({
               : ''
           }`}
           onClick={onToggleHistory}
-          title={historyCount > 0 ? `历史记录 · ${historyCount} 条` : '历史记录'}
-          aria-label="历史记录"
+          title={historyCount > 0 ? t('toolbar.historyCount', { count: historyCount }) : t('toolbar.history')}
+          aria-label={t('toolbar.history')}
           aria-pressed={historyOpen}
         >
           <History size={15} />
@@ -500,16 +502,16 @@ export default function CanvasToolbar({
         <button
           className={baseBtn}
           onClick={onOpenVibeXWorkbench}
-          title="打开 VibeX 工作台"
-          aria-label="打开 VibeX 工作台"
+          title={t('toolbar.openVibex')}
+          aria-label={t('toolbar.openVibex')}
         >
           <Clapperboard size={15} />
         </button>
         <button
           className={baseBtn}
           onClick={onCreateVibeXNode}
-          title="创建 VibeX 节点：在画布中嵌入工作台"
-          aria-label="创建 VibeX 节点"
+          title={t('toolbar.createVibexDetail')}
+          aria-label={t('toolbar.createVibex')}
         >
           <Clapperboard size={15} />
           <span className="absolute -bottom-1 -right-1 h-2 w-2 rounded-full bg-cyan-400 ring-1 ring-white" />
@@ -517,24 +519,24 @@ export default function CanvasToolbar({
         <button
           className={baseBtn}
           onClick={onCreateGenerationTarget}
-          title="生成目标框：先摆位置，再把 AI 结果填入"
-          aria-label="生成目标框"
+          title={t('toolbar.generationTargetDetail')}
+          aria-label={t('toolbar.generationTarget')}
         >
           <ScanLine size={15} />
         </button>
         <button
           className={baseBtn}
           onClick={onFindNodeById}
-          title="查找 NodeID"
-          aria-label="查找 NodeID"
+          title={t('toolbar.findNode')}
+          aria-label={t('toolbar.findNode')}
         >
           <Search size={15} />
         </button>
         <button
           className={baseBtn}
           onClick={onExportResourcePackage}
-          title="资源包：导出当前画布素材清单"
-          aria-label="导出资源包"
+          title={t('toolbar.exportResourcesDetail')}
+          aria-label={t('toolbar.exportResources')}
         >
           <PackageOpen size={15} />
         </button>
@@ -545,14 +547,14 @@ export default function CanvasToolbar({
         <button
           className={`${baseBtn} ${!canUndo ? disabledCls : ''}`}
           onClick={onUndo}
-          title={`撤销 (${shortcutText('canvas.undo')})`}
+          title={t('toolbar.undo', { shortcut: shortcutText('canvas.undo') })}
         >
           <Undo2 size={16} />
         </button>
         <button
           className={`${baseBtn} ${!canRedo ? disabledCls : ''}`}
           onClick={onRedo}
-          title={`重做 (${shortcutText('canvas.redo')})`}
+          title={t('toolbar.redo', { shortcut: shortcutText('canvas.redo') })}
         >
           <Redo2 size={16} />
         </button>
@@ -563,7 +565,7 @@ export default function CanvasToolbar({
         <button
           className={`${baseBtn} ${selectedCount === 0 ? disabledCls : ''}`}
           onClick={onCopy}
-          title={`复制选中节点 (${shortcutText('canvas.copy')})${selectedCount > 0 ? ` · ${selectedCount} 个` : ''}`}
+          title={`${t('toolbar.copy', { shortcut: shortcutText('canvas.copy') })}${selectedCount > 0 ? t('toolbar.copyCount', { count: selectedCount }) : ''}`}
         >
           <Copy size={16} />
           {selectedCount > 0 && (
@@ -581,14 +583,14 @@ export default function CanvasToolbar({
         <button
           className={`${baseBtn} ${clipboardCount === 0 ? disabledCls : ''}`}
           onClick={onPaste}
-          title={`粘贴 (${shortcutText('canvas.paste')})${clipboardCount > 0 ? ` · 剪贴板 ${clipboardCount} 个` : ''}`}
+          title={`${t('toolbar.paste', { shortcut: shortcutText('canvas.paste') })}${clipboardCount > 0 ? t('toolbar.clipboardCount', { count: clipboardCount }) : ''}`}
         >
           <ClipboardPaste size={16} />
         </button>
         <button
           className={`${baseBtn} ${selectedCount === 0 ? disabledCls : ''}`}
           onClick={onDelete}
-          title={`删除选中 (${shortcutText('canvas.delete')})`}
+          title={t('toolbar.remove', { shortcut: shortcutText('canvas.delete') })}
         >
           <Trash2 size={16} />
         </button>
@@ -596,10 +598,10 @@ export default function CanvasToolbar({
         <div className={sep} />
 
         {/* Import / Export */}
-        <button className={baseBtn} onClick={onImport} title="导入画布 JSON">
+        <button className={baseBtn} onClick={onImport} title={t('toolbar.importJson')}>
           <Upload size={16} />
         </button>
-        <button className={baseBtn} onClick={onExport} title="导出画布 JSON">
+        <button className={baseBtn} onClick={onExport} title={t('toolbar.exportJson')}>
           <Download size={16} />
         </button>
 
@@ -610,7 +612,7 @@ export default function CanvasToolbar({
           <button
             className={baseBtn}
             onClick={() => setTplOpen((v) => !v)}
-            title="工作流模板"
+            title={t('toolbar.templates')}
           >
             <Sparkles size={16} />
           </button>
@@ -633,7 +635,7 @@ export default function CanvasToolbar({
                       }`
                 }
               >
-                选择模板插入画布
+                {t('toolbar.chooseTemplate')}
               </div>
               <div className="max-h-72 overflow-y-auto">
                 {CANVAS_TEMPLATES.map((tpl) => (
@@ -675,7 +677,7 @@ export default function CanvasToolbar({
             setShortcutMessage('');
             setHelpOpen(true);
           }}
-          title="快捷键设置"
+          title={t('toolbar.shortcuts')}
         >
           <HelpCircle size={16} />
         </button>
@@ -692,7 +694,7 @@ export default function CanvasToolbar({
               : ''
           }`}
           onClick={toggleTerm}
-          title={termOpen ? '关闭终端' : `打开终端${termUnread > 0 ? ` (${termUnread} 未读)` : ''}`}
+          title={termOpen ? t('toolbar.terminalClose') : `${t('toolbar.terminalOpen')}${termUnread > 0 ? t('toolbar.unread', { count: termUnread }) : ''}`}
         >
           <TerminalIcon size={15} />
           {!termOpen && termUnread > 0 && (

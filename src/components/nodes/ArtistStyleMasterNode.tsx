@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 import { PORT_COLOR } from '../../config/portTypes';
 import {
   ARTIST_STYLE_MASTER_ITEMS,
@@ -46,6 +47,7 @@ import {
   type ArtistStyleUserLibrary,
 } from '../../utils/artistStyleMaster';
 import { useUpdateNodeData } from './useUpdateNodeData';
+import InspirationVisible from '../../i18n/InspirationVisible';
 
 const EMPTY_LIBRARY: ArtistStyleUserLibrary = { categories: [], styles: [] };
 const EMPTY_CUSTOM_DRAFT = {
@@ -80,11 +82,29 @@ function writeLibrary(library: ArtistStyleUserLibrary) {
   window.localStorage.setItem(ARTIST_STYLE_MASTER_STORAGE_KEY, JSON.stringify(normalizeArtistStyleLibrary(library)));
 }
 
-function toSelectOptions(items: readonly { id: string; label?: string; labelZh?: string; name?: string }[]) {
+function toSelectOptions(items: readonly { id: string; label?: string; labelZh?: string; name?: string }[], english: boolean) {
   return items.map((item) => ({
     value: item.id,
-    label: item.labelZh && item.label ? `${item.labelZh} / ${item.label}` : item.name || item.label || item.id,
+    label: english
+      ? item.label || item.name || item.id
+      : item.labelZh && item.label ? `${item.labelZh} / ${item.label}` : item.name || item.label || item.id,
   }));
+}
+
+function displayArtistName(style: ArtistStyleItem | null | undefined, english: boolean) {
+  if (!style) return '';
+  return english ? style.name || style.chineseName : style.chineseName || style.name;
+}
+
+function displayArtistMovement(style: ArtistStyleItem | null | undefined, english: boolean) {
+  if (!style) return '';
+  return english ? style.movement || style.movementZh : style.movementZh || style.movement;
+}
+
+function displayArtistCue(style: ArtistStyleItem | null | undefined, english: boolean) {
+  if (!style) return '';
+  if (!english || style.userCreated) return style.cue;
+  return [style.name, style.movement].filter(Boolean).join(' · ');
 }
 
 function downloadJson(filename: string, data: unknown) {
@@ -102,6 +122,8 @@ function stopCanvasWheel(event: React.WheelEvent) {
 }
 
 function ArtistStyleMasterNode({ id, data, selected }: NodeProps) {
+  const { i18n } = useTranslation();
+  const isEnglish = (i18n.resolvedLanguage || i18n.language).toLowerCase().startsWith('en');
   const rf = useReactFlow();
   const update = useUpdateNodeData(id);
   const importRef = useRef<HTMLInputElement | null>(null);
@@ -429,7 +451,8 @@ function ArtistStyleMasterNode({ id, data, selected }: NodeProps) {
   const activeLightboxStyle = lightboxIndex === null ? null : filteredStyles[lightboxIndex] || filteredStyles[0];
 
   const galleryModal = galleryOpen ? createPortal(
-    <div className="artist-style-master-modal-backdrop nodrag nopan" onWheelCapture={(event) => event.stopPropagation()}>
+    <InspirationVisible>
+      <div className="artist-style-master-modal-backdrop nodrag nopan" onWheelCapture={(event) => event.stopPropagation()}>
       <section
         className="artist-style-master-modal"
         data-artist-style-gallery-modal
@@ -453,11 +476,11 @@ function ArtistStyleMasterNode({ id, data, selected }: NodeProps) {
           </label>
           <select value={movement} onChange={(event) => setMovement(event.target.value)}>
             <option value="all">全部流派</option>
-            {toSelectOptions(movementOptions).map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+            {toSelectOptions(movementOptions, isEnglish).map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
           </select>
           <select value={category} onChange={(event) => setCategory(event.target.value)}>
             <option value="all">全部收藏分类</option>
-            {toSelectOptions(categoryOptions).map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+            {toSelectOptions(categoryOptions, isEnglish).map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
           </select>
           <button type="button" onClick={exportLibrary}><Download size={15} /> 导出</button>
           <button type="button" onClick={() => importRef.current?.click()}><Upload size={15} /> 导入</button>
@@ -472,10 +495,10 @@ function ArtistStyleMasterNode({ id, data, selected }: NodeProps) {
                   <img src={style.thumbnailUrl || style.imageUrl} alt={`${style.name} ${style.chineseName}`} loading="lazy" />
                 </button>
                 <div className="artist-style-master-card-body">
-                  <strong>{style.chineseName}</strong>
-                  <span>{style.name}</span>
-                  <small>{style.movementZh} / {style.movement}</small>
-                  <p>{style.cue}</p>
+                  <strong>{displayArtistName(style, isEnglish)}</strong>
+                  {!isEnglish && <span>{style.name}</span>}
+                  <small>{displayArtistMovement(style, isEnglish)}</small>
+                  <p>{displayArtistCue(style, isEnglish)}</p>
                   <div className="artist-style-master-card-actions">
                     <button type="button" onClick={() => setSelectedId(style.id)}>选用</button>
                     <button type="button" onClick={() => void copyPrompt(style)}>复制画家提示词</button>
@@ -548,12 +571,14 @@ function ArtistStyleMasterNode({ id, data, selected }: NodeProps) {
           </aside>
         </div>
       </section>
-    </div>,
+      </div>
+    </InspirationVisible>,
     document.body,
   ) : null;
 
   const lightbox = activeLightboxStyle ? createPortal(
-    <div className="artist-style-master-lightbox-backdrop nodrag nopan" data-artist-style-lightbox onWheelCapture={(event) => event.stopPropagation()}>
+    <InspirationVisible>
+      <div className="artist-style-master-lightbox-backdrop nodrag nopan" data-artist-style-lightbox onWheelCapture={(event) => event.stopPropagation()}>
       <button type="button" className="asm-icon-button lightbox-close" aria-label="关闭预览" onClick={() => setLightboxIndex(null)}>
         <X size={18} />
       </button>
@@ -563,25 +588,27 @@ function ArtistStyleMasterNode({ id, data, selected }: NodeProps) {
       <figure className="artist-style-master-lightbox">
         <img src={activeLightboxStyle.imageUrl} alt={`${activeLightboxStyle.name} ${activeLightboxStyle.chineseName}`} />
         <figcaption>
-          <strong>{activeLightboxStyle.chineseName}</strong>
+          <strong>{displayArtistName(activeLightboxStyle, isEnglish)}</strong>
           <span>{activeLightboxStyle.name} · {activeLightboxStyle.movement}</span>
-          <p>{activeLightboxStyle.cue}</p>
+          <p>{displayArtistCue(activeLightboxStyle, isEnglish)}</p>
           <button type="button" onClick={() => void copyPrompt(activeLightboxStyle)}>复制画家提示词</button>
         </figcaption>
       </figure>
       <button type="button" className="asm-icon-button lightbox-next" aria-label="下一张" onClick={() => moveLightbox(1)}>
         <ChevronRight size={22} />
       </button>
-    </div>,
+      </div>
+    </InspirationVisible>,
     document.body,
   ) : null;
 
   return (
-    <div
-      className={`artist-style-master-node ${selected ? 'is-selected' : ''}`}
-      data-artist-style-master-root
-      onWheelCapture={(event) => event.stopPropagation()}
-    >
+    <InspirationVisible>
+      <div
+        className={`artist-style-master-node ${selected ? 'is-selected' : ''}`}
+        data-artist-style-master-root
+        onWheelCapture={(event) => event.stopPropagation()}
+      >
       <Handle id="text" type="target" position={Position.Left} style={{ ...handleStyle, background: PORT_COLOR.text, top: 160 }} />
       <Handle id="text" type="source" position={Position.Right} style={{ ...handleStyle, background: PORT_COLOR.text, top: 152 }} />
       <Handle id="image" type="source" position={Position.Right} style={{ ...handleStyle, background: PORT_COLOR.image, top: 190 }} />
@@ -601,12 +628,12 @@ function ArtistStyleMasterNode({ id, data, selected }: NodeProps) {
         <div className="artist-style-master-selected">
           <img src={selectedStyle?.thumbnailUrl || selectedStyle?.imageUrl} alt={selectedStyle?.name || '艺术风格'} />
           <div>
-            <strong>{selectedStyle?.chineseName || '请选择风格'}</strong>
-            <span>{selectedStyle?.name || 'No style selected'}</span>
-            <small>{selectedStyle?.movementZh || '打开风格库选择'}</small>
+            <strong>{displayArtistName(selectedStyle, isEnglish) || '请选择风格'}</strong>
+            {!isEnglish && <span>{selectedStyle?.name || 'No style selected'}</span>}
+            <small>{displayArtistMovement(selectedStyle, isEnglish) || '打开风格库选择'}</small>
           </div>
         </div>
-        <p className="artist-style-master-cue">{selectedStyle?.cue}</p>
+        <p className="artist-style-master-cue">{displayArtistCue(selectedStyle, isEnglish)}</p>
       </section>
 
       <section className="artist-style-master-section nodrag nopan">
@@ -619,14 +646,14 @@ function ArtistStyleMasterNode({ id, data, selected }: NodeProps) {
             <span><Filter size={14} /> 流派</span>
             <select value={movement} onChange={(event) => setMovement(event.target.value)}>
               <option value="all">全部流派</option>
-              {toSelectOptions(movementOptions).map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+              {toSelectOptions(movementOptions, isEnglish).map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
             </select>
           </label>
           <label>
             <span><BookOpen size={14} /> 收藏分类</span>
             <select value={category} onChange={(event) => setCategory(event.target.value)}>
               <option value="all">全部收藏分类</option>
-              {toSelectOptions(categoryOptions).map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+              {toSelectOptions(categoryOptions, isEnglish).map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
             </select>
           </label>
         </div>
@@ -652,8 +679,8 @@ function ArtistStyleMasterNode({ id, data, selected }: NodeProps) {
         <div className="artist-style-master-mini-grid" onWheelCapture={stopCanvasWheel}>
           {filteredStyles.map((style) => (
             <button key={style.id} type="button" className={selectedStyle?.id === style.id ? 'active' : ''} onClick={() => setSelectedId(style.id)}>
-              <img src={style.thumbnailUrl || style.imageUrl} alt={style.chineseName} />
-              <span>{style.chineseName}</span>
+              <img src={style.thumbnailUrl || style.imageUrl} alt={displayArtistName(style, isEnglish)} />
+              <span>{displayArtistName(style, isEnglish)}</span>
             </button>
           ))}
         </div>
@@ -675,7 +702,8 @@ function ArtistStyleMasterNode({ id, data, selected }: NodeProps) {
 
       {galleryModal}
       {lightbox}
-    </div>
+      </div>
+    </InspirationVisible>
   );
 }
 

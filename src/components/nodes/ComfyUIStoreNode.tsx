@@ -40,6 +40,7 @@ import PromptTextarea from '../PromptTextarea';
 import ResizableCorners from './ResizableCorners';
 import { useOrderedMaterials } from './useOrderedMaterials';
 import { useUpdateNodeData } from './useUpdateNodeData';
+import NodeVisible from '../../i18n/NodeVisible';
 import { useUpstreamMaterials, type Material } from './useUpstreamMaterials';
 
 const handleStyle: CSSProperties = {
@@ -329,7 +330,8 @@ const ComfyUIStoreNode = ({ id, data, selected }: NodeProps) => {
   useRunTrigger(id, handleRun, String(d.primaryKind || outputKinds[0] || 'image'));
 
   return (
-    <div className="t8-comfyui-store-node relative flex flex-col nowheel" style={rootStyle}>
+    <NodeVisible>
+      <div className="t8-comfyui-store-node relative flex flex-col nowheel" style={rootStyle}>
       <Handle type="target" position={Position.Left} title="多类型输入：文本 / 图片 / 视频 / 音频" style={{ ...handleStyle, background: multiTypeHandle, left: -6 }} />
       <Handle type="source" position={Position.Right} title="多类型输出：文本 / 图片 / 视频 / 音频" style={{ ...handleStyle, background: multiTypeHandle, right: -6 }} />
       <ResizableCorners
@@ -747,7 +749,8 @@ const ComfyUIStoreNode = ({ id, data, selected }: NodeProps) => {
         )}
         </div>
       </div>
-    </div>
+      </div>
+    </NodeVisible>
   );
 };
 

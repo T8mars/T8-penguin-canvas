@@ -97,9 +97,13 @@ test('GitHub Actions builds current and future Mac releases on a real Apple Sili
 
 test('macOS updater language does not tell Mac users to open an NSIS wizard', () => {
   const main = read('../electron/main.cjs');
+  const catalog = JSON.parse(read('../electron/i18n-catalog.json'));
   assert.match(main, /process\.platform === 'darwin'/);
-  assert.match(main, /正在安装更新，应用将自动重启/);
-  assert.match(main, /正在打开安装向导，请按提示完成安装/);
+  assert.match(main, /\? 'updater\.installingMac'/);
+  assert.match(main, /: 'updater\.installingWindows'/);
+  assert.equal(catalog['zh-CN'].updater.installingMac, '正在安装更新，应用将自动重启');
+  assert.equal(catalog['zh-CN'].updater.installingWindows, '正在打开安装向导，请按提示完成安装');
+  assert.notEqual(catalog['en-US'].updater.installingMac, catalog['en-US'].updater.installingWindows);
 });
 
 test('macOS release process and live release evidence are documented after publication', () => {

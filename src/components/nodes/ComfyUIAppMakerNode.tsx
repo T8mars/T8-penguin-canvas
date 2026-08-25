@@ -1,4 +1,5 @@
 import { memo, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { CheckCircle2, Clipboard, Download, FileJson, RotateCcw, Save, Sparkles, Upload, XCircle } from 'lucide-react';
 import { PORT_COLOR } from '../../config/portTypes';
@@ -24,6 +25,7 @@ import {
   stringifyBasicComfyTextToImageWorkflow,
 } from '../../utils/comfyuiWorkflow';
 import { useUpdateNodeData } from './useUpdateNodeData';
+import NodeVisible from '../../i18n/NodeVisible';
 import ResizableCorners from './ResizableCorners';
 import PromptTextarea from '../PromptTextarea';
 
@@ -55,6 +57,7 @@ function downloadText(filename: string, text: string) {
 }
 
 const ComfyUIAppMakerNode = ({ id, data, selected }: NodeProps) => {
+  const { t } = useTranslation('settings');
   const update = useUpdateNodeData(id);
   const { theme, style } = useThemeStore();
   const isLight = theme === 'light';
@@ -250,7 +253,8 @@ const ComfyUIAppMakerNode = ({ id, data, selected }: NodeProps) => {
   }, null, 2) : '';
 
   return (
-    <div style={rootStyle} className="relative nowheel">
+    <NodeVisible>
+      <div style={rootStyle} className="relative nowheel">
       <div className="flex items-center gap-2 border-b px-4 py-3" style={{ borderColor: border }}>
         <div className="flex h-8 w-8 items-center justify-center rounded border" style={{ borderColor: accent, color: accent }}>
           <FileJson size={18} />
@@ -446,12 +450,14 @@ const ComfyUIAppMakerNode = ({ id, data, selected }: NodeProps) => {
                   background: item.level === 'ok' ? 'rgba(34,197,94,0.08)' : item.level === 'warn' ? 'rgba(245,158,11,0.08)' : 'transparent',
                 }}
               >
-                <b>{item.label}</b> · {item.detail}
+                <b>{String(t(item.labelKey as any, item.labelParams as any))}</b> · {String(t(item.detailKey as any, item.detailParams as any))}
               </div>
             ))}
           </div>
           {analysis.warnings.slice(0, 3).map((warning, index) => (
-            <div key={index} className="mt-1 text-[10px] text-amber-500">{warning}</div>
+            <div key={index} className="mt-1 text-[10px] text-amber-500">
+              {String(t(warning.key as any, warning.params as any))}
+            </div>
           ))}
         </div>
 
@@ -556,7 +562,8 @@ const ComfyUIAppMakerNode = ({ id, data, selected }: NodeProps) => {
         onResize={(_, params) => update({ size: { w: Math.round(params.width), h: Math.round(params.height) } })}
         onResizeEnd={(_, params) => update({ size: { w: Math.round(params.width), h: Math.round(params.height) } })}
       />
-    </div>
+      </div>
+    </NodeVisible>
   );
 };
 

@@ -1036,7 +1036,7 @@ test('ComfyUI sample workflow and import checklist guide first-time setup', () =
   assert.equal(sourceByNodeField.get('2.text'), 'prompt');
   assert.equal(sourceByNodeField.get('3.text'), 'negative');
   assert.equal(analysis.outputCount, 1);
-  assert.ok(checklist.some((item) => item.id === 'model' && /模型字段建议检查/.test(item.label)));
+  assert.ok(checklist.some((item) => item.id === 'model' && item.labelKey === 'comfy.checklist.modelCheck'));
   assert.ok(checklist.some((item) => item.id === 'api-format' && item.level === 'ok'));
 });
 

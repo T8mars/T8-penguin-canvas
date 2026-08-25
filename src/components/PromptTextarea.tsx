@@ -10,6 +10,7 @@ import {
   type TextareaHTMLAttributes,
 } from 'react';
 import { Library, Maximize2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useThemeStore } from '../stores/theme';
 import { useShortcutStore } from '../stores/shortcuts';
 import { formatShortcutList, matchesAnyShortcut } from '../utils/keyboardShortcuts';
@@ -57,6 +58,7 @@ const PromptTextarea = forwardRef<HTMLTextAreaElement, PromptTextareaProps>(func
   readOnly,
   ...rest
 }: PromptTextareaProps, forwardedRef) {
+  const { t } = useTranslation('nodes');
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const composingRef = useRef(false);
   const lastPlainInputRef = useRef<PlainInputRunSnapshot | null>(null);
@@ -220,8 +222,8 @@ const PromptTextarea = forwardRef<HTMLTextAreaElement, PromptTextareaProps>(func
             event.stopPropagation();
             setTemplateOpen(true);
           }}
-          title="提示词模板库"
-          aria-label="提示词模板库"
+          title={t('shared.promptLibrary')}
+          aria-label={t('shared.promptLibrary')}
         >
           <Library size={12} />
         </button>
@@ -239,8 +241,8 @@ const PromptTextarea = forwardRef<HTMLTextAreaElement, PromptTextareaProps>(func
           event.stopPropagation();
           openExpanded();
         }}
-        title={`放大编辑 (${shortcutText})`}
-        aria-label="放大编辑"
+        title={t('shared.expandEditorWithShortcut', { shortcut: shortcutText })}
+        aria-label={t('shared.expandEditor')}
       >
         <Maximize2 size={12} />
       </button>

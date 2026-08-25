@@ -1,4 +1,5 @@
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Handle, Position, useNodeConnections, useNodesData, type NodeProps } from '@xyflow/react';
 import { AlertCircle, Loader2, Workflow, Wallet, Sparkles, Square, Search, RefreshCw } from 'lucide-react';
 import { submitRh, queryRh, cancelRh, fetchRhAppInfo, uploadRhAsset, type RhSite } from '../../services/generation';
@@ -42,6 +43,7 @@ import {
   resolvedRhSiteFromAppInfo,
 } from '../../utils/runningHubResolvedSite';
 import { isProviderUploadMediaReference } from '../../utils/providerMediaReference';
+import { useCanvasNodeRenderMode } from '../CanvasNodeRenderMode';
 
 /**
  * RunningHubNode - 主工作流节点
@@ -142,6 +144,8 @@ function extractDefaultValue(it: any): string {
 const paramKey = rhParamKey;
 
 const RunningHubNode = ({ id, data, selected, type }: NodeProps) => {
+  const { t } = useTranslation('nodes');
+  const canvasRenderMode = useCanvasNodeRenderMode();
   const update = useUpdateNodeData(id);
   const hasAutoOutput = useHasAutoOutput(id);
   const [error, setError] = useState<string | null>(null);
@@ -150,7 +154,7 @@ const RunningHubNode = ({ id, data, selected, type }: NodeProps) => {
 
   // RH 钱包应用与普通 RunningHub 仍共用组件和站点 Key；钱包标志只区分 UI。
   const useWallet = type === 'runninghub-wallet';
-  const titleText = useWallet ? 'RH钱包应用' : 'RunningHub';
+  const titleText = useWallet ? t('runningHub.walletTitle') : t('runningHub.title');
   const TitleIcon = useWallet ? Wallet : Workflow;
   // 主调色：默认套 cyan 主调；wallet 套 violet（与节点表主色一致）
   const accent = useWallet
@@ -905,6 +909,22 @@ const RunningHubNode = ({ id, data, selected, type }: NodeProps) => {
   const isBusy = status === 'submitting' || status === 'polling' || cancelling;
   const nodeInfoList: any[] = appInfo?.nodeInfoList || [];
 
+  if (canvasRenderMode === 'cold') {
+    return (
+      <div className="t8-node-cold-shell w-[340px]" data-t8-node-cold-shell="runninghub" style={{ minHeight: 168 }}>
+        <Handle type="target" position={Position.Left} className={`${accent.handle} !border-0`} />
+        <Handle type="source" position={Position.Right} className={`${accent.handle} !border-0`} />
+        <div className="t8-node-cold-shell__header">
+          <TitleIcon size={16} className="shrink-0" style={{ color: accent.dotInk }} />
+          <div className="t8-node-cold-shell__copy">
+            <strong>{titleText}</strong>
+            <small>{t('runningHub.offscreen', { name: appInfo?.appName || appInfo?.name || webappId || t('runningHub.offscreenEmpty') })}</small>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       className={`relative rounded-xl border-2 transition-all w-[340px] ${
@@ -929,7 +949,7 @@ const RunningHubNode = ({ id, data, selected, type }: NodeProps) => {
         </div>
         <div className="flex-1 min-w-0">
           <div className="text-sm font-semibold text-white truncate">{titleText}</div>
-          <div className="text-[10px] text-white/40 truncate">{appInfo?.appName || appInfo?.name || (useWallet ? 'RH 钱包应用 (共享 APIKEY)' : 'AI 工作流')}</div>
+          <div className="text-[10px] text-white/40 truncate">{appInfo?.appName || appInfo?.name || (useWallet ? t('runningHub.walletWorkflow') : t('runningHub.workflow'))}</div>
         </div>
       </div>
 
@@ -949,11 +969,11 @@ const RunningHubNode = ({ id, data, selected, type }: NodeProps) => {
             isDark={isDark}
             isPixel={isPixel}
             groups={['text', 'image', 'video', 'audio']}
-            title="上游素材 · 拖拽可调整顺序"
+            title={t('runningHub.upstreamTitle')}
           />
         )}
         <div>
-          <label className="text-[10px] text-white/50 block mb-1">RunningHub 站点</label>
+          <label className="text-[10px] text-white/50 block mb-1">{t('runningHub.site')}</label>
           <select
             value={rhSite}
             onChange={(e) => {
@@ -962,10 +982,10 @@ const RunningHubNode = ({ id, data, selected, type }: NodeProps) => {
               update({ rhSite: site, appInfo: null, paramValues: {}, taskId: '', urls: [] });
             }}
             className="nodrag nowheel w-full rounded bg-white/5 border border-white/10 px-2 py-1 text-xs text-white outline-none focus:border-white/30"
-            title="国内应用使用 runninghub.cn，海外应用使用 runninghub.ai"
+            title={t('runningHub.siteHint')}
           >
-            <option value="cn">国内站 · runninghub.cn</option>
-            <option value="intl">海外站 · runninghub.ai</option>
+            <option value="cn">{t('runningHub.siteCn')}</option>
+            <option value="intl">{t('runningHub.siteIntl')}</option>
           </select>
         </div>
         <div>
@@ -987,7 +1007,7 @@ const RunningHubNode = ({ id, data, selected, type }: NodeProps) => {
             <button
               onClick={handleFetchInfo}
               disabled={fetchingInfo}
-              title="拉取应用信息"
+              title={t('runningHub.fetchInfo')}
               className="px-2 rounded bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 disabled:opacity-50"
             >
               {fetchingInfo ? <Loader2 size={11} className="animate-spin" /> : <Search size={11} />}
@@ -1004,7 +1024,7 @@ const RunningHubNode = ({ id, data, selected, type }: NodeProps) => {
           >
             <div className={`text-[10px] ${accent.sub} flex items-center justify-between`}>
               <span>参数 ({nodeInfoList.length})</span>
-              <span className="text-white/30">点击字段可编辑</span>
+              <span className="text-white/30">{t('runningHub.editable')}</span>
             </div>
             {nodeInfoList.map((it: any, i: number) => {
               const vt = inferValueType(it?.fieldType);
@@ -1036,7 +1056,7 @@ const RunningHubNode = ({ id, data, selected, type }: NodeProps) => {
                             onChange={(e) => setParam(k, { sourceFromUpstream: e.target.checked })}
                             className="accent-cyan-400"
                           />
-                          从上游自动获取
+                          {t('runningHub.upstreamAuto')}
                         </label>
                         {cur.sourceFromUpstream && (
                           <button
@@ -1045,9 +1065,9 @@ const RunningHubNode = ({ id, data, selected, type }: NodeProps) => {
                               if (u) setParam(k, { value: u });
                             }}
                             className="flex items-center gap-1 text-cyan-200/80 hover:text-cyan-100"
-                            title="重新同步上游 url"
+                            title={t('runningHub.resyncUrl')}
                           >
-                            <RefreshCw size={9} /> 同步
+                            <RefreshCw size={9} /> {t('runningHub.sync')}
                           </button>
                         )}
                       </div>
@@ -1076,7 +1096,7 @@ const RunningHubNode = ({ id, data, selected, type }: NodeProps) => {
                       {cur.value && !fieldDataOptions.some((o) => String(o) === String(cur.value)) && (
                         <option value={String(cur.value)}>(当前) {String(cur.value)}</option>
                       )}
-                      {!cur.value && <option value="">(选择)</option>}
+                      {!cur.value && <option value="">{t('runningHub.choose')}</option>}
                       {fieldDataOptions.map((opt, oi) => (
                         <option key={oi} value={String(opt)}>{String(opt)}</option>
                       ))}
@@ -1131,7 +1151,7 @@ const RunningHubNode = ({ id, data, selected, type }: NodeProps) => {
                                     }}
                                     className="accent-cyan-400"
                                   />
-                                  从上游文本获取
+                                  {t('runningHub.upstreamText')}
                                 </label>
                                 {linkedTextMaterial && (
                                   <button
@@ -1142,9 +1162,9 @@ const RunningHubNode = ({ id, data, selected, type }: NodeProps) => {
                                       sourceRhNodeId: normalizeRhNodeId(linkedTextMaterial.rhNodeId),
                                     })}
                                     className="flex items-center gap-1 text-cyan-200/80 hover:text-cyan-100"
-                                    title="重新同步上游文本"
+                                    title={t('runningHub.resyncText')}
                                   >
-                                    <RefreshCw size={9} /> 同步
+                                    <RefreshCw size={9} /> {t('runningHub.sync')}
                                   </button>
                                 )}
                               </div>
@@ -1165,7 +1185,7 @@ const RunningHubNode = ({ id, data, selected, type }: NodeProps) => {
                                 }}
                                 className="w-full rounded bg-white/5 border border-white/10 px-2 py-1 text-[10px] text-white outline-none focus:border-white/30"
                               >
-                                <option value="">按 RH# 自动匹配</option>
+                                <option value="">{t('runningHub.autoRh')}</option>
                                 {orderedTexts.map((material) => (
                                   <option key={material.id} value={material.id}>
                                     {material.rhNodeId ? `RH#${material.rhNodeId}` : '未填 RH#'} · {material.label || material.url.slice(0, 24)}
@@ -1208,13 +1228,13 @@ const RunningHubNode = ({ id, data, selected, type }: NodeProps) => {
         )}
 
         <div>
-          <label className="text-[10px] text-white/50 block mb-1">实例类型(可选)</label>
+          <label className="text-[10px] text-white/50 block mb-1">{t('runningHub.instanceType')}</label>
           <select
             value={instanceType || ''}
             onChange={(e) => update({ instanceType: e.target.value })}
             className="w-full rounded bg-white/5 border border-white/10 px-2 py-1 text-xs text-white outline-none focus:border-white/30"
           >
-            <option value="" className="bg-zinc-800">默认</option>
+            <option value="" className="bg-zinc-800">{t('runningHub.default')}</option>
             <option value="plus" className="bg-zinc-800">plus</option>
           </select>
         </div>
@@ -1231,21 +1251,21 @@ const RunningHubNode = ({ id, data, selected, type }: NodeProps) => {
             onClick={() => requestCanvasNodeRun(id)}
             className={`w-full flex items-center justify-center gap-1.5 py-1.5 rounded ${accent.primary} text-xs font-medium transition-colors`}
           >
-            <Sparkles size={12} /> {useWallet ? '运行钱包工作流' : '运行工作流'}
+            <Sparkles size={12} /> {useWallet ? t('runningHub.runWallet') : t('runningHub.run')}
           </button>
         ) : (
           <button
             onClick={handleStop}
             className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded bg-zinc-500/20 hover:bg-zinc-500/30 text-zinc-200 text-xs font-medium transition-colors"
           >
-            <Square size={11} /> {cancelling ? '取消中...' : '停止'}
+            <Square size={11} /> {cancelling ? t('runningHub.cancelling') : t('runningHub.stop')}
           </button>
         )}
 
         {isBusy && (
           <div className={`flex items-center gap-1 text-[10px] ${accent.spin}`}>
             <Loader2 size={11} className="animate-spin" />
-            {cancelling ? '正在取消 RH 后台任务...' : status === 'submitting' ? '提交任务...' : '轮询中'}
+            {cancelling ? t('runningHub.cancellingTask') : status === 'submitting' ? t('runningHub.submitting') : t('runningHub.polling')}
             {taskId && <span className="ml-auto text-white/30">{String(taskId).slice(0, 10)}…</span>}
           </div>
         )}

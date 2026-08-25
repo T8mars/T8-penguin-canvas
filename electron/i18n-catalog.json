@@ -1,0 +1,204 @@
+{
+  "zh-CN": {
+    "app": {
+      "name": "贞贞的无限画布",
+      "mainTitle": "贞贞的无限画布（企鹅共创版） v{{version}}"
+    },
+    "locale": {
+      "unsupported": "不支持的界面语言"
+    },
+    "updater": {
+      "disabled": "开发模式不会检查 GitHub Release 更新",
+      "idle": "等待检查更新",
+      "checking": "正在检查更新",
+      "available": "发现新版本",
+      "availableVersion": "发现新版本 v{{version}}",
+      "notAvailable": "已是最新版本",
+      "downloading": "正在下载更新",
+      "downloadedMac": "更新已下载，点击后将安装并自动重启",
+      "downloadedWindows": "更新已下载，点击后会打开安装向导",
+      "failed": "更新失败",
+      "checkFailed": "更新检查失败",
+      "downloadFailed": "更新下载失败",
+      "notDownloaded": "还没有已下载的更新",
+      "installingMac": "正在安装更新，应用将自动重启",
+      "installingWindows": "正在打开安装向导，请按提示完成安装",
+      "bridgeMissing": "当前桌面包缺少自动更新桥接，无法在应用内检查更新。请下载完整安装包覆盖安装，安装后此入口会恢复检查、下载和打开安装向导。",
+      "bridgeUnavailable": "自动更新桥接不可用",
+      "panelTitle": "桌面更新",
+      "currentVersion": "当前 v{{version}}",
+      "automatic": "自动更新",
+      "close": "关闭",
+      "labels": {
+        "checking": "检查中",
+        "available": "可更新",
+        "downloaded": "安装",
+        "installing": "向导",
+        "update": "更新",
+        "failed": "失败",
+        "desktop": "桌面版",
+        "download": "下载",
+        "openInstaller": "打开安装向导",
+        "downloading": "下载中",
+        "check": "检查"
+      }
+    },
+    "startup": {
+      "documentTitle": "启动中...",
+      "windowTitle": "🐧 启动中…",
+      "safeStarting": "正在安全启动",
+      "initialStatus": "[启动] 本地启动壳已载入，正在验证数据库与后端服务...",
+      "failureDocumentTitle": "画布启动失败",
+      "failureHeading": "画布界面暂时未能载入",
+      "failureBody": "本地后端已经启动，但前端页面加载或显示超时。你可以立即重试，或直接打开本地后端界面。",
+      "retry": "重新加载画布",
+      "openBackend": "打开本地后端界面",
+      "frontendDeadline": "前端页面未在截止时间内就绪",
+      "frontendLoadFailed": "前端页面未能加载",
+      "frontendTimeout": "前端页面未在 15 秒内载入",
+      "backendNotReady": "后端未能在端口 {{port}} 就绪"
+    },
+    "dialogs": {
+      "noMediaKinds": "没有可选择的素材类型",
+      "mixedMedia": "图像 / 视频 / 音频 / 3D",
+      "image": "图像",
+      "video": "视频",
+      "audio": "音频",
+      "model3d": "3D 模型",
+      "deliveryTitle": "选择交付位置",
+      "deliveryButton": "选择此文件夹"
+    },
+    "auth": {
+      "runningHubLogin": "RunningHub 登录",
+      "loginTitle": "{{platform}} 授权登录",
+      "unknownOpen": "未知平台，无法打开授权窗口",
+      "appNotReady": "应用尚未初始化完成，请稍后再试",
+      "opened": "已打开 {{platform}} 官方登录窗口，请登录后回到节点点击“检测授权”",
+      "cookieTooLong": "Cookie 过长，请删掉无关字段后再保存",
+      "cookieInvalid": "Cookie 格式不正确，请粘贴 name=value; name2=value2 格式",
+      "encryptionUnavailable": "当前系统加密能力不可用，已拒绝明文保存 Cookie；可继续仅本次解析使用",
+      "unknownSave": "未知平台，无法保存授权 Cookie",
+      "saved": "{{platform}} 授权已加密保存到本机",
+      "unknownLoad": "未知平台，无法读取本机授权",
+      "notSaved": "本机没有保存 {{platform}} 授权",
+      "empty": "{{platform}} 授权为空，请重新登录保存",
+      "loaded": "已载入 {{platform}} 本机授权",
+      "unknownRead": "未知平台，无法读取授权 Cookie",
+      "missingCookie": "还没有读取到 {{platform}} Cookie，请先在授权窗口登录官方账号",
+      "unknownClear": "未知平台，无法清除授权 Cookie",
+      "clearedCache": "已清除 {{platform}} 授权缓存",
+      "clearedAll": "已清除 {{platform}} 授权缓存和本机授权库"
+    },
+    "agent": {
+      "rendererForbidden": "只允许当前贞贞无限画布窗口处理 Agent 授权",
+      "serviceNotReady": "Agent Control 服务尚未就绪，请稍后重试",
+      "approvalNotReady": "Agent 操作确认服务尚未就绪，请稍后重试"
+    },
+    "drag": {
+      "missing": "找不到可拖出的本地文件，只支持本机 input/output/thumbnails 素材",
+      "unsupported": "当前 Electron 版本不支持 webContents.startDrag",
+      "started": "系统拖出已启动，拖到文件夹后松开鼠标"
+    }
+  },
+  "en-US": {
+    "app": {
+      "name": "Zhenzhen's Infinite Canvas",
+      "mainTitle": "Zhenzhen's Infinite Canvas (Penguin Co-create) v{{version}}"
+    },
+    "locale": {
+      "unsupported": "Unsupported interface language"
+    },
+    "updater": {
+      "disabled": "Development mode does not check GitHub Releases",
+      "idle": "Waiting to check for updates",
+      "checking": "Checking for updates",
+      "available": "A new version is available",
+      "availableVersion": "Version v{{version}} is available",
+      "notAvailable": "You are up to date",
+      "downloading": "Downloading the update",
+      "downloadedMac": "The update is ready. Install it and restart automatically.",
+      "downloadedWindows": "The update is ready. Open the installer to continue.",
+      "failed": "Update failed",
+      "checkFailed": "Could not check for updates",
+      "downloadFailed": "Could not download the update",
+      "notDownloaded": "No downloaded update is available yet",
+      "installingMac": "Installing the update; the app will restart automatically",
+      "installingWindows": "Opening the installer; follow its instructions to finish",
+      "bridgeMissing": "This desktop build is missing the auto-update bridge. Install the complete package over this copy; update checks, downloads, and installer launch will then return here.",
+      "bridgeUnavailable": "The auto-update bridge is unavailable",
+      "panelTitle": "Desktop updates",
+      "currentVersion": "Current v{{version}}",
+      "automatic": "Automatic updates",
+      "close": "Close",
+      "labels": {
+        "checking": "Checking",
+        "available": "Update",
+        "downloaded": "Install",
+        "installing": "Installer",
+        "update": "Update",
+        "failed": "Failed",
+        "desktop": "Desktop",
+        "download": "Download",
+        "openInstaller": "Open installer",
+        "downloading": "Downloading",
+        "check": "Check"
+      }
+    },
+    "startup": {
+      "documentTitle": "Starting...",
+      "windowTitle": "🐧 Starting…",
+      "safeStarting": "Starting safely",
+      "initialStatus": "[Startup] The local startup shell is ready; validating the database and backend...",
+      "failureDocumentTitle": "Canvas startup failed",
+      "failureHeading": "The canvas interface could not load",
+      "failureBody": "The local backend is running, but the interface timed out while loading or becoming visible. Retry now, or open the local backend interface directly.",
+      "retry": "Reload canvas",
+      "openBackend": "Open local backend",
+      "frontendDeadline": "The interface did not become ready before the deadline",
+      "frontendLoadFailed": "The interface could not be loaded",
+      "frontendTimeout": "The interface did not load within 15 seconds",
+      "backendNotReady": "The backend did not become ready on port {{port}}"
+    },
+    "dialogs": {
+      "noMediaKinds": "No selectable media type was provided",
+      "mixedMedia": "Images / Video / Audio / 3D",
+      "image": "Images",
+      "video": "Video",
+      "audio": "Audio",
+      "model3d": "3D models",
+      "deliveryTitle": "Choose delivery location",
+      "deliveryButton": "Select this folder"
+    },
+    "auth": {
+      "runningHubLogin": "RunningHub sign-in",
+      "loginTitle": "{{platform}} authorization",
+      "unknownOpen": "Unknown platform; the authorization window cannot be opened",
+      "appNotReady": "The app is still starting. Try again shortly.",
+      "opened": "Opened the official {{platform}} sign-in window. Sign in, return to the node, and select “Check authorization”.",
+      "cookieTooLong": "The Cookie is too long. Remove unrelated fields before saving.",
+      "cookieInvalid": "Invalid Cookie format. Paste name=value; name2=value2.",
+      "encryptionUnavailable": "System encryption is unavailable, so the Cookie was not saved in plaintext. You can still use it for this session only.",
+      "unknownSave": "Unknown platform; the authorization Cookie cannot be saved",
+      "saved": "{{platform}} authorization was encrypted and saved on this device",
+      "unknownLoad": "Unknown platform; local authorization cannot be loaded",
+      "notSaved": "No saved {{platform}} authorization was found on this device",
+      "empty": "The saved {{platform}} authorization is empty. Sign in and save it again.",
+      "loaded": "Loaded the local {{platform}} authorization",
+      "unknownRead": "Unknown platform; the authorization Cookie cannot be read",
+      "missingCookie": "No {{platform}} Cookie was found. Sign in to the official site in the authorization window first.",
+      "unknownClear": "Unknown platform; the authorization Cookie cannot be cleared",
+      "clearedCache": "Cleared the {{platform}} authorization cache",
+      "clearedAll": "Cleared the {{platform}} authorization cache and local authorization store"
+    },
+    "agent": {
+      "rendererForbidden": "Only the current Infinite Canvas window may manage Agent authorization",
+      "serviceNotReady": "Agent Control is not ready. Try again shortly.",
+      "approvalNotReady": "Agent operation approval is not ready. Try again shortly."
+    },
+    "drag": {
+      "missing": "No local file can be dragged out. Only local input/output/thumbnails assets are supported.",
+      "unsupported": "This Electron version does not support webContents.startDrag",
+      "started": "System drag started. Release the pointer over a folder to copy the file."
+    }
+  }
+}

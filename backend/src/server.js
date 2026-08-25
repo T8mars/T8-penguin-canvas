@@ -16,6 +16,10 @@ const {
   waitForProjectStorageDeferredWork,
 } = require('./services/projectRuntime');
 const { registerAgentControlInstance } = require('./services/agentControlRegistry');
+const {
+  apiErrorEnvelopeMiddleware,
+  sendApiError,
+} = require('./utils/apiErrorEnvelope');
 const agentControlRouter = require('./routes/agentControl');
 const canvasAgentToolsRouter = require('./routes/canvasAgentTools');
 const creatorAgentRouter = require('./routes/creatorAgent');
@@ -353,6 +357,7 @@ app.use(cors({
   },
   preflightContinue: true,
 }));
+app.use(apiErrorEnvelopeMiddleware);
 app.use((req, res, next) => {
   const origin = String(req.get('origin') || '').trim();
   const trustedOrigin = Boolean(origin && isTrustedLocalOrigin(origin));
@@ -569,6 +574,28 @@ app.use('/api/project-runs', projectRunsRouter);
 app.use('/api/project-assets', projectAssetsRouter);
 app.use('/api/subflows', subflowsRouter);
 registerLocalExtensions(app, { config, express, logger: console, hooks: localHooks });
+app.use('/api', (req, res) => sendApiError(res, 404, {
+  code: 'api_route_not_found',
+  messageKey: 'errors.api.notFound',
+  error: 'API route not found',
+}));
+app.use((error, req, res, next) => {
+  if (res.headersSent) return next(error);
+  const status = Number(error?.status || error?.statusCode);
+  const safeStatus = Number.isInteger(status) && status >= 400 && status <= 599 ? status : 500;
+  console.error('[backend] unhandled request error:', {
+    method: req.method,
+    path: req.path,
+    status: safeStatus,
+    code: error?.code || null,
+    message: error?.message || 'unknown_error',
+  });
+  return sendApiError(res, safeStatus, {
+    code: error?.code || 'internal_request_error',
+    messageKey: safeStatus >= 500 ? 'errors.api.internal' : undefined,
+    error: safeStatus >= 500 ? 'Internal server error' : error?.message,
+  });
+});
 markBackendStartupStage('routes-mounted', {
   storageReadReady: false,
   storageWriteReady: false,

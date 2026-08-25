@@ -116,8 +116,11 @@ export type NodeCategory =
 export interface NodeMeta {
   type: NodeType;
   label: string;
+  /** Stable display keys. Translated labels are never persisted in canvas data. */
+  labelKey?: string;
   category: NodeCategory;
   description: string;
+  descriptionKey?: string;
   icon: string; // lucide-react 图标名
   color: string; // tailwind 色阶
   /**
@@ -717,6 +720,8 @@ export interface ApiSettings {
   };
   preferences?: {
     theme?: 'dark' | 'light';
+    /** Interface locale only. It must never change prompt/content language. */
+    uiLocale?: 'zh-CN' | 'en-US';
     language?: string;
   };
 }

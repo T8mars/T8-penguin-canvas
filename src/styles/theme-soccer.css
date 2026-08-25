@@ -552,6 +552,20 @@ html[data-theme-visual="soccer-hero"] .react-flow__controls-button:disabled {
   opacity: 1 !important;
 }
 
+html[data-theme-visual="soccer-hero"] .t8-control-tools-menu {
+  border: 2px solid var(--sc-ink) !important;
+  background: linear-gradient(180deg, var(--sc-board), #02070d) !important;
+  color: #ffffff !important;
+  box-shadow: 3px 3px 0 var(--sc-ink) !important;
+}
+
+html[data-theme-visual="soccer-hero"] .t8-control-tools-menu button:hover,
+html[data-theme-visual="soccer-hero"] .t8-control-tools-menu button.is-active {
+  border-color: var(--sc-gold) !important;
+  background: linear-gradient(180deg, var(--sc-blue-hot), var(--sc-blue)) !important;
+  color: #ffffff !important;
+}
+
 html[data-theme-visual="soccer-hero"] .t8-node-action-bar--soccer-hero button {
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--sc-board) 84%, var(--sc-green) 16%), var(--sc-board)) !important;

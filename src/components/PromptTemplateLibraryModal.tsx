@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 import {
   BookmarkPlus,
   Check,
@@ -120,14 +121,8 @@ function downloadJson(filename: string, data: unknown) {
   URL.revokeObjectURL(url);
 }
 
-function kindLabel(kind: PromptTemplateKind, language: PromptTemplateLanguage) {
-  if (kind === 'image') return language === 'en' ? 'Image' : '图像';
-  return language === 'en' ? 'Video' : '视频';
-}
-
-function sourceLabel(item: PromptTemplateItem, language: PromptTemplateLanguage) {
-  if (item.source === 'custom') return language === 'en' ? 'Mine' : '我的';
-  return language === 'en' ? 'Built-in' : '内置';
+function kindLabelZh(kind: PromptTemplateKind) {
+  return kind === 'image' ? '图像' : '视频';
 }
 
 function categoryFallback(kind: PromptTemplateKind) {
@@ -173,6 +168,7 @@ export default function PromptTemplateLibraryModal({
   isDark,
   isPixel,
 }: PromptTemplateLibraryModalProps) {
+  const { t } = useTranslation(['nodes', 'common']);
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [state, setState] = useState<PromptTemplateUserState>(() => loadPromptTemplateUserState());
   const [activeKind, setActiveKind] = useState<PromptTemplateKind>(initialKind);
@@ -316,7 +312,7 @@ export default function PromptTemplateLibraryModal({
 
   const saveDraft = () => {
     if (!editDraft?.promptZh.trim() || !editDraft.titleZh.trim()) {
-      setMessage('模板名称和提示词不能为空');
+      setMessage(t('promptTemplates.validationRequired'));
       return;
     }
     const nextItem = createCustomPromptTemplate({
@@ -345,12 +341,12 @@ export default function PromptTemplateLibraryModal({
     setActiveKind(nextItem.kind);
     setCategoryId(nextItem.categoryId);
     setEditDraft(null);
-    setMessage('模板已保存到我的模板');
+    setMessage(t('promptTemplates.savedToMine'));
   };
 
   const saveCurrentAsTemplate = () => {
     if (!value.trim()) {
-      setMessage('当前输入框为空，无法保存为模板');
+      setMessage(t('promptTemplates.emptyCurrent'));
       return;
     }
     const category = categoryId === 'all' ? categoryFallback(activeKind) : categoryId;
@@ -374,14 +370,14 @@ export default function PromptTemplateLibraryModal({
   const deleteSelected = () => {
     if (!selected) return;
     if (selected.source === 'custom') {
-      if (!window.confirm(`删除模板「${getPromptTemplateTitle(selected, language)}」？`)) return;
+      if (!window.confirm(t('promptTemplates.deleteConfirm', { title: getPromptTemplateTitle(selected, language) }))) return;
       persist((prev) => ({ ...prev, customItems: prev.customItems.filter((item) => item.id !== selected.id) }));
-      setMessage('模板已删除');
+      setMessage(t('promptTemplates.deleted'));
       return;
     }
-    if (!window.confirm(`隐藏内置模板「${getPromptTemplateTitle(selected, language)}」？可通过“恢复内置”找回。`)) return;
+    if (!window.confirm(t('promptTemplates.hideConfirm', { title: getPromptTemplateTitle(selected, language) }))) return;
     persist((prev) => ({ ...prev, hiddenBuiltInIds: Array.from(new Set([...prev.hiddenBuiltInIds, selected.id])) }));
-    setMessage('内置模板已隐藏');
+    setMessage(t('promptTemplates.hidden'));
   };
 
   const addCategory = () => {
@@ -403,7 +399,7 @@ export default function PromptTemplateLibraryModal({
     if (!promptCategoryDialog) return;
     const name = promptCategoryDialog.value.trim();
     if (!name) {
-      setMessage('请填写分类名称');
+      setMessage(t('promptTemplates.categoryNameRequired'));
       return;
     }
     if (promptCategoryDialog.mode === 'rename') {
@@ -415,7 +411,7 @@ export default function PromptTemplateLibraryModal({
         )),
       }));
       setPromptCategoryDialog(null);
-      setMessage(`已重命名分类：${name}`);
+      setMessage(t('promptTemplates.renamedCategory', { name }));
       return;
     }
     const id = `custom-${activeKind}-${Date.now().toString(36)}`;
@@ -432,12 +428,12 @@ export default function PromptTemplateLibraryModal({
     persist((prev) => ({ ...prev, customCategories: [...prev.customCategories, category] }));
     setCategoryId(id);
     setPromptCategoryDialog(null);
-    setMessage(`已创建分类：${name}`);
+    setMessage(t('promptTemplates.createdCategory', { name }));
   };
 
   const deleteCategory = (category: PromptTemplateCategory) => {
     if (category.builtIn) return;
-    if (!window.confirm(`删除分类「${getPromptTemplateCategoryLabel(category, language)}」？其中我的模板会移动到默认分类。`)) return;
+    if (!window.confirm(t('promptTemplates.deleteCategoryConfirm', { name: getPromptTemplateCategoryLabel(category, language) }))) return;
     const fallback = categoryFallback(category.kind);
     persist((prev) => ({
       ...prev,
@@ -449,7 +445,7 @@ export default function PromptTemplateLibraryModal({
 
   const handleExport = () => {
     downloadJson('t8-prompt-template-library.json', exportPromptTemplateBackup(state));
-    setMessage('已导出我的模板库 JSON');
+    setMessage(t('promptTemplates.exported'));
   };
 
   const handleImport = async (file: File | null) => {
@@ -459,9 +455,9 @@ export default function PromptTemplateLibraryModal({
       const payload = JSON.parse(text);
       const next = importPromptTemplateBackup(payload, state, 'merge');
       setState(next);
-      setMessage(`已导入模板：${next.customItems.length} 个我的模板`);
+      setMessage(t('promptTemplates.imported', { count: next.customItems.length }));
     } catch (error: any) {
-      setMessage(error?.message || '导入失败');
+      setMessage(error?.message || t('promptTemplates.importFailed'));
     } finally {
       if (fileRef.current) fileRef.current.value = '';
     }
@@ -487,7 +483,7 @@ export default function PromptTemplateLibraryModal({
         materialSetKind: 'text',
         categoryId: categoryIdForResource || undefined,
         title: `提示词模板 · ${title}`,
-        tags: ['提示词模板', kindLabel(selected.kind, 'zh'), selected.categoryId, ...selected.tags].slice(0, 20),
+        tags: ['提示词模板', kindLabelZh(selected.kind), selected.categoryId, ...selected.tags].slice(0, 20),
         materialSetItems: [
           { kind: 'text', name: '正向提示词', text: prompt },
           ...(negative ? [{ kind: 'text' as const, name: '负向提示词', text: negative }] : []),
@@ -512,11 +508,11 @@ export default function PromptTemplateLibraryModal({
           },
         ],
       });
-      if (!saved.success) throw new Error(saved.error || '保存资源库失败');
+      if (!saved.success) throw new Error(saved.error || t('promptTemplates.resourceSaveFailed'));
       window.dispatchEvent(new CustomEvent('penguin:resources-changed'));
-      setMessage((saved as any).duplicate ? '资源库已有相同模板，已更新分类' : '已保存到资源库');
+      setMessage((saved as any).duplicate ? t('promptTemplates.resourceDuplicate') : t('promptTemplates.resourceSaved'));
     } catch (error: any) {
-      setMessage(error?.message || '保存到资源库失败');
+      setMessage(error?.message || t('promptTemplates.resourceSaveFailed'));
     } finally {
       setBusy('');
     }
@@ -527,7 +523,7 @@ export default function PromptTemplateLibraryModal({
   const selectedFullText = selected ? getPromptTemplateText(selected, language, true) : '';
   const handleCopyText = async (text: string) => {
     const copied = await copyText(text);
-    setMessage(copied ? '已复制到剪贴板' : '当前环境无法直接写入剪贴板，请在提示词内容框中手动选择复制。');
+    setMessage(copied ? t('promptTemplates.copied') : t('promptTemplates.copyUnavailable'));
   };
 
   return createPortal(
@@ -540,24 +536,24 @@ export default function PromptTemplateLibraryModal({
         className={`${shellClass} flex h-[min(88vh,900px)] w-[min(1180px,calc(100vw-24px))] flex-col overflow-hidden`}
         role="dialog"
         aria-modal="true"
-        aria-label="提示词模板库"
+        aria-label={t('promptTemplates.title')}
         onMouseDown={(event) => event.stopPropagation()}
       >
         <header className={`flex items-center justify-between gap-3 px-4 py-3 ${isPixel ? 'border-b-2 border-[var(--px-ink)]' : isDark ? 'border-b border-white/10' : 'border-b border-black/10'}`}>
           <div className="min-w-0">
             <div className="flex items-center gap-2 text-sm font-bold">
               <Library size={16} />
-              <span>提示词模板库</span>
+              <span>{t('promptTemplates.title')}</span>
             </div>
             <div className={`mt-0.5 text-[11px] ${subtle}`}>
-              图像 / 视频双库 · 我的模板可带图像 / 视频 / 音频附件 · 支持导入导出、资源库保存
+              {t('promptTemplates.subtitle')}
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button type="button" className={buttonClass} onClick={() => setLang(language === 'zh' ? 'en' : 'zh')} title="中英文切换">
+            <button type="button" className={buttonClass} onClick={() => setLang(language === 'zh' ? 'en' : 'zh')} title={t('promptTemplates.contentLanguageToggle')}>
               <Languages size={13} /> {language === 'zh' ? '中文' : 'EN'}
             </button>
-            <button type="button" className={buttonClass} onClick={onClose} title="关闭">
+            <button type="button" className={buttonClass} onClick={onClose} title={t('common:actions.close')}>
               <X size={14} />
             </button>
           </div>
@@ -578,7 +574,7 @@ export default function PromptTemplateLibraryModal({
                     setPromptCategoryDialog(null);
                   }}
                 >
-                  {kindLabel(kind, language)}
+                  {t(kind === 'image' ? 'promptTemplates.image' : 'promptTemplates.video')}
                 </button>
               ))}
             </div>
@@ -588,7 +584,7 @@ export default function PromptTemplateLibraryModal({
               className={`mt-3 w-full text-left ${isPixel ? 'px-btn px-btn--sm' : `rounded-md px-2 py-2 text-xs font-bold ${categoryId === 'all' ? 'bg-cyan-400 text-slate-950' : isDark ? 'hover:bg-white/10' : 'hover:bg-black/5'}`}`}
               onClick={() => setCategoryId('all')}
             >
-              全部 <span className="opacity-60">({allItems.filter((item) => item.kind === activeKind).length})</span>
+              {t('promptTemplates.all')} <span className="opacity-60">({allItems.filter((item) => item.kind === activeKind).length})</span>
             </button>
 
             <div className="mt-2 space-y-1">
@@ -604,13 +600,13 @@ export default function PromptTemplateLibraryModal({
                     >
                       <span className="block truncate font-bold">{getPromptTemplateCategoryLabel(category, language)}</span>
                       <span className={`block text-[10px] ${subtle}`}>
-                        {categoryCounts[category.id] || 0} · 内置 {builtInCounts[category.id] || 0}
+                        {t('promptTemplates.builtInCount', { count: categoryCounts[category.id] || 0, builtIn: builtInCounts[category.id] || 0 })}
                       </span>
                     </button>
                     {!category.builtIn && (
                       <div className="hidden shrink-0 group-hover:flex">
-                        <button type="button" className="p-1 opacity-70 hover:opacity-100" onClick={() => renameCategory(category)} title="重命名"><Pencil size={11} /></button>
-                        <button type="button" className="p-1 text-red-400 opacity-70 hover:opacity-100" onClick={() => deleteCategory(category)} title="删除"><Trash2 size={11} /></button>
+                        <button type="button" className="p-1 opacity-70 hover:opacity-100" onClick={() => renameCategory(category)} title={t('promptTemplates.rename')}><Pencil size={11} /></button>
+                        <button type="button" className="p-1 text-red-400 opacity-70 hover:opacity-100" onClick={() => deleteCategory(category)} title={t('promptTemplates.delete')}><Trash2 size={11} /></button>
                       </div>
                     )}
                   </div>
@@ -619,7 +615,7 @@ export default function PromptTemplateLibraryModal({
             </div>
 
             <button type="button" className={`mt-3 w-full ${buttonClass}`} onClick={addCategory}>
-              <Plus size={13} /> 分类
+              <Plus size={13} /> {t('promptTemplates.category')}
             </button>
             {promptCategoryDialog && (
               <form
@@ -632,19 +628,19 @@ export default function PromptTemplateLibraryModal({
               >
                 <div className={`mb-1 text-[10px] font-bold ${subtle}`}>
                   {promptCategoryDialog.mode === 'add'
-                    ? `${kindLabel(promptCategoryDialog.kind, language)}新分类`
-                    : '重命名分类'}
+                    ? t('promptTemplates.newCategory', { kind: t(promptCategoryDialog.kind === 'image' ? 'promptTemplates.image' : 'promptTemplates.video') })
+                    : t('promptTemplates.renameCategory')}
                 </div>
                 <input
                   className={`${inputClass} h-8 w-full`}
                   value={promptCategoryDialog.value}
                   onChange={(event) => setPromptCategoryDialog((dialog) => (dialog ? { ...dialog, value: event.target.value } : dialog))}
-                  placeholder="输入分类名称"
+                  placeholder={t('promptTemplates.categoryPlaceholder')}
                   autoFocus
                 />
                 <div className="mt-2 flex justify-end gap-1.5">
-                  <button type="button" className={buttonClass} onClick={() => setPromptCategoryDialog(null)}>取消</button>
-                  <button type="submit" className={primaryClass}>保存</button>
+                  <button type="button" className={buttonClass} onClick={() => setPromptCategoryDialog(null)}>{t('common:actions.cancel')}</button>
+                  <button type="submit" className={primaryClass}>{t('common:actions.save')}</button>
                 </div>
               </form>
             )}
@@ -654,10 +650,10 @@ export default function PromptTemplateLibraryModal({
                 className={`mt-2 w-full ${buttonClass}`}
                 onClick={() => {
                   persist((prev) => ({ ...prev, hiddenBuiltInIds: [] }));
-                  setMessage('已恢复隐藏的内置模板');
+                  setMessage(t('promptTemplates.restoredBuiltin'));
                 }}
               >
-                <RotateCcw size={13} /> 恢复内置
+                <RotateCcw size={13} /> {t('promptTemplates.restoreBuiltin')}
               </button>
             )}
           </aside>
@@ -669,7 +665,7 @@ export default function PromptTemplateLibraryModal({
                 <input
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
-                  placeholder="搜索模板 / 标签 / Prompt"
+                  placeholder={t('promptTemplates.searchPlaceholder')}
                   className={`${inputClass} h-9 w-full pl-8`}
                 />
               </div>
@@ -681,16 +677,16 @@ export default function PromptTemplateLibraryModal({
                     className={isPixel ? `px-btn px-btn--sm ${sourceFilter === filter ? 'px-btn--yellow' : ''}` : `h-8 rounded-md border text-[11px] font-bold ${sourceFilter === filter ? 'border-cyan-300 bg-cyan-400 text-slate-950' : isDark ? 'border-white/10 hover:bg-white/10' : 'border-black/10 hover:bg-black/5'}`}
                     onClick={() => setSourceFilter(filter)}
                   >
-                    {filter === 'all' ? '全部' : filter === 'builtin' ? '内置' : '我的'}
+                    {t(filter === 'all' ? 'promptTemplates.all' : filter === 'builtin' ? 'promptTemplates.builtin' : 'promptTemplates.mine')}
                   </button>
                 ))}
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <button type="button" className={buttonClass} onClick={saveCurrentAsTemplate}>
-                  <BookmarkPlus size={13} /> 存当前
+                  <BookmarkPlus size={13} /> {t('promptTemplates.saveCurrent')}
                 </button>
                 <button type="button" className={buttonClass} onClick={() => setEditDraft(makeEditDraft(null, activeKind, categoryId === 'all' ? categoryFallback(activeKind) : categoryId))}>
-                  <Plus size={13} /> 新模板
+                  <Plus size={13} /> {t('promptTemplates.newTemplate')}
                 </button>
               </div>
             </div>
@@ -698,7 +694,7 @@ export default function PromptTemplateLibraryModal({
             <div className="mt-3 min-h-0 overflow-y-auto pr-1" style={{ height: 'calc(100% - 126px)' }}>
               {visibleItems.length === 0 ? (
                 <div className={`flex h-52 items-center justify-center rounded border border-dashed text-xs ${subtle}`}>
-                  没有匹配模板
+                  {t('promptTemplates.noMatches')}
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -719,7 +715,7 @@ export default function PromptTemplateLibraryModal({
                                 <Paperclip size={10} /> {item.attachments?.length}
                               </span>
                             )}
-                            {sourceLabel(item, language)}
+                            {t(item.source === 'custom' ? 'promptTemplates.mine' : 'promptTemplates.builtin')}
                           </span>
                         </div>
                         <div className={`mt-1 line-clamp-2 text-[10px] leading-relaxed ${subtle}`}>
@@ -743,20 +739,20 @@ export default function PromptTemplateLibraryModal({
             {editDraft ? (
               <div className="flex min-h-0 flex-1 flex-col gap-2">
                 <div className="flex items-center justify-between gap-2">
-                  <div className="text-sm font-bold">{editDraft.id ? '编辑我的模板' : '新建我的模板'}</div>
+                  <div className="text-sm font-bold">{t(editDraft.id ? 'promptTemplates.editMine' : 'promptTemplates.newMine')}</div>
                   <button type="button" className={buttonClass} onClick={() => setEditDraft(null)}>
-                    <X size={13} /> 取消
+                    <X size={13} /> {t('common:actions.cancel')}
                   </button>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
-                  <input className={inputClass} value={editDraft.titleZh} onChange={(event) => setEditDraft({ ...editDraft, titleZh: event.target.value })} placeholder="中文名称" />
-                  <input className={inputClass} value={editDraft.titleEn} onChange={(event) => setEditDraft({ ...editDraft, titleEn: event.target.value })} placeholder="English title" />
+                  <input className={inputClass} value={editDraft.titleZh} onChange={(event) => setEditDraft({ ...editDraft, titleZh: event.target.value })} placeholder={t('promptTemplates.chineseTitle')} />
+                  <input className={inputClass} value={editDraft.titleEn} onChange={(event) => setEditDraft({ ...editDraft, titleEn: event.target.value })} placeholder={t('promptTemplates.englishTitle')} />
                   <select className={inputClass} value={editDraft.kind} onChange={(event) => {
                     const kind = event.target.value as PromptTemplateKind;
                     setEditDraft({ ...editDraft, kind, categoryId: categoryFallback(kind) });
                   }}>
-                    <option value="image">图像模板</option>
-                    <option value="video">视频模板</option>
+                    <option value="image">{t('promptTemplates.imageTemplate')}</option>
+                    <option value="video">{t('promptTemplates.videoTemplate')}</option>
                   </select>
                   <select className={inputClass} value={editDraft.categoryId} onChange={(event) => setEditDraft({ ...editDraft, categoryId: event.target.value })}>
                     {getPromptTemplateCategories(editDraft.kind, state.customCategories).map((cat) => (
@@ -764,24 +760,24 @@ export default function PromptTemplateLibraryModal({
                     ))}
                   </select>
                 </div>
-                <textarea className={`${inputClass} min-h-[58px] resize-none`} value={editDraft.descriptionZh} onChange={(event) => setEditDraft({ ...editDraft, descriptionZh: event.target.value })} placeholder="中文说明" />
-                <textarea className={`${inputClass} min-h-[58px] resize-none`} value={editDraft.descriptionEn} onChange={(event) => setEditDraft({ ...editDraft, descriptionEn: event.target.value })} placeholder="English description" />
+                <textarea className={`${inputClass} min-h-[58px] resize-none`} value={editDraft.descriptionZh} onChange={(event) => setEditDraft({ ...editDraft, descriptionZh: event.target.value })} placeholder={t('promptTemplates.chineseDescription')} />
+                <textarea className={`${inputClass} min-h-[58px] resize-none`} value={editDraft.descriptionEn} onChange={(event) => setEditDraft({ ...editDraft, descriptionEn: event.target.value })} placeholder={t('promptTemplates.englishDescription')} />
                 <div className="grid min-h-0 flex-1 grid-cols-2 gap-2">
-                  <textarea className={`${inputClass} min-h-[220px] resize-none`} value={editDraft.promptZh} onChange={(event) => setEditDraft({ ...editDraft, promptZh: event.target.value })} placeholder="中文正向提示词" />
-                  <textarea className={`${inputClass} min-h-[220px] resize-none`} value={editDraft.promptEn} onChange={(event) => setEditDraft({ ...editDraft, promptEn: event.target.value })} placeholder="English positive prompt" />
-                  <textarea className={`${inputClass} min-h-[110px] resize-none`} value={editDraft.negativeZh} onChange={(event) => setEditDraft({ ...editDraft, negativeZh: event.target.value })} placeholder="中文负向提示词（可选）" />
-                  <textarea className={`${inputClass} min-h-[110px] resize-none`} value={editDraft.negativeEn} onChange={(event) => setEditDraft({ ...editDraft, negativeEn: event.target.value })} placeholder="English negative prompt (optional)" />
+                  <textarea className={`${inputClass} min-h-[220px] resize-none`} value={editDraft.promptZh} onChange={(event) => setEditDraft({ ...editDraft, promptZh: event.target.value })} placeholder={t('promptTemplates.chinesePositive')} />
+                  <textarea className={`${inputClass} min-h-[220px] resize-none`} value={editDraft.promptEn} onChange={(event) => setEditDraft({ ...editDraft, promptEn: event.target.value })} placeholder={t('promptTemplates.englishPositive')} />
+                  <textarea className={`${inputClass} min-h-[110px] resize-none`} value={editDraft.negativeZh} onChange={(event) => setEditDraft({ ...editDraft, negativeZh: event.target.value })} placeholder={t('promptTemplates.chineseNegative')} />
+                  <textarea className={`${inputClass} min-h-[110px] resize-none`} value={editDraft.negativeEn} onChange={(event) => setEditDraft({ ...editDraft, negativeEn: event.target.value })} placeholder={t('promptTemplates.englishNegative')} />
                 </div>
-                <input className={inputClass} value={editDraft.tags} onChange={(event) => setEditDraft({ ...editDraft, tags: event.target.value })} placeholder="标签，用逗号分隔" />
+                <input className={inputClass} value={editDraft.tags} onChange={(event) => setEditDraft({ ...editDraft, tags: event.target.value })} placeholder={t('promptTemplates.tagsPlaceholder')} />
                 {editDraft.attachments.length > 0 && (
                   <div className={`rounded border px-2 py-1.5 text-[11px] ${isPixel ? 'border-[var(--px-ink)] bg-[var(--px-muted)]' : isDark ? 'border-white/10 bg-white/[0.03] text-white/60' : 'border-black/10 bg-black/[0.025] text-zinc-500'}`}>
-                    已关联 {editDraft.attachments.length} 个配套素材，保存文字修改时会一并保留。
+                    {t('promptTemplates.attachmentsRetained', { count: editDraft.attachments.length })}
                   </div>
                 )}
                 <div className="flex justify-end gap-2">
-                  <button type="button" className={buttonClass} onClick={() => setEditDraft(null)}>取消</button>
+                  <button type="button" className={buttonClass} onClick={() => setEditDraft(null)}>{t('common:actions.cancel')}</button>
                   <button type="button" className={primaryClass} onClick={saveDraft}>
-                    <Save size={13} /> 保存模板
+                    <Save size={13} /> {t('promptTemplates.saveTemplate')}
                   </button>
                 </div>
               </div>
@@ -791,15 +787,15 @@ export default function PromptTemplateLibraryModal({
                   <div className="min-w-0">
                     <div className="truncate text-base font-bold">{getPromptTemplateTitle(selected, language)}</div>
                     <div className={`mt-1 text-[11px] ${subtle}`}>
-                      {kindLabel(selected.kind, language)} · {activeCategory ? getPromptTemplateCategoryLabel(activeCategory, language) : selected.categoryId} · {sourceLabel(selected, language)}
+                      {t(selected.kind === 'image' ? 'promptTemplates.image' : 'promptTemplates.video')} · {activeCategory ? getPromptTemplateCategoryLabel(activeCategory, language) : selected.categoryId} · {t(selected.source === 'custom' ? 'promptTemplates.mine' : 'promptTemplates.builtin')}
                     </div>
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
-                    <button type="button" className={buttonClass} onClick={() => setEditDraft(makeEditDraft(selected, activeKind, selected.categoryId))} title={selected.source === 'custom' ? '编辑' : '复制后编辑'}>
-                      <Pencil size={13} /> {selected.source === 'custom' ? '编辑' : '复制'}
+                    <button type="button" className={buttonClass} onClick={() => setEditDraft(makeEditDraft(selected, activeKind, selected.categoryId))} title={t(selected.source === 'custom' ? 'promptTemplates.edit' : 'promptTemplates.copyAfterEdit')}>
+                      <Pencil size={13} /> {t(selected.source === 'custom' ? 'promptTemplates.edit' : 'promptTemplates.copy')}
                     </button>
-                    <button type="button" className={buttonClass} onClick={deleteSelected} title={selected.source === 'custom' ? '删除' : '隐藏'}>
-                      <Trash2 size={13} /> {selected.source === 'custom' ? '删除' : '隐藏'}
+                    <button type="button" className={buttonClass} onClick={deleteSelected} title={t(selected.source === 'custom' ? 'promptTemplates.delete' : 'promptTemplates.hide')}>
+                      <Trash2 size={13} /> {t(selected.source === 'custom' ? 'promptTemplates.delete' : 'promptTemplates.hide')}
                     </button>
                   </div>
                 </div>
@@ -817,9 +813,9 @@ export default function PromptTemplateLibraryModal({
                   >
                     <div className={`mb-2 flex items-center justify-between gap-2 text-[10px] font-bold ${subtle}`}>
                       <span className="inline-flex items-center gap-1.5">
-                        <Paperclip size={12} /> 配套素材
+                        <Paperclip size={12} /> {t('promptTemplates.assets')}
                       </span>
-                      <span>{selected.attachments?.length || 0} 项 · 仅加载当前模板</span>
+                      <span>{t('promptTemplates.assetCount', { count: selected.attachments?.length || 0 })}</span>
                     </div>
                     <div className="grid grid-cols-2 gap-2 xl:grid-cols-3">
                       {(selected.attachments || []).map((attachment) => (
@@ -834,14 +830,14 @@ export default function PromptTemplateLibraryModal({
                               <>
                                 <SmartImage
                                   src={attachment.previewUrl || attachment.url}
-                                  alt={attachment.title || '配套图像'}
+                                  alt={attachment.title || t('promptTemplates.associatedImage')}
                                   className="h-full w-full object-contain"
                                   thumbSize={360}
                                   draggable={false}
                                 />
                                 <ImageHoverPreview
                                   src={attachment.url}
-                                  alt={attachment.title || '配套图像'}
+                                  alt={attachment.title || t('promptTemplates.associatedImage')}
                                   buttonClassName="absolute right-1.5 top-1.5 z-10 h-7 w-7 p-0 opacity-0 shadow-md transition group-hover/prompt-media:opacity-100 focus:opacity-100"
                                 />
                               </>
@@ -863,7 +859,7 @@ export default function PromptTemplateLibraryModal({
                           <div className={`flex items-center gap-1.5 px-2 py-1.5 text-[10px] ${subtle}`}>
                             {attachmentIcon(attachment.kind)}
                             <span className="min-w-0 flex-1 truncate" title={attachment.title || attachment.url}>
-                              {attachment.title || attachment.url.split('/').pop() || attachmentKindLabel(attachment.kind)}
+                              {attachment.title || attachment.url.split('/').pop() || t(`promptTemplates.${attachment.kind}`)}
                             </span>
                           </div>
                         </div>
@@ -877,11 +873,11 @@ export default function PromptTemplateLibraryModal({
                     borderColor: isPixel ? 'var(--px-ink, #1a1410)' : isDark ? 'rgba(255,255,255,.10)' : 'rgba(0,0,0,.10)',
                     background: isPixel ? 'var(--px-surface, #fff7df)' : isDark ? 'rgba(255,255,255,.04)' : 'rgba(0,0,0,.025)',
                   }}>
-                    <div className={`mb-2 text-[10px] font-bold ${subtle}`}>正向提示词</div>
+                    <div className={`mb-2 text-[10px] font-bold ${subtle}`}>{t('promptTemplates.positive')}</div>
                     {selectedText}
                     {(language === 'en' ? selected.negativeEn || selected.negativeZh : selected.negativeZh || selected.negativeEn) && (
                       <>
-                        <div className={`mb-2 mt-4 text-[10px] font-bold ${subtle}`}>负向提示词</div>
+                        <div className={`mb-2 mt-4 text-[10px] font-bold ${subtle}`}>{t('promptTemplates.negative')}</div>
                         {language === 'en' ? selected.negativeEn || selected.negativeZh : selected.negativeZh || selected.negativeEn}
                       </>
                     )}
@@ -891,37 +887,37 @@ export default function PromptTemplateLibraryModal({
                 <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
                   <div className="flex flex-wrap items-center gap-2">
                     <button type="button" className={buttonClass} onClick={() => void handleCopyText(selectedText)}>
-                      <Copy size={13} /> 复制正向
+                      <Copy size={13} /> {t('promptTemplates.copyPositive')}
                     </button>
                     <button type="button" className={buttonClass} onClick={() => void handleCopyText(selectedFullText)}>
-                      <FileDown size={13} /> 复制正负
+                      <FileDown size={13} /> {t('promptTemplates.copyBoth')}
                     </button>
                     <button type="button" className={buttonClass} onClick={saveSelectedToResource} disabled={busy === 'resource'}>
-                      <Download size={13} /> {busy === 'resource' ? '保存中' : '资源库'}
+                      <Download size={13} /> {t(busy === 'resource' ? 'promptTemplates.saving' : 'promptTemplates.resourceLibrary')}
                     </button>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <button type="button" className={buttonClass} onClick={() => applyTemplate('append')}>
-                      <Plus size={13} /> 追加
+                      <Plus size={13} /> {t('promptTemplates.append')}
                     </button>
                     <button type="button" className={buttonClass} onClick={() => applyTemplate('full')}>
-                      <Check size={13} /> 正负向
+                      <Check size={13} /> {t('promptTemplates.positiveNegative')}
                     </button>
                     <button type="button" className={primaryClass} onClick={() => applyTemplate('replace')}>
-                      <Check size={13} /> 替换
+                      <Check size={13} /> {t('promptTemplates.replace')}
                     </button>
                   </div>
                 </div>
               </>
             ) : (
-              <div className={`flex flex-1 items-center justify-center text-sm ${subtle}`}>请选择或新建一个模板</div>
+              <div className={`flex flex-1 items-center justify-center text-sm ${subtle}`}>{t('promptTemplates.selectOrCreate')}</div>
             )}
           </main>
         </div>
 
         <footer className={`flex items-center justify-between gap-2 px-4 py-3 ${isPixel ? 'border-t-2 border-[var(--px-ink)]' : isDark ? 'border-t border-white/10' : 'border-t border-black/10'}`}>
           <div className={`text-[11px] ${subtle}`}>
-            内置模板来自 T8 生成库、Infinite-Canvas 种子模板与公开提示词写法规律；我的模板保存在本机，可导入导出迁移。
+            {t('promptTemplates.footer')}
           </div>
           <div className="flex items-center gap-2">
             <input
@@ -932,10 +928,10 @@ export default function PromptTemplateLibraryModal({
               onChange={(event) => void handleImport(event.target.files?.[0] || null)}
             />
             <button type="button" className={buttonClass} onClick={() => fileRef.current?.click()}>
-              <FileUp size={13} /> 导入
+              <FileUp size={13} /> {t('promptTemplates.import')}
             </button>
             <button type="button" className={buttonClass} onClick={handleExport}>
-              <FileDown size={13} /> 导出
+              <FileDown size={13} /> {t('promptTemplates.export')}
             </button>
           </div>
         </footer>

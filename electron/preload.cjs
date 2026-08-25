@@ -3,6 +3,13 @@ const { contextBridge, ipcRenderer, webUtils } = require('electron');
 
 contextBridge.exposeInMainWorld('t8pc', {
   getInfo: () => ipcRenderer.invoke('t8pc:get-info'),
+  locale: {
+    get: () => ipcRenderer.invoke('t8pc:locale:get'),
+    set: (locale) => ipcRenderer.invoke(
+      't8pc:locale:set',
+      locale === 'en-US' ? 'en-US' : 'zh-CN',
+    ),
+  },
   openExternal: (url) => ipcRenderer.invoke('t8pc:open-external', url),
   openPath: (targetPath) => ipcRenderer.invoke('t8pc:open-path', targetPath),
   pickMediaFiles: (options) => ipcRenderer.invoke('t8pc:pick-media-files', options || {}),

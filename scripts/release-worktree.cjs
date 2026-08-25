@@ -60,7 +60,12 @@ function readReleaseWorktreeBranch(root) {
 
 function assertReleaseWorktreeRole(root) {
   const branch = readReleaseWorktreeBranch(root);
-  const result = evaluateWorktreeRole({ root, branch, mode: 'release' });
+  const result = evaluateWorktreeRole({
+    root,
+    branch,
+    mode: 'release',
+    allowCoreRelease: process.env.T8_ALLOW_CORE_RELEASE === '1',
+  });
   if (!result.ok) throw new Error(`invalid release worktree role:\n${result.errors.join('\n')}`);
   return result;
 }

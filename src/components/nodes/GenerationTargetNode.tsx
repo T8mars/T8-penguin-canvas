@@ -21,6 +21,7 @@ import {
 } from '../../utils/secondaryProviderAction';
 import type { RunNodeLifecycleReporter } from '../../types/project';
 import { useUpdateNodeData } from './useUpdateNodeData';
+import NodeVisible from '../../i18n/NodeVisible';
 
 function textFromData(data: any): string {
   return String(
@@ -214,7 +215,8 @@ const GenerationTargetNode = ({ id, data, selected }: NodeProps) => {
   };
 
   return (
-    <div
+    <NodeVisible>
+      <div
       className={`t8-generation-target-node rounded-xl border p-3 shadow-lg ${selected ? 'is-selected' : ''}`}
       data-target-status={status}
       data-has-result={resultUrl ? 'true' : 'false'}
@@ -316,7 +318,8 @@ const GenerationTargetNode = ({ id, data, selected }: NodeProps) => {
           <span>保留版本</span>
         </button>
       </div>
-    </div>
+      </div>
+    </NodeVisible>
   );
 };
 

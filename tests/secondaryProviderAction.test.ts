@@ -317,28 +317,33 @@ test('node execution resolves only the exact single-node RunContext nonce and di
   }), null);
 });
 
-test('executor registry is exact by node, action id, and target', async () => {
+test('executor registry is exact by node, action id, and target and survives concurrent React mounts', async () => {
   clearSecondaryProviderActionExecutorsForTests();
   const action = generationAction();
-  let calls = 0;
-  const unregister = registerSecondaryProviderActionExecutor(
+  const calls: string[] = [];
+  const unregisterPrevious = registerSecondaryProviderActionExecutor(
     action.nodeId,
     action.actionId,
     action.target,
     async ({ action: executed }) => {
-      calls += 1;
+      calls.push('previous');
       assert.equal(executed.digest, action.digest);
     },
   );
   await executeRegisteredSecondaryProviderAction(action, reporter);
-  assert.equal(calls, 1);
-  assert.throws(() => registerSecondaryProviderActionExecutor(
+  assert.deepEqual(calls, ['previous']);
+  const unregisterLatest = registerSecondaryProviderActionExecutor(
     action.nodeId,
     action.actionId,
     action.target,
-    async () => {},
-  ));
-  unregister();
+    async () => { calls.push('latest'); },
+  );
+  await executeRegisteredSecondaryProviderAction(action, reporter);
+  assert.deepEqual(calls, ['previous', 'latest']);
+  unregisterLatest();
+  await executeRegisteredSecondaryProviderAction(action, reporter);
+  assert.deepEqual(calls, ['previous', 'latest', 'previous']);
+  unregisterPrevious();
   await assert.rejects(() => executeRegisteredSecondaryProviderAction(action, reporter), /executor 不可用/);
   clearSecondaryProviderActionExecutorsForTests();
 });

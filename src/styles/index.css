@@ -584,6 +584,60 @@ html[data-theme-visual] .t8-canvas-shell::after,
   overflow: visible !important;
 }
 
+.t8-node-temperature-anchor {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.t8-node-cold-shell {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  justify-content: flex-start;
+  overflow: hidden;
+  border: 2px solid color-mix(in srgb, var(--t8-accent, #60a5fa) 45%, var(--border-primary, #3f3f46));
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--bg-secondary, #18181b) 94%, transparent);
+  color: var(--text-primary, #f4f4f5);
+  box-shadow: none;
+  contain: layout paint style;
+}
+
+.t8-node-cold-shell__header {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid var(--border-primary, #3f3f46);
+  padding: 10px 12px;
+}
+
+.t8-node-cold-shell__copy {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.t8-node-cold-shell__copy strong,
+.t8-node-cold-shell__copy small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.t8-node-cold-shell__copy strong {
+  font-size: 13px;
+}
+
+.t8-node-cold-shell__copy small {
+  margin-top: 2px;
+  color: var(--text-secondary, #a1a1aa);
+  font-size: 10px;
+}
+
 /* Large graph rendering guard: keep node components mounted for runBus/cross-canvas logic,
    while the browser lazily paints offscreen heavy media on 100+ node canvases. */
 @supports (content-visibility: auto) {
@@ -612,6 +666,178 @@ html[data-theme-visual] .t8-canvas-shell::after,
 .t8-canvas-shell[data-canvas-surface-load="heavy"].t8-node-dragging .react-flow__node:not(.selected):not(:focus-within) * {
   transition-duration: 0s !important;
   animation-play-state: paused !important;
+}
+
+/* Explicit device-level high-performance mode. It never unmounts node
+   components: runBus, recovery and result-mailbox hooks remain alive. */
+.t8-canvas-shell[data-canvas-performance="performance"] .react-flow__node:not(.selected):not(.t8-performance-pinned):not(:focus-within) > div:first-child {
+  box-shadow: none !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+}
+
+.t8-canvas-shell[data-canvas-performance="performance"] .react-flow__node:not(.selected):not(.t8-performance-pinned):not(:focus-within) * {
+  transition-duration: 0s !important;
+  animation-play-state: paused !important;
+}
+
+.t8-canvas-shell[data-canvas-performance="performance"]::before,
+.t8-canvas-shell[data-canvas-performance="performance"]::after {
+  animation: none !important;
+  filter: none !important;
+  opacity: 0.12 !important;
+}
+
+@supports (content-visibility: hidden) {
+  .t8-canvas-shell[data-canvas-performance="performance"]
+    .react-flow__node[data-t8-viewport-temperature="cold"]:not(.selected):not(.t8-performance-pinned):not(:focus-within)
+    :where(img, video, iframe, canvas, .t8-node-heavy-workbench) {
+    content-visibility: hidden;
+    contain-intrinsic-size: 320px 260px;
+    visibility: hidden;
+  }
+
+  .t8-canvas-shell .react-flow__node.t8-group-proxy-member:not(.selected):not(:focus-within) > div:first-child {
+    content-visibility: hidden;
+    contain-intrinsic-size: 320px 220px;
+    visibility: hidden;
+    pointer-events: none !important;
+  }
+}
+
+.t8-group-box__performance-proxy {
+  position: absolute;
+  inset: 54px 14px 14px;
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 7px;
+  border: 1px dashed color-mix(in srgb, currentColor 28%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--bg-secondary, #18181b) 82%, transparent);
+  color: var(--text-primary, #f4f4f5);
+  padding: 18px;
+  text-align: center;
+  pointer-events: none;
+}
+
+.t8-group-box__performance-proxy strong {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 15px;
+}
+
+.t8-group-box__performance-proxy span {
+  font-size: 11px;
+  opacity: 0.78;
+}
+
+.t8-group-box__performance-proxy small {
+  max-width: 520px;
+  font-size: 10px;
+  line-height: 1.5;
+  opacity: 0.55;
+}
+
+.t8-canvas-performance-control {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  z-index: 28;
+  color: var(--text-primary, #f4f4f5);
+}
+
+.t8-canvas-performance-control__trigger {
+  display: inline-flex;
+  height: 30px;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border, rgb(255 255 255 / 0.15));
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--bg-secondary, #18181b) 92%, transparent);
+  color: inherit;
+  padding: 0 9px;
+  box-shadow: 0 8px 22px rgb(0 0 0 / 0.18);
+  font-size: 11px;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+}
+
+.t8-canvas-performance-control__panel {
+  position: absolute;
+  top: 36px;
+  right: 0;
+  width: min(310px, calc(100vw - 28px));
+  border: 1px solid var(--border, rgb(255 255 255 / 0.15));
+  border-radius: 12px;
+  background: var(--bg-secondary, #18181b);
+  padding: 12px;
+  box-shadow: 0 18px 48px rgb(0 0 0 / 0.34);
+}
+
+.t8-canvas-performance-control__panel > strong {
+  display: block;
+  font-size: 13px;
+}
+
+.t8-canvas-performance-control__panel > p {
+  margin: 4px 0 10px;
+  color: var(--text-muted, rgb(255 255 255 / 0.58));
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.t8-canvas-performance-control__panel [role="radiogroup"] {
+  display: grid;
+  gap: 6px;
+}
+
+.t8-canvas-performance-control__panel [role="radio"] {
+  display: grid;
+  gap: 2px;
+  border: 1px solid var(--border, rgb(255 255 255 / 0.12));
+  border-radius: 8px;
+  background: color-mix(in srgb, currentColor 4%, transparent);
+  color: inherit;
+  padding: 8px 10px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.t8-canvas-performance-control__panel [role="radio"].is-active {
+  border-color: var(--t8-accent, #5eead4);
+  background: color-mix(in srgb, var(--t8-accent, #5eead4) 13%, transparent);
+}
+
+.t8-canvas-performance-control__panel [role="radio"] span {
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.t8-canvas-performance-control__panel [role="radio"] small {
+  color: var(--text-muted, rgb(255 255 255 / 0.55));
+  font-size: 9px;
+}
+
+.t8-canvas-performance-control__restore {
+  display: inline-flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 10px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--t8-accent, #5eead4);
+  color: #07110e;
+  padding: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
 }
 
 .t8-canvas-shell .react-flow__node > .react-flow__handle,
@@ -672,6 +898,62 @@ html[data-theme-visual] .t8-canvas-shell .t8-theme-music-toggle,
   align-items: center;
   gap: var(--t8-floating-control-gap, 10px);
   pointer-events: all;
+}
+
+.t8-control-tools {
+  position: relative;
+  width: var(--t8-theme-music-size, 32px);
+  height: var(--t8-theme-music-size, 32px);
+  flex: 0 0 auto;
+}
+
+.t8-control-tools-menu {
+  position: absolute;
+  left: calc(100% + 10px);
+  bottom: 0;
+  z-index: 5;
+  box-sizing: border-box;
+  display: grid;
+  width: max-content;
+  min-width: 188px;
+  gap: 5px;
+  padding: 7px;
+  border: 1px solid var(--t8-flow-controls-border);
+  border-radius: 12px;
+  background: var(--t8-flow-controls-bg);
+  color: var(--t8-flow-controls-fg);
+  box-shadow: var(--t8-shadow-panel, 0 14px 34px rgba(0, 0, 0, 0.28));
+}
+
+.t8-control-tools-menu button {
+  box-sizing: border-box;
+  display: flex;
+  width: 100%;
+  min-height: 34px;
+  align-items: center;
+  gap: 9px;
+  padding: 6px 10px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.25;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.t8-control-tools-menu button:hover,
+.t8-control-tools-menu button.is-active {
+  border-color: var(--t8-flow-controls-accent);
+  background: var(--t8-flow-controls-button-hover-bg);
+  color: var(--t8-flow-controls-accent);
+}
+
+.t8-control-tools-menu button svg {
+  flex: 0 0 auto;
 }
 
 html[data-theme-visual] .t8-canvas-shell .t8-control-rail,
@@ -3106,6 +3388,160 @@ body.cut-mode .react-flow__edge .react-flow__edge-interaction {
   .t8-edge-cut-feedback,
   .t8-edge-connect-feedback {
     animation: none;
+  }
+}
+
+/* Output material adaptive view. Legacy nodes keep their historical natural
+   height; only nodes with a persisted outputView mode enter this flex layout. */
+.t8-output-node__media-section.is-sized {
+  display: flex;
+  flex: 1 1 180px;
+  min-height: 150px;
+  flex-direction: column;
+}
+
+.t8-output-node__image-grid.is-sized {
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow: auto;
+  grid-auto-rows: minmax(140px, 1fr);
+}
+
+.t8-output-node__image-card.is-sized,
+.t8-output-node__video-card.is-sized {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+}
+
+.t8-output-node__media-stage {
+  display: flex;
+  min-height: 120px;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.t8-output-node__media-stage > .t8-output-image-media,
+.t8-output-node__video-card.is-sized > .t8-output-node__video-media {
+  min-height: 0;
+  flex: 1 1 auto;
+}
+
+.t8-image-detail-viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 10050;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  background: rgb(3 7 18 / 0.94);
+  color: #f8fafc;
+  backdrop-filter: blur(10px);
+}
+
+.t8-image-detail-viewer__toolbar {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid rgb(255 255 255 / 0.14);
+  padding: 10px 14px;
+  background: rgb(10 13 22 / 0.96);
+}
+
+.t8-image-detail-viewer__toolbar > strong {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.t8-image-detail-viewer__counter {
+  flex: 0 0 auto;
+  color: rgb(255 255 255 / 0.6);
+  font-size: 11px;
+}
+
+.t8-image-detail-viewer__toolbar :where(button, a),
+.t8-image-detail-viewer__nav {
+  display: inline-flex;
+  min-width: 30px;
+  height: 30px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgb(255 255 255 / 0.14);
+  border-radius: 8px;
+  background: rgb(255 255 255 / 0.08);
+  color: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.t8-image-detail-viewer__toolbar :where(button, a):hover,
+.t8-image-detail-viewer__toolbar :where(button, a):focus-visible,
+.t8-image-detail-viewer__nav:hover,
+.t8-image-detail-viewer__nav:focus-visible {
+  border-color: var(--t8-accent, #5eead4);
+  background: rgb(255 255 255 / 0.14);
+  outline: none;
+}
+
+.t8-image-detail-viewer__viewport {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  align-items: center;
+  justify-content: center;
+  overflow: auto;
+  padding: 20px;
+  overscroll-behavior: contain;
+}
+
+.t8-image-detail-viewer__viewport.is-zoomed {
+  align-items: flex-start;
+  justify-content: flex-start;
+  cursor: grab;
+}
+
+.t8-image-detail-viewer__viewport.is-zoomed:active {
+  cursor: grabbing;
+}
+
+.t8-image-detail-viewer__viewport img {
+  display: block;
+  flex: 0 0 auto;
+  border-radius: 4px;
+  box-shadow: 0 24px 80px rgb(0 0 0 / 0.55);
+  user-select: none;
+}
+
+.t8-image-detail-viewer__nav {
+  position: fixed;
+  top: 50%;
+  z-index: 1;
+  width: 44px;
+  height: 54px;
+  transform: translateY(-50%);
+}
+
+.t8-image-detail-viewer__nav.is-prev {
+  left: 14px;
+}
+
+.t8-image-detail-viewer__nav.is-next {
+  right: 14px;
+}
+
+@media (max-width: 640px) {
+  .t8-image-detail-viewer__toolbar {
+    flex-wrap: wrap;
+  }
+
+  .t8-image-detail-viewer__toolbar > strong {
+    flex-basis: calc(100% - 64px);
   }
 }
 
@@ -5692,6 +6128,81 @@ html[data-theme-style="pixel"] .t8-achievement-review__grid > div {
 [data-grok-message-copyable] * {
   user-select: text !important;
   -webkit-user-select: text !important;
+}
+
+/*
+ * Inspiration prompt nodes used to own a second, permanently dark theme
+ * inside the ReactFlow node wrapper.  Keep their accent utilities, but make
+ * every structural surface and form control consume the same day/night
+ * tokens as the rest of the canvas.  This is intentionally scoped so model
+ * values, prompts and provider payloads are presentation-only changes.
+ */
+.t8-inspiration-node {
+  background: var(--t8-bg-node) !important;
+  border-color: var(--t8-border-strong) !important;
+  color: var(--t8-text-main) !important;
+  box-shadow: var(--t8-shadow-panel);
+}
+
+.t8-inspiration-node__header {
+  background: var(--t8-bg-node-header) !important;
+  border-color: var(--t8-border) !important;
+  color: var(--t8-text-main) !important;
+}
+
+.t8-inspiration-node :where(input, select, textarea) {
+  background: var(--t8-bg-panel-elevated) !important;
+  border-color: var(--t8-border) !important;
+  color: var(--t8-text-main) !important;
+  color-scheme: light;
+}
+
+html[data-theme-mode="dark"] .t8-inspiration-node :where(input, select, textarea) {
+  color-scheme: dark;
+}
+
+.t8-inspiration-node :where(input, textarea)::placeholder {
+  color: var(--t8-text-dim) !important;
+}
+
+.t8-inspiration-node :where([class*="border-white"]) {
+  border-color: var(--t8-border) !important;
+}
+
+.t8-inspiration-node :where([class*="bg-black/"], [class*="bg-zinc-900"], [class*="bg-white/"]) {
+  background: var(--t8-bg-panel-elevated) !important;
+}
+
+html[data-theme-mode="light"] .t8-inspiration-node :where([class~="text-white"]) {
+  color: var(--t8-text-main) !important;
+}
+
+html[data-theme-mode="light"] .t8-inspiration-node :where([class*="text-white/"], [class*="text-zinc-"], [class*="text-slate-"]) {
+  color: var(--t8-text-muted) !important;
+}
+
+html[data-theme-mode="light"] .t8-inspiration-node :where(
+  [class*="text-violet-"],
+  [class*="text-fuchsia-"],
+  [class*="text-cyan-"],
+  [class*="text-sky-"],
+  [class*="text-amber-"],
+  [class*="text-emerald-"]
+) {
+  color: color-mix(in srgb, var(--t8-accent) 62%, var(--t8-text-main)) !important;
+}
+
+html[data-theme-mode="light"] .t8-inspiration-node :where(
+  [class*="bg-violet-500"],
+  [class*="bg-fuchsia-500"],
+  [class*="bg-cyan-500"],
+  [class*="bg-emerald-500"]
+) {
+  color: var(--t8-accent-text) !important;
+}
+
+.t8-inspiration-node-shell > .react-flow__handle {
+  border-color: var(--t8-bg-node) !important;
 }
 
 .artist-style-master-node,

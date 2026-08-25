@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useReactFlow, useNodes, Handle, Position, type NodeProps, type Node } from '@xyflow/react';
-import { Play, X, Edit2 } from 'lucide-react';
+import { Play, X, Edit2, Maximize2, Minimize2 } from 'lucide-react';
 import { useThemeStore } from '../../stores/theme';
 import { resolveThemeTemplate } from '../../theme/defaultTemplates';
 import { useGroupBusStore, GROUP_COLORS } from '../../stores/groupBus';
@@ -15,6 +16,8 @@ export interface GroupBoxData {
   memberIds: string[];
   width: number;
   height: number;
+  /** Explicit view-only collapse. Member components remain mounted for runBus. */
+  performanceCollapsed?: boolean;
 }
 
 const HEADER_H = 40;
@@ -27,11 +30,13 @@ const HEADER_H = 40;
  * - 拖动该节点时由 Canvas.onNodeDrag 联动 memberIds 节点位置
  */
 const GroupBoxNode = ({ id, data, selected }: NodeProps) => {
+  const { t } = useTranslation(['nodes', 'common']);
   const d = data as unknown as GroupBoxData;
   const name = d?.name ?? 'Group';
   const color = d?.color ?? GROUP_COLORS[0];
   const width = d?.width ?? 320;
   const height = d?.height ?? 200;
+  const performanceCollapsed = d?.performanceCollapsed === true;
 
   const { theme, style, templateId, customTemplates } = useThemeStore();
   const currentTemplate = useMemo(
@@ -132,6 +137,19 @@ const GroupBoxNode = ({ id, data, selected }: NodeProps) => {
   }, [allNodes, liveMemberIds]);
 
   const aggregateText = collected.texts.join('\n\n──────\n\n');
+  const memberRuntimeSummary = useMemo(() => {
+    const memberSet = new Set(liveMemberIds);
+    let running = 0;
+    let errors = 0;
+    for (const node of allNodes as Node[]) {
+      if (!memberSet.has(node.id)) continue;
+      const data = node.data && typeof node.data === 'object' ? node.data as Record<string, unknown> : {};
+      const status = String(data.status || data.runStatus || data.taskStatus || '').toLowerCase();
+      if (data.running === true || data.isRunning === true || ['running', 'queued', 'pending', 'waiting'].includes(status)) running += 1;
+      if (['error', 'failed'].includes(status)) errors += 1;
+    }
+    return { running, errors };
+  }, [allNodes, liveMemberIds]);
 
   // 透传到自身 data 供下游节点读取 (与 OutputNode 同样手式 cur/next 比较防循环)
   useEffect(() => {
@@ -489,8 +507,35 @@ const GroupBoxNode = ({ id, data, selected }: NodeProps) => {
             flexShrink: 0,
           }}
         >
-          {liveMemberIds.length} 节点
+          {t('common:units.nodes', { count: liveMemberIds.length })}
         </span>
+
+        <button
+          className="nodrag t8-group-box__button"
+          onMouseDown={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            updateData({ performanceCollapsed: !performanceCollapsed });
+          }}
+          title={performanceCollapsed ? t('nodes:group.expand') : t('nodes:group.collapse')}
+          aria-label={performanceCollapsed ? t('nodes:group.expand') : t('nodes:group.collapse')}
+          aria-pressed={performanceCollapsed}
+          style={{
+            width: 24,
+            height: 24,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: performanceCollapsed ? color : btnBg,
+            border: isPixel ? '2px solid #1A1410' : 'none',
+            borderRadius: 6,
+            cursor: 'pointer',
+            flexShrink: 0,
+            color: performanceCollapsed ? '#fff' : subTextColor,
+          }}
+        >
+          {performanceCollapsed ? <Maximize2 size={12} /> : <Minimize2 size={12} />}
+        </button>
 
         {/* 编辑按钮 */}
         {!isEditing && (
@@ -587,6 +632,22 @@ const GroupBoxNode = ({ id, data, selected }: NodeProps) => {
           <X size={13} strokeWidth={2.5} />
         </button>
       </div>
+
+      {performanceCollapsed ? (
+        <div className="t8-group-box__performance-proxy" aria-live="polite">
+          <strong>{name}</strong>
+          <span>
+            {liveMemberIds.length} 节点 · {collected.images.length} 图 · {collected.videos.length} 视频 · {collected.audios.length} 音频
+          </span>
+          <span>
+            {memberRuntimeSummary.running > 0
+              ? t('nodes:group.running', { count: memberRuntimeSummary.running })
+              : t('nodes:group.noRunning')}
+            {memberRuntimeSummary.errors > 0 ? ` · ${t('nodes:group.errors', { count: memberRuntimeSummary.errors })}` : ''}
+          </span>
+          <small>{t('nodes:group.proxyNote')}</small>
+        </div>
+      ) : null}
 
       {/* 颜色选择器 */}
       {showColorPicker && (

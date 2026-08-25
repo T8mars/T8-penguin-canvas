@@ -124,6 +124,18 @@ test('formal release requires both a release path and a release branch or detach
     branch: 'codex/release-v2.6.0',
     mode: 'release',
   }).ok, false);
+  assert.equal(evaluateWorktreeRole({
+    root: root('T8-penguin-canvas'),
+    branch: 'codex/release-v3.0.1',
+    mode: 'release',
+    allowCoreRelease: true,
+  }).ok, true);
+  assert.equal(evaluateWorktreeRole({
+    root: root('T8-penguin-canvas'),
+    branch: 'codex/not-a-release',
+    mode: 'release',
+    allowCoreRelease: true,
+  }).ok, false);
 });
 
 test('release cleanliness keeps sidecars unstaged and rejects every staged or source change', () => {

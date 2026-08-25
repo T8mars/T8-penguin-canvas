@@ -1,6 +1,8 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type DragEvent as ReactDragEvent, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 import { Handle, Position, useReactFlow, type NodeProps } from '@xyflow/react';
+import { useCanvasNodeRenderMode } from '../CanvasNodeRenderMode';
 import {
   ArrowDown,
   ArrowUp,
@@ -702,6 +704,8 @@ function downloadJsonFile(filename: string, payload: unknown) {
 }
 
 const DrawingBoardNode = ({ id, data, selected }: NodeProps) => {
+  const { t: translate } = useTranslation(['nodes', 'common']);
+  const canvasRenderMode = useCanvasNodeRenderMode();
   const update = useUpdateNodeData(id);
   const upstream = useUpstreamMaterials(id);
   const rf = useReactFlow();
@@ -2896,6 +2900,28 @@ const DrawingBoardNode = ({ id, data, selected }: NodeProps) => {
       document.body,
     );
   };
+
+  if (canvasRenderMode === 'cold' && !focusEditorOpen && !selectedTextEditorOpen && !shortcutHelpOpen) {
+    return (
+      <div
+        ref={rootRef}
+        data-drawing-board-node="true"
+        data-t8-node-cold-shell="drawing-board"
+        className="t8-node t8-node-cold-shell"
+        style={{ width: NODE_W, height: NODE_H }}
+      >
+        <Handle type="target" position={Position.Left} style={{ background: PORT_COLOR.image, border: 0, zIndex: 40 }} />
+        <Handle type="source" position={Position.Right} style={{ background: PORT_COLOR.image, border: 0, zIndex: 40 }} />
+        <div className="t8-node-cold-shell__header">
+          <Pencil size={18} className="shrink-0 text-orange-300" />
+          <div className="t8-node-cold-shell__copy">
+            <strong>{translate('nodes:drawingBoard.title')}</strong>
+            <small>{boardW}×{boardH} · {translate('nodes:drawingBoard.layerCount', { count: layers.filter((layer) => layer.kind === 'layer').length })} · {translate('common:performance.offscreenPreview')}</small>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div

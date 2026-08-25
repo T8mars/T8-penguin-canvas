@@ -1,5 +1,6 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ChangeEvent, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 import { Handle, Position, useReactFlow, type NodeProps } from '@xyflow/react';
 import {
   AlertCircle,
@@ -1052,22 +1053,22 @@ async function ensureImageResourceCategory(name = '3D全景场景') {
 }
 
 const PANORAMA_DIRECTOR_SHORTCUTS = [
-  ['1-8', '切换并定位对应角色'],
-  ['Tab / Shift+Tab', '下一个 / 上一个角色'],
-  ['A', '在当前视角中心添加小人'],
-  ['P', '进入或退出放置角色模式'],
-  ['F', '定位当前角色'],
-  ['H', '显示或隐藏角色控制点'],
-  ['I', '进入或退出画面关节编辑'],
-  ['[ / ]', '上一个 / 下一个动作'],
-  ['R', '重置当前角色姿势微调'],
-  ['M', '当前视角 / 导演镜头切换'],
-  ['O', '打开全屏导演台'],
-  ['Ctrl+Enter', '动作生成输入框内本地解析'],
-  ['C', '复制场景词'],
-  ['E', '导出场景快照'],
-  ['Esc', '退出放置、关节编辑或全屏'],
-  ['?', '查看快捷键'],
+  ['1-8', 'selectAvatar'],
+  ['Tab / Shift+Tab', 'cycleAvatar'],
+  ['A', 'addAvatar'],
+  ['P', 'togglePlaceMode'],
+  ['F', 'focusAvatar'],
+  ['H', 'toggleActorControls'],
+  ['I', 'toggleJointEdit'],
+  ['[ / ]', 'cyclePose'],
+  ['R', 'resetPose'],
+  ['M', 'toggleShotMode'],
+  ['O', 'openDirector'],
+  ['Ctrl+Enter', 'localParseAction'],
+  ['C', 'copyScenePrompt'],
+  ['E', 'exportSceneSnapshot'],
+  ['Esc', 'exitModes'],
+  ['?', 'showShortcuts'],
 ] as const;
 
 function isEditableShortcutTarget(target: EventTarget | null) {
@@ -1077,6 +1078,46 @@ function isEditableShortcutTarget(target: EventTarget | null) {
 }
 
 const Panorama3DNode = (p: NodeProps) => {
+  const { t: translate, i18n } = useTranslation(['nodes', 'common']);
+  const panoramaT = (key: string, options?: Record<string, unknown>) => translate(`nodes:panorama3D.editor.${key}`, options);
+  const humanizeStableId = (value: string) => value
+    .split(/[-_]/g)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+  const stableDisplayLabel = (scope: string, stableId: string, zhLabel: string) => panoramaT(
+    `${scope}.${stableId}`,
+    { defaultValue: i18n.language.toLowerCase().startsWith('zh') ? zhLabel : humanizeStableId(stableId) },
+  );
+  const poseDisplayLabel = (poseId?: string) => {
+    const pose = PANORAMA_AVATAR_POSES.find((item) => item.id === poseId) || PANORAMA_AVATAR_POSES[0];
+    return stableDisplayLabel('poses', pose.id, pose.label);
+  };
+  const shotPresetDisplayLabel = (presetId?: string) => {
+    const preset = PANORAMA_SHOT_PRESETS.find((item) => item.id === presetId) || PANORAMA_SHOT_PRESETS[0];
+    return stableDisplayLabel('shotPresets', preset.id, preset.label);
+  };
+  const shotTargetDisplayLabel = (targetId?: string) => {
+    const target = PANORAMA_SHOT_TARGET_BONES.find((item) => item.id === targetId) || PANORAMA_SHOT_TARGET_BONES[0];
+    return stableDisplayLabel('shotTargets', target.id, target.label);
+  };
+  const compositionGuideDisplayLabel = (guideId: string, zhLabel: string) => (
+    guideId === 'off' ? panoramaT('off') : stableDisplayLabel('compositionGuides', guideId, zhLabel)
+  );
+  const transientStateLabel = (value: string, fallbackKey: string) => {
+    const stateKey = ({
+      '已复制': 'copied',
+      '复制失败': 'copyFailed',
+      '先导出快照': 'exportSnapshotFirst',
+      '保存中': 'saving',
+      '已在资源库': 'alreadyInLibrary',
+      '已保存': 'saved',
+      '保存失败': 'saveFailed',
+      '没有可保存的全景贴图': 'noTextureToSave',
+      '保存资源失败': 'resourceSaveFailed',
+    } as Record<string, string>)[value];
+    return value ? (stateKey ? panoramaT(`states.${stateKey}`) : value) : panoramaT(fallbackKey);
+  };
   const update = useUpdateNodeData(p.id);
   const rf = useReactFlow();
   const upstream = useUpstreamMaterials(p.id);
@@ -1874,17 +1915,22 @@ const Panorama3DNode = (p: NodeProps) => {
   );
   const actionPlanSummary = useMemo(() => {
     if (!actionPlan) return [];
-    const poseLabel = (poseId?: string) => PANORAMA_AVATAR_POSES.find((pose) => pose.id === poseId)?.label || '动作';
-    const shotLabel = actionPlan.shotCamera?.presetId
-      ? PANORAMA_SHOT_PRESETS.find((shot) => shot.id === actionPlan.shotCamera?.presetId)?.label
-      : '';
+    const shotLabel = actionPlan.shotCamera?.presetId ? shotPresetDisplayLabel(actionPlan.shotCamera.presetId) : '';
     return [
-      ...actionPlan.avatars.map((avatar, index) => `${index + 1}. ${avatar.name || avatar.ref} · ${poseLabel(avatar.poseId)}${avatar.groundMode === 'floating' ? ' · 离地' : ''}`),
-      actionPlan.keyframes?.length ? `关键帧 ${actionPlan.keyframes.length} 个 · 序列 ${actionPlan.sequenceFrameCount || keyframeSequenceCount} 帧` : '',
-      shotLabel ? `导演镜头 · ${shotLabel}` : '',
-      ...(actionPlan.warnings || []).map((item) => `提示 · ${item}`),
+      ...actionPlan.avatars.map((avatar, index) => panoramaT('actionPlanAvatarSummary', {
+        index: index + 1,
+        name: avatar.name || avatar.ref,
+        pose: poseDisplayLabel(avatar.poseId),
+        floating: avatar.groundMode === 'floating' ? panoramaT('floatingSuffix') : '',
+      })),
+      actionPlan.keyframes?.length ? panoramaT('actionPlanKeyframeSummary', {
+        keyframes: actionPlan.keyframes.length,
+        frames: actionPlan.sequenceFrameCount || keyframeSequenceCount,
+      }) : '',
+      shotLabel ? panoramaT('actionPlanShotSummary', { shot: shotLabel }) : '',
+      ...(actionPlan.warnings || []).map((item) => panoramaT('actionPlanWarning', { message: item })),
     ].filter(Boolean);
-  }, [actionPlan, keyframeSequenceCount]);
+  }, [actionPlan, i18n.language, keyframeSequenceCount]);
 
   const visibleAvatarMarkers = useMemo(
     () => avatars
@@ -3906,10 +3952,13 @@ const Panorama3DNode = (p: NodeProps) => {
   const hasSource = Boolean(sourceUrl);
   const isGeneratedPreview = Boolean(generatedSourceUrl && sourceUrl === generatedSourceUrl);
   const generatedSubtitle = isGenerating
-    ? `生成中 · 21:9 · ${sizeLevel}`
+    ? panoramaT('generatingSubtitle', { size: sizeLevel })
     : hasSource
-    ? `${PANORAMA_RATIO_OPTIONS.find((x) => x.id === ratioId)?.label || '21:9'} · ${isGeneratedPreview ? `${sizeLevel} · GPT Image 2` : `FOV ${Math.round(fov)}°`}`
-    : '文生 / 图生 720VR';
+    ? panoramaT('sourceSubtitle', {
+        ratio: PANORAMA_RATIO_OPTIONS.find((x) => x.id === ratioId)?.label || '21:9',
+        detail: isGeneratedPreview ? `${sizeLevel} · GPT Image 2` : `FOV ${Math.round(fov)}°`,
+      })
+    : panoramaT('emptySubtitle');
   const hasConnectedReference = Boolean(connectedSource?.url);
   const hasLocalReference = Boolean(localReferenceUrl);
   const activeReferenceUrl = imageReferenceUrl;
@@ -3918,6 +3967,17 @@ const Panorama3DNode = (p: NodeProps) => {
     : quality?.level === 'unknown'
     ? 'border-slate-400/25 bg-slate-400/10 text-[var(--t8-text-muted)]'
     : 'border-emerald-400/25 bg-emerald-400/10 text-emerald-100';
+  const qualityLabel = quality ? panoramaT(`quality.levels.${quality.level}`) : '';
+  const qualityAspectLabel = quality?.aspectLabel === '未知比例'
+    ? panoramaT('quality.unknownAspect')
+    : quality?.aspectLabel.startsWith('非标准 ')
+      ? panoramaT('quality.nonStandardAspect', { ratio: quality.aspectLabel.slice(4) })
+      : quality?.aspectLabel || '';
+  const qualityHint = quality
+    ? panoramaT(`quality.hints.${quality.level}`, {
+        extra: quality.aspectLabel.startsWith('非标准 ') ? panoramaT('quality.nonStandardHint') : '',
+      })
+    : '';
 
   const selectStoryboardPreset = (presetId: string) => {
     if (!presetId) {
@@ -4046,7 +4106,7 @@ const Panorama3DNode = (p: NodeProps) => {
         {rawPreviewUrl ? (
           <SmartImage
             src={rawPreviewUrl}
-            alt="分镜提示板预览"
+            alt={panoramaT('storyboardPreviewAlt')}
             className="max-h-28 w-full bg-slate-950 object-contain"
             draggable={false}
             thumbSize={720}
@@ -4069,7 +4129,7 @@ const Panorama3DNode = (p: NodeProps) => {
               WebkitTextFillColor: 'rgba(255,255,255,.82)',
             }}
           >
-            等待快照预览
+            {panoramaT('waitingSnapshotPreview')}
           </div>
         )}
         <div
@@ -4138,10 +4198,10 @@ const Panorama3DNode = (p: NodeProps) => {
       <div className="flex items-center justify-between gap-2 text-xs font-bold text-[var(--t8-text-main)]">
         <span className="flex items-center gap-1">
           <Sparkles size={13} />
-          动作生成
+          {panoramaT('actionGeneration')}
         </span>
         <span className="text-[10px] text-[var(--t8-text-muted)]">
-          {actionPlan ? `${actionPlan.avatars.length} 角色草案` : '本地 / AI'}
+          {actionPlan ? panoramaT('avatarDraftCount', { count: actionPlan.avatars.length }) : panoramaT('localOrAi')}
         </span>
       </div>
       <textarea
@@ -4154,7 +4214,7 @@ const Panorama3DNode = (p: NodeProps) => {
             createLocalActionPlan('append');
           }
         }}
-        placeholder="角色B飞踢角色A，角色A受击后仰，脚部特写，8帧"
+        placeholder={panoramaT('actionPromptPlaceholder')}
         rows={director ? 3 : 2}
         className="nodrag nopan nowheel w-full resize-none rounded-md border border-[var(--t8-border)] bg-[var(--t8-bg-panel-muted)] px-2 py-1.5 text-xs leading-relaxed text-[var(--t8-text-main)] outline-none"
       />
@@ -4164,35 +4224,35 @@ const Panorama3DNode = (p: NodeProps) => {
             key={term.id}
             type="button"
             className="t8-btn h-7 px-2 text-[10px]"
-            onClick={() => setActionPrompt((current) => current ? `${current}，${term.label}` : term.label)}
-            title={term.description}
+            onClick={() => setActionPrompt((current) => current ? `${current}，${panoramaT(`quickTerms.${term.id}.label`, { defaultValue: term.label })}` : panoramaT(`quickTerms.${term.id}.label`, { defaultValue: term.label }))}
+            title={panoramaT(`quickTerms.${term.id}.description`, { defaultValue: term.description })}
           >
-            {term.label}
+            {panoramaT(`quickTerms.${term.id}.label`, { defaultValue: term.label })}
           </button>
         ))}
       </div>
       <div className="grid grid-cols-2 gap-1.5">
         <button type="button" className="t8-btn h-8 px-2 text-[10px]" onClick={() => createLocalActionPlan('append')}>
           <Sparkles size={12} />
-          本地解析
+          {panoramaT('localParse')}
         </button>
         <button type="button" className="t8-btn h-8 px-2 text-[10px]" onClick={requestAiActionPlan} disabled={isPlanningAction}>
           {isPlanningAction ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
-          AI解析
+          {panoramaT('aiParse')}
         </button>
       </div>
       <div className="grid grid-cols-3 gap-1.5">
         <button type="button" className="t8-btn h-8 px-2 text-[10px]" onClick={() => applyActionPlan('update-selected')} disabled={!activeAvatar && avatars.length === 0}>
           <Move size={12} />
-          应用当前
+          {panoramaT('applyCurrent')}
         </button>
         <button type="button" className="t8-btn h-8 px-2 text-[10px]" onClick={() => applyActionPlan('append')}>
           <Plus size={12} />
-          新增角色
+          {panoramaT('addAvatar')}
         </button>
         <button type="button" className="t8-btn h-8 px-2 text-[10px]" onClick={() => applyActionPlan('replace-actors')}>
           <RotateCcw size={12} />
-          替换场景
+          {panoramaT('replaceScene')}
         </button>
       </div>
       {(actionPlanStatus || actionPlanSummary.length > 0) && (
@@ -4221,7 +4281,7 @@ const Panorama3DNode = (p: NodeProps) => {
             <Globe2 size={15} />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="text-sm font-bold text-[var(--t8-text-main)]">3D全景</div>
+            <div className="text-sm font-bold text-[var(--t8-text-main)]">{translate('nodes:panorama3D.title')}</div>
             <div className="text-[10px] text-[var(--t8-text-muted)]">
               {generatedSubtitle}
             </div>
@@ -4239,7 +4299,7 @@ const Panorama3DNode = (p: NodeProps) => {
               event.stopPropagation();
             }}
             onClick={() => setShortcutHelpOpen(true)}
-            title="3D 全景快捷键 (?)"
+            title={panoramaT('shortcutHelpTitle')}
           >
             <HelpCircle size={13} />
           </button>
@@ -4276,7 +4336,7 @@ const Panorama3DNode = (p: NodeProps) => {
                   event.stopPropagation();
                 }}
                 onClick={() => setShortcutHelpOpen(true)}
-                title="快捷键 (?)"
+                title={panoramaT('shortcutsTitle')}
               >
                 <HelpCircle size={13} />
               </button>
@@ -4292,7 +4352,7 @@ const Panorama3DNode = (p: NodeProps) => {
                   setDirectorFullscreenOpen(true);
                   window.setTimeout(refreshDirectorPreview, 0);
                 }}
-                title="打开全屏导演台 (O)"
+                title={panoramaT('openDirectorTitle')}
               >
                 <Maximize2 size={13} />
               </button>
@@ -4332,7 +4392,7 @@ const Panorama3DNode = (p: NodeProps) => {
                       : 'border-white/60 bg-slate-950/20 text-white'
                   }`}
                   style={{ touchAction: 'none' }}
-                  title={`${index + 1}. ${item.name} · 拖动移动角色`}
+                  title={panoramaT('dragAvatarTitle', { index: index + 1, name: item.name })}
                   onMouseDown={stopPanoramaMouseDown}
                   onPointerDown={(event) => startAvatarDrag(event, item)}
                   onPointerMove={moveAvatarDrag}
@@ -4360,7 +4420,7 @@ const Panorama3DNode = (p: NodeProps) => {
                       type="button"
                       className="nodrag nopan flex h-8 w-8 items-center justify-center rounded-full border-2 text-slate-950 transition-transform hover:scale-110"
                       style={{ ...PANORAMA_MOVE_HANDLE_STYLE, touchAction: 'none' }}
-                      title={`${item.name} · 拖动平移角色位置`}
+                      title={panoramaT('moveAvatarTitle', { name: item.name })}
                       onMouseDown={stopPanoramaMouseDown}
                       onPointerDown={(event) => startAvatarDrag(event, item)}
                       onPointerMove={moveAvatarDrag}
@@ -4377,7 +4437,7 @@ const Panorama3DNode = (p: NodeProps) => {
                       type="button"
                       className="nodrag nopan flex h-8 w-8 items-center justify-center rounded-full border-2 text-slate-950 transition-transform hover:scale-110"
                       style={{ ...PANORAMA_ROTATE_HANDLE_STYLE, touchAction: 'none' }}
-                      title={`${item.name} · 左右拖动旋转朝向，上下拖动前后倾`}
+                      title={panoramaT('rotateAvatarTitle', { name: item.name })}
                       onMouseDown={stopPanoramaMouseDown}
                       onPointerDown={(event) => startAvatarRotate(event, item)}
                       onPointerMove={moveAvatarRotate}
@@ -4405,7 +4465,7 @@ const Panorama3DNode = (p: NodeProps) => {
                 data-panorama-ik-control="true"
                 data-panorama-ik-avatar-id={control.avatarId}
                 data-panorama-ik-handle-id={control.id}
-                title={`${control.label} · 直接拖动画面关节调整姿态`}
+                title={panoramaT('dragJointTitle', { label: control.label })}
                 onMouseDown={stopPanoramaMouseDown}
                 onPointerDown={(event) => startAvatarIkDrag(event, control)}
                 onPointerMove={moveAvatarIkDrag}
@@ -4443,7 +4503,7 @@ const Panorama3DNode = (p: NodeProps) => {
                     style={shotGuideStyle}
                   >
                     <span className="absolute left-1 top-1 rounded bg-slate-950/75 px-1.5 py-0.5 text-[9px] font-bold text-amber-100">
-                      导演镜头
+                      {panoramaT('directorShot')}
                     </span>
                   </div>
                 </div>
@@ -4480,7 +4540,7 @@ const Panorama3DNode = (p: NodeProps) => {
                   backgroundColor: `rgba(14, 165, 233, ${Math.min(0.72, 0.2 + mask.strength / 200)})`,
                   backgroundImage: 'repeating-linear-gradient(135deg, rgba(2,6,23,.32) 0 2px, transparent 2px 10px)',
                 }}
-                title={`${mask.label} · 拖动移动，拖边角缩放`}
+                title={panoramaT('moveResizeMaskTitle', { label: mask.label })}
                 onMouseDown={stopPanoramaMouseDown}
                 onPointerDown={(event) => startOcclusionMaskDrag(event, mask, 'move')}
                 onPointerMove={moveOcclusionMaskDrag}
@@ -4517,7 +4577,7 @@ const Panorama3DNode = (p: NodeProps) => {
                     type="button"
                     className={`nodrag nopan absolute h-3 w-3 rounded-full border border-slate-950 bg-white shadow-sm ${className}`}
                     style={{ touchAction: 'none' }}
-                    title={`${mask.label} · 拖动缩放`}
+                    title={panoramaT('resizeMaskTitle', { label: mask.label })}
                     onMouseDown={stopPanoramaMouseDown}
                     onPointerDown={(event) => startOcclusionMaskDrag(event, mask, mode)}
                     onPointerMove={moveOcclusionMaskDrag}
@@ -4534,33 +4594,33 @@ const Panorama3DNode = (p: NodeProps) => {
             {hotspotPickMode && (
               <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-sky-950/25 text-xs font-bold text-sky-100">
                 <div className="rounded-full border border-sky-200/60 bg-slate-950/80 px-3 py-1.5 shadow-lg">
-                  点击画面放置导览热点
+                  {panoramaT('clickToPlaceHotspot')}
                 </div>
               </div>
             )}
             {avatarPickMode && (
               <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-fuchsia-950/25 text-xs font-bold text-fuchsia-100">
                 <div className="rounded-full border border-fuchsia-200/60 bg-slate-950/80 px-3 py-1.5 shadow-lg">
-                  点击画面放置{activeAvatar ? `「${activeAvatar.name}」` : '新角色'}
+                  {panoramaT('clickToPlaceAvatar', { name: activeAvatar ? `「${activeAvatar.name}」` : panoramaT('newAvatar') })}
                 </div>
               </div>
             )}
             {!hasSource && (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-slate-950 text-center text-xs text-slate-300">
                 <Box size={24} className="text-sky-300" />
-                <span>连接或生成全景贴图</span>
+                <span>{panoramaT('connectOrGenerateTexture')}</span>
               </div>
             )}
             {textureStatus === 'loading' && (
               <div className="absolute inset-0 flex items-center justify-center gap-2 bg-slate-950/70 text-xs font-bold text-slate-100">
                 <Loader2 size={15} className="animate-spin" />
-                加载中
+                {panoramaT('loading')}
               </div>
             )}
             {isGenerating && (
               <div className="absolute inset-0 flex items-center justify-center gap-2 bg-slate-950/75 text-xs font-bold text-slate-100">
                 <Loader2 size={15} className="animate-spin" />
-                {d.progress || '生成中'}
+                {d.progress || panoramaT('generating')}
               </div>
             )}
             {(textureStatus === 'error' || savedError) && (
@@ -4574,11 +4634,7 @@ const Panorama3DNode = (p: NodeProps) => {
           <input ref={refInputRef} type="file" accept="image/*" className="hidden" onChange={handleReferenceUpload} />
 
           <div className="grid grid-cols-3 gap-1.5">
-            {([
-              ['preview', '连接预览'],
-              ['text', '文生全景'],
-              ['image', '图生全景'],
-            ] as Array<[PanoramaPanelMode, string]>).map(([mode, label]) => (
+            {(['preview', 'text', 'image'] as PanoramaPanelMode[]).map((mode) => (
               <button
                 key={mode}
                 type="button"
@@ -4588,7 +4644,7 @@ const Panorama3DNode = (p: NodeProps) => {
                   ...(mode === 'text' || mode === 'image' ? { panoramaGenerationMode: mode } : {}),
                 })}
               >
-                {label}
+                {panoramaT(`panelModes.${mode}`)}
               </button>
             ))}
           </div>
@@ -4616,7 +4672,7 @@ const Panorama3DNode = (p: NodeProps) => {
 
               <div className="grid grid-cols-2 gap-2">
                 <label className="block">
-                  <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">观看者站位</span>
+                  <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">{panoramaT('viewerPosition')}</span>
                   <input
                     value={viewerPosition}
                     onChange={(event) => {
@@ -4626,12 +4682,12 @@ const Panorama3DNode = (p: NodeProps) => {
                         panoramaPromptFinal: buildPromptFinalFor(userPrompt, { viewerPosition: next }),
                       });
                     }}
-                    placeholder="站在大厅中央 / 门口向内看"
+                    placeholder={panoramaT('viewerPositionPlaceholder')}
                     className="w-full rounded-md border border-[var(--t8-border)] bg-[var(--t8-bg-panel)] px-2 py-1.5 text-xs text-[var(--t8-text-main)] outline-none"
                   />
                 </label>
                 <label className="block">
-                  <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">初始视线中心</span>
+                  <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">{panoramaT('initialViewCenter')}</span>
                   <input
                     value={viewCenter}
                     onChange={(event) => {
@@ -4641,21 +4697,21 @@ const Panorama3DNode = (p: NodeProps) => {
                         panoramaPromptFinal: buildPromptFinalFor(userPrompt, { viewCenter: next }),
                       });
                     }}
-                    placeholder="正对入口 / 主展品 / 窗外城市"
+                    placeholder={panoramaT('initialViewCenterPlaceholder')}
                     className="w-full rounded-md border border-[var(--t8-border)] bg-[var(--t8-bg-panel)] px-2 py-1.5 text-xs text-[var(--t8-text-main)] outline-none"
                   />
                 </label>
               </div>
 
               <PromptTextarea
-                title="3D 全景提示词"
+                title={panoramaT('promptTitle')}
                 value={userPrompt}
                 onValueChange={(value) => update({
                   panoramaPrompt: value,
                   panoramaPromptFinal: buildPromptFinalFor(value),
                 })}
                 rows={3}
-                placeholder={panelMode === 'image' ? '可选补充：场景风格、天气、镜头中心...' : '场景提示词'}
+                placeholder={panelMode === 'image' ? panoramaT('imagePromptPlaceholder') : panoramaT('scenePromptPlaceholder')}
                 promptTemplateKind="image"
                 className="w-full resize-none rounded-md border border-[var(--t8-border)] bg-[var(--t8-bg-panel)] px-2 py-1.5 text-xs text-[var(--t8-text-main)] outline-none"
               />
@@ -4680,12 +4736,12 @@ const Panorama3DNode = (p: NodeProps) => {
                 <div className="grid grid-cols-[1fr_auto_auto] items-center gap-2 rounded-md bg-[var(--t8-bg-panel)] px-2 py-1.5">
                   <div className="min-w-0 text-[10px] text-[var(--t8-text-muted)]">
                     {hasConnectedReference
-                      ? `上游第一张 · ${connectedSource?.label || '参考图'}`
+                      ? panoramaT('upstreamFirstReference', { label: connectedSource?.label || panoramaT('referenceImage') })
                       : hasLocalReference
-                      ? `节点内参考 · ${cleanFileBase(localReferenceUrl)}`
-                      : '等待参考图'}
+                      ? panoramaT('localReference', { name: cleanFileBase(localReferenceUrl) })
+                      : panoramaT('waitingReference')}
                   </div>
-                  <button type="button" className="t8-mini-icon-button" onClick={() => refInputRef.current?.click()} title="上传参考图">
+                  <button type="button" className="t8-mini-icon-button" onClick={() => refInputRef.current?.click()} title={panoramaT('uploadReference')}>
                     <Upload size={13} />
                   </button>
                   <button
@@ -4693,7 +4749,7 @@ const Panorama3DNode = (p: NodeProps) => {
                     className="t8-mini-icon-button"
                     onClick={() => update({ panoramaReferenceUrl: '' })}
                     disabled={!hasLocalReference}
-                    title="清除节点内参考"
+                    title={panoramaT('clearLocalReference')}
                   >
                     <RotateCcw size={13} />
                   </button>
@@ -4702,38 +4758,38 @@ const Panorama3DNode = (p: NodeProps) => {
 
               {panelMode === 'image' && activeReferenceUrl && (
                 <div className="overflow-hidden rounded-md border border-[var(--t8-border)] bg-slate-950">
-                  <SmartImage src={activeReferenceUrl} alt="全景参考图" className="h-20 w-full object-contain" draggable={false} thumbSize={420} />
+                  <SmartImage src={activeReferenceUrl} alt={panoramaT('referenceAlt')} className="h-20 w-full object-contain" draggable={false} thumbSize={420} />
                 </div>
               )}
 
               <details className="rounded-md bg-[var(--t8-bg-panel)] px-2 py-1 text-[10px] text-[var(--t8-text-muted)]">
-                <summary className="cursor-pointer font-bold text-[var(--t8-text-main)]">实际发送</summary>
+                <summary className="cursor-pointer font-bold text-[var(--t8-text-main)]">{panoramaT('actualRequest')}</summary>
                 <div className="mt-1 max-h-24 overflow-y-auto whitespace-pre-wrap leading-relaxed">{promptFinal}</div>
               </details>
 
               <div className="grid grid-cols-4 gap-1.5">
                 <button type="button" className="t8-btn t8-btn-primary min-h-8 px-2 text-[11px]" onClick={() => requestPanoramaRun('generate')} disabled={isGenerating}>
                   {isGenerating ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
-                  {d.panoramaGeneratedUrl ? '重新生成' : '生成全景'}
+                  {d.panoramaGeneratedUrl ? panoramaT('regenerate') : panoramaT('generatePanorama')}
                 </button>
                 <button type="button" className="t8-btn min-h-8 px-2 text-[11px]" onClick={copyPrompt}>
                   {copyState ? <CheckCircle2 size={13} /> : <Copy size={13} />}
-                  {copyState || '复制'}
+                  {transientStateLabel(copyState, 'copy')}
                 </button>
                 <button type="button" className="t8-btn min-h-8 px-2 text-[11px]" onClick={savePanoramaResource} disabled={!sourceUrl || resourceState === '保存中'}>
                   {resourceState === '保存中' ? <Loader2 size={13} className="animate-spin" /> : <PackagePlus size={13} />}
-                  {resourceState || '资源库'}
+                  {transientStateLabel(resourceState, 'resourceLibrary')}
                 </button>
                 <button type="button" className="t8-btn min-h-8 px-2 text-[11px]" onClick={() => sourceUrl && downloadUrl(sourceUrl, `${cleanFileBase(sourceUrl)}-panorama.png`)} disabled={!sourceUrl}>
                   <Download size={13} />
-                  贴图
+                  {panoramaT('texture')}
                 </button>
               </div>
 
               {generatedHistory.length > 0 && (
                 <div className="space-y-1">
                   <div className="flex items-center gap-1 text-[10px] font-bold text-[var(--t8-text-muted)]">
-                    <History size={12} /> 最近生成
+                    <History size={12} /> {panoramaT('recentGenerations')}
                   </div>
                   <div className="grid grid-cols-3 gap-1.5">
                     {generatedHistory.map((item) => (
@@ -4744,8 +4800,8 @@ const Panorama3DNode = (p: NodeProps) => {
                         onClick={() => useHistoryItem(item)}
                         title={item.promptFinal}
                       >
-                        <SmartImage src={item.url} alt="全景历史" className="h-12 w-full object-cover" draggable={false} thumbSize={240} />
-                        <div className="truncate px-1.5 py-1 text-[9px] text-slate-200">{item.sizeLevel} · {generationModeLabel(item.mode)}</div>
+                        <SmartImage src={item.url} alt={panoramaT('historyAlt')} className="h-12 w-full object-cover" draggable={false} thumbSize={240} />
+                        <div className="truncate px-1.5 py-1 text-[9px] text-slate-200">{item.sizeLevel} · {panoramaT(`panelModes.${item.mode}`)}</div>
                       </button>
                     ))}
                   </div>
@@ -4759,11 +4815,11 @@ const Panorama3DNode = (p: NodeProps) => {
               <button
                 key={item.id}
                 type="button"
-                title={item.label}
+                title={stableDisplayLabel('ratios', item.id, item.label)}
                 onClick={() => setView({ panoramaRatio: item.id })}
                 className={`t8-btn px-1.5 py-1.5 text-[10px] ${ratioId === item.id ? 't8-btn-primary' : ''}`}
               >
-                {item.label}
+                {stableDisplayLabel('ratios', item.id, item.label)}
               </button>
             ))}
           </div>
@@ -4771,7 +4827,7 @@ const Panorama3DNode = (p: NodeProps) => {
           {ratioId === 'custom' && (
             <div className="grid grid-cols-2 gap-2">
               <label className="block">
-                <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">比例宽</span>
+                <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">{panoramaT('ratioWidth')}</span>
                 <input
                   type="number"
                   min={1}
@@ -4782,7 +4838,7 @@ const Panorama3DNode = (p: NodeProps) => {
                 />
               </label>
               <label className="block">
-                <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">比例高</span>
+                <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">{panoramaT('ratioHeight')}</span>
                 <input
                   type="number"
                   min={1}
@@ -4796,19 +4852,19 @@ const Panorama3DNode = (p: NodeProps) => {
           )}
 
           <div className="grid grid-cols-5 gap-2">
-            <button type="button" className="t8-btn py-2 text-xs" onClick={() => applyView({ fov: clampFov(fov * 0.92) }, { panoramaActiveCameraViewId: '' })} title="放大">
+            <button type="button" className="t8-btn py-2 text-xs" onClick={() => applyView({ fov: clampFov(fov * 0.92) }, { panoramaActiveCameraViewId: '' })} title={panoramaT('zoomIn')}>
               <ZoomIn size={14} />
             </button>
-            <button type="button" className="t8-btn py-2 text-xs" onClick={() => applyView({ fov: clampFov(fov / 0.92) }, { panoramaActiveCameraViewId: '' })} title="缩小">
+            <button type="button" className="t8-btn py-2 text-xs" onClick={() => applyView({ fov: clampFov(fov / 0.92) }, { panoramaActiveCameraViewId: '' })} title={panoramaT('zoomOut')}>
               <ZoomOut size={14} />
             </button>
-            <button type="button" className="t8-btn py-2 text-xs" onClick={resetView} title="重置视角">
+            <button type="button" className="t8-btn py-2 text-xs" onClick={resetView} title={panoramaT('resetView')}>
               <RotateCcw size={14} />
             </button>
-            <button type="button" className={`t8-btn py-2 text-xs ${autoRotate ? 't8-btn-primary' : ''}`} onClick={() => update({ panoramaAutoRotate: !autoRotate })} title="自动旋转">
+            <button type="button" className={`t8-btn py-2 text-xs ${autoRotate ? 't8-btn-primary' : ''}`} onClick={() => update({ panoramaAutoRotate: !autoRotate })} title={panoramaT('autoRotate')}>
               {autoRotate ? <Pause size={14} /> : <Play size={14} />}
             </button>
-            <button type="button" className="t8-btn t8-btn-primary py-2 text-xs" onClick={() => requestPanoramaRun('frame')} disabled={textureStatus !== 'ready' || isGenerating} title="导出当前画面">
+            <button type="button" className="t8-btn t8-btn-primary py-2 text-xs" onClick={() => requestPanoramaRun('frame')} disabled={textureStatus !== 'ready' || isGenerating} title={panoramaT('exportCurrentFrame')}>
               {isGenerating && d.progress === '导出中' ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
             </button>
           </div>
@@ -4817,9 +4873,9 @@ const Panorama3DNode = (p: NodeProps) => {
             <div className="flex items-center justify-between gap-2 text-xs font-bold text-[var(--t8-text-main)]">
               <span className="flex min-w-0 items-center gap-1.5">
                 <Camera size={14} />
-                摄像机 / 导览
+                {panoramaT('cameraAndTour')}
               </span>
-              <span className="min-w-0 truncate text-right text-[10px] text-[var(--t8-text-muted)]">{cameraViews.length} 机位 · {hotspots.length} 热点</span>
+              <span className="min-w-0 truncate text-right text-[10px] text-[var(--t8-text-muted)]">{panoramaT('cameraHotspotCount', { cameras: cameraViews.length, hotspots: hotspots.length })}</span>
             </div>
             <div className="mt-2 space-y-2">
               <div className="grid grid-cols-6 gap-1.5">
@@ -4829,9 +4885,9 @@ const Panorama3DNode = (p: NodeProps) => {
                     type="button"
                     className="t8-btn h-7 px-1 text-[10px]"
                     onClick={() => applyView(item, { panoramaActiveCameraViewId: '' })}
-                    title={`${item.label} ${item.yaw}°/${item.pitch}°`}
+                    title={`${stableDisplayLabel('cameraPresets', item.id, item.label)} ${item.yaw}°/${item.pitch}°`}
                   >
-                    {item.label}
+                    {stableDisplayLabel('cameraPresets', item.id, item.label)}
                   </button>
                 ))}
               </div>
@@ -4840,12 +4896,12 @@ const Panorama3DNode = (p: NodeProps) => {
                 <input
                   value={cameraName}
                   onChange={(event) => setCameraName(event.target.value)}
-                  placeholder="机位名，例如入口视角"
+                  placeholder={panoramaT('cameraNamePlaceholder')}
                   className="rounded-md border border-[var(--t8-border)] bg-[var(--t8-bg-panel)] px-2 py-1.5 text-xs text-[var(--t8-text-main)] outline-none"
                 />
                 <button type="button" className="t8-btn t8-btn-primary px-2 text-[11px]" onClick={saveCameraView}>
                   <Plus size={13} />
-                  保存机位
+                  {panoramaT('saveCamera')}
                 </button>
               </div>
 
@@ -4860,12 +4916,12 @@ const Panorama3DNode = (p: NodeProps) => {
                           onClick={() => applyCameraView(item)}
                           title={`${item.name} · Yaw ${Math.round(item.yaw)}° Pitch ${Math.round(item.pitch)}° FOV ${Math.round(item.fov)}°`}
                         >
-                          {item.isDefault ? '默认 · ' : ''}{item.name}
+                          {item.isDefault ? panoramaT('defaultPrefix') : ''}{item.name}
                         </button>
-                        <button type="button" className="t8-mini-icon-button" onClick={() => setDefaultCameraView(item)} title="设为默认">
+                        <button type="button" className="t8-mini-icon-button" onClick={() => setDefaultCameraView(item)} title={panoramaT('setDefault')}>
                           <Crosshair size={12} />
                         </button>
-                        <button type="button" className="t8-mini-icon-button" onClick={() => removeCameraView(item)} title="删除机位">
+                        <button type="button" className="t8-mini-icon-button" onClick={() => removeCameraView(item)} title={panoramaT('deleteCamera')}>
                           <Trash2 size={12} />
                         </button>
                       </div>
@@ -4880,13 +4936,13 @@ const Panorama3DNode = (p: NodeProps) => {
               <div className="rounded-md border border-[var(--t8-border)] bg-[var(--t8-bg-panel)] p-2">
                 <div className="mb-1.5 flex items-center gap-1 text-[10px] font-bold text-[var(--t8-text-muted)]">
                   <MapPin size={12} />
-                  全景热点
+                  {panoramaT('panoramaHotspots')}
                 </div>
                 <div className="grid grid-cols-4 gap-1.5">
                   <input
                     value={hotspotLabel}
                     onChange={(event) => setHotspotLabel(event.target.value)}
-                    placeholder="热点名"
+                    placeholder={panoramaT('hotspotNamePlaceholder')}
                     className="min-w-0 rounded-md border border-[var(--t8-border)] bg-[var(--t8-bg-panel-muted)] px-2 py-1.5 text-xs text-[var(--t8-text-main)] outline-none"
                   />
                   <select
@@ -4902,23 +4958,23 @@ const Panorama3DNode = (p: NodeProps) => {
                     type="button"
                     className={`t8-btn h-8 min-w-0 justify-center px-2 text-[10px] whitespace-nowrap ${hotspotPickMode ? 't8-btn-primary' : ''}`}
                     onClick={() => setHotspotPickMode((value) => !value)}
-                    title="点击画面放置热点"
+                    title={panoramaT('pickHotspotTitle')}
                   >
                     <Crosshair size={12} />
-                    取点
+                    {panoramaT('pickPoint')}
                   </button>
                   <button
                     type="button"
                     className="t8-btn h-8 min-w-0 justify-center px-2 text-[10px] whitespace-nowrap"
                     onClick={() => addHotspotAt(viewRef.current)}
-                    title="把当前画面中心保存为热点"
+                    title={panoramaT('saveCenterHotspotTitle')}
                   >
                     <Plus size={12} />
-                    中心
+                    {panoramaT('center')}
                   </button>
                 </div>
                 <div className="mt-1.5 text-[9px] leading-relaxed text-[var(--t8-text-muted)]">
-                  取点会把画面中的点击位置保存成热点；目标可选当前全景或其他 3D 全景节点。
+                  {panoramaT('hotspotHelp')}
                 </div>
                 {hotspots.length > 0 && (
                   <div className="mt-2 space-y-1">
@@ -4938,10 +4994,10 @@ const Panorama3DNode = (p: NodeProps) => {
                             <option key={target.id} value={target.id}>{target.label}</option>
                           ))}
                         </select>
-                        <button type="button" className="t8-mini-icon-button" onClick={() => jumpToHotspot(item)} title="跳转热点">
+                        <button type="button" className="t8-mini-icon-button" onClick={() => jumpToHotspot(item)} title={panoramaT('jumpHotspot')}>
                           <MapPin size={12} />
                         </button>
-                        <button type="button" className="t8-mini-icon-button" onClick={() => removeHotspot(item)} title="删除热点">
+                        <button type="button" className="t8-mini-icon-button" onClick={() => removeHotspot(item)} title={panoramaT('deleteHotspot')}>
                           <Trash2 size={12} />
                         </button>
                       </div>
@@ -4961,15 +5017,20 @@ const Panorama3DNode = (p: NodeProps) => {
             <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-2 text-xs font-bold text-[var(--t8-text-main)]">
               <span className="flex min-w-0 items-center gap-1.5">
                 <Users size={14} />
-                角色 / 场景
+                {panoramaT('actorsAndScene')}
               </span>
-              <span className="min-w-0 truncate text-right text-[10px] text-[var(--t8-text-muted)]">{avatars.filter((item) => item.visible).length}/{avatars.length} 人 · {compositionGuide === 'off' ? '无安全区' : compositionGuide} · {effectiveShotCamera.mode === 'shot-camera' ? '导演镜头' : '当前视角'}</span>
+              <span className="min-w-0 truncate text-right text-[10px] text-[var(--t8-text-muted)]">{panoramaT('sceneStatusSummary', {
+                visible: avatars.filter((item) => item.visible).length,
+                total: avatars.length,
+                guide: compositionGuide === 'off' ? panoramaT('noSafeArea') : compositionGuide,
+                view: effectiveShotCamera.mode === 'shot-camera' ? panoramaT('directorShot') : panoramaT('currentView'),
+              })}</span>
             </div>
             <div className="mt-2 flex flex-col gap-2">
               <div className="order-[-40] grid grid-cols-4 gap-1.5">
                 <button type="button" className="t8-btn t8-btn-primary h-8 min-w-0 justify-center px-2 text-[10px] whitespace-nowrap" onClick={addAvatarAtCenter}>
                   <UserPlus size={13} />
-                  小人
+                  {panoramaT('avatar')}
                 </button>
                 <button
                   type="button"
@@ -4978,41 +5039,43 @@ const Panorama3DNode = (p: NodeProps) => {
                   disabled={textureStatus !== 'ready'}
                 >
                   <Crosshair size={13} />
-                  放置
+                  {panoramaT('place')}
                 </button>
-                <button type="button" className="t8-btn h-8 min-w-0 justify-center px-2 text-[10px] whitespace-nowrap" onClick={() => requestPanoramaRun('scene-snapshot')} disabled={textureStatus !== 'ready' || isGenerating} title="导出场景快照；有关键帧时会按序列帧数输出 F01-Fxx">
+                <button type="button" className="t8-btn h-8 min-w-0 justify-center px-2 text-[10px] whitespace-nowrap" onClick={() => requestPanoramaRun('scene-snapshot')} disabled={textureStatus !== 'ready' || isGenerating} title={panoramaT('exportSceneSnapshotTitle')}>
                   {isGenerating && d.progress === '场景快照导出中' ? <Loader2 size={13} className="animate-spin" /> : <ImageIcon size={13} />}
-                  快照
+                  {panoramaT('snapshot')}
                 </button>
                 <button type="button" className="t8-btn h-8 min-w-0 justify-center px-2 text-[10px] whitespace-nowrap" onClick={() => requestPanoramaRun('control-snapshot')} disabled={textureStatus !== 'ready' || isGenerating}>
                   {isGenerating && d.progress === '控制快照导出中' ? <Loader2 size={13} className="animate-spin" /> : <ScanLine size={13} />}
-                  控图
+                  {panoramaT('controlImage')}
                 </button>
                 <button type="button" className="t8-btn h-8 min-w-0 justify-center px-2 text-[10px] whitespace-nowrap" onClick={copyScenePrompt} disabled={!scenePrompt}>
                   <Copy size={13} />
-                  {sceneCopyState || '场景词'}
+                  {transientStateLabel(sceneCopyState, 'scenePrompt')}
                 </button>
                 <button type="button" className="t8-btn h-8 min-w-0 justify-center px-2 text-[10px] whitespace-nowrap" onClick={sendSceneSnapshot} disabled={!outputUrl && !d.panoramaSceneSnapshot?.snapshotUrl}>
                   <PackagePlus size={13} />
-                  发送
+                  {panoramaT('send')}
                 </button>
                 <button type="button" className="t8-btn h-8 min-w-0 justify-center px-2 text-[10px] whitespace-nowrap" onClick={saveSceneSnapshotResource} disabled={sceneResourceState === '保存中' || (!outputUrl && !d.panoramaSceneSnapshot?.snapshotUrl)}>
                   {sceneResourceState === '保存中' ? <Loader2 size={13} className="animate-spin" /> : <PackagePlus size={13} />}
-                  {sceneResourceState || '入库'}
+                  {transientStateLabel(sceneResourceState, 'saveToLibrary')}
                 </button>
                 <button type="button" className="t8-btn h-8 min-w-0 justify-center px-2 text-[10px] whitespace-nowrap" onClick={exportAvatarLayout}>
                   <FileJson size={13} />
-                  导出
+                  {panoramaT('export')}
                 </button>
                 <button type="button" className="t8-btn h-8 min-w-0 justify-center px-2 text-[10px] whitespace-nowrap" onClick={importAvatarLayout}>
                   <Upload size={13} />
-                  导入
+                  {panoramaT('import')}
                 </button>
               </div>
 
               <div className="order-[-30] flex flex-wrap items-center justify-between gap-2 rounded-md border border-[var(--t8-border)] bg-[var(--t8-bg-panel)] px-2 py-1.5 text-[10px] text-[var(--t8-text-muted)]">
                 <span className="min-w-0">
-                  {activeAvatar ? `当前：${activeAvatar.name} · ${PANORAMA_AVATAR_POSES.find((pose) => pose.id === activeAvatar.poseId)?.label || '站立'}` : '还没有角色'}
+                  {activeAvatar
+                    ? panoramaT('currentAvatarSummary', { name: activeAvatar.name, pose: poseDisplayLabel(activeAvatar.poseId) })
+                    : panoramaT('noAvatars')}
                 </span>
                 <div className="flex items-center gap-1">
                   <button
@@ -5020,16 +5083,16 @@ const Panorama3DNode = (p: NodeProps) => {
                     className={`t8-btn h-7 px-2 text-[10px] ${avatarIkEditMode ? 't8-btn-primary' : ''}`}
                     onClick={toggleAvatarIkEditMode}
                     disabled={!activeAvatar}
-                    title="画面关节编辑：直接拖动肩/肘/手/髋/膝/脚 (I)"
+                    title={panoramaT('jointEditTitle')}
                   >
                     <Move size={12} />
-                    关节
+                    {panoramaT('joints')}
                   </button>
-                  <button type="button" className="t8-btn h-7 px-2 text-[10px]" onClick={() => setDirectorFullscreenOpen(true)} title="打开全屏导演台 (O)">
+                  <button type="button" className="t8-btn h-7 px-2 text-[10px]" onClick={() => setDirectorFullscreenOpen(true)} title={panoramaT('openDirectorTitle')}>
                     <Maximize2 size={12} />
-                    全参数
+                    {panoramaT('allParameters')}
                   </button>
-                  <button type="button" className="t8-mini-icon-button" onClick={() => setShortcutHelpOpen(true)} title="快捷键 (?)">
+                  <button type="button" className="t8-mini-icon-button" onClick={() => setShortcutHelpOpen(true)} title={panoramaT('shortcutsTitle')}>
                     <HelpCircle size={12} />
                   </button>
                 </div>
@@ -5037,33 +5100,33 @@ const Panorama3DNode = (p: NodeProps) => {
 
               <div className="order-[-10] grid grid-cols-[1fr_1fr_auto_auto] items-center gap-1.5">
                 <label className="min-w-0">
-                  <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">构图安全区</span>
+                  <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">{panoramaT('compositionSafeArea')}</span>
                   <select
                     value={compositionGuide}
                     onChange={(event) => update({ panoramaCompositionGuide: event.target.value })}
                     className="w-full rounded-md border border-[var(--t8-border)] bg-[var(--t8-bg-panel)] px-2 py-1.5 text-xs text-[var(--t8-text-main)] outline-none"
                   >
                     {PANORAMA_COMPOSITION_GUIDES.map((item) => (
-                      <option key={item.id} value={item.id}>{item.label}</option>
+                      <option key={item.id} value={item.id}>{compositionGuideDisplayLabel(item.id, item.label)}</option>
                     ))}
                   </select>
                 </label>
                 <label className="min-w-0">
-                  <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">快照图例</span>
+                  <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">{panoramaT('snapshotLegend')}</span>
                   <select
                     value={sceneLegendVisible ? '1' : '0'}
                     onChange={(event) => update({ panoramaSceneLegendVisible: event.target.value === '1' })}
                     className="w-full rounded-md border border-[var(--t8-border)] bg-[var(--t8-bg-panel)] px-2 py-1.5 text-xs text-[var(--t8-text-main)] outline-none"
                   >
-                    <option value="1">显示</option>
-                    <option value="0">隐藏</option>
+                    <option value="1">{panoramaT('show')}</option>
+                    <option value="0">{panoramaT('hide')}</option>
                   </select>
                 </label>
                 <button
                   type="button"
                   className={`t8-mini-icon-button panorama-avatar-overlay-toggle self-end ${avatarOverlayVisible ? 'is-active' : ''}`}
                   onClick={() => update({ panoramaActorOverlayVisible: !avatarOverlayVisible })}
-                  title="显示/隐藏角色控制点"
+                  title={panoramaT('toggleActorControls')}
                 >
                   {avatarOverlayVisible ? <Eye size={13} /> : <EyeOff size={13} />}
                 </button>
@@ -5072,7 +5135,7 @@ const Panorama3DNode = (p: NodeProps) => {
                   className="t8-mini-icon-button self-end"
                   onClick={() => activeAvatar && focusAvatar(activeAvatar)}
                   disabled={!activeAvatar}
-                  title="定位到选中角色"
+                  title={panoramaT('locateSelectedAvatar')}
                 >
                   <ScanLine size={13} />
                 </button>
@@ -5082,14 +5145,14 @@ const Panorama3DNode = (p: NodeProps) => {
                 <div className="flex items-center justify-between gap-2 text-[10px] font-bold text-[var(--t8-text-main)]">
                   <span className="flex items-center gap-1">
                     <Camera size={12} />
-                    导演镜头
+                    {panoramaT('directorShot')}
                   </span>
-                  <span className="text-[9px] text-[var(--t8-text-muted)]">全屏导演台可调全部参数</span>
+                  <span className="text-[9px] text-[var(--t8-text-muted)]">{panoramaT('directorAllParametersHint')}</span>
                 </div>
                 <div className="mt-2 space-y-2">
                 <div className="grid grid-cols-4 gap-1.5">
                   <label className="min-w-0">
-                    <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">快照模式</span>
+                    <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">{panoramaT('snapshotMode')}</span>
                     <select
                       value={effectiveShotCamera.mode}
                       onChange={(event) => patchShotCamera({
@@ -5098,63 +5161,63 @@ const Panorama3DNode = (p: NodeProps) => {
                       })}
                       className="w-full rounded-md border border-[var(--t8-border)] bg-[var(--t8-bg-panel)] px-2 py-1.5 text-xs text-[var(--t8-text-main)] outline-none"
                     >
-                      <option value="panorama-view">当前视角</option>
-                      <option value="shot-camera">导演镜头</option>
+                      <option value="panorama-view">{panoramaT('currentView')}</option>
+                      <option value="shot-camera">{panoramaT('directorShot')}</option>
                     </select>
                   </label>
                   <label className="min-w-0">
-                    <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">镜头预设</span>
+                    <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">{panoramaT('shotPreset')}</span>
                     <select
                       value={effectiveShotCamera.presetId}
                       onChange={(event) => changeShotPreset(event.target.value)}
                       className="w-full rounded-md border border-[var(--t8-border)] bg-[var(--t8-bg-panel)] px-2 py-1.5 text-xs text-[var(--t8-text-main)] outline-none"
                     >
                       {PANORAMA_SHOT_PRESETS.map((preset) => (
-                        <option key={preset.id} value={preset.id}>{preset.label}</option>
+                        <option key={preset.id} value={preset.id}>{shotPresetDisplayLabel(preset.id)}</option>
                       ))}
                     </select>
                   </label>
                   <label className="min-w-0">
-                    <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">镜头目标</span>
+                    <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">{panoramaT('shotTarget')}</span>
                     <select
                       value={effectiveShotCamera.targetAvatarId}
                       onChange={(event) => patchShotCamera({ mode: 'shot-camera', targetAvatarId: event.target.value })}
                       className="w-full rounded-md border border-[var(--t8-border)] bg-[var(--t8-bg-panel)] px-2 py-1.5 text-xs text-[var(--t8-text-main)] outline-none"
                     >
-                      {avatars.length === 0 && <option value="">无角色</option>}
+                      {avatars.length === 0 && <option value="">{panoramaT('noAvatars')}</option>}
                       {avatars.map((avatar, index) => (
                         <option key={avatar.id} value={avatar.id}>{index + 1}. {avatar.name}</option>
                       ))}
                     </select>
                   </label>
                   <label className="min-w-0">
-                    <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">身体部位</span>
+                    <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">{panoramaT('bodyPart')}</span>
                     <select
                       value={effectiveShotCamera.targetBone}
                       onChange={(event) => patchShotCamera({ mode: 'shot-camera', targetBone: event.target.value as PanoramaShotCamera['targetBone'] })}
                       className="w-full rounded-md border border-[var(--t8-border)] bg-[var(--t8-bg-panel)] px-2 py-1.5 text-xs text-[var(--t8-text-main)] outline-none"
                     >
                       {PANORAMA_SHOT_TARGET_BONES.map((bone) => (
-                        <option key={bone.id} value={bone.id}>{bone.label}</option>
+                        <option key={bone.id} value={bone.id}>{shotTargetDisplayLabel(bone.id)}</option>
                       ))}
                     </select>
                   </label>
                 </div>
                 <div className="grid grid-cols-[1fr_1fr_1fr_auto] items-end gap-1.5">
                   <label className="min-w-0">
-                    <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">镜头比例</span>
+                    <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">{panoramaT('shotAspect')}</span>
                     <select
                       value={effectiveShotCamera.framingRatio}
                       onChange={(event) => patchShotCamera({ mode: 'shot-camera', framingRatio: event.target.value as PanoramaCompositionGuideId })}
                       className="w-full rounded-md border border-[var(--t8-border)] bg-[var(--t8-bg-panel)] px-2 py-1.5 text-xs text-[var(--t8-text-main)] outline-none"
                     >
                       {PANORAMA_COMPOSITION_GUIDES.filter((item) => item.id !== 'off').map((item) => (
-                        <option key={item.id} value={item.id}>{item.label}</option>
+                        <option key={item.id} value={item.id}>{compositionGuideDisplayLabel(item.id, item.label)}</option>
                       ))}
                     </select>
                   </label>
                   <label>
-                    <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">特写 {Math.round(effectiveShotCamera.closeupStrength)}</span>
+                    <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">{panoramaT('closeupValue', { value: Math.round(effectiveShotCamera.closeupStrength) })}</span>
                     <input
                       type="range"
                       min={0}
@@ -5165,7 +5228,7 @@ const Panorama3DNode = (p: NodeProps) => {
                     />
                   </label>
                   <label>
-                    <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">低机位 {Math.round(effectiveShotCamera.lowAngle)}</span>
+                    <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">{panoramaT('lowAngleValue', { value: Math.round(effectiveShotCamera.lowAngle) })}</span>
                     <input
                       type="range"
                       min={0}
@@ -5180,10 +5243,10 @@ const Panorama3DNode = (p: NodeProps) => {
                     className="t8-btn h-8 px-2 text-[10px]"
                     onClick={applyDirectorShotView}
                     disabled={avatars.length === 0}
-                    title="套用导演镜头"
+                    title={panoramaT('applyDirectorShotTitle')}
                   >
                     <Camera size={13} />
-                    套用
+                    {panoramaT('apply')}
                   </button>
                 </div>
                 </div>
@@ -5192,17 +5255,17 @@ const Panorama3DNode = (p: NodeProps) => {
                 <div className="flex items-center justify-between gap-2 text-[10px] font-bold text-[var(--t8-text-main)]">
                   <span className="flex items-center gap-1">
                     <History size={12} />
-                    动作时间轴
+                    {panoramaT('actionTimeline')}
                   </span>
-                  <span className="text-[9px] text-[var(--t8-text-muted)]">{avatarKeyframes.length} 关键帧 · {keyframeSequenceCount} 序列帧</span>
+                  <span className="text-[9px] text-[var(--t8-text-muted)]">{panoramaT('keyframeSequenceCount', { keyframes: avatarKeyframes.length, frames: keyframeSequenceCount })}</span>
                 </div>
                 <div className="mt-2 space-y-2">
                   <div className="grid grid-cols-[1fr_72px_auto] gap-1.5">
                     <div className="rounded-md bg-[var(--t8-bg-panel-muted)] px-2 py-1.5 text-[10px] leading-relaxed text-[var(--t8-text-muted)]">
-                      记录起始 / 结束姿势；点快照会自动生成序列帧。
+                      {panoramaT('keyframeTimelineHint')}
                     </div>
                     <label className="min-w-0">
-                      <span className="mb-0.5 block text-[9px] font-bold text-[var(--t8-text-muted)]">序列帧</span>
+                      <span className="mb-0.5 block text-[9px] font-bold text-[var(--t8-text-muted)]">{panoramaT('sequenceFrames')}</span>
                       <input
                         type="number"
                         min={2}
@@ -5222,20 +5285,20 @@ const Panorama3DNode = (p: NodeProps) => {
                     </label>
                     <button type="button" className="t8-btn h-8 px-2 text-[10px]" onClick={saveAvatarKeyframe} disabled={!activeAvatar}>
                       <Plus size={12} />
-                      记录
+                      {panoramaT('record')}
                     </button>
                   </div>
                   {avatarKeyframes.length > 0 ? (
                     <div className="space-y-1">
                       {avatarKeyframes.map((frame) => (
                         <div key={frame.id} className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-1 rounded-md bg-[var(--t8-bg-panel-muted)] px-1.5 py-1">
-                          <button type="button" className="min-w-0 truncate text-left text-[10px] text-[var(--t8-text-main)]" onClick={() => applyAvatarKeyframe(frame)} title="应用此关键帧">
-                            {frame.label} · {frame.time.toFixed(1)}s · {frame.avatarName} · {PANORAMA_AVATAR_POSES.find((pose) => pose.id === frame.poseId)?.label || '动作'}
+                          <button type="button" className="min-w-0 truncate text-left text-[10px] text-[var(--t8-text-main)]" onClick={() => applyAvatarKeyframe(frame)} title={panoramaT('applyThisKeyframe')}>
+                            {frame.label} · {frame.time.toFixed(1)}s · {frame.avatarName} · {poseDisplayLabel(frame.poseId)}
                           </button>
-                          <button type="button" className="t8-mini-icon-button" onClick={() => applyAvatarKeyframe(frame)} title="应用关键帧">
+                          <button type="button" className="t8-mini-icon-button" onClick={() => applyAvatarKeyframe(frame)} title={panoramaT('applyKeyframe')}>
                             <ScanLine size={12} />
                           </button>
-                          <button type="button" className="t8-mini-icon-button" onClick={() => removeAvatarKeyframe(frame)} title="删除关键帧">
+                          <button type="button" className="t8-mini-icon-button" onClick={() => removeAvatarKeyframe(frame)} title={panoramaT('deleteKeyframe')}>
                             <Trash2 size={12} />
                           </button>
                         </div>
@@ -5243,7 +5306,7 @@ const Panorama3DNode = (p: NodeProps) => {
                     </div>
                   ) : (
                     <div className="rounded-md border border-dashed border-[var(--t8-border)] px-2 py-2 text-center text-[10px] text-[var(--t8-text-muted)]">
-                      暂无关键帧
+                      {panoramaT('noKeyframes')}
                     </div>
                   )}
                 </div>
@@ -5253,21 +5316,21 @@ const Panorama3DNode = (p: NodeProps) => {
                 <div className="flex items-center justify-between gap-2 text-[10px] font-bold text-[var(--t8-text-main)]">
                   <span className="flex items-center gap-1">
                     <ScanLine size={12} />
-                    遮挡参考
+                    {panoramaT('occlusionReference')}
                   </span>
-                  <span className="text-[9px] text-[var(--t8-text-muted)]">{occlusionMasks.length} 区域 · 非真实深度</span>
+                  <span className="text-[9px] text-[var(--t8-text-muted)]">{panoramaT('occlusionCount', { count: occlusionMasks.length })}</span>
                 </div>
                 <div className="mt-2 space-y-2">
                   <div className="grid grid-cols-[1fr_auto_auto] items-center gap-1.5">
                     <div className="rounded-md bg-[var(--t8-bg-panel)] px-2 py-1.5 text-[10px] leading-relaxed text-[var(--t8-text-muted)]">
-                      手动画前景遮挡 / 接触边界，随快照和场景词一起输出。
+                      {panoramaT('occlusionHint')}
                     </div>
-                    <button type="button" className={`t8-mini-icon-button ${occlusionMaskVisible ? 'is-active' : ''}`} onClick={() => update({ panoramaOcclusionMaskVisible: !occlusionMaskVisible })} title="显示/隐藏遮挡参考">
+                    <button type="button" className={`t8-mini-icon-button ${occlusionMaskVisible ? 'is-active' : ''}`} onClick={() => update({ panoramaOcclusionMaskVisible: !occlusionMaskVisible })} title={panoramaT('toggleOcclusionReference')}>
                       {occlusionMaskVisible ? <Eye size={13} /> : <EyeOff size={13} />}
                     </button>
                     <button type="button" className="t8-btn h-8 px-2 text-[10px]" onClick={addOcclusionMask}>
                       <Plus size={12} />
-                      添加
+                      {panoramaT('add')}
                     </button>
                   </div>
                   {occlusionMasks.length > 0 && (
@@ -5284,7 +5347,7 @@ const Panorama3DNode = (p: NodeProps) => {
                               onChange={(event) => patchOcclusionMask(mask, { label: event.target.value })}
                               className="min-w-0 rounded border border-[var(--t8-border)] bg-[var(--t8-bg-panel-muted)] px-1.5 py-1 text-[10px] text-[var(--t8-text-main)] outline-none"
                             />
-                            <button type="button" className="t8-mini-icon-button" onClick={() => removeOcclusionMask(mask)} title="删除遮挡区">
+                            <button type="button" className="t8-mini-icon-button" onClick={() => removeOcclusionMask(mask)} title={panoramaT('deleteOcclusionArea')}>
                               <Trash2 size={12} />
                             </button>
                           </div>
@@ -5297,7 +5360,7 @@ const Panorama3DNode = (p: NodeProps) => {
                               ['强', 'strength', 0, 100],
                             ] as Array<[string, keyof PanoramaOcclusionMask, number, number]>).map(([label, keyName, min, max]) => (
                               <label key={keyName} className="min-w-0">
-                                <span className="mb-0.5 block text-[9px] font-bold text-[var(--t8-text-muted)]">{label} {Math.round(Number(mask[keyName]) || 0)}</span>
+                                <span className="mb-0.5 block text-[9px] font-bold text-[var(--t8-text-muted)]">{stableDisplayLabel('maskControls', String(keyName), label)} {Math.round(Number(mask[keyName]) || 0)}</span>
                                 <input type="range" min={min} max={max} value={Number(mask[keyName]) || 0} onChange={(event) => patchOcclusionMask(mask, { [keyName]: Number(event.target.value) } as Partial<PanoramaOcclusionMask>)} className="w-full" />
                               </label>
                             ))}
@@ -5305,7 +5368,7 @@ const Panorama3DNode = (p: NodeProps) => {
                           <input
                             value={mask.note || ''}
                             onChange={(event) => patchOcclusionMask(mask, { note: event.target.value })}
-                            placeholder="说明：例如桌沿在前、门框遮挡角色腿部"
+                            placeholder={panoramaT('occlusionNotePlaceholder')}
                             className="w-full rounded border border-[var(--t8-border)] bg-[var(--t8-bg-panel-muted)] px-1.5 py-1 text-[10px] text-[var(--t8-text-main)] outline-none"
                           />
                         </div>
@@ -5318,7 +5381,7 @@ const Panorama3DNode = (p: NodeProps) => {
                 <div className="flex items-center justify-between gap-2 text-[10px] font-bold text-[var(--t8-text-main)]">
                   <span className="flex items-center gap-1">
                     <FileJson size={12} />
-                    分镜提示板
+                    {panoramaT('storyboardPromptBoard')}
                   </span>
                   <button
                     type="button"
@@ -5327,15 +5390,15 @@ const Panorama3DNode = (p: NodeProps) => {
                       panoramaStoryboardPromptEnabled: !storyboardPromptEnabled,
                       panoramaStoryboardPromptText: storyboardPromptText || PANORAMA_STORYBOARD_PROMPT_DEFAULT,
                     })}
-                    title="在快照图下方拼接黑底白字的分镜提示词框"
+                    title={panoramaT('storyboardPromptBoardTitle')}
                   >
-                    {storyboardPromptEnabled ? '已开启' : '关闭'}
+                    {storyboardPromptEnabled ? panoramaT('enabled') : panoramaT('off')}
                   </button>
                 </div>
                 {storyboardPromptEnabled ? (
                   <div className="mt-2 space-y-2">
                     <label className="block">
-                      <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">场景</span>
+                      <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">{panoramaT('scene')}</span>
                       <textarea
                         value={storyboardPromptText}
                         onChange={(event) => update({ panoramaStoryboardPromptText: event.target.value })}
@@ -5347,8 +5410,8 @@ const Panorama3DNode = (p: NodeProps) => {
                     {renderStoryboardPromptPreview()}
                     <div className="rounded-md border border-[var(--t8-border)] bg-[var(--t8-bg-panel)] p-2">
                       <div className="mb-1 flex items-center justify-between gap-2 text-[10px] font-bold text-[var(--t8-text-muted)]">
-                        <span>预设提示词 · LIST</span>
-                        <span>{storyboardPromptPresets.length} 条</span>
+                        <span>{panoramaT('presetPromptsList')}</span>
+                        <span>{panoramaT('presetCount', { count: storyboardPromptPresets.length })}</span>
                       </div>
                       <div className="grid grid-cols-[1fr_1fr] gap-1.5">
                         <select
@@ -5357,7 +5420,7 @@ const Panorama3DNode = (p: NodeProps) => {
                           onChange={(event) => selectStoryboardPreset(event.target.value)}
                           className="nodrag nowheel min-w-0 rounded-md border border-[var(--t8-border)] bg-[var(--t8-bg-panel-muted)] px-2 py-1.5 text-[10px] font-bold text-[var(--t8-text-main)] outline-none"
                         >
-                          <option value="">默认预设</option>
+                          <option value="">{panoramaT('defaultPreset')}</option>
                           {storyboardPromptPresets.map((preset) => (
                             <option key={preset.id} value={preset.id}>{preset.name}</option>
                           ))}
@@ -5365,7 +5428,7 @@ const Panorama3DNode = (p: NodeProps) => {
                         <input
                           value={storyboardPresetName}
                           onChange={(event) => update({ panoramaStoryboardPresetName: event.target.value })}
-                          placeholder="预设名称（保存时使用）"
+                          placeholder={panoramaT('presetNamePlaceholder')}
                           className="nodrag nowheel min-w-0 rounded-md border border-[var(--t8-border)] bg-[var(--t8-bg-panel-muted)] px-2 py-1.5 text-[10px] text-[var(--t8-text-main)] outline-none"
                         />
                       </div>
@@ -5377,17 +5440,17 @@ const Panorama3DNode = (p: NodeProps) => {
                         placeholder={PANORAMA_STORYBOARD_PROMPT_DEFAULT}
                       />
                       <div className="mt-1.5 grid grid-cols-4 gap-1.5">
-                        <button type="button" className="t8-btn t8-btn-primary h-7 px-1 text-[10px]" onClick={insertStoryboardPreset} title="插入到上方场景输入框">
-                          <Plus size={12} /> 插入
+                        <button type="button" className="t8-btn t8-btn-primary h-7 px-1 text-[10px]" onClick={insertStoryboardPreset} title={panoramaT('insertPresetTitle')}>
+                          <Plus size={12} /> {panoramaT('insert')}
                         </button>
-                        <button type="button" className="t8-btn h-7 px-1 text-[10px]" onClick={saveStoryboardPreset} title="保存或更新当前预设">
-                          <CheckCircle2 size={12} /> 保存预设
+                        <button type="button" className="t8-btn h-7 px-1 text-[10px]" onClick={saveStoryboardPreset} title={panoramaT('savePresetTitle')}>
+                          <CheckCircle2 size={12} /> {panoramaT('savePreset')}
                         </button>
-                        <button type="button" className="t8-btn h-7 px-1 text-[10px]" onClick={exportStoryboardPresets} title="导出预设 JSON">
-                          <Download size={12} /> 导出预设
+                        <button type="button" className="t8-btn h-7 px-1 text-[10px]" onClick={exportStoryboardPresets} title={panoramaT('exportPresetJsonTitle')}>
+                          <Download size={12} /> {panoramaT('exportPreset')}
                         </button>
-                        <button type="button" className="t8-btn h-7 px-1 text-[10px]" onClick={() => storyboardPresetImportRef.current?.click()} title="导入预设 JSON">
-                          <Upload size={12} /> 导入预设
+                        <button type="button" className="t8-btn h-7 px-1 text-[10px]" onClick={() => storyboardPresetImportRef.current?.click()} title={panoramaT('importPresetJsonTitle')}>
+                          <Upload size={12} /> {panoramaT('importPreset')}
                         </button>
                       </div>
                       <input
@@ -5406,7 +5469,7 @@ const Panorama3DNode = (p: NodeProps) => {
                   </div>
                 ) : (
                   <div className="mt-2 rounded-md border border-dashed border-[var(--t8-border)] bg-[var(--t8-bg-panel)] px-2 py-2 text-[10px] leading-relaxed text-[var(--t8-text-muted)]">
-                    默认关闭；开启后，导出当前画面、场景快照或控制快照时，会把多行分镜文字拼接在图片下方。
+                    {panoramaT('storyboardPromptDisabledHint')}
                   </div>
                 )}
               </section>
@@ -5421,7 +5484,7 @@ const Panorama3DNode = (p: NodeProps) => {
                       type="button"
                       className={`flex min-w-0 items-center gap-1 rounded-md border px-1.5 py-1 text-[10px] ${activeAvatarId === item.id ? 'border-sky-300 bg-sky-400/15' : 'border-[var(--t8-border)] bg-[var(--t8-bg-panel-muted)]'}`}
                       onClick={() => focusAvatar(item)}
-                      title="选中并跳转到角色"
+                      title={panoramaT('selectAndJumpAvatar')}
                     >
                       <span className="h-2.5 w-2.5 rounded-full" style={{ background: item.color }} />
                       <span>{index + 1}</span>
@@ -5433,52 +5496,52 @@ const Panorama3DNode = (p: NodeProps) => {
 
               {avatars.length === 0 ? (
                 <div className="rounded-md border border-dashed border-[var(--t8-border)] bg-[var(--t8-bg-panel)] px-3 py-4 text-center text-xs text-[var(--t8-text-muted)]">
-                  点“小人”会在当前视角中心添加角色；点“放置”后可直接在画面里选位置。
+                  {panoramaT('emptyAvatarHint')}
                 </div>
               ) : activeAvatar ? (
                 <div className="space-y-2 rounded-md border border-[var(--t8-border)] bg-[var(--t8-bg-panel)] p-2">
                   <div className="grid grid-cols-[1fr_auto_auto_auto] items-end gap-1.5">
                     <label className="min-w-0">
-                      <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">名称</span>
+                      <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">{panoramaT('name')}</span>
                       <input
                         value={activeAvatar.name}
                         onChange={(event) => patchAvatar(activeAvatar, { name: event.target.value })}
                         className="w-full rounded-md border border-[var(--t8-border)] bg-[var(--t8-bg-panel-muted)] px-2 py-1.5 text-xs text-[var(--t8-text-main)] outline-none"
                       />
                     </label>
-                    <button type="button" className="t8-mini-icon-button" onClick={() => patchAvatar(activeAvatar, { visible: !activeAvatar.visible })} title="显隐">
+                    <button type="button" className="t8-mini-icon-button" onClick={() => patchAvatar(activeAvatar, { visible: !activeAvatar.visible })} title={panoramaT('toggleVisibility')}>
                       {activeAvatar.visible ? <Eye size={13} /> : <EyeOff size={13} />}
                     </button>
-                    <button type="button" className="t8-mini-icon-button" onClick={() => patchAvatar(activeAvatar, { locked: !activeAvatar.locked })} title="锁定">
+                    <button type="button" className="t8-mini-icon-button" onClick={() => patchAvatar(activeAvatar, { locked: !activeAvatar.locked })} title={panoramaT('toggleLock')}>
                       {activeAvatar.locked ? <Lock size={13} /> : <Unlock size={13} />}
                     </button>
-                    <button type="button" className="t8-mini-icon-button" onClick={() => removeAvatar(activeAvatar)} title="删除角色">
+                    <button type="button" className="t8-mini-icon-button" onClick={() => removeAvatar(activeAvatar)} title={panoramaT('deleteAvatar')}>
                       <Trash2 size={13} />
                     </button>
                   </div>
 
                   <div className="grid grid-cols-2 gap-2">
                     <label>
-                      <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">动作</span>
+                      <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">{panoramaT('pose')}</span>
                       <select
                         value={activeAvatar.poseId}
                         onChange={(event) => changeAvatarPose(activeAvatar, safePanoramaAvatarPose(event.target.value))}
                         className="w-full rounded-md border border-[var(--t8-border)] bg-[var(--t8-bg-panel-muted)] px-2 py-1.5 text-xs text-[var(--t8-text-main)] outline-none"
                       >
                         {PANORAMA_AVATAR_POSES.map((pose) => (
-                          <option key={pose.id} value={pose.id}>{pose.label}</option>
+                          <option key={pose.id} value={pose.id}>{poseDisplayLabel(pose.id)}</option>
                         ))}
                       </select>
                     </label>
                     <label>
-                      <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">朝向</span>
+                      <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">{panoramaT('facing')}</span>
                       <select
                         value={activeAvatar.faceMode}
                         onChange={(event) => patchAvatar(activeAvatar, { faceMode: safePanoramaAvatarFaceMode(event.target.value) })}
                         className="w-full rounded-md border border-[var(--t8-border)] bg-[var(--t8-bg-panel-muted)] px-2 py-1.5 text-xs text-[var(--t8-text-main)] outline-none"
                       >
-                        <option value="camera">面向镜头</option>
-                        <option value="heading">手动朝向</option>
+                        <option value="camera">{panoramaT('faceCamera')}</option>
+                        <option value="heading">{panoramaT('manualHeading')}</option>
                       </select>
                     </label>
                   </div>
@@ -5488,35 +5551,35 @@ const Panorama3DNode = (p: NodeProps) => {
                       type="button"
                       className={`t8-btn h-8 px-2 text-[10px] ${avatarIkEditMode ? 't8-btn-primary' : ''}`}
                       onClick={toggleAvatarIkEditMode}
-                      title="画面关节编辑：直接拖动肩/肘/手/髋/膝/脚 (I)"
+                      title={panoramaT('jointEditTitle')}
                     >
                       <Move size={12} />
-                      关节
+                      {panoramaT('joints')}
                     </button>
-                    <button type="button" className="t8-btn h-8 px-2 text-[10px]" onClick={resetActivePoseParams} title="重置姿势微调 (R)">
+                    <button type="button" className="t8-btn h-8 px-2 text-[10px]" onClick={resetActivePoseParams} title={panoramaT('resetPoseTitle')}>
                       <RotateCcw size={12} />
-                      重置
+                      {panoramaT('reset')}
                     </button>
                     <button type="button" className="t8-btn h-8 px-2 text-[10px]" onClick={() => duplicateAvatar(activeAvatar)}>
                       <Plus size={12} />
-                      复制
+                      {panoramaT('duplicate')}
                     </button>
-                    <button type="button" className="t8-btn h-8 px-2 text-[10px]" onClick={() => setDirectorFullscreenOpen(true)} title="打开全屏导演台 (O)">
+                    <button type="button" className="t8-btn h-8 px-2 text-[10px]" onClick={() => setDirectorFullscreenOpen(true)} title={panoramaT('openDirectorTitle')}>
                       <Maximize2 size={12} />
-                      全屏
+                      {panoramaT('fullscreen')}
                     </button>
                   </div>
 
                   <section className="rounded-md border border-[var(--t8-border)] bg-[var(--t8-bg-panel-muted)] p-2">
                     <div className="flex items-center justify-between gap-2 text-[10px] font-bold text-[var(--t8-text-main)]">
-                      <span>高级姿态 / 位置参数</span>
-                      <span className="text-[9px] text-[var(--t8-text-muted)]">离地、倾斜、四肢、颜色</span>
+                      <span>{panoramaT('advancedPosePosition')}</span>
+                      <span className="text-[9px] text-[var(--t8-text-muted)]">{panoramaT('advancedPoseHint')}</span>
                     </div>
                     <div className="mt-2 space-y-2">
                   {poseTargets.length > 0 && (
                     <div className="grid grid-cols-[1fr_auto] gap-1.5">
                       <label className="min-w-0">
-                        <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">姿势大师</span>
+                        <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">{panoramaT('poseMaster')}</span>
                         <select
                           value={poseSourceId || poseTargets[0]?.id || ''}
                           onChange={(event) => setPoseSourceId(event.target.value)}
@@ -5529,26 +5592,26 @@ const Panorama3DNode = (p: NodeProps) => {
                       </label>
                       <button type="button" className="t8-btn self-end px-2 text-[10px]" onClick={importPoseToAvatar}>
                         <UserPlus size={12} />
-                        导入姿势
+                        {panoramaT('importPose')}
                       </button>
                     </div>
                   )}
 
                   <div className="grid grid-cols-4 gap-2">
                     <label>
-                      <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">贴地模式</span>
+                      <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">{panoramaT('groundMode')}</span>
                       <select
                         value={activeAvatar.groundMode}
                         onChange={(event) => patchAvatar(activeAvatar, { groundMode: safePanoramaAvatarGroundMode(event.target.value) as PanoramaAvatarGroundMode })}
                         className="w-full rounded-md border border-[var(--t8-border)] bg-[var(--t8-bg-panel-muted)] px-2 py-1.5 text-xs text-[var(--t8-text-main)] outline-none"
                       >
-                        <option value="grounded">贴地</option>
-                        <option value="floating">离地</option>
-                        <option value="manual">手动</option>
+                        <option value="grounded">{panoramaT('groundModes.grounded')}</option>
+                        <option value="floating">{panoramaT('groundModes.floating')}</option>
+                        <option value="manual">{panoramaT('groundModes.manual')}</option>
                       </select>
                     </label>
                     <label>
-                      <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">离地 {Math.round(activeAvatar.rootHeight)}</span>
+                      <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">{panoramaT('rootHeightValue', { value: Math.round(activeAvatar.rootHeight) })}</span>
                       <input
                         type="range"
                         min={-40}
@@ -5560,11 +5623,11 @@ const Panorama3DNode = (p: NodeProps) => {
                       />
                     </label>
                     <label>
-                      <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">前后倾 {Math.round(activeAvatar.rootPitch)}°</span>
+                      <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">{panoramaT('rootPitchValue', { value: Math.round(activeAvatar.rootPitch) })}</span>
                       <input type="range" min={-90} max={90} value={activeAvatar.rootPitch} onChange={(event) => patchAvatar(activeAvatar, { rootPitch: Number(event.target.value) })} className="w-full" />
                     </label>
                     <label>
-                      <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">翻滚 {Math.round(activeAvatar.rootRoll)}°</span>
+                      <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">{panoramaT('rootRollValue', { value: Math.round(activeAvatar.rootRoll) })}</span>
                       <input type="range" min={-120} max={120} value={activeAvatar.rootRoll} onChange={(event) => patchAvatar(activeAvatar, { rootRoll: Number(event.target.value) })} className="w-full" />
                     </label>
                   </div>
@@ -5572,7 +5635,7 @@ const Panorama3DNode = (p: NodeProps) => {
                   <div className="space-y-2 rounded-md border border-[var(--t8-border)] bg-[var(--t8-bg-panel-muted)] p-2">
                     <div className="grid grid-cols-4 gap-2">
                       <label>
-                        <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">左上臂 {Math.round(poseParamNumber(activeAvatar.poseParams, 'armLOffsetZ', 0) * 57.3)}°</span>
+                        <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">{panoramaT('poseParamValue', { label: panoramaT('poseParams.leftUpperArm'), value: Math.round(poseParamNumber(activeAvatar.poseParams, 'armLOffsetZ', 0) * 57.3) })}</span>
                         <input
                           type="range"
                           min={-1.5}
@@ -5584,7 +5647,7 @@ const Panorama3DNode = (p: NodeProps) => {
                         />
                       </label>
                       <label>
-                        <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">右上臂 {Math.round(poseParamNumber(activeAvatar.poseParams, 'armROffsetZ', 0) * 57.3)}°</span>
+                        <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">{panoramaT('poseParamValue', { label: panoramaT('poseParams.rightUpperArm'), value: Math.round(poseParamNumber(activeAvatar.poseParams, 'armROffsetZ', 0) * 57.3) })}</span>
                         <input
                           type="range"
                           min={-1.5}
@@ -5596,7 +5659,7 @@ const Panorama3DNode = (p: NodeProps) => {
                         />
                       </label>
                       <label>
-                        <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">左大腿 {Math.round(poseParamNumber(activeAvatar.poseParams, 'legLOffsetZ', 0) * 57.3)}°</span>
+                        <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">{panoramaT('poseParamValue', { label: panoramaT('poseParams.leftThigh'), value: Math.round(poseParamNumber(activeAvatar.poseParams, 'legLOffsetZ', 0) * 57.3) })}</span>
                         <input
                           type="range"
                           min={-1.5}
@@ -5608,7 +5671,7 @@ const Panorama3DNode = (p: NodeProps) => {
                         />
                       </label>
                       <label>
-                        <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">右大腿 {Math.round(poseParamNumber(activeAvatar.poseParams, 'legROffsetZ', 0) * 57.3)}°</span>
+                        <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">{panoramaT('poseParamValue', { label: panoramaT('poseParams.rightThigh'), value: Math.round(poseParamNumber(activeAvatar.poseParams, 'legROffsetZ', 0) * 57.3) })}</span>
                         <input
                           type="range"
                           min={-1.5}
@@ -5622,7 +5685,7 @@ const Panorama3DNode = (p: NodeProps) => {
                     </div>
                     <div className="grid grid-cols-4 gap-2">
                       <label>
-                        <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">左肘 {Math.round(poseParamNumber(activeAvatar.poseParams, 'armLBendOffsetZ', 0) * 57.3)}°</span>
+                        <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">{panoramaT('poseParamValue', { label: panoramaT('poseParams.leftElbow'), value: Math.round(poseParamNumber(activeAvatar.poseParams, 'armLBendOffsetZ', 0) * 57.3) })}</span>
                         <input
                           type="range"
                           min={-1.4}
@@ -5634,7 +5697,7 @@ const Panorama3DNode = (p: NodeProps) => {
                         />
                       </label>
                       <label>
-                        <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">右肘 {Math.round(poseParamNumber(activeAvatar.poseParams, 'armRBendOffsetZ', 0) * 57.3)}°</span>
+                        <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">{panoramaT('poseParamValue', { label: panoramaT('poseParams.rightElbow'), value: Math.round(poseParamNumber(activeAvatar.poseParams, 'armRBendOffsetZ', 0) * 57.3) })}</span>
                         <input
                           type="range"
                           min={-1.4}
@@ -5646,7 +5709,7 @@ const Panorama3DNode = (p: NodeProps) => {
                         />
                       </label>
                       <label>
-                        <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">左膝 {Math.round(poseParamNumber(activeAvatar.poseParams, 'legLBendOffsetZ', 0) * 57.3)}°</span>
+                        <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">{panoramaT('poseParamValue', { label: panoramaT('poseParams.leftKnee'), value: Math.round(poseParamNumber(activeAvatar.poseParams, 'legLBendOffsetZ', 0) * 57.3) })}</span>
                         <input
                           type="range"
                           min={-1.4}
@@ -5658,7 +5721,7 @@ const Panorama3DNode = (p: NodeProps) => {
                         />
                       </label>
                       <label>
-                        <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">右膝 {Math.round(poseParamNumber(activeAvatar.poseParams, 'legRBendOffsetZ', 0) * 57.3)}°</span>
+                        <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">{panoramaT('poseParamValue', { label: panoramaT('poseParams.rightKnee'), value: Math.round(poseParamNumber(activeAvatar.poseParams, 'legRBendOffsetZ', 0) * 57.3) })}</span>
                         <input
                           type="range"
                           min={-1.4}
@@ -5674,33 +5737,33 @@ const Panorama3DNode = (p: NodeProps) => {
 
                   <div className="grid grid-cols-4 gap-2">
                     <label>
-                      <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">远近 {Math.round(activeAvatar.distance)}</span>
+                      <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">{panoramaT('distanceValue', { value: Math.round(activeAvatar.distance) })}</span>
                       <input type="range" min={80} max={420} value={activeAvatar.distance} onChange={(event) => patchAvatar(activeAvatar, { distance: Number(event.target.value) })} className="w-full" />
                     </label>
                     <label>
-                      <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">大小 {activeAvatar.scale.toFixed(1)}</span>
+                      <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">{panoramaT('scaleValue', { value: activeAvatar.scale.toFixed(1) })}</span>
                       <input type="range" min={0.35} max={2.6} step={0.05} value={activeAvatar.scale} onChange={(event) => patchAvatar(activeAvatar, { scale: Number(event.target.value) })} className="w-full" />
                     </label>
                     <label>
-                      <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">脚底 {Math.round(activeAvatar.heightOffset)}</span>
+                      <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">{panoramaT('feetOffsetValue', { value: Math.round(activeAvatar.heightOffset) })}</span>
                       <input type="range" min={-80} max={120} value={activeAvatar.heightOffset} onChange={(event) => patchAvatar(activeAvatar, { heightOffset: Number(event.target.value) })} className="w-full" />
                     </label>
                     <label>
-                      <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">透明 {Math.round(activeAvatar.opacity * 100)}%</span>
+                      <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">{panoramaT('opacityValue', { value: Math.round(activeAvatar.opacity * 100) })}</span>
                       <input type="range" min={0.15} max={1} step={0.05} value={activeAvatar.opacity} onChange={(event) => patchAvatar(activeAvatar, { opacity: Number(event.target.value) })} className="w-full" />
                     </label>
                   </div>
 
                   {activeAvatar.faceMode === 'heading' && (
                     <label className="block">
-                      <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">手动朝向 {Math.round(activeAvatar.heading)}°</span>
+                      <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">{panoramaT('manualHeadingValue', { value: Math.round(activeAvatar.heading) })}</span>
                       <input type="range" min={-180} max={180} value={activeAvatar.heading} onChange={(event) => patchAvatar(activeAvatar, { heading: Number(event.target.value) })} className="w-full" />
                     </label>
                   )}
 
                   <div className="grid grid-cols-[1fr_auto] gap-2">
                     <label className="min-w-0">
-                      <span className="mb-1 flex items-center gap-1 text-[10px] font-bold text-[var(--t8-text-muted)]"><Palette size={11} /> 颜色</span>
+                      <span className="mb-1 flex items-center gap-1 text-[10px] font-bold text-[var(--t8-text-muted)]"><Palette size={11} /> {panoramaT('color')}</span>
                       <div className="flex flex-wrap gap-1">
                         {PANORAMA_AVATAR_COLORS.map((color) => (
                           <button
@@ -5716,16 +5779,16 @@ const Panorama3DNode = (p: NodeProps) => {
                     </label>
                     <button type="button" className="t8-btn self-end px-2 text-[10px]" onClick={() => duplicateAvatar(activeAvatar)}>
                       <Plus size={12} />
-                      复制
+                      {panoramaT('duplicate')}
                     </button>
                   </div>
 
                   <label className="block">
-                    <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">角色设定（可选）</span>
+                    <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">{panoramaT('characterPromptOptional')}</span>
                     <input
                       value={activeAvatar.characterPrompt || ''}
                       onChange={(event) => patchAvatar(activeAvatar, { characterPrompt: event.target.value })}
-                      placeholder="红色外套、短发、拿着手电..."
+                      placeholder={panoramaT('characterPromptPlaceholder')}
                       className="w-full rounded-md border border-[var(--t8-border)] bg-[var(--t8-bg-panel-muted)] px-2 py-1.5 text-xs text-[var(--t8-text-main)] outline-none"
                     />
                   </label>
@@ -5737,7 +5800,7 @@ const Panorama3DNode = (p: NodeProps) => {
 
               {scenePrompt && (
                 <section className="rounded-md bg-[var(--t8-bg-panel)] px-2 py-1 text-[10px] text-[var(--t8-text-muted)]">
-                  <div className="font-bold text-[var(--t8-text-main)]">场景词预览</div>
+                  <div className="font-bold text-[var(--t8-text-main)]">{panoramaT('scenePromptPreview')}</div>
                   <div className="mt-1 max-h-28 overflow-y-auto whitespace-pre-wrap leading-relaxed">{scenePrompt}</div>
                 </section>
               )}
@@ -5748,9 +5811,9 @@ const Panorama3DNode = (p: NodeProps) => {
             <div className="flex items-center justify-between gap-2 text-xs font-bold text-[var(--t8-text-main)]">
               <span className="flex min-w-0 items-center gap-1.5">
                 <Camera size={14} />
-                摄像机 / 导览
+                {panoramaT('cameraAndTour')}
               </span>
-              <span className="min-w-0 truncate text-right text-[10px] text-[var(--t8-text-muted)]">{cameraViews.length} 机位 · {hotspots.length} 热点</span>
+              <span className="min-w-0 truncate text-right text-[10px] text-[var(--t8-text-muted)]">{panoramaT('cameraHotspotCount', { cameras: cameraViews.length, hotspots: hotspots.length })}</span>
             </div>
             <div className="mt-2 space-y-2">
               <div className="grid grid-cols-6 gap-1.5">
@@ -5760,9 +5823,9 @@ const Panorama3DNode = (p: NodeProps) => {
                     type="button"
                     className="t8-btn h-7 px-1 text-[10px]"
                     onClick={() => applyView(item, { panoramaActiveCameraViewId: '' })}
-                    title={`${item.label} ${item.yaw}°/${item.pitch}°`}
+                    title={`${stableDisplayLabel('cameraPresets', item.id, item.label)} ${item.yaw}°/${item.pitch}°`}
                   >
-                    {item.label}
+                    {stableDisplayLabel('cameraPresets', item.id, item.label)}
                   </button>
                 ))}
               </div>
@@ -5771,12 +5834,12 @@ const Panorama3DNode = (p: NodeProps) => {
                 <input
                   value={cameraName}
                   onChange={(event) => setCameraName(event.target.value)}
-                  placeholder="机位名，例如入口视角"
+                  placeholder={panoramaT('cameraNamePlaceholder')}
                   className="rounded-md border border-[var(--t8-border)] bg-[var(--t8-bg-panel)] px-2 py-1.5 text-xs text-[var(--t8-text-main)] outline-none"
                 />
                 <button type="button" className="t8-btn t8-btn-primary px-2 text-[11px]" onClick={saveCameraView}>
                   <Plus size={13} />
-                  保存机位
+                  {panoramaT('saveCamera')}
                 </button>
               </div>
 
@@ -5791,12 +5854,12 @@ const Panorama3DNode = (p: NodeProps) => {
                           onClick={() => applyCameraView(item)}
                           title={`${item.name} · Yaw ${Math.round(item.yaw)}° Pitch ${Math.round(item.pitch)}° FOV ${Math.round(item.fov)}°`}
                         >
-                          {item.isDefault ? '默认 · ' : ''}{item.name}
+                          {item.isDefault ? panoramaT('defaultPrefix') : ''}{item.name}
                         </button>
-                        <button type="button" className="t8-mini-icon-button" onClick={() => setDefaultCameraView(item)} title="设为默认">
+                        <button type="button" className="t8-mini-icon-button" onClick={() => setDefaultCameraView(item)} title={panoramaT('setDefault')}>
                           <Crosshair size={12} />
                         </button>
-                        <button type="button" className="t8-mini-icon-button" onClick={() => removeCameraView(item)} title="删除机位">
+                        <button type="button" className="t8-mini-icon-button" onClick={() => removeCameraView(item)} title={panoramaT('deleteCamera')}>
                           <Trash2 size={12} />
                         </button>
                       </div>
@@ -5811,13 +5874,13 @@ const Panorama3DNode = (p: NodeProps) => {
               <div className="rounded-md border border-[var(--t8-border)] bg-[var(--t8-bg-panel)] p-2">
                 <div className="mb-1.5 flex items-center gap-1 text-[10px] font-bold text-[var(--t8-text-muted)]">
                   <MapPin size={12} />
-                  全景热点
+                  {panoramaT('panoramaHotspots')}
                 </div>
                 <div className="grid grid-cols-2 gap-1.5">
                   <input
                     value={hotspotLabel}
                     onChange={(event) => setHotspotLabel(event.target.value)}
-                    placeholder="热点名"
+                    placeholder={panoramaT('hotspotNamePlaceholder')}
                     className="min-w-0 rounded-md border border-[var(--t8-border)] bg-[var(--t8-bg-panel-muted)] px-2 py-1.5 text-xs text-[var(--t8-text-main)] outline-none"
                   />
                   <select
@@ -5833,23 +5896,23 @@ const Panorama3DNode = (p: NodeProps) => {
                     type="button"
                     className={`t8-btn h-8 min-w-0 justify-center px-2 text-[10px] whitespace-nowrap ${hotspotPickMode ? 't8-btn-primary' : ''}`}
                     onClick={() => setHotspotPickMode((value) => !value)}
-                    title="点击画面放置热点"
+                    title={panoramaT('pickHotspotTitle')}
                   >
                     <Crosshair size={12} />
-                    取点
+                    {panoramaT('pickPoint')}
                   </button>
                   <button
                     type="button"
                     className="t8-btn h-8 min-w-0 justify-center px-2 text-[10px] whitespace-nowrap"
                     onClick={() => addHotspotAt(viewRef.current)}
-                    title="把当前画面中心保存为热点"
+                    title={panoramaT('saveCenterHotspotTitle')}
                   >
                     <Plus size={12} />
-                    中心
+                    {panoramaT('center')}
                   </button>
                 </div>
                 <div className="mt-1.5 text-[9px] leading-relaxed text-[var(--t8-text-muted)]">
-                  取点会把画面中的点击位置保存成热点；目标可选当前全景或其他 3D 全景节点。
+                  {panoramaT('hotspotHelp')}
                 </div>
                 {hotspots.length > 0 && (
                   <div className="mt-2 space-y-1">
@@ -5869,10 +5932,10 @@ const Panorama3DNode = (p: NodeProps) => {
                             <option key={target.id} value={target.id}>{target.label}</option>
                           ))}
                         </select>
-                        <button type="button" className="t8-mini-icon-button" onClick={() => jumpToHotspot(item)} title="跳转热点">
+                        <button type="button" className="t8-mini-icon-button" onClick={() => jumpToHotspot(item)} title={panoramaT('jumpHotspot')}>
                           <MapPin size={12} />
                         </button>
-                        <button type="button" className="t8-mini-icon-button" onClick={() => removeHotspot(item)} title="删除热点">
+                        <button type="button" className="t8-mini-icon-button" onClick={() => removeHotspot(item)} title={panoramaT('deleteHotspot')}>
                           <Trash2 size={12} />
                         </button>
                       </div>
@@ -5892,18 +5955,18 @@ const Panorama3DNode = (p: NodeProps) => {
           </div>
 
           {textureStatus === 'ready' && quality && (
-            <div className={`col-span-2 rounded-md border px-2 py-1.5 text-[10px] leading-relaxed ${qualityClass}`} title={quality.hint}>
+            <div className={`col-span-2 rounded-md border px-2 py-1.5 text-[10px] leading-relaxed ${qualityClass}`} title={qualityHint}>
               <div className="flex items-center justify-between gap-2">
-                <span className="font-bold">{quality.seamLabel}</span>
-                <span>{quality.seamScore == null ? '像素不可读' : `${quality.seamScore}/100`} · {quality.aspectLabel}</span>
+                <span className="font-bold">{qualityLabel}</span>
+                <span>{quality.seamScore == null ? panoramaT('quality.pixelsUnreadable') : `${quality.seamScore}/100`} · {qualityAspectLabel}</span>
               </div>
-              <div className="mt-0.5 opacity-80">{quality.hint}</div>
+              <div className="mt-0.5 opacity-80">{qualityHint}</div>
             </div>
           )}
 
           {outputUrl && !hasAutoOutput && (
             <div className="col-span-2 rounded-lg border border-[var(--t8-border)] bg-[var(--t8-bg-panel-muted)] p-2">
-              <SmartImage src={outputUrl} alt="导出画面" className="max-h-28 w-full rounded object-contain" draggable={false} thumbSize={720} />
+              <SmartImage src={outputUrl} alt={panoramaT('exportedFrameAlt')} className="max-h-28 w-full rounded object-contain" draggable={false} thumbSize={720} />
             </div>
           )}
         </div>
@@ -5921,18 +5984,18 @@ const Panorama3DNode = (p: NodeProps) => {
         >
           <div className="mb-3 flex items-center justify-between gap-3">
             <div>
-              <div className="text-sm font-bold">3D 全景快捷键</div>
-              <div className="text-[10px] text-[var(--t8-text-muted)]">只在当前 3D 全景节点被选中，或全屏导演台打开时生效。</div>
+              <div className="text-sm font-bold">{panoramaT('shortcutHelpHeading')}</div>
+              <div className="text-[10px] text-[var(--t8-text-muted)]">{panoramaT('shortcutHelpScope')}</div>
             </div>
-            <button type="button" className="t8-mini-icon-button" onClick={() => setShortcutHelpOpen(false)} title="关闭">
+            <button type="button" className="t8-mini-icon-button" onClick={() => setShortcutHelpOpen(false)} title={translate('common:actions.close')}>
               <X size={14} />
             </button>
           </div>
           <div className="grid grid-cols-2 gap-2">
-            {PANORAMA_DIRECTOR_SHORTCUTS.map(([keyLabel, help]) => (
+            {PANORAMA_DIRECTOR_SHORTCUTS.map(([keyLabel, helpKey]) => (
               <div key={keyLabel} className="grid grid-cols-[92px_1fr] items-center gap-2 rounded-md border border-[var(--t8-border)] bg-[var(--t8-bg-panel-muted)] px-2 py-1.5 text-[11px] text-[var(--t8-text-main)]">
                 <span className="rounded border border-[var(--t8-border-strong)] bg-[var(--t8-accent)] px-1.5 py-0.5 text-center font-bold text-[var(--t8-accent-text)] shadow-sm">{keyLabel}</span>
-                <span className="text-[var(--t8-text-main)]">{help}</span>
+                <span className="text-[var(--t8-text-main)]">{panoramaT(`shortcuts.${helpKey}`)}</span>
               </div>
             ))}
           </div>
@@ -5951,22 +6014,26 @@ const Panorama3DNode = (p: NodeProps) => {
             <div className="min-w-0">
               <div className="flex items-center gap-2 text-sm font-bold">
                 <Globe2 size={16} />
-                3D 全景导演台
+                {panoramaT('directorWorkbench')}
               </div>
               <div className="mt-0.5 truncate text-[10px] text-slate-400">
-                {avatars.length} 个角色 · {effectiveShotCamera.mode === 'shot-camera' ? '导演镜头' : '当前视角'} · {PANORAMA_AVATAR_POSES.find((pose) => pose.id === activeAvatar?.poseId)?.label || '未选角色'}
+                {panoramaT('directorSummary', {
+                  count: avatars.length,
+                  view: effectiveShotCamera.mode === 'shot-camera' ? panoramaT('directorShot') : panoramaT('currentView'),
+                  pose: activeAvatar ? poseDisplayLabel(activeAvatar.poseId) : panoramaT('noAvatarSelected'),
+                })}
               </div>
             </div>
             <div className="flex items-center gap-1">
-              <button type="button" className="t8-btn h-8 px-2 text-[10px]" onClick={() => setShortcutHelpOpen(true)} title="快捷键 (?)">
+              <button type="button" className="t8-btn h-8 px-2 text-[10px]" onClick={() => setShortcutHelpOpen(true)} title={panoramaT('shortcutsTitle')}>
                 <HelpCircle size={13} />
-                快捷键
+                {panoramaT('shortcutsLabel')}
               </button>
-              <button type="button" className="t8-btn h-8 px-2 text-[10px]" onClick={refreshDirectorPreview} title="刷新预览">
+              <button type="button" className="t8-btn h-8 px-2 text-[10px]" onClick={refreshDirectorPreview} title={panoramaT('refreshPreviewTitle')}>
                 <ScanLine size={13} />
-                刷新
+                {panoramaT('refresh')}
               </button>
-              <button type="button" className="t8-mini-icon-button" onClick={() => setDirectorFullscreenOpen(false)} title="关闭 (Esc)">
+              <button type="button" className="t8-mini-icon-button" onClick={() => setDirectorFullscreenOpen(false)} title={panoramaT('closeEsc')}>
                 <X size={15} />
               </button>
             </div>
@@ -5991,10 +6058,10 @@ const Panorama3DNode = (p: NodeProps) => {
                 onPointerCancel={handleStagePointerEnd}
               >
                 {directorPreviewUrl ? (
-                  <img src={directorPreviewUrl} alt="3D 全景导演台预览" className="pointer-events-none h-full w-full object-fill" draggable={false} />
+                  <img src={directorPreviewUrl} alt={panoramaT('directorPreviewAlt')} className="pointer-events-none h-full w-full object-fill" draggable={false} />
                 ) : (
                   <div className="flex h-full items-center justify-center text-xs text-slate-400">
-                    预览刷新中
+                    {panoramaT('refreshingPreview')}
                   </div>
                 )}
 
@@ -6034,7 +6101,7 @@ const Panorama3DNode = (p: NodeProps) => {
                           : 'border-white/60 bg-slate-950/20 text-white'
                       }`}
                       style={{ touchAction: 'none' }}
-                      title={`${index + 1}. ${item.name} · 拖动移动角色`}
+                      title={panoramaT('dragAvatarTitle', { index: index + 1, name: item.name })}
                       onMouseDown={stopPanoramaMouseDown}
                       onPointerDown={(event) => startAvatarDrag(event, item, 'director')}
                       onPointerMove={moveAvatarDrag}
@@ -6062,7 +6129,7 @@ const Panorama3DNode = (p: NodeProps) => {
                           type="button"
                           className="nodrag nopan flex h-9 w-9 items-center justify-center rounded-full border-2 text-slate-950 transition-transform hover:scale-110"
                           style={{ ...PANORAMA_MOVE_HANDLE_STYLE, touchAction: 'none' }}
-                          title={`${item.name} · 拖动平移角色位置`}
+                          title={panoramaT('moveAvatarTitle', { name: item.name })}
                           onMouseDown={stopPanoramaMouseDown}
                           onPointerDown={(event) => startAvatarDrag(event, item, 'director')}
                           onPointerMove={moveAvatarDrag}
@@ -6079,7 +6146,7 @@ const Panorama3DNode = (p: NodeProps) => {
                           type="button"
                           className="nodrag nopan flex h-9 w-9 items-center justify-center rounded-full border-2 text-slate-950 transition-transform hover:scale-110"
                           style={{ ...PANORAMA_ROTATE_HANDLE_STYLE, touchAction: 'none' }}
-                          title={`${item.name} · 左右拖动旋转朝向，上下拖动前后倾`}
+                          title={panoramaT('rotateAvatarTitle', { name: item.name })}
                           onMouseDown={stopPanoramaMouseDown}
                           onPointerDown={(event) => startAvatarRotate(event, item, 'director')}
                           onPointerMove={moveAvatarRotate}
@@ -6108,7 +6175,7 @@ const Panorama3DNode = (p: NodeProps) => {
                     data-panorama-ik-control="true"
                     data-panorama-ik-avatar-id={control.avatarId}
                     data-panorama-ik-handle-id={control.id}
-                    title={`${control.label} · 直接拖动画面关节调整姿态`}
+                    title={panoramaT('dragJointTitle', { label: control.label })}
                     onMouseDown={stopPanoramaMouseDown}
                     onPointerDown={(event) => startAvatarIkDrag(event, control, 'director')}
                     onPointerMove={moveAvatarIkDrag}
@@ -6148,7 +6215,7 @@ const Panorama3DNode = (p: NodeProps) => {
                         style={shotGuideStyle}
                       >
                         <span className="absolute left-1 top-1 rounded bg-slate-950/75 px-1.5 py-0.5 text-[9px] font-bold text-amber-100">
-                          导演镜头
+                          {panoramaT('directorShot')}
                         </span>
                       </div>
                     </div>
@@ -6186,7 +6253,7 @@ const Panorama3DNode = (p: NodeProps) => {
                       backgroundColor: `rgba(14, 165, 233, ${Math.min(0.72, 0.2 + mask.strength / 200)})`,
                       backgroundImage: 'repeating-linear-gradient(135deg, rgba(2,6,23,.32) 0 2px, transparent 2px 10px)',
                     }}
-                    title={`${mask.label} · 拖动移动，拖边角缩放`}
+                  title={panoramaT('moveResizeMaskTitle', { label: mask.label })}
                     onMouseDown={stopPanoramaMouseDown}
                     onPointerDown={(event) => startOcclusionMaskDrag(event, mask, 'move', 'director')}
                     onPointerMove={moveOcclusionMaskDrag}
@@ -6223,7 +6290,7 @@ const Panorama3DNode = (p: NodeProps) => {
                         type="button"
                         className={`nodrag nopan absolute h-3.5 w-3.5 rounded-full border border-slate-950 bg-white shadow-sm ${className}`}
                         style={{ touchAction: 'none' }}
-                        title={`${mask.label} · 拖动缩放`}
+                      title={panoramaT('resizeMaskTitle', { label: mask.label })}
                         onMouseDown={stopPanoramaMouseDown}
                         onPointerDown={(event) => startOcclusionMaskDrag(event, mask, mode, 'director')}
                         onPointerMove={moveOcclusionMaskDrag}
@@ -6250,10 +6317,10 @@ const Panorama3DNode = (p: NodeProps) => {
               <div className="space-y-3">
                 <section className="space-y-2">
                   <div className="flex items-center justify-between gap-2 text-xs font-bold">
-                    <span>当前视角</span>
+                    <span>{panoramaT('currentView')}</span>
                     <button type="button" className="t8-btn h-7 px-2 text-[10px]" onClick={resetView}>
                       <RotateCcw size={12} />
-                      重置
+                      {panoramaT('reset')}
                     </button>
                   </div>
                   <div className="grid grid-cols-3 gap-2">
@@ -6274,10 +6341,10 @@ const Panorama3DNode = (p: NodeProps) => {
 
                 <section className="space-y-2">
                   <div className="flex items-center justify-between gap-2 text-xs font-bold">
-                    <span>角色</span>
+                    <span>{panoramaT('avatars')}</span>
                     <button type="button" className="t8-btn h-7 px-2 text-[10px]" onClick={addAvatarAtCenter}>
                       <UserPlus size={12} />
-                      添加
+                      {panoramaT('add')}
                     </button>
                   </div>
                   {avatars.length > 0 ? (
@@ -6297,7 +6364,7 @@ const Panorama3DNode = (p: NodeProps) => {
                       ))}
                     </div>
                   ) : (
-                    <div className="rounded-md border border-dashed border-[var(--t8-border)] px-3 py-4 text-center text-xs text-[var(--t8-text-muted)]">还没有角色</div>
+                    <div className="rounded-md border border-dashed border-[var(--t8-border)] px-3 py-4 text-center text-xs text-[var(--t8-text-muted)]">{panoramaT('noAvatars')}</div>
                   )}
                 </section>
 
@@ -6307,73 +6374,73 @@ const Panorama3DNode = (p: NodeProps) => {
                   <section className="space-y-2 rounded-md border border-[var(--t8-border)] bg-[var(--t8-bg-panel-muted)] p-2">
                     <div className="grid grid-cols-[1fr_auto_auto_auto] items-end gap-1.5">
                       <label className="min-w-0">
-                        <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">名称</span>
+                        <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">{panoramaT('name')}</span>
                         <input
                           value={activeAvatar.name}
                           onChange={(event) => patchAvatar(activeAvatar, { name: event.target.value })}
                           className="w-full rounded-md border border-[var(--t8-border)] bg-[var(--t8-bg-panel)] px-2 py-1.5 text-xs text-[var(--t8-text-main)] outline-none"
                         />
                       </label>
-                      <button type="button" className="t8-mini-icon-button" onClick={() => patchAvatar(activeAvatar, { visible: !activeAvatar.visible })} title="显隐">
+                      <button type="button" className="t8-mini-icon-button" onClick={() => patchAvatar(activeAvatar, { visible: !activeAvatar.visible })} title={panoramaT('toggleVisibility')}>
                         {activeAvatar.visible ? <Eye size={13} /> : <EyeOff size={13} />}
                       </button>
-                      <button type="button" className="t8-mini-icon-button" onClick={() => patchAvatar(activeAvatar, { locked: !activeAvatar.locked })} title="锁定">
+                      <button type="button" className="t8-mini-icon-button" onClick={() => patchAvatar(activeAvatar, { locked: !activeAvatar.locked })} title={panoramaT('toggleLock')}>
                         {activeAvatar.locked ? <Lock size={13} /> : <Unlock size={13} />}
                       </button>
-                      <button type="button" className="t8-mini-icon-button" onClick={() => removeAvatar(activeAvatar)} title="删除角色">
+                      <button type="button" className="t8-mini-icon-button" onClick={() => removeAvatar(activeAvatar)} title={panoramaT('deleteAvatar')}>
                         <Trash2 size={13} />
                       </button>
                     </div>
 
                     <div className="grid grid-cols-2 gap-2">
                       <label>
-                        <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">动作</span>
+                        <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">{panoramaT('pose')}</span>
                         <select
                           value={activeAvatar.poseId}
                           onChange={(event) => changeAvatarPose(activeAvatar, safePanoramaAvatarPose(event.target.value))}
                           className="w-full rounded-md border border-[var(--t8-border)] bg-[var(--t8-bg-panel)] px-2 py-1.5 text-xs text-[var(--t8-text-main)] outline-none"
                         >
                           {PANORAMA_AVATAR_POSES.map((pose) => (
-                            <option key={pose.id} value={pose.id}>{pose.label}</option>
+                            <option key={pose.id} value={pose.id}>{poseDisplayLabel(pose.id)}</option>
                           ))}
                         </select>
                       </label>
                       <label>
-                        <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">朝向</span>
+                        <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">{panoramaT('facing')}</span>
                         <select
                           value={activeAvatar.faceMode}
                           onChange={(event) => patchAvatar(activeAvatar, { faceMode: safePanoramaAvatarFaceMode(event.target.value) })}
                           className="w-full rounded-md border border-[var(--t8-border)] bg-[var(--t8-bg-panel)] px-2 py-1.5 text-xs text-[var(--t8-text-main)] outline-none"
                         >
-                          <option value="camera">面向镜头</option>
-                          <option value="heading">手动朝向</option>
+                          <option value="camera">{panoramaT('faceCamera')}</option>
+                          <option value="heading">{panoramaT('manualHeading')}</option>
                         </select>
                       </label>
                     </div>
 
                     <div className="grid grid-cols-4 gap-2">
                       <label>
-                        <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">贴地模式</span>
+                        <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">{panoramaT('groundMode')}</span>
                         <select
                           value={activeAvatar.groundMode}
                           onChange={(event) => patchAvatar(activeAvatar, { groundMode: safePanoramaAvatarGroundMode(event.target.value) as PanoramaAvatarGroundMode })}
                           className="w-full rounded-md border border-[var(--t8-border)] bg-[var(--t8-bg-panel)] px-2 py-1.5 text-xs text-[var(--t8-text-main)] outline-none"
                         >
-                          <option value="grounded">贴地</option>
-                          <option value="floating">离地</option>
-                          <option value="manual">手动</option>
+                          <option value="grounded">{panoramaT('groundModes.grounded')}</option>
+                          <option value="floating">{panoramaT('groundModes.floating')}</option>
+                          <option value="manual">{panoramaT('groundModes.manual')}</option>
                         </select>
                       </label>
                       <label>
-                        <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">离地 {Math.round(activeAvatar.rootHeight)}</span>
+                        <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">{panoramaT('rootHeightValue', { value: Math.round(activeAvatar.rootHeight) })}</span>
                         <input type="range" min={-40} max={180} value={activeAvatar.rootHeight} disabled={activeAvatar.groundMode === 'grounded'} onChange={(event) => patchAvatar(activeAvatar, { rootHeight: Number(event.target.value), groundMode: activeAvatar.groundMode === 'grounded' ? 'manual' : activeAvatar.groundMode })} className="w-full" />
                       </label>
                       <label>
-                        <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">前后倾 {Math.round(activeAvatar.rootPitch)}°</span>
+                        <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">{panoramaT('rootPitchValue', { value: Math.round(activeAvatar.rootPitch) })}</span>
                         <input type="range" min={-90} max={90} value={activeAvatar.rootPitch} onChange={(event) => patchAvatar(activeAvatar, { rootPitch: Number(event.target.value) })} className="w-full" />
                       </label>
                       <label>
-                        <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">翻滚 {Math.round(activeAvatar.rootRoll)}°</span>
+                        <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">{panoramaT('rootRollValue', { value: Math.round(activeAvatar.rootRoll) })}</span>
                         <input type="range" min={-120} max={120} value={activeAvatar.rootRoll} onChange={(event) => patchAvatar(activeAvatar, { rootRoll: Number(event.target.value) })} className="w-full" />
                       </label>
                     </div>
@@ -6390,7 +6457,7 @@ const Panorama3DNode = (p: NodeProps) => {
                         ['右膝', 'legRBendOffsetZ', -1.4, 1.4],
                       ] as Array<[string, string, number, number]>).map(([label, keyName, min, max]) => (
                         <label key={keyName}>
-                          <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">{label} {Math.round(poseParamNumber(activeAvatar.poseParams, keyName, 0) * 57.3)}°</span>
+                          <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">{panoramaT('poseParamValue', { label: stableDisplayLabel('poseParams', keyName, label), value: Math.round(poseParamNumber(activeAvatar.poseParams, keyName, 0) * 57.3) })}</span>
                           <input type="range" min={min} max={max} step={0.05} value={poseParamNumber(activeAvatar.poseParams, keyName, 0)} onChange={(event) => patchAvatarPoseParam(activeAvatar, keyName, Number(event.target.value))} className="w-full" />
                         </label>
                       ))}
@@ -6398,26 +6465,26 @@ const Panorama3DNode = (p: NodeProps) => {
 
                     <div className="grid grid-cols-4 gap-2">
                       <label>
-                        <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">远近 {Math.round(activeAvatar.distance)}</span>
+                        <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">{panoramaT('distanceValue', { value: Math.round(activeAvatar.distance) })}</span>
                         <input type="range" min={80} max={420} value={activeAvatar.distance} onChange={(event) => patchAvatar(activeAvatar, { distance: Number(event.target.value) })} className="w-full" />
                       </label>
                       <label>
-                        <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">大小 {activeAvatar.scale.toFixed(1)}</span>
+                        <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">{panoramaT('scaleValue', { value: activeAvatar.scale.toFixed(1) })}</span>
                         <input type="range" min={0.35} max={2.6} step={0.05} value={activeAvatar.scale} onChange={(event) => patchAvatar(activeAvatar, { scale: Number(event.target.value) })} className="w-full" />
                       </label>
                       <label>
-                        <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">脚底 {Math.round(activeAvatar.heightOffset)}</span>
+                        <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">{panoramaT('feetOffsetValue', { value: Math.round(activeAvatar.heightOffset) })}</span>
                         <input type="range" min={-80} max={120} value={activeAvatar.heightOffset} onChange={(event) => patchAvatar(activeAvatar, { heightOffset: Number(event.target.value) })} className="w-full" />
                       </label>
                       <label>
-                        <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">透明 {Math.round(activeAvatar.opacity * 100)}%</span>
+                        <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">{panoramaT('opacityValue', { value: Math.round(activeAvatar.opacity * 100) })}</span>
                         <input type="range" min={0.15} max={1} step={0.05} value={activeAvatar.opacity} onChange={(event) => patchAvatar(activeAvatar, { opacity: Number(event.target.value) })} className="w-full" />
                       </label>
                     </div>
 
                     {activeAvatar.faceMode === 'heading' && (
                       <label className="block">
-                        <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">手动朝向 {Math.round(activeAvatar.heading)}°</span>
+                        <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">{panoramaT('manualHeadingValue', { value: Math.round(activeAvatar.heading) })}</span>
                         <input type="range" min={-180} max={180} value={activeAvatar.heading} onChange={(event) => patchAvatar(activeAvatar, { heading: Number(event.target.value) })} className="w-full" />
                       </label>
                     )}
@@ -6436,30 +6503,30 @@ const Panorama3DNode = (p: NodeProps) => {
                     </div>
 
                     <div className="grid grid-cols-4 gap-1.5">
-                      <button type="button" className={`t8-btn h-8 px-2 text-[10px] ${avatarIkEditMode ? 't8-btn-primary' : ''}`} onClick={toggleAvatarIkEditMode} title="画面关节编辑：直接拖动肩/肘/手/髋/膝/脚 (I)">
+                      <button type="button" className={`t8-btn h-8 px-2 text-[10px] ${avatarIkEditMode ? 't8-btn-primary' : ''}`} onClick={toggleAvatarIkEditMode} title={panoramaT('jointEditTitle')}>
                         <Move size={12} />
-                        关节
+                        {panoramaT('joints')}
                       </button>
                       <button type="button" className="t8-btn h-8 px-2 text-[10px]" onClick={resetActivePoseParams}>
                         <RotateCcw size={12} />
-                        重置
+                        {panoramaT('reset')}
                       </button>
                       <button type="button" className="t8-btn h-8 px-2 text-[10px]" onClick={() => duplicateAvatar(activeAvatar)}>
                         <Plus size={12} />
-                        复制
+                        {panoramaT('duplicate')}
                       </button>
                       <button type="button" className="t8-btn h-8 px-2 text-[10px]" onClick={() => focusAvatar(activeAvatar)}>
                         <ScanLine size={12} />
-                        定位
+                        {panoramaT('locate')}
                       </button>
                     </div>
 
                     <label className="block">
-                      <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">角色设定</span>
+                      <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">{panoramaT('characterPrompt')}</span>
                       <input
                         value={activeAvatar.characterPrompt || ''}
                         onChange={(event) => patchAvatar(activeAvatar, { characterPrompt: event.target.value })}
-                        placeholder="红色外套、短发、拿着手电..."
+                        placeholder={panoramaT('characterPromptPlaceholder')}
                         className="w-full rounded-md border border-[var(--t8-border)] bg-[var(--t8-bg-panel)] px-2 py-1.5 text-xs text-[var(--t8-text-main)] outline-none"
                       />
                     </label>
@@ -6468,15 +6535,15 @@ const Panorama3DNode = (p: NodeProps) => {
 
                 <section className="space-y-2 rounded-md border border-[var(--t8-border)] bg-[var(--t8-bg-panel-muted)] p-2">
                   <div className="flex items-center justify-between gap-2 text-xs font-bold">
-                    <span>动作时间轴</span>
-                    <span className="text-[10px] text-[var(--t8-text-muted)]">{avatarKeyframes.length} 关键帧 · {keyframeSequenceCount} 序列帧</span>
+                    <span>{panoramaT('actionTimeline')}</span>
+                    <span className="text-[10px] text-[var(--t8-text-muted)]">{panoramaT('keyframeSequenceCount', { keyframes: avatarKeyframes.length, frames: keyframeSequenceCount })}</span>
                   </div>
                   <div className="grid grid-cols-[1fr_84px_auto] items-end gap-1.5">
                     <div className="rounded-md bg-[var(--t8-bg-panel)] px-2 py-1.5 text-[10px] leading-relaxed text-[var(--t8-text-muted)]">
-                      快照会按关键帧自动插值输出序列帧。
+                      {panoramaT('directorKeyframeHint')}
                     </div>
                     <label className="min-w-0">
-                      <span className="mb-0.5 block text-[9px] font-bold text-[var(--t8-text-muted)]">序列帧</span>
+                      <span className="mb-0.5 block text-[9px] font-bold text-[var(--t8-text-muted)]">{panoramaT('sequenceFrames')}</span>
                       <input
                         type="number"
                         min={2}
@@ -6496,7 +6563,7 @@ const Panorama3DNode = (p: NodeProps) => {
                     </label>
                     <button type="button" className="t8-btn h-8 px-2 text-[10px]" onClick={saveAvatarKeyframe} disabled={!activeAvatar}>
                       <Plus size={12} />
-                      记录
+                      {panoramaT('record')}
                     </button>
                   </div>
                   {avatarKeyframes.length > 0 ? (
@@ -6504,32 +6571,32 @@ const Panorama3DNode = (p: NodeProps) => {
                       {avatarKeyframes.map((frame) => (
                         <div key={frame.id} className="grid grid-cols-[minmax(0,1fr)_28px_28px] items-center gap-1 rounded-md bg-[var(--t8-bg-panel)] px-1.5 py-1">
                           <button type="button" className="min-w-0 truncate text-left text-[10px] text-[var(--t8-text-main)]" onClick={() => applyAvatarKeyframe(frame)}>
-                            {frame.label} · {frame.time.toFixed(1)}s · {frame.avatarName} · {PANORAMA_AVATAR_POSES.find((pose) => pose.id === frame.poseId)?.label || '动作'}
+                            {frame.label} · {frame.time.toFixed(1)}s · {frame.avatarName} · {poseDisplayLabel(frame.poseId)}
                           </button>
-                          <button type="button" className="t8-mini-icon-button" onClick={() => applyAvatarKeyframe(frame)} title="应用关键帧">
+                          <button type="button" className="t8-mini-icon-button" onClick={() => applyAvatarKeyframe(frame)} title={panoramaT('applyKeyframe')}>
                             <ScanLine size={12} />
                           </button>
-                          <button type="button" className="t8-mini-icon-button" onClick={() => removeAvatarKeyframe(frame)} title="删除关键帧">
+                          <button type="button" className="t8-mini-icon-button" onClick={() => removeAvatarKeyframe(frame)} title={panoramaT('deleteKeyframe')}>
                             <Trash2 size={12} />
                           </button>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <div className="rounded-md border border-dashed border-[var(--t8-border)] px-3 py-3 text-center text-xs text-[var(--t8-text-muted)]">暂无关键帧</div>
+                    <div className="rounded-md border border-dashed border-[var(--t8-border)] px-3 py-3 text-center text-xs text-[var(--t8-text-muted)]">{panoramaT('noKeyframes')}</div>
                   )}
                 </section>
 
                 <section className="space-y-2 rounded-md border border-sky-300/35 bg-sky-400/10 p-2">
                   <div className="flex items-center justify-between gap-2 text-xs font-bold">
-                    <span>遮挡参考</span>
+                    <span>{panoramaT('occlusionReference')}</span>
                     <div className="flex items-center gap-1">
-                      <button type="button" className={`t8-mini-icon-button ${occlusionMaskVisible ? 'is-active' : ''}`} onClick={() => update({ panoramaOcclusionMaskVisible: !occlusionMaskVisible })} title="显示/隐藏遮挡参考">
+                      <button type="button" className={`t8-mini-icon-button ${occlusionMaskVisible ? 'is-active' : ''}`} onClick={() => update({ panoramaOcclusionMaskVisible: !occlusionMaskVisible })} title={panoramaT('toggleOcclusionReference')}>
                         {occlusionMaskVisible ? <Eye size={13} /> : <EyeOff size={13} />}
                       </button>
                       <button type="button" className="t8-btn h-7 px-2 text-[10px]" onClick={addOcclusionMask}>
                         <Plus size={12} />
-                        添加
+                        {panoramaT('add')}
                       </button>
                     </div>
                   </div>
@@ -6543,7 +6610,7 @@ const Panorama3DNode = (p: NodeProps) => {
                         >
                           <div className="grid grid-cols-[1fr_28px] gap-1">
                             <input value={mask.label} onChange={(event) => patchOcclusionMask(mask, { label: event.target.value })} className="min-w-0 rounded border border-[var(--t8-border)] bg-[var(--t8-bg-panel-muted)] px-1.5 py-1 text-[10px] text-[var(--t8-text-main)] outline-none" />
-                            <button type="button" className="t8-mini-icon-button" onClick={() => removeOcclusionMask(mask)} title="删除遮挡区">
+                            <button type="button" className="t8-mini-icon-button" onClick={() => removeOcclusionMask(mask)} title={panoramaT('deleteOcclusionArea')}>
                               <Trash2 size={12} />
                             </button>
                           </div>
@@ -6556,96 +6623,96 @@ const Panorama3DNode = (p: NodeProps) => {
                               ['强', 'strength', 0, 100],
                             ] as Array<[string, keyof PanoramaOcclusionMask, number, number]>).map(([label, keyName, min, max]) => (
                               <label key={keyName} className="min-w-0">
-                                <span className="mb-0.5 block text-[9px] font-bold text-[var(--t8-text-muted)]">{label} {Math.round(Number(mask[keyName]) || 0)}</span>
+                                <span className="mb-0.5 block text-[9px] font-bold text-[var(--t8-text-muted)]">{stableDisplayLabel('maskControls', String(keyName), label)} {Math.round(Number(mask[keyName]) || 0)}</span>
                                 <input type="range" min={min} max={max} value={Number(mask[keyName]) || 0} onChange={(event) => patchOcclusionMask(mask, { [keyName]: Number(event.target.value) } as Partial<PanoramaOcclusionMask>)} className="w-full" />
                               </label>
                             ))}
                           </div>
-                          <input value={mask.note || ''} onChange={(event) => patchOcclusionMask(mask, { note: event.target.value })} placeholder="说明：桌沿在前、门框遮挡角色腿部..." className="w-full rounded border border-[var(--t8-border)] bg-[var(--t8-bg-panel-muted)] px-1.5 py-1 text-[10px] text-[var(--t8-text-main)] outline-none" />
+                          <input value={mask.note || ''} onChange={(event) => patchOcclusionMask(mask, { note: event.target.value })} placeholder={panoramaT('occlusionNotePlaceholder')} className="w-full rounded border border-[var(--t8-border)] bg-[var(--t8-bg-panel-muted)] px-1.5 py-1 text-[10px] text-[var(--t8-text-main)] outline-none" />
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <div className="rounded-md border border-dashed border-sky-200/30 px-3 py-3 text-center text-xs text-[var(--t8-text-muted)]">暂无遮挡区</div>
+                    <div className="rounded-md border border-dashed border-sky-200/30 px-3 py-3 text-center text-xs text-[var(--t8-text-muted)]">{panoramaT('noOcclusionAreas')}</div>
                   )}
                 </section>
 
                 <section className="space-y-2 rounded-md border border-amber-300/35 bg-amber-400/10 p-2">
-                  <div className="text-xs font-bold">导演镜头</div>
+                  <div className="text-xs font-bold">{panoramaT('directorShot')}</div>
                   <div className="grid grid-cols-2 gap-2">
                     <label>
-                      <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">快照模式</span>
+                      <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">{panoramaT('snapshotMode')}</span>
                       <select
                         value={effectiveShotCamera.mode}
                         onChange={(event) => patchShotCamera({ mode: event.target.value === 'shot-camera' ? 'shot-camera' : 'panorama-view', targetAvatarId: effectiveShotCamera.targetAvatarId || activeAvatar?.id || avatars[0]?.id || '' })}
                         className="w-full rounded-md border border-[var(--t8-border)] bg-[var(--t8-bg-panel)] px-2 py-1.5 text-xs text-[var(--t8-text-main)] outline-none"
                       >
-                        <option value="panorama-view">当前视角</option>
-                        <option value="shot-camera">导演镜头</option>
+                        <option value="panorama-view">{panoramaT('currentView')}</option>
+                        <option value="shot-camera">{panoramaT('directorShot')}</option>
                       </select>
                     </label>
                     <label>
-                      <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">镜头预设</span>
+                      <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">{panoramaT('shotPreset')}</span>
                       <select
                         value={effectiveShotCamera.presetId}
                         onChange={(event) => changeShotPreset(event.target.value)}
                         className="w-full rounded-md border border-[var(--t8-border)] bg-[var(--t8-bg-panel)] px-2 py-1.5 text-xs text-[var(--t8-text-main)] outline-none"
                       >
                         {PANORAMA_SHOT_PRESETS.map((preset) => (
-                          <option key={preset.id} value={preset.id}>{preset.label}</option>
+                          <option key={preset.id} value={preset.id}>{shotPresetDisplayLabel(preset.id)}</option>
                         ))}
                       </select>
                     </label>
                     <label>
-                      <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">目标角色</span>
+                      <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">{panoramaT('targetAvatar')}</span>
                       <select
                         value={effectiveShotCamera.targetAvatarId}
                         onChange={(event) => patchShotCamera({ mode: 'shot-camera', targetAvatarId: event.target.value })}
                         className="w-full rounded-md border border-[var(--t8-border)] bg-[var(--t8-bg-panel)] px-2 py-1.5 text-xs text-[var(--t8-text-main)] outline-none"
                       >
-                        {avatars.length === 0 && <option value="">无角色</option>}
+                        {avatars.length === 0 && <option value="">{panoramaT('noAvatars')}</option>}
                         {avatars.map((avatar, index) => (
                           <option key={avatar.id} value={avatar.id}>{index + 1}. {avatar.name}</option>
                         ))}
                       </select>
                     </label>
                     <label>
-                      <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">身体部位</span>
+                      <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">{panoramaT('bodyPart')}</span>
                       <select
                         value={effectiveShotCamera.targetBone}
                         onChange={(event) => patchShotCamera({ mode: 'shot-camera', targetBone: event.target.value as PanoramaShotCamera['targetBone'] })}
                         className="w-full rounded-md border border-[var(--t8-border)] bg-[var(--t8-bg-panel)] px-2 py-1.5 text-xs text-[var(--t8-text-main)] outline-none"
                       >
                         {PANORAMA_SHOT_TARGET_BONES.map((bone) => (
-                          <option key={bone.id} value={bone.id}>{bone.label}</option>
+                          <option key={bone.id} value={bone.id}>{shotTargetDisplayLabel(bone.id)}</option>
                         ))}
                       </select>
                     </label>
                     <label>
-                      <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">镜头比例</span>
+                      <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">{panoramaT('shotAspect')}</span>
                       <select
                         value={effectiveShotCamera.framingRatio}
                         onChange={(event) => patchShotCamera({ mode: 'shot-camera', framingRatio: event.target.value as PanoramaCompositionGuideId })}
                         className="w-full rounded-md border border-[var(--t8-border)] bg-[var(--t8-bg-panel)] px-2 py-1.5 text-xs text-[var(--t8-text-main)] outline-none"
                       >
                         {PANORAMA_COMPOSITION_GUIDES.filter((item) => item.id !== 'off').map((item) => (
-                          <option key={item.id} value={item.id}>{item.label}</option>
+                          <option key={item.id} value={item.id}>{compositionGuideDisplayLabel(item.id, item.label)}</option>
                         ))}
                       </select>
                     </label>
                   </div>
                   <div className="grid grid-cols-[1fr_1fr_auto] items-end gap-2">
                     <label>
-                      <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">特写 {Math.round(effectiveShotCamera.closeupStrength)}</span>
+                      <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">{panoramaT('closeupValue', { value: Math.round(effectiveShotCamera.closeupStrength) })}</span>
                       <input type="range" min={0} max={100} value={effectiveShotCamera.closeupStrength} onChange={(event) => patchShotCamera({ mode: 'shot-camera', closeupStrength: Number(event.target.value) })} className="w-full" />
                     </label>
                     <label>
-                      <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">低机位 {Math.round(effectiveShotCamera.lowAngle)}</span>
+                      <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">{panoramaT('lowAngleValue', { value: Math.round(effectiveShotCamera.lowAngle) })}</span>
                       <input type="range" min={0} max={100} value={effectiveShotCamera.lowAngle} onChange={(event) => patchShotCamera({ mode: 'shot-camera', lowAngle: Number(event.target.value) })} className="w-full" />
                     </label>
                     <button type="button" className="t8-btn h-8 px-2 text-[10px]" onClick={applyDirectorShotView} disabled={avatars.length === 0}>
                       <Camera size={13} />
-                      套用
+                      {panoramaT('apply')}
                     </button>
                   </div>
                 </section>
@@ -6653,41 +6720,41 @@ const Panorama3DNode = (p: NodeProps) => {
                 <section className="space-y-2">
                   <div className="grid grid-cols-2 gap-2">
                     <label>
-                      <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">构图安全区</span>
+                      <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">{panoramaT('compositionSafeArea')}</span>
                       <select value={compositionGuide} onChange={(event) => update({ panoramaCompositionGuide: event.target.value })} className="w-full rounded-md border border-[var(--t8-border)] bg-[var(--t8-bg-panel-muted)] px-2 py-1.5 text-xs text-[var(--t8-text-main)] outline-none">
                         {PANORAMA_COMPOSITION_GUIDES.map((item) => (
-                          <option key={item.id} value={item.id}>{item.label}</option>
+                          <option key={item.id} value={item.id}>{compositionGuideDisplayLabel(item.id, item.label)}</option>
                         ))}
                       </select>
                     </label>
                     <label>
-                      <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">快照图例</span>
+                      <span className="mb-1 block text-[10px] font-bold text-[var(--t8-text-muted)]">{panoramaT('snapshotLegend')}</span>
                       <select value={sceneLegendVisible ? '1' : '0'} onChange={(event) => update({ panoramaSceneLegendVisible: event.target.value === '1' })} className="w-full rounded-md border border-[var(--t8-border)] bg-[var(--t8-bg-panel-muted)] px-2 py-1.5 text-xs text-[var(--t8-text-main)] outline-none">
-                        <option value="1">显示</option>
-                        <option value="0">隐藏</option>
+                        <option value="1">{panoramaT('show')}</option>
+                        <option value="0">{panoramaT('hide')}</option>
                       </select>
                     </label>
                   </div>
                   <div className="grid grid-cols-5 gap-1.5">
-                    <button type="button" className="t8-btn h-8 px-2 text-[10px]" onClick={() => requestPanoramaRun('scene-snapshot')} disabled={textureStatus !== 'ready' || isGenerating} title="导出场景快照；有关键帧时会按序列帧数输出 F01-Fxx">
+                    <button type="button" className="t8-btn h-8 px-2 text-[10px]" onClick={() => requestPanoramaRun('scene-snapshot')} disabled={textureStatus !== 'ready' || isGenerating} title={panoramaT('exportSceneSnapshotTitle')}>
                       <ImageIcon size={12} />
-                      快照
+                      {panoramaT('snapshot')}
                     </button>
                     <button type="button" className="t8-btn h-8 px-2 text-[10px]" onClick={() => requestPanoramaRun('control-snapshot')} disabled={textureStatus !== 'ready' || isGenerating}>
                       <ScanLine size={12} />
-                      控图
+                      {panoramaT('controlImage')}
                     </button>
                     <button type="button" className="t8-btn h-8 px-2 text-[10px]" onClick={copyScenePrompt} disabled={!scenePrompt}>
                       <Copy size={12} />
-                      场景词
+                      {panoramaT('scenePrompt')}
                     </button>
                     <button type="button" className="t8-btn h-8 px-2 text-[10px]" onClick={sendSceneSnapshot} disabled={!outputUrl && !d.panoramaSceneSnapshot?.snapshotUrl}>
                       <PackagePlus size={12} />
-                      发送
+                      {panoramaT('send')}
                     </button>
                     <button type="button" className="t8-btn h-8 px-2 text-[10px]" onClick={saveSceneSnapshotResource} disabled={sceneResourceState === '保存中' || (!outputUrl && !d.panoramaSceneSnapshot?.snapshotUrl)}>
                       <PackagePlus size={12} />
-                      入库
+                      {panoramaT('saveToLibrary')}
                     </button>
                   </div>
                   {scenePrompt && (

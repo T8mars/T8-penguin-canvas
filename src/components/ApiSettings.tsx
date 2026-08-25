@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
+import { localizeApiError } from '../i18n/apiErrors';
 import { ChevronDown, ChevronRight, CloudUpload, Download, ExternalLink, Eye, EyeOff, FileUp, Info, KeyRound, Loader2, Lock, Plus, Save, Settings2, TestTube2, Trash2, X, FolderOpen, ServerCog, Volume2 } from 'lucide-react';
 import { useApiKeysStore, FIXED_ZHENZHEN_BASE, FIXED_ZHENZHEN_SD2_BASE, RH_BASE, RH_INTL_BASE } from '../stores/apiKeys';
 import { taskCompletionSound as taskCompletionSoundController } from '../stores/taskCompletionSound';
@@ -57,28 +59,28 @@ type KeyField =
 
 interface KeySpec {
   field: KeyField;
-  label: string;
-  desc: string;
+  labelKey: string;
+  descKey: string;
   bullet: string; // tailwind bg color class
 }
 
 const COMMON_KEYS: KeySpec[] = [
-  { field: 'zhenzhenApiKey', label: '贞贞的AI工坊（海外） API Key', desc: '· 通用后备 · 用于图像/视频/音频生成', bullet: 'bg-amber-400' },
-  { field: 'zhenzhenSd2ApiKey', label: '贞贞的平价AI小屋 API Key', desc: '· 主力 API · 用于平价小屋 LLM、视频、Seedream/Qwen/Wan/Grok 图像，以及 Seed Audio、Qwen3-TTS、MiniMax、Mureka 音频', bullet: 'bg-lime-400' },
-  { field: 'rhApiKey', label: 'RH APIKEY国内', desc: '· runninghub.cn 国内站应用', bullet: 'bg-cyan-400' },
-  { field: 'rhIntlApiKey', label: 'RH APIKEY海外', desc: '· runninghub.ai 海外站应用', bullet: 'bg-blue-400' },
-  { field: 'llmApiKey', label: 'LLM 独立 API Key', desc: '· 额度隔离 · 用于 LLM/Vision', bullet: 'bg-emerald-400' },
+  { field: 'zhenzhenApiKey', labelKey: 'keys.zhenzhen.label', descKey: 'keys.zhenzhen.description', bullet: 'bg-amber-400' },
+  { field: 'zhenzhenSd2ApiKey', labelKey: 'keys.zhenzhenBudget.label', descKey: 'keys.zhenzhenBudget.description', bullet: 'bg-lime-400' },
+  { field: 'rhApiKey', labelKey: 'keys.rhCn.label', descKey: 'keys.rhCn.description', bullet: 'bg-cyan-400' },
+  { field: 'rhIntlApiKey', labelKey: 'keys.rhIntl.label', descKey: 'keys.rhIntl.description', bullet: 'bg-blue-400' },
+  { field: 'llmApiKey', labelKey: 'keys.llm.label', descKey: 'keys.llm.description', bullet: 'bg-emerald-400' },
 ];
 
 const CLASSIFIED_KEYS: KeySpec[] = [
-  { field: 'gptImageApiKey', label: 'gpt-image 系列', desc: 'GPT2 / gpt-image-1 等图像任务专用', bullet: 'bg-pink-400' },
-  { field: 'nanoBananaApiKey', label: 'nano-banana 系列', desc: 'nano-banana / nano-banana-pro 专用', bullet: 'bg-yellow-400' },
-  { field: 'mjApiKey', label: 'mj 系列', desc: 'Midjourney (turbo/fast/relax) 专用', bullet: 'bg-purple-400' },
-  { field: 'veoApiKey', label: 'veo 系列', desc: 'Veo 系列视频专用', bullet: 'bg-blue-400' },
-  { field: 'soraApiKey', label: 'sora2 系列', desc: 'Sora2 FAL / Zhenzhen API 视频专用', bullet: 'bg-sky-400' },
-  { field: 'grokApiKey', label: 'grok 系列', desc: 'Grok Image / Grok Imagine Video 专用', bullet: 'bg-orange-400' },
-  { field: 'seedanceApiKey', label: 'seedance 系列', desc: 'Seedance 视频专用', bullet: 'bg-teal-400' },
-  { field: 'sunoApiKey', label: 'suno 系列', desc: 'Suno 音乐专用', bullet: 'bg-rose-400' },
+  { field: 'gptImageApiKey', labelKey: 'keys.gptImage.label', descKey: 'keys.gptImage.description', bullet: 'bg-pink-400' },
+  { field: 'nanoBananaApiKey', labelKey: 'keys.nanoBanana.label', descKey: 'keys.nanoBanana.description', bullet: 'bg-yellow-400' },
+  { field: 'mjApiKey', labelKey: 'keys.midjourney.label', descKey: 'keys.midjourney.description', bullet: 'bg-purple-400' },
+  { field: 'veoApiKey', labelKey: 'keys.veo.label', descKey: 'keys.veo.description', bullet: 'bg-blue-400' },
+  { field: 'soraApiKey', labelKey: 'keys.sora.label', descKey: 'keys.sora.description', bullet: 'bg-sky-400' },
+  { field: 'grokApiKey', labelKey: 'keys.grok.label', descKey: 'keys.grok.description', bullet: 'bg-orange-400' },
+  { field: 'seedanceApiKey', labelKey: 'keys.seedance.label', descKey: 'keys.seedance.description', bullet: 'bg-teal-400' },
+  { field: 'sunoApiKey', labelKey: 'keys.suno.label', descKey: 'keys.suno.description', bullet: 'bg-rose-400' },
 ];
 
 const ALL_FIELDS: KeyField[] = [
@@ -97,74 +99,37 @@ const PATH_FIELDS = [
 const SETTINGS_BACKUP_SCHEMA = 't8-penguin-canvas-settings';
 const SETTINGS_BACKUP_VERSION = 1;
 
-const ADVANCED_PROVIDER_LABELS: Record<AdvancedProviderProtocol, string> = {
-  'openai-compatible': 'OpenAI 兼容',
-  modelscope: 'ModelScope',
-  volcengine: '火山引擎',
-  agnes: 'Agnes AI',
-  comfyui: 'ComfyUI',
-  'jimeng-cli': '即梦 CLI',
-};
-
 const ADVANCED_PROVIDER_GUIDES: Record<AdvancedProviderProtocol, {
-  subtitle: string;
-  description: string;
-  nodeScopes: string[];
-  connectionHint: string;
-  modelHint: string;
+  nodeScopes: Array<'image' | 'video' | 'llm' | 'sd20'>;
   baseUrlPlaceholder?: string;
-  keyLabel?: string;
+  keyLabelKey?: string;
 }> = {
   'openai-compatible': {
-    subtitle: '接入兼容 OpenAI 格式的图像 / 视频 / LLM 服务',
-    description: '适合接入你自己的中转站、One API、New API 或其他兼容 /v1/chat/completions、/v1/images/generations、/v1/images/edits、/v1/videos/generations 的服务。',
-    nodeScopes: ['图像节点', '视频节点', 'LLM 节点'],
-    connectionHint: 'Base URL 填到 /v1 这一层，例如 https://api.example.com/v1；Key 留空会保留后端已保存的密钥。',
-    modelHint: '每行一个模型名。只填你确实要在节点里选择的模型，空白时会使用内置兜底示例。',
+    nodeScopes: ['image', 'video', 'llm'],
     baseUrlPlaceholder: 'https://api.example.com/v1',
-    keyLabel: 'API Key / Token',
+    keyLabelKey: 'providers.keyLabels.apiToken',
   },
   modelscope: {
-    subtitle: '接入 ModelScope 的异步图像任务与兼容聊天接口',
-    description: '适合把 ModelScope 上的图像模型加入图像节点，也可以给 LLM 节点填入可用的聊天模型。',
-    nodeScopes: ['图像节点', 'LLM 节点'],
-    connectionHint: 'Base URL 通常使用 ModelScope API 地址；Token 填 ModelScope 访问令牌。',
-    modelHint: '图像模型建议填写 ModelScope 模型 ID，例如 owner/model-name；聊天模型按平台实际模型名填写。',
+    nodeScopes: ['image', 'llm'],
     baseUrlPlaceholder: 'https://api-inference.modelscope.cn/v1',
-    keyLabel: 'ModelScope Token',
+    keyLabelKey: 'providers.keyLabels.modelscope',
   },
   volcengine: {
-    subtitle: '接入火山方舟 / Seedream / Seedance',
-    description: '适合用火山引擎做 Seedream 图像、Seedance 视频或方舟聊天模型。生成调用使用方舟 Ark API Key，不使用 Access Key ID / Secret Access Key；使用 Seedance2.0 前需要先在火山方舟控制台开通对应模型服务。',
-    nodeScopes: ['图像节点', '视频节点', 'LLM 节点'],
-    connectionHint: 'Base URL 填火山方舟 API 地址；Seedream / Seedance / LLM 生成必须填方舟 Ark API Key。Access Key ID / Secret Access Key 是另一类凭证，请放到下方火山 AK/SK 高级项。',
-    modelHint: '图像、视频、聊天模型分别按火山控制台里的模型接入点填写，每行一个。Seedance2.0 / Seedance2.0 Fast 如果未在方舟控制台开通，提交会返回 ModelNotOpen / HTTP 404。',
+    nodeScopes: ['image', 'video', 'llm'],
     baseUrlPlaceholder: 'https://ark.cn-beijing.volces.com/api/v3',
-    keyLabel: '方舟 Ark API Key（生成用，不是 AK/SK）',
+    keyLabelKey: 'providers.keyLabels.volcengine',
   },
   agnes: {
-    subtitle: '接入 Agnes AI 免费模型 API',
-    description: '适合用 Agnes AI 的免费额度接入 LLM、图像和视频节点。LLM 使用 OpenAI 兼容 /v1/chat/completions 并按长响应等待；图像使用 Agnes 的 OpenAI JSON 图片接口；视频使用 /v1/videos 提交并由 /agnesapi 查询结果。',
-    nodeScopes: ['图像节点', '视频节点', 'LLM 节点'],
-    connectionHint: 'Base URL 默认使用 https://apihub.agnes-ai.com/v1；API Key 可在 Agnes 平台的 API Keys 页面创建。填好 Key、启用平台并保存后，在节点的“高级来源”里选择 Agnes AI。',
-    modelHint: '默认模型：LLM agnes-2.0-flash；图像 agnes-image-2.1-flash / agnes-image-2.0-flash；视频 agnes-video-v2.0。图像尺寸跟随图像节点比例/尺寸，视频比例/时长/分辨率会自动换算为 Agnes 宽高和帧数；本机参考图会自动转成可提交给远端任务的 base64 图片内容。',
+    nodeScopes: ['image', 'video', 'llm'],
     baseUrlPlaceholder: 'https://apihub.agnes-ai.com/v1',
-    keyLabel: 'Agnes AI API Key',
+    keyLabelKey: 'providers.keyLabels.agnes',
   },
   comfyui: {
-    subtitle: '接入 ComfyUI 工作流',
-    description: '默认适合把本机 ComfyUI 的 API Workflow 接到图像节点；开启高危远端开关或由后端环境启用后，也可接入其他可信 ComfyUI 地址。',
-    nodeScopes: ['图像节点'],
-    connectionHint: '默认填写本机 ComfyUI，例如 http://127.0.0.1:8188；如需其他地址，可开启下方高危开关，或由后端设置 T8_COMFYUI_ALLOW_REMOTE=1。多个实例可一行一个。',
-    modelHint: '图像节点里选择的是工作流 ID/名称，不需要填写模型列表。',
+    nodeScopes: ['image'],
     baseUrlPlaceholder: 'http://127.0.0.1:8188',
   },
   'jimeng-cli': {
-    subtitle: '通过本地 dreamina / 即梦 CLI 调用图像和视频',
-    description: '适合已经在本机配置好即梦 CLI 的用户。它不走 API Key，而是调用本地命令并轮询任务结果。',
-    nodeScopes: ['图像节点', '视频节点', 'SD2.0 节点'],
-    connectionHint: '填写 dreamina 可执行文件路径；如果 CLI 装在 WSL 里，再打开 WSL 并填写发行版名称。',
-    modelHint: '当前节点按即梦 CLI v1.4.14 适配。图像支持 seedream-5.0-pro（CLI 参数 5.0Pro）、seedream-5.0、seedream-4.7 等；视频支持 seedance2.0fast_vip、seedance2.0_vip（720P/1080P/4K）、seedance2.0mini、seedance1.5pro、seedance1.0fast。每行一个。',
+    nodeScopes: ['image', 'video', 'sd20'],
   },
 };
 
@@ -174,40 +139,6 @@ const MODELSCOPE_TOKEN_URLS = {
 } as const;
 
 const AGNES_API_KEY_URL = 'https://platform.agnes-ai.com/settings/apiKeys';
-
-const CLOUD_UPLOAD_LABELS: Record<CloudUploadProvider, string> = {
-  'tencent-cos': '腾讯云 COS',
-  'aliyun-oss': '阿里云 OSS',
-  'baidu-netdisk': '百度网盘',
-  'quark-netdisk': '夸克网盘',
-};
-
-const CLOUD_UPLOAD_GUIDES: Record<CloudUploadProvider, {
-  subtitle: string;
-  description: string;
-  status: string;
-}> = {
-  'tencent-cos': {
-    subtitle: '适合把生成素材归档到腾讯云对象存储，支持真实上传。',
-    description: '填写 Bucket、Region、SecretId 和 SecretKey；公共域名可选，留空时返回 COS 默认对象 URL。',
-    status: '已支持上传',
-  },
-  'aliyun-oss': {
-    subtitle: '适合把生成素材归档到阿里云对象存储，支持真实上传。',
-    description: '填写 Bucket、Endpoint、AccessKeyId 和 AccessKeySecret；公共域名可选，留空时返回 OSS 默认对象 URL。',
-    status: '已支持上传',
-  },
-  'baidu-netdisk': {
-    subtitle: '通过 WebDAV 网关上传到百度网盘，适合 Alist / CloudDrive2 / rclone 等挂载方案。',
-    description: '填写 WebDAV 地址、用户名和密码/令牌；配置检查会创建临时目录并上传小文件，确认账号和写入权限真实可用。',
-    status: '已支持上传',
-  },
-  'quark-netdisk': {
-    subtitle: '通过 WebDAV 网关上传到夸克网盘，避免依赖不稳定 Cookie 抓包接口。',
-    description: '填写 WebDAV 地址、用户名和密码/令牌；推荐先在 WebDAV 客户端确认可写，再在这里点配置检查。',
-    status: '已支持上传',
-  },
-};
 
 function summarizeCloudUploadForm(targets: CloudUploadTargetConfig[]) {
   const normalized = Array.isArray(targets) ? targets : [];
@@ -294,6 +225,26 @@ function formatCloudError(error: string, data?: any) {
 }
 
 export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProps) {
+  const { t, i18n } = useTranslation('settings');
+  const advancedProviderLabel = (protocol: AdvancedProviderProtocol) => t(`providers.${protocol}.label` as any);
+  const advancedProviderGuide = (protocol: AdvancedProviderProtocol) => {
+    const meta = ADVANCED_PROVIDER_GUIDES[protocol];
+    return {
+      subtitle: t(`providers.${protocol}.subtitle` as any),
+      description: t(`providers.${protocol}.description` as any),
+      nodeScopes: meta.nodeScopes.map((scope) => t(`providers.scopes.${scope}` as any)),
+      connectionHint: t(`providers.${protocol}.connectionHint` as any),
+      modelHint: t(`providers.${protocol}.modelHint` as any),
+      baseUrlPlaceholder: meta.baseUrlPlaceholder,
+      keyLabel: meta.keyLabelKey ? t(meta.keyLabelKey as any) : t('providers.keyLabels.apiToken'),
+    };
+  };
+  const cloudProviderLabel = (provider: CloudUploadProvider) => t(`cloudProviders.${provider}.label` as any);
+  const cloudProviderGuide = (provider: CloudUploadProvider) => ({
+    subtitle: t(`cloudProviders.${provider}.subtitle` as any),
+    description: t(`cloudProviders.${provider}.description` as any),
+    status: t('cloudProviders.supported'),
+  });
   const {
     theme,
     style,
@@ -335,8 +286,8 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
   const [activeCloudTargetId, setActiveCloudTargetId] = useState<string>('');
   const [cloudUploadDirty, setCloudUploadDirty] = useState(false);
   const [cloudTestStatus, setCloudTestStatus] = useState<Record<string, { loading?: boolean; ok?: boolean; message?: string }>>({});
-  const [backupMessage, setBackupMessage] = useState<string>('');
-  const [taskSoundMessage, setTaskSoundMessage] = useState<string>('');
+  const [backupMessage, setBackupMessage] = useState<{ text: string; tone: 'error' | 'success' } | null>(null);
+  const [taskSoundMessage, setTaskSoundMessage] = useState<{ text: string; tone: 'error' | 'success' } | null>(null);
   const [taskSoundBusy, setTaskSoundBusy] = useState(false);
   const [taskSoundTesting, setTaskSoundTesting] = useState(false);
   const [customUiFontDraft, setCustomUiFontDraft] = useState<string>('');
@@ -357,7 +308,7 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
       setClearedFields({});
       revealedRef.current = {};
       setSaved(false);
-      setBackupMessage('');
+      setBackupMessage(null);
       setClassifiedOpen(false);
       setAdvancedOpen(false);
       const providers = Array.isArray((settings as any)?.advancedProviders)
@@ -377,7 +328,7 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
       setActiveCloudTargetId(cloudTargets[0]?.id || '');
       setCloudUploadDirty(false);
       setCloudTestStatus({});
-      setTaskSoundMessage('');
+      setTaskSoundMessage(null);
       setTaskSoundBusy(false);
       setTaskSoundTesting(false);
       setCustomUiFontDraft(customUiFont);
@@ -443,7 +394,7 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
       ? (raw as any).settings
       : raw;
     if (!source || typeof source !== 'object') {
-      throw new Error('设置备份格式不正确');
+      throw new Error(t('backup.invalidFormat'));
     }
     const next: Partial<ApiSettings> = {};
     for (const field of ALL_FIELDS) {
@@ -508,14 +459,14 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
         version: SETTINGS_BACKUP_VERSION,
         exportedAt: new Date().toISOString(),
         containsSecrets: true,
-        note: '此文件包含明文 API Key，请勿上传到 GitHub 或公开分享。',
+        note: t('backup.secretNote'),
         settings: exportSettings,
       };
       const date = new Date().toISOString().slice(0, 10).replace(/-/g, '');
       downloadJson(`t8-settings-backup-${date}.json`, payload);
-      setBackupMessage('已导出设置备份。注意：文件包含明文 API Key，请妥善保管。');
+      setBackupMessage({ text: t('backup.saved'), tone: 'success' });
     } catch (e: any) {
-      setBackupMessage(e?.message || '导出设置失败');
+      setBackupMessage({ text: localizeApiError(e, { fallback: t('backup.exportFailed') }), tone: 'error' });
     }
   };
 
@@ -560,13 +511,13 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
       const parsed = JSON.parse(text);
       const patch = normalizeImportedSettings(parsed);
       if (Object.keys(patch).length === 0) {
-        setBackupMessage('未读取到可导入的设置，已跳过空值和脱敏 Key。');
+        setBackupMessage({ text: t('backup.emptyImport'), tone: 'error' });
         return;
       }
       applyImportedSettings(patch);
-      setBackupMessage('已导入到表单，请检查后点击“保存”生效。');
+      setBackupMessage({ text: t('backup.imported'), tone: 'success' });
     } catch (e: any) {
-      setBackupMessage(e?.message || '导入设置失败，请确认 JSON 文件格式。');
+      setBackupMessage({ text: localizeApiError(e, { fallback: t('backup.importFailed') }), tone: 'error' });
     } finally {
       if (backupFileInputRef.current) backupFileInputRef.current.value = '';
     }
@@ -722,8 +673,9 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
   const formatTaskCompletionSoundSize = (size?: number): string => {
     const n = Number(size || 0);
     if (!Number.isFinite(n) || n <= 0) return '';
-    if (n >= 1024 * 1024) return `${(n / 1024 / 1024).toFixed(1)} MB`;
-    return `${Math.max(1, Math.round(n / 1024))} KB`;
+    const formatter = new Intl.NumberFormat(i18n.resolvedLanguage || i18n.language, { maximumFractionDigits: 1 });
+    if (n >= 1024 * 1024) return `${formatter.format(n / 1024 / 1024)} MB`;
+    return `${formatter.format(Math.max(1, Math.round(n / 1024)))} KB`;
   };
 
   const refreshTaskCompletionSoundSettings = async () => {
@@ -734,19 +686,19 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
   const handleTaskCompletionSoundUpload = async (file: File | null) => {
     if (!file) return;
     if (!isTaskCompletionSoundFile(file)) {
-      setTaskSoundMessage('请选择音频文件：mp3 / wav / ogg / m4a / aac / flac / webm。');
+      setTaskSoundMessage({ text: t('sound.selectAudio'), tone: 'error' });
       if (taskCompletionSoundFileInputRef.current) taskCompletionSoundFileInputRef.current.value = '';
       return;
     }
     setTaskSoundBusy(true);
-    setTaskSoundMessage('');
+    setTaskSoundMessage(null);
     try {
       const result = await uploadTaskCompletionSound(file);
       await refreshTaskCompletionSoundSettings();
       const sizeLabel = formatTaskCompletionSoundSize(result.size || file.size);
-      setTaskSoundMessage(`已使用自定义提示音：${result.name || file.name}${sizeLabel ? ` · ${sizeLabel}` : ''}`);
+      setTaskSoundMessage({ text: t('sound.customApplied', { name: result.name || file.name, size: sizeLabel ? ` · ${sizeLabel}` : '' }), tone: 'success' });
     } catch (e: any) {
-      setTaskSoundMessage(e?.message || '上传提示音失败');
+      setTaskSoundMessage({ text: localizeApiError(e, { fallback: t('sound.uploadFailed') }), tone: 'error' });
     } finally {
       setTaskSoundBusy(false);
       if (taskCompletionSoundFileInputRef.current) taskCompletionSoundFileInputRef.current.value = '';
@@ -755,13 +707,13 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
 
   const handleResetTaskCompletionSound = async () => {
     setTaskSoundBusy(true);
-    setTaskSoundMessage('');
+    setTaskSoundMessage(null);
     try {
       await resetTaskCompletionSound();
       await refreshTaskCompletionSoundSettings();
-      setTaskSoundMessage('已恢复默认任务完成提示音。');
+      setTaskSoundMessage({ text: t('sound.restored'), tone: 'success' });
     } catch (e: any) {
-      setTaskSoundMessage(e?.message || '恢复默认提示音失败');
+      setTaskSoundMessage({ text: localizeApiError(e, { fallback: t('sound.restoreFailed') }), tone: 'error' });
     } finally {
       setTaskSoundBusy(false);
     }
@@ -769,11 +721,11 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
 
   const handlePreviewTaskCompletionSound = async () => {
     setTaskSoundTesting(true);
-    setTaskSoundMessage('');
+    setTaskSoundMessage(null);
     try {
       await playTaskCompletionSound((settings as any)?.taskCompletionSound);
     } catch (e: any) {
-      setTaskSoundMessage(e?.message || '试听提示音失败，请先与页面交互后重试。');
+      setTaskSoundMessage({ text: localizeApiError(e, { fallback: t('sound.testFailed') }), tone: 'error' });
     } finally {
       setTaskSoundTesting(false);
     }
@@ -787,9 +739,9 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
           type="button"
           onClick={() => openExternal('https://ai.t8star.org/register?aff=dP7j')}
           className={linkBtnCls}
-          title="前往贞贞的AI工坊（海外）注册获取 APIKEY"
+          title={t('links.zhenzhenTitle')}
         >
-          <ExternalLink size={11} /> 获取 APIKey
+          <ExternalLink size={11} /> {t('links.getApiKey')}
         </button>
       );
     }
@@ -799,9 +751,9 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
           type="button"
           onClick={() => openExternal('https://api.seedance.nz/sign-up?aff=ibVH')}
           className={linkBtnCls}
-          title="前往贞贞的平价AI小屋注册获取 APIKEY"
+          title={t('links.zhenzhenBudgetTitle')}
         >
-          <ExternalLink size={11} /> 获取 APIKey
+          <ExternalLink size={11} /> {t('links.getApiKey')}
         </button>
       );
     }
@@ -811,9 +763,9 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
           type="button"
           onClick={() => openExternal('https://www.runninghub.cn/user-center/1819214514410942465/webapp?inviteCode=rh-v1121')}
           className={linkBtnCls}
-          title="前往 runninghub.cn 获取国内站 APIKEY"
+          title={t('links.rhCnTitle')}
         >
-          <ExternalLink size={11} /> 获取国内站 APIKey
+          <ExternalLink size={11} /> {t('links.getRhCn')}
         </button>
       );
     }
@@ -823,9 +775,9 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
           type="button"
           onClick={() => openExternal('https://www.runninghub.ai/user-center/1819214514410942465/webapp?inviteCode=rh-v1121')}
           className={linkBtnAltCls}
-          title="前往 runninghub.ai 获取海外站 APIKEY"
+          title={t('links.rhIntlTitle')}
         >
-          <ExternalLink size={11} /> 获取海外站 APIKey
+          <ExternalLink size={11} /> {t('links.getRhIntl')}
         </button>
       );
     }
@@ -872,13 +824,13 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
         ...prev,
         [provider.id]: {
           ok: result.ok,
-          message: result.ok ? (result.message || '连接可用') : (result.error || '测试失败'),
+          message: result.ok ? (result.message || t('providerForm.connectionAvailable')) : (result.error || t('providerForm.testFailed')),
         },
       }));
     } catch (e: any) {
       setAdvancedTestStatus((prev) => ({
         ...prev,
-        [provider.id]: { ok: false, message: e?.message || '测试失败' },
+        [provider.id]: { ok: false, message: e?.message || t('providerForm.testFailed') },
       }));
     }
   };
@@ -917,21 +869,21 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
         [target.id]: {
           ok: result.success ? result.data.ok : false,
           message: result.success
-            ? (result.data.message || '配置可用')
-            : formatCloudError(result.error || '配置检查失败', result.data),
+            ? (result.data.message || t('cloudForm.available'))
+            : formatCloudError(result.error || t('cloudForm.checkFailed'), result.data),
         },
       }));
     } catch (e: any) {
       setCloudTestStatus((prev) => ({
         ...prev,
-        [target.id]: { ok: false, message: e?.message || '配置检查失败' },
+        [target.id]: { ok: false, message: e?.message || t('cloudForm.checkFailed') },
       }));
     }
   };
 
   const renderCloudTargetForm = (target: CloudUploadTargetConfig) => {
-    const providerLabel = CLOUD_UPLOAD_LABELS[target.provider] || target.provider;
-    const guide = CLOUD_UPLOAD_GUIDES[target.provider];
+    const providerLabel = cloudProviderLabel(target.provider);
+    const guide = cloudProviderGuide(target.provider);
     const sectionCls = isPixel
       ? 't8-api-settings-provider-panel border p-3 space-y-4 min-w-0'
       : 't8-api-settings-provider-panel border rounded-xl p-3 sm:p-4 space-y-4 min-w-0';
@@ -955,7 +907,7 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
               <span className={`text-sm font-black ${labelCls}`}>{target.label || providerLabel}</span>
               <span className={smallPillCls}>{providerLabel}</span>
               <span className={target.enabled ? 'text-[11px] font-bold text-emerald-500' : `text-[11px] font-bold ${hintCls}`}>
-                {target.enabled ? '已启用' : '未启用'}
+                {target.enabled ? t('state.enabled') : t('state.disabled')}
               </span>
               <span className={supported ? 'text-[11px] font-bold text-emerald-500' : `text-[11px] font-bold ${hintCls}`}>
                 {guide?.status}
@@ -969,7 +921,7 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
               checked={!!target.enabled}
               onChange={(e) => updateCloudTarget(target.id, { enabled: e.target.checked })}
             />
-            右键菜单显示
+            {t('cloudForm.showInContext')}
           </label>
           <label className={`flex items-center gap-2 text-xs font-bold shrink-0 ${labelCls}`}>
             <input
@@ -977,7 +929,7 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
               checked={!!target.isDefault}
               onChange={() => markCloudDefault(target.id)}
             />
-            默认目标
+            {t('cloudForm.defaultTarget')}
           </label>
           <button
             type="button"
@@ -990,7 +942,7 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
             }
           >
             <TestTube2 size={12} />
-            {test?.loading ? '检查中...' : '配置检查'}
+            {test?.loading ? t('cloudForm.checking') : t('cloudForm.check')}
           </button>
         </div>
 
@@ -1004,10 +956,10 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
           <div className="flex items-start gap-2">
             <Info size={14} className="mt-0.5 shrink-0" />
             <div className="min-w-0">
-              <div className="font-bold">这是什么？</div>
+              <div className="font-bold">{t('cloudForm.whatIsThis')}</div>
               <p>{guide?.description}</p>
               <p className={`mt-2 ${hintCls}`}>
-                右键上传只复制一份外部副本，不会改动画布节点、资源库文件或本地自动保存结果。
+                {t('cloudForm.copyNote')}
               </p>
             </div>
           </div>
@@ -1017,12 +969,12 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
           className={formBlockCls}
           labelClassName={labelCls}
           hintClassName={hintCls}
-          title="1. 基础信息"
-          note="显示名称会出现在素材右键菜单中；路径前缀支持 {kind}、{yyyy-mm}、{date}，例如 t8-canvas/{kind}/{yyyy-mm}。"
+          title={t('cloudForm.basicTitle')}
+          note={t('cloudForm.basicNote')}
         >
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
             <label className="space-y-1">
-              <span className={`text-[11px] ${labelCls}`}>显示名称</span>
+              <span className={`text-[11px] ${labelCls}`}>{t('cloudForm.displayName')}</span>
               <input
                 value={target.label || ''}
                 onChange={(e) => updateCloudTarget(target.id, { label: e.target.value })}
@@ -1031,7 +983,7 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
               />
             </label>
             <label className="space-y-1">
-              <span className={`text-[11px] ${labelCls}`}>路径前缀</span>
+              <span className={`text-[11px] ${labelCls}`}>{t('cloudForm.prefix')}</span>
               <input
                 value={target.prefix || ''}
                 onChange={(e) => updateCloudTarget(target.id, { prefix: e.target.value })}
@@ -1040,15 +992,15 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
               />
             </label>
             <label className="space-y-1 lg:col-span-2">
-              <span className={`text-[11px] ${labelCls}`}>公共域名（可选）</span>
+              <span className={`text-[11px] ${labelCls}`}>{t('cloudForm.publicDomain')}</span>
               <input
                 value={target.publicBaseUrl || ''}
                 onChange={(e) => updateCloudTarget(target.id, { publicBaseUrl: e.target.value })}
                 className={fieldInputCls}
                 placeholder={
                   target.provider === 'tencent-cos' || target.provider === 'aliyun-oss'
-                    ? 'https://cdn.example.com/path · 留空返回默认对象 URL'
-                    : 'https://cdn.example.com/path · 留空返回 WebDAV 文件地址'
+                    ? t('cloudForm.publicObjectPlaceholder')
+                    : t('cloudForm.publicWebdavPlaceholder')
                 }
               />
             </label>
@@ -1060,8 +1012,8 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
             className={formBlockCls}
             labelClassName={labelCls}
             hintClassName={hintCls}
-            title="2. 腾讯云 COS"
-            note="SecretId / SecretKey 留空或保留 **** 表示不覆盖后端已保存密钥；SecretKey 只在创建密钥时显示一次。"
+            title={t('cloudForm.tencent.title')}
+            note={t('cloudForm.tencent.note')}
           >
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
               <label className="space-y-1">
@@ -1089,7 +1041,7 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
                   value={target.tencentCos?.secretId || ''}
                   onChange={(e) => updateCloudTargetNested(target.id, 'tencentCos', { secretId: e.target.value })}
                   className={fieldInputCls}
-                  placeholder={target.tencentCos?.hasSecretId ? '留空保持不变' : '请输入 SecretId'}
+                  placeholder={target.tencentCos?.hasSecretId ? t('cloudForm.keepSecret') : t('cloudForm.enterSecretId')}
                 />
               </label>
               <label className="space-y-1">
@@ -1099,12 +1051,12 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
                   value={target.tencentCos?.secretKey || ''}
                   onChange={(e) => updateCloudTargetNested(target.id, 'tencentCos', { secretKey: e.target.value })}
                   className={fieldInputCls}
-                  placeholder={target.tencentCos?.hasSecretKey ? '留空保持不变' : '请输入 SecretKey'}
+                  placeholder={target.tencentCos?.hasSecretKey ? t('cloudForm.keepSecret') : t('cloudForm.enterSecretKey')}
                 />
               </label>
             </div>
             <div className={`text-[11px] leading-relaxed ${hintCls}`}>
-              <div className="font-bold">控制台入口</div>
+              <div className="font-bold">{t('cloudForm.console')}</div>
               <div className="flex flex-wrap gap-x-3 gap-y-1">
                 <a
                   href="https://console.cloud.tencent.com/cam/capi"
@@ -1112,7 +1064,7 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
                   rel="noreferrer"
                   className="inline-flex items-center gap-1 underline"
                 >
-                  腾讯云 API 控制台 <ExternalLink size={11} />
+                  {t('cloudForm.tencent.apiConsole')} <ExternalLink size={11} />
                 </a>
                 <a
                   href="https://console.cloud.tencent.com/lighthouse/cos/index?rid=5"
@@ -1120,10 +1072,10 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
                   rel="noreferrer"
                   className="inline-flex items-center gap-1 underline"
                 >
-                  腾讯云对象存储 <ExternalLink size={11} />
+                  {t('cloudForm.tencent.storageConsole')} <ExternalLink size={11} />
                 </a>
               </div>
-              <div>提醒：腾讯云 SecretKey 只会在新建密钥时显示一次，后续列表只能看到 SecretId，找不到就需要新建一组密钥。</div>
+              <div>{t('cloudForm.tencent.reminder')}</div>
             </div>
           </AdvancedProviderFormBlock>
         )}
@@ -1133,8 +1085,8 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
             className={formBlockCls}
             labelClassName={labelCls}
             hintClassName={hintCls}
-            title="2. 阿里云 OSS"
-            note="Endpoint 可以填 oss-cn-hangzhou.aliyuncs.com 或完整 https 地址；保存时会统一清洗。"
+            title={t('cloudForm.aliyun.title')}
+            note={t('cloudForm.aliyun.note')}
           >
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
               <label className="space-y-1">
@@ -1162,7 +1114,7 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
                   value={target.aliyunOss?.accessKeyId || ''}
                   onChange={(e) => updateCloudTargetNested(target.id, 'aliyunOss', { accessKeyId: e.target.value })}
                   className={fieldInputCls}
-                  placeholder={target.aliyunOss?.hasAccessKeyId ? '留空保持不变' : '请输入 AccessKeyId'}
+                  placeholder={target.aliyunOss?.hasAccessKeyId ? t('cloudForm.keepSecret') : t('cloudForm.enterAccessKeyId')}
                 />
               </label>
               <label className="space-y-1">
@@ -1172,12 +1124,12 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
                   value={target.aliyunOss?.accessKeySecret || ''}
                   onChange={(e) => updateCloudTargetNested(target.id, 'aliyunOss', { accessKeySecret: e.target.value })}
                   className={fieldInputCls}
-                  placeholder={target.aliyunOss?.hasAccessKeySecret ? '留空保持不变' : '请输入 AccessKeySecret'}
+                  placeholder={target.aliyunOss?.hasAccessKeySecret ? t('cloudForm.keepSecret') : t('cloudForm.enterAccessKeySecret')}
                 />
               </label>
             </div>
             <div className={`text-[11px] leading-relaxed ${hintCls}`}>
-              <div className="font-bold">控制台入口</div>
+              <div className="font-bold">{t('cloudForm.console')}</div>
               <div className="flex flex-wrap gap-x-3 gap-y-1">
                 <a
                   href="https://ram.console.aliyun.com/manage/ak"
@@ -1185,7 +1137,7 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
                   rel="noreferrer"
                   className="inline-flex items-center gap-1 underline"
                 >
-                  阿里云 AccessKey 控制台 <ExternalLink size={11} />
+                  {t('cloudForm.aliyun.keyConsole')} <ExternalLink size={11} />
                 </a>
                 <a
                   href="https://oss.console.aliyun.com/bucket"
@@ -1193,10 +1145,10 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
                   rel="noreferrer"
                   className="inline-flex items-center gap-1 underline"
                 >
-                  阿里云对象存储 OSS <ExternalLink size={11} />
+                  {t('cloudForm.aliyun.storageConsole')} <ExternalLink size={11} />
                 </a>
               </div>
-              <div>提醒：阿里云 AccessKey Secret 只会在创建时显示一次，后续找不到明文时需要新建或改用已保存的密钥。</div>
+              <div>{t('cloudForm.aliyun.reminder')}</div>
             </div>
           </AdvancedProviderFormBlock>
         )}
@@ -1206,40 +1158,40 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
             className={formBlockCls}
             labelClassName={labelCls}
             hintClassName={hintCls}
-            title="2. 百度网盘 WebDAV"
-            note="百度网盘官方直传需要开放平台授权；当前推荐用 Alist / CloudDrive2 / rclone 把百度网盘挂成 WebDAV 后上传。"
+            title={t('cloudForm.baidu.title')}
+            note={t('cloudForm.baidu.note')}
           >
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
               <label className="space-y-1 lg:col-span-2">
-                <span className={`text-[11px] ${labelCls}`}>WebDAV 地址</span>
+                <span className={`text-[11px] ${labelCls}`}>{t('cloudForm.webdavUrl')}</span>
                 <input
                   value={target.baiduNetdisk?.webdavUrl || ''}
                   onChange={(e) => updateCloudTargetNested(target.id, 'baiduNetdisk', { webdavUrl: e.target.value })}
                   className={fieldInputCls}
-                  placeholder="http://127.0.0.1:5244/dav/百度网盘"
+                  placeholder={t('cloudForm.baidu.urlPlaceholder')}
                 />
               </label>
               <label className="space-y-1">
-                <span className={`text-[11px] ${labelCls}`}>用户名</span>
+                <span className={`text-[11px] ${labelCls}`}>{t('cloudForm.username')}</span>
                 <input
                   value={target.baiduNetdisk?.username || ''}
                   onChange={(e) => updateCloudTargetNested(target.id, 'baiduNetdisk', { username: e.target.value })}
                   className={fieldInputCls}
-                  placeholder="WebDAV 用户名，可留空"
+                  placeholder={t('cloudForm.usernamePlaceholder')}
                 />
               </label>
               <label className="space-y-1">
-                <span className={`text-[11px] ${labelCls}`}>密码 / 令牌</span>
+                <span className={`text-[11px] ${labelCls}`}>{t('cloudForm.password')}</span>
                 <input
                   type="password"
                   value={target.baiduNetdisk?.password || ''}
                   onChange={(e) => updateCloudTargetNested(target.id, 'baiduNetdisk', { password: e.target.value })}
                   className={fieldInputCls}
-                  placeholder={target.baiduNetdisk?.hasPassword ? '留空保持不变' : 'WebDAV 密码或访问令牌'}
+                  placeholder={target.baiduNetdisk?.hasPassword ? t('cloudForm.keepSecret') : t('cloudForm.passwordPlaceholder')}
                 />
               </label>
               <label className="space-y-1 lg:col-span-2">
-                <span className={`text-[11px] ${labelCls}`}>网盘目录</span>
+                <span className={`text-[11px] ${labelCls}`}>{t('cloudForm.folder')}</span>
                 <input
                   value={target.baiduNetdisk?.folder || ''}
                   onChange={(e) => updateCloudTargetNested(target.id, 'baiduNetdisk', { folder: e.target.value })}
@@ -1249,7 +1201,7 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
               </label>
             </div>
             <div className={`text-[11px] leading-relaxed ${hintCls}`}>
-              使用说明：Endpoint 填 WebDAV 根地址，网盘目录填要保存素材的目录。配置检查会创建一个 .t8-upload-check 临时目录，上传 connection.txt 后删除，用来确认真实写入权限。
+              {t('cloudForm.baidu.instructions')}
             </div>
           </AdvancedProviderFormBlock>
         )}
@@ -1259,40 +1211,40 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
             className={formBlockCls}
             labelClassName={labelCls}
             hintClassName={hintCls}
-            title="2. 夸克网盘 WebDAV"
-            note="夸克网盘没有稳定公开直传接口；当前推荐用 Alist / CloudDrive2 / rclone 把夸克挂成 WebDAV 后上传。"
+            title={t('cloudForm.quark.title')}
+            note={t('cloudForm.quark.note')}
           >
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
               <label className="space-y-1 lg:col-span-2">
-                <span className={`text-[11px] ${labelCls}`}>WebDAV 地址</span>
+                <span className={`text-[11px] ${labelCls}`}>{t('cloudForm.webdavUrl')}</span>
                 <input
                   value={target.quarkNetdisk?.webdavUrl || ''}
                   onChange={(e) => updateCloudTargetNested(target.id, 'quarkNetdisk', { webdavUrl: e.target.value })}
                   className={fieldInputCls}
-                  placeholder="http://127.0.0.1:5244/dav/夸克网盘"
+                  placeholder={t('cloudForm.quark.urlPlaceholder')}
                 />
               </label>
               <label className="space-y-1">
-                <span className={`text-[11px] ${labelCls}`}>用户名</span>
+                <span className={`text-[11px] ${labelCls}`}>{t('cloudForm.username')}</span>
                 <input
                   value={target.quarkNetdisk?.username || ''}
                   onChange={(e) => updateCloudTargetNested(target.id, 'quarkNetdisk', { username: e.target.value })}
                   className={fieldInputCls}
-                  placeholder="WebDAV 用户名，可留空"
+                  placeholder={t('cloudForm.usernamePlaceholder')}
                 />
               </label>
               <label className="space-y-1">
-                <span className={`text-[11px] ${labelCls}`}>密码 / 令牌</span>
+                <span className={`text-[11px] ${labelCls}`}>{t('cloudForm.password')}</span>
                 <input
                   type="password"
                   value={target.quarkNetdisk?.password || ''}
                   onChange={(e) => updateCloudTargetNested(target.id, 'quarkNetdisk', { password: e.target.value })}
                   className={fieldInputCls}
-                  placeholder={target.quarkNetdisk?.hasPassword ? '留空保持不变' : 'WebDAV 密码或访问令牌'}
+                  placeholder={target.quarkNetdisk?.hasPassword ? t('cloudForm.keepSecret') : t('cloudForm.passwordPlaceholder')}
                 />
               </label>
               <label className="space-y-1">
-                <span className={`text-[11px] ${labelCls}`}>网盘目录</span>
+                <span className={`text-[11px] ${labelCls}`}>{t('cloudForm.folder')}</span>
                 <input
                   value={target.quarkNetdisk?.folder || ''}
                   onChange={(e) => updateCloudTargetNested(target.id, 'quarkNetdisk', { folder: e.target.value })}
@@ -1302,7 +1254,7 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
               </label>
             </div>
             <div className={`text-[11px] leading-relaxed ${hintCls}`}>
-              使用说明：不要在这里粘贴浏览器 Cookie。请先用 WebDAV 网关完成夸克登录，再把网关提供的 WebDAV 地址和账号填到这里。
+              {t('cloudForm.quark.instructions')}
             </div>
           </AdvancedProviderFormBlock>
         )}
@@ -1311,8 +1263,8 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
   };
 
   const renderAdvancedProviderForm = (provider: AdvancedProviderConfig) => {
-    const protocolLabel = ADVANCED_PROVIDER_LABELS[provider.protocol] || provider.protocol;
-    const guide = ADVANCED_PROVIDER_GUIDES[provider.protocol];
+    const protocolLabel = advancedProviderLabel(provider.protocol);
+    const guide = advancedProviderGuide(provider.protocol);
     const isComfy = provider.protocol === 'comfyui';
     const isJimeng = provider.protocol === 'jimeng-cli';
     const isVolc = provider.protocol === 'volcengine';
@@ -1332,7 +1284,7 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
     const smallPillCls = isPixel
       ? 't8-api-settings-pill inline-flex items-center px-1.5 py-0.5 border text-[10px] font-bold'
       : 't8-api-settings-pill inline-flex items-center rounded px-1.5 py-0.5 border text-[10px] font-semibold';
-    const comfyWorkflow = (provider.comfyuiConfig?.workflows?.[0] || { id: 'workflow-1', name: '默认工作流' }) as NonNullable<NonNullable<AdvancedProviderConfig['comfyuiConfig']>['workflows']>[number];
+    const comfyWorkflow = (provider.comfyuiConfig?.workflows?.[0] || { id: 'workflow-1', name: t('comfy.defaultWorkflow') }) as NonNullable<NonNullable<AdvancedProviderConfig['comfyuiConfig']>['workflows']>[number];
     const comfyDraft = advancedComfyDrafts[provider.id] || {};
     const comfyWorkflowRaw = comfyDraft.workflowJson ?? (comfyWorkflow.workflowJson ? JSON.stringify(comfyWorkflow.workflowJson, null, 2) : '');
     const comfyWorkflowObject = tryParseJsonObject(comfyWorkflowRaw);
@@ -1377,12 +1329,12 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
           [provider.id]: {
             ok: true,
             message: nextFields.length
-              ? `工作流已解析，自动识别 ${nextFields.length} 个输入字段`
-              : '工作流 JSON 已解析，但未自动识别到常用输入字段',
+              ? t('comfy.parsedFields', { count: nextFields.length })
+              : t('comfy.parsedNoFields'),
           },
         }));
       } catch {
-        setAdvancedTestStatus((prev) => ({ ...prev, [provider.id]: { ok: false, message: '工作流 JSON 格式不正确，修正后会自动保存' } }));
+        setAdvancedTestStatus((prev) => ({ ...prev, [provider.id]: { ok: false, message: t('comfy.invalidWorkflow') } }));
       }
     };
     const updateComfyExcludeRules = (raw: string) => {
@@ -1403,8 +1355,8 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
         [provider.id]: {
           ok: true,
           message: excludeRules.length
-            ? `已设置 ${excludeRules.length} 条排除规则，当前映射保留 ${fields.length} 个字段`
-            : `已清空排除规则，当前映射保留 ${fields.length} 个字段`,
+            ? t('comfy.rulesSet', { rules: excludeRules.length, fields: fields.length })
+            : t('comfy.rulesCleared', { fields: fields.length }),
         },
       }));
     };
@@ -1417,7 +1369,7 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
       downloadJson(`t8-comfyui-exclude-rules-${provider.id || 'provider'}-${date}.json`, payload);
       setAdvancedTestStatus((prev) => ({
         ...prev,
-        [provider.id]: { ok: true, message: `已导出 ${payload.rules.length} 条 ComfyUI 排除规则` },
+        [provider.id]: { ok: true, message: t('comfy.rulesExported', { count: payload.rules.length }) },
       }));
     };
     const handleComfyExcludeRulesFile = (file: File) => {
@@ -1427,12 +1379,12 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
         updateComfyExcludeRules(rules.join('\n'));
         setAdvancedTestStatus((prev) => ({
           ...prev,
-          [provider.id]: { ok: true, message: `已导入 ${rules.length} 条 ComfyUI 排除规则` },
+          [provider.id]: { ok: true, message: t('comfy.rulesImported', { count: rules.length }) },
         }));
       };
       reader.onerror = () => setAdvancedTestStatus((prev) => ({
         ...prev,
-        [provider.id]: { ok: false, message: '读取排除规则 JSON 文件失败' },
+        [provider.id]: { ok: false, message: t('comfy.rulesReadFailed') },
       }));
       reader.readAsText(file, 'utf-8');
     };
@@ -1441,7 +1393,7 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
       reader.onload = () => updateComfyWorkflowJson(String(reader.result || ''));
       reader.onerror = () => setAdvancedTestStatus((prev) => ({
         ...prev,
-        [provider.id]: { ok: false, message: '读取 workflow JSON 文件失败' },
+        [provider.id]: { ok: false, message: t('comfy.workflowReadFailed') },
       }));
       reader.readAsText(file, 'utf-8');
     };
@@ -1456,9 +1408,9 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
           filterComfyFieldsByExcludeRules(workflowJson, parsed as ComfyFieldMapping[], comfyExcludeRules),
         );
         updateComfyWorkflow({ fields });
-        setAdvancedTestStatus((prev) => ({ ...prev, [provider.id]: { ok: true, message: '参数映射已解析' } }));
+        setAdvancedTestStatus((prev) => ({ ...prev, [provider.id]: { ok: true, message: t('comfy.mappingParsed') } }));
       } catch {
-        setAdvancedTestStatus((prev) => ({ ...prev, [provider.id]: { ok: false, message: '参数映射 JSON 需要是数组' } }));
+        setAdvancedTestStatus((prev) => ({ ...prev, [provider.id]: { ok: false, message: t('comfy.mappingMustArray') } }));
       }
     };
     const applyComfyAutoMapping = () => {
@@ -1475,8 +1427,11 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
         [provider.id]: {
           ok: fields.length > 0,
           message: fields.length
-            ? `已应用自动映射：${fields.length} 个字段${comfyExcludeRules.length ? `，已按规则排除 ${analysis.fields.length - fields.length} 个` : ''}`
-            : '没有识别到可自动映射的字段',
+            ? t('comfy.autoMappingApplied', {
+                fields: fields.length,
+                excluded: comfyExcludeRules.length ? analysis.fields.length - fields.length : 0,
+              })
+            : t('comfy.autoMappingEmpty'),
         },
       }));
     };
@@ -1486,7 +1441,7 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
       const fields = canonicalizeComfyFieldsByWorkflow(workflowJson, analysis.fields);
       updateComfyWorkflow({
         id: BASIC_COMFY_TEXT_TO_IMAGE_SAMPLE_ID,
-        name: '基础文生图样例',
+        name: t('comfy.sampleName'),
         workflowJson,
         fields,
         excludeRules: [],
@@ -1500,7 +1455,7 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
         ...prev,
         [provider.id]: {
           ok: true,
-          message: '已载入基础文生图样例。运行前请把 Checkpoint 改成本机已安装的模型文件名。',
+          message: t('comfy.sampleLoaded'),
         },
       }));
     };
@@ -1581,7 +1536,7 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
               <span className={`text-sm font-black ${labelCls}`}>{provider.label || protocolLabel}</span>
               <span className={smallPillCls}>{protocolLabel}</span>
               <span className={provider.enabled ? 'text-[11px] font-bold text-emerald-500' : `text-[11px] font-bold ${hintCls}`}>
-                {provider.enabled ? '已启用' : '未启用'}
+                {provider.enabled ? t('state.enabled') : t('state.disabled')}
               </span>
             </div>
             <p className={`mt-1 text-[11px] leading-relaxed ${hintCls}`}>{guide?.subtitle}</p>
@@ -1592,7 +1547,7 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
               checked={!!provider.enabled}
               onChange={(e) => updateAdvancedProvider(provider.id, { enabled: e.target.checked })}
             />
-            在节点中显示
+            {t('providerForm.showInNodes')}
           </label>
           <button
             type="button"
@@ -1605,7 +1560,7 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
             }
           >
             <TestTube2 size={12} />
-            {advancedTestStatus[provider.id]?.loading ? '测试中...' : '测试连接'}
+            {advancedTestStatus[provider.id]?.loading ? t('providerForm.testing') : t('providerForm.testConnection')}
           </button>
         </div>
 
@@ -1625,7 +1580,7 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
           <div className="flex items-start gap-2">
             <Info size={14} className="mt-0.5 shrink-0" />
             <div className="min-w-0">
-              <div className="font-bold">这是什么？</div>
+              <div className="font-bold">{t('providerForm.whatIsThis')}</div>
               <p>{guide?.description}</p>
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {(guide?.nodeScopes || []).map((scope) => (
@@ -1640,12 +1595,12 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
           className={formBlockCls}
           labelClassName={labelCls}
           hintClassName={hintCls}
-          title="1. 基础信息"
-          note="显示名称只影响下拉菜单里的名字；关闭“在节点中显示”后，这个平台不会出现在图像 / 视频 / LLM 节点的高级来源里。"
+          title={t('providerForm.basicTitle')}
+          note={t('providerForm.basicNote')}
         >
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
             <label className="space-y-1">
-              <span className={`text-[11px] ${labelCls}`}>显示名称</span>
+              <span className={`text-[11px] ${labelCls}`}>{t('providerForm.displayName')}</span>
               <input
                 value={provider.label || ''}
                 onChange={(e) => updateAdvancedProvider(provider.id, { label: e.target.value })}
@@ -1655,7 +1610,7 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
             </label>
             {!isJimeng && (
               <label className="space-y-1">
-                <span className={`text-[11px] ${labelCls}`}>{isComfy ? '默认实例地址' : 'Base URL'}</span>
+                <span className={`text-[11px] ${labelCls}`}>{isComfy ? t('providerForm.defaultInstance') : 'Base URL'}</span>
                 <input
                   value={provider.baseUrl || ''}
                   onChange={(e) => updateAdvancedProvider(provider.id, { baseUrl: e.target.value })}
@@ -1672,7 +1627,7 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
             className={formBlockCls}
             labelClassName={labelCls}
             hintClassName={hintCls}
-            title={isVolc ? '2. 生成连接密钥' : '2. 连接密钥'}
+            title={isVolc ? t('providerForm.generationKeyTitle') : t('providerForm.connectionKeyTitle')}
             note={guide?.connectionHint}
           >
             <div className="space-y-1 block">
@@ -1686,18 +1641,18 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
                   autoComplete="off"
                   placeholder={
                     provider.hasApiKey || provider.apiKey
-                      ? '留空或保留 **** 表示不覆盖后端密钥'
+                      ? t('providerForm.keepSecret')
                       : isVolc
-                        ? '请输入方舟 Ark API Key，不要填 Access Key ID / Secret'
-                        : '请输入 API Key'
+                        ? t('providerForm.enterArkKey')
+                        : t('providerForm.enterApiKey')
                   }
                 />
                 <button
                   type="button"
                   className="t8-api-settings-secret-toggle t8-api-settings-icon-btn"
                   onClick={() => setAdvancedSecretShows((prev) => ({ ...prev, [provider.id]: !prev[provider.id] }))}
-                  title={advancedSecretShows[provider.id] ? '隐藏' : '显示明文'}
-                  aria-label={`${guide?.keyLabel || 'API Key / Token'}${advancedSecretShows[provider.id] ? '隐藏' : '显示明文'}`}
+                  title={advancedSecretShows[provider.id] ? t('keys.hide') : t('keys.showPlaintext')}
+                  aria-label={`${guide?.keyLabel || 'API Key / Token'}${advancedSecretShows[provider.id] ? t('keys.hide') : t('keys.showPlaintext')}`}
                 >
                   {advancedSecretShows[provider.id] ? <EyeOff size={14} /> : <Eye size={14} />}
                 </button>
@@ -1705,18 +1660,11 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
             </div>
             {isVolc && (
               <div className={guideBoxCls}>
-                <div className="font-bold">该填哪个 Key？</div>
-                <p>
-                  图像 Seedream、视频 Seedance 和方舟 LLM 生成使用「方舟 Ark API Key」。
-                  你在火山账号里看到的 Access Key ID / Secret Access Key 不能填在这里，
-                  需要放到下方「火山 AK/SK」高级项；目前它只作为素材签名类能力的预留凭证。
-                </p>
+                <div className="font-bold">{t('providerForm.volc.whichKey')}</div>
+                <p>{t('providerForm.volc.whichKeyBody')}</p>
                 <div className="mt-2 rounded-lg border border-amber-500/40 bg-amber-400/15 px-3 py-2">
-                  <div className="font-bold">Seedance2.0 开通提醒</div>
-                  <p>
-                    使用 doubao-seedance-2-0-260128 或 doubao-seedance-2-0-fast-260128 前，
-                    需要先在火山方舟控制台开通对应模型服务；未开通时上游会返回 ModelNotOpen / HTTP 404。
-                  </p>
+                  <div className="font-bold">{t('providerForm.volc.seedanceReminder')}</div>
+                  <p>{t('providerForm.volc.seedanceReminderBody')}</p>
                 </div>
               </div>
             )}
@@ -1726,17 +1674,17 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
                   type="button"
                   onClick={() => openExternal(MODELSCOPE_TOKEN_URLS.cn)}
                   className={linkBtnCls}
-                  title="打开 ModelScope 国内站 Token 页面"
+                  title={t('providerForm.modelscope.cnTitle')}
                 >
-                  <ExternalLink size={11} /> 获取 Token · 国内
+                  <ExternalLink size={11} /> {t('providerForm.modelscope.cnAction')}
                 </button>
                 <button
                   type="button"
                   onClick={() => openExternal(MODELSCOPE_TOKEN_URLS.intl)}
                   className={linkBtnAltCls}
-                  title="打开 ModelScope 国际站 Token 页面"
+                  title={t('providerForm.modelscope.intlTitle')}
                 >
-                  <ExternalLink size={11} /> 获取 Token · 国外
+                  <ExternalLink size={11} /> {t('providerForm.modelscope.intlAction')}
                 </button>
               </div>
             )}
@@ -1747,18 +1695,14 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
                     type="button"
                     onClick={() => openExternal(AGNES_API_KEY_URL)}
                     className={linkBtnCls}
-                    title="打开 Agnes AI API Keys 页面"
+                    title={t('providerForm.agnes.keyTitle')}
                   >
-                    <ExternalLink size={11} /> 获取 Agnes API Key
+                    <ExternalLink size={11} /> {t('providerForm.agnes.keyAction')}
                   </button>
                 </div>
                 <div className={guideBoxCls}>
-                  <div className="font-bold">Agnes AI 使用方式</div>
-                  <p>
-                    1. 在 Agnes 平台创建 API Key；2. Base URL 保持 https://apihub.agnes-ai.com/v1；
-                    3. 启用并保存后，在图像 / 视频 / LLM 节点的「高级来源」里选择 Agnes AI。
-                    LLM 响应较慢时后端会继续等待；图像模型使用 OpenAI JSON 返回 URL；视频模型会把本机参考图转成 base64 图片内容后提交到 /v1/videos，并自动轮询 /agnesapi。
-                  </p>
+                  <div className="font-bold">{t('providerForm.agnes.howTitle')}</div>
+                  <p>{t('providerForm.agnes.howBody')}</p>
                 </div>
               </div>
             )}
@@ -1770,8 +1714,8 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
             className={formBlockCls}
             labelClassName={labelCls}
             hintClassName={hintCls}
-            title="3. 火山 AK/SK（可选，素材签名）"
-            note="这里不是生成 Key。普通 Ark / Seedream / Seedance 调用只需要上方的方舟 Ark API Key；AK/SK 仅用于素材上传、私域资产或签名类 OpenAPI。"
+            title={t('providerForm.volc.akTitle')}
+            note={t('providerForm.volc.akNote')}
           >
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
               <label className="space-y-1">
@@ -1780,7 +1724,7 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
                   value={provider.volcengineConfig?.project || ''}
                   onChange={(e) => updateAdvancedProviderNested(provider.id, 'volcengineConfig', { project: e.target.value })}
                   className={fieldInputCls}
-                  placeholder="可选，例如 default"
+                  placeholder={t('providerForm.optionalDefault')}
                 />
               </label>
               <label className="space-y-1">
@@ -1793,23 +1737,23 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
                 />
               </label>
               <label className="space-y-1">
-                <span className={`text-[11px] ${labelCls}`}>Access Key ID（AK，素材签名）</span>
+                <span className={`text-[11px] ${labelCls}`}>{t('providerForm.volc.akLabel')}</span>
                 <input
                   type="password"
                   value={provider.volcengineConfig?.accessKeyId || ''}
                   onChange={(e) => updateAdvancedProviderNested(provider.id, 'volcengineConfig', { accessKeyId: e.target.value })}
                   className={fieldInputCls}
-                  placeholder={provider.volcengineConfig?.hasAccessKeyId ? '留空保持不变' : '可选，不是方舟 API Key'}
+                  placeholder={provider.volcengineConfig?.hasAccessKeyId ? t('cloudForm.keepSecret') : t('providerForm.volc.akPlaceholder')}
                 />
               </label>
               <label className="space-y-1">
-                <span className={`text-[11px] ${labelCls}`}>Secret Access Key（SK，素材签名）</span>
+                <span className={`text-[11px] ${labelCls}`}>{t('providerForm.volc.skLabel')}</span>
                 <input
                   type="password"
                   value={provider.volcengineConfig?.secretAccessKey || ''}
                   onChange={(e) => updateAdvancedProviderNested(provider.id, 'volcengineConfig', { secretAccessKey: e.target.value })}
                   className={fieldInputCls}
-                  placeholder={provider.volcengineConfig?.hasSecretAccessKey ? '留空保持不变' : '可选，不是方舟 API Key'}
+                  placeholder={provider.volcengineConfig?.hasSecretAccessKey ? t('cloudForm.keepSecret') : t('providerForm.volc.akPlaceholder')}
                 />
               </label>
             </div>
@@ -1821,13 +1765,13 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
             className={formBlockCls}
             labelClassName={labelCls}
             hintClassName={hintCls}
-            title="2. ComfyUI 工作流"
+            title={t('comfy.sectionTitle')}
             note={guide?.connectionHint}
           >
             <label className="space-y-1 block">
-              <span className={`text-[11px] ${labelCls}`}>实例地址列表（一行一个）</span>
+              <span className={`text-[11px] ${labelCls}`}>{t('comfy.instances')}</span>
               <PromptTextarea
-                title="ComfyUI 实例地址列表"
+                title={t('comfy.instances')}
                 value={(provider.comfyuiConfig?.instances || [provider.baseUrl || '']).filter(Boolean).join('\n')}
                 onValueChange={(value) => updateAdvancedProviderNested(provider.id, 'comfyuiConfig', {
                   instances: parseAdvancedProviderModelText(value),
@@ -1853,16 +1797,16 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
               />
               <span className="min-w-0">
                 <span className="font-black inline-flex items-center gap-1">
-                  <Lock size={11} /> 高危：允许此 ComfyUI 配置访问远端地址
+                   <Lock size={11} /> {t('comfy.allowRemote')}
                 </span>
                 <span className={`block mt-1 ${hintCls}`}>
-                  默认关闭，仅允许 127.0.0.1 / localhost。开启后后端会按这里填写的 URL 访问局域网或公网 ComfyUI，请只连接你信任和有权限使用的服务；Docker 也可通过环境变量 T8_COMFYUI_ALLOW_REMOTE=1 统一开启。
+                   {t('comfy.allowRemoteNote')}
                 </span>
               </span>
             </label>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
               <label className="space-y-1">
-                <span className={`text-[11px] ${labelCls}`}>工作流 ID</span>
+                <span className={`text-[11px] ${labelCls}`}>{t('comfy.workflowId')}</span>
                 <input
                   value={comfyWorkflow.id || ''}
                   onChange={(e) => updateComfyWorkflow({ id: e.target.value || 'workflow-1' })}
@@ -1871,27 +1815,27 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
                 />
               </label>
               <label className="space-y-1">
-                <span className={`text-[11px] ${labelCls}`}>工作流名称</span>
+                <span className={`text-[11px] ${labelCls}`}>{t('comfy.workflowName')}</span>
                 <input
                   value={comfyWorkflow.name || ''}
-                  onChange={(e) => updateComfyWorkflow({ name: e.target.value || '默认工作流' })}
+                  onChange={(e) => updateComfyWorkflow({ name: e.target.value || t('comfy.defaultWorkflow') })}
                   className={fieldInputCls}
-                  placeholder="默认工作流"
+                  placeholder={t('comfy.defaultWorkflow')}
                 />
               </label>
             </div>
             <label className="space-y-1 block">
               <div className="flex items-center justify-between gap-2">
-                <span className={`text-[11px] ${labelCls}`}>工作流 JSON（从 ComfyUI 导出的 API 格式）</span>
+                <span className={`text-[11px] ${labelCls}`}>{t('comfy.workflowJson')}</span>
                 <label
                   className={
                     isPixel
                       ? 't8-api-settings-secondary-btn px-btn text-[11px] px-2 py-1 shrink-0 cursor-pointer inline-flex items-center gap-1'
                       : 't8-api-settings-secondary-btn px-2 py-1 text-[11px] rounded border shrink-0 cursor-pointer inline-flex items-center gap-1'
                   }
-                  title="上传 ComfyUI API Workflow JSON 并自动映射"
+                  title={t('comfy.uploadTitle')}
                 >
-                  <FileUp size={12} /> 上传 JSON
+                  <FileUp size={12} /> {t('comfy.upload')}
                   <input
                     type="file"
                     accept="application/json,.json"
@@ -1911,9 +1855,9 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
                       ? 't8-api-settings-secondary-btn px-btn text-[11px] px-2 py-1 shrink-0'
                       : 't8-api-settings-secondary-btn px-2 py-1 text-[11px] rounded border shrink-0 inline-flex items-center gap-1'
                   }
-                  title="填入一个可学习的基础文生图 API Workflow 样例"
+                  title={t('comfy.loadSampleTitle')}
                 >
-                  <Plus size={12} /> 载入样例
+                  <Plus size={12} /> {t('comfy.loadSample')}
                 </button>
               </div>
               <PromptTextarea
@@ -1923,27 +1867,27 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
                 editorKind="json"
                 mono
                 className={`${textareaCls} min-h-[140px]`}
-                placeholder='粘贴 ComfyUI API workflow JSON，例如 {"1":{"class_type":"CLIPTextEncode","inputs":{"text":""}}}'
+                placeholder={t('comfy.workflowPlaceholder')}
               />
-              <p className={`text-[11px] ${hintCls}`}>不是普通前端 workflow 文件，需要在 ComfyUI 开启 dev mode 后导出的 API workflow。</p>
+              <p className={`text-[11px] ${hintCls}`}>{t('comfy.apiWorkflowNote')}</p>
             </label>
             <div className="space-y-1 block">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className={`text-[11px] ${labelCls}`}>自动映射排除规则（可选）</span>
+                <span className={`text-[11px] ${labelCls}`}>{t('comfy.excludeRules')}</span>
                 <div className="flex flex-wrap items-center gap-2">
                   <button
                     type="button"
                     onClick={exportComfyExcludeRules}
                     className={isPixel ? 'px-btn text-[11px] px-2 py-1 inline-flex items-center gap-1' : 'rounded border px-2 py-1 text-[11px] inline-flex items-center gap-1'}
-                    title="导出当前 ComfyUI 自动映射排除规则"
+                    title={t('comfy.exportRulesTitle')}
                   >
-                    <Download size={12} /> 导出规则
+                    <Download size={12} /> {t('comfy.exportRules')}
                   </button>
                   <label
                     className={isPixel ? 'px-btn text-[11px] px-2 py-1 inline-flex cursor-pointer items-center gap-1' : 'rounded border px-2 py-1 text-[11px] inline-flex cursor-pointer items-center gap-1'}
-                    title="导入 ComfyUI 自动映射排除规则 JSON"
+                    title={t('comfy.importRulesTitle')}
                   >
-                    <FileUp size={12} /> 导入规则
+                    <FileUp size={12} /> {t('comfy.importRules')}
                     <input
                       type="file"
                       accept="application/json,.json,.txt"
@@ -1958,13 +1902,13 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
                 </div>
               </div>
               <PromptTextarea
-                title="ComfyUI 自动映射排除规则"
+                title={t('comfy.excludeRules')}
                 value={comfyExcludeRulesRaw}
                 onValueChange={updateComfyExcludeRules}
                 editorKind="lines"
                 mono
                 className={`${textareaCls} min-h-[72px]`}
-                placeholder={'每行一个：seed、steps、class:KSampler、CLIPTextEncode.text、#86.batch_size'}
+                placeholder={t('comfy.excludeRulesPlaceholder')}
               />
               <div className="flex flex-wrap items-center gap-2">
                 <button
@@ -1972,41 +1916,43 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
                   onClick={() => appendComfyExcludeRules(['seed', 'steps', 'cfg', 'sampler_name', 'scheduler', 'denoise'])}
                   className={isPixel ? 'px-btn text-[11px] px-2 py-1' : 'rounded border px-2 py-1 text-[11px]'}
                 >
-                  排除采样器参数
+                  {t('comfy.excludeSampler')}
                 </button>
                 <button
                   type="button"
                   onClick={() => appendComfyExcludeRules(['model_name', 'ckpt_name', 'clip_name', 'vae_name', 'lora_name'])}
                   className={isPixel ? 'px-btn text-[11px] px-2 py-1' : 'rounded border px-2 py-1 text-[11px]'}
                 >
-                  排除模型加载
+                  {t('comfy.excludeModels')}
                 </button>
                 <button
                   type="button"
                   onClick={() => appendComfyExcludeRules(['width', 'height', 'batch_size'])}
                   className={isPixel ? 'px-btn text-[11px] px-2 py-1' : 'rounded border px-2 py-1 text-[11px]'}
                 >
-                  排除尺寸批量
+                  {t('comfy.excludeSize')}
                 </button>
                 <span className={`text-[10px] ${hintCls}`}>
-                  当前 {comfyExcludeRules.length} 条规则，已排除 {comfyExcludedFieldCount} 个自动识别字段。
+                  {t('comfy.excludeSummary', { rules: comfyExcludeRules.length, fields: comfyExcludedFieldCount })}
                 </span>
               </div>
               <p className={`text-[11px] ${hintCls}`}>
-                支持 source/字段名/节点类名/节点编号，例如 source:cfg、field:width、class:KSampler、node:86、#86.width。
+                {t('comfy.excludeHelp')}
               </p>
             </div>
             <div className={guideBoxCls}>
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <div className={`text-xs font-black ${labelCls}`}>自动识别结果</div>
+                  <div className={`text-xs font-black ${labelCls}`}>{t('comfy.analysisTitle')}</div>
                   <p className={`mt-1 ${hintCls}`}>
-                    已识别 {comfyAnalysis.fields.length} 个可映射字段，排除后保留 {comfyFilteredAnalysisFields.length} 个，图片输入 {comfyAnalysis.imageInputCount} 个，输出节点 {comfyAnalysis.outputCount} 个。
+                    {t('comfy.analysisSummary', { fields: comfyAnalysis.fields.length, kept: comfyFilteredAnalysisFields.length, images: comfyAnalysis.imageInputCount, outputs: comfyAnalysis.outputCount })}
                   </p>
                   {comfyAnalysis.warnings.length > 0 && (
                     <div className="mt-2 space-y-1">
                       {comfyAnalysis.warnings.slice(0, 3).map((warning, index) => (
-                        <p key={`${provider.id}-comfy-warning-${index}`} className="text-[10px] text-amber-400">{warning}</p>
+                        <p key={`${provider.id}-comfy-warning-${index}`} className="text-[10px] text-amber-400">
+                          {String(t(warning.key as any, warning.params as any))}
+                        </p>
                       ))}
                     </div>
                   )}
@@ -2020,7 +1966,7 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
                           color: item.level === 'ok' ? '#22c55e' : item.level === 'warn' ? '#f59e0b' : undefined,
                         }}
                       >
-                        <b>{item.label}</b> · {item.detail}
+                        <b>{String(t(item.labelKey as any, item.labelParams as any))}</b> · {String(t(item.detailKey as any, item.detailParams as any))}
                       </div>
                     ))}
                   </div>
@@ -2034,12 +1980,12 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
                       : 't8-api-settings-secondary-btn px-2 py-1 text-[11px] rounded border shrink-0'
                   }
                 >
-                  自动映射
+                  {t('comfy.autoMap')}
                 </button>
               </div>
             </div>
             <div className="space-y-2">
-              <div className={`text-xs font-black ${labelCls}`}>参数映射</div>
+              <div className={`text-xs font-black ${labelCls}`}>{t('comfy.mappingTitle')}</div>
               {comfyMappedFields.length > 0 ? (
                 <div className="space-y-1.5">
                   {comfyMappedFields.map((field, index) => {
@@ -2053,21 +1999,21 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
                         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_180px_32px] gap-2 items-end">
                           <div className="min-w-0">
                             <div className={`text-[11px] font-bold truncate ${labelCls}`} title={detected?.label || `${field.nodeId}.${field.fieldName}`}>
-                              {detected?.label || `节点 #${field.nodeId} · ${field.fieldName}`}
+                              {detected?.label || t('comfy.nodeField', { nodeId: field.nodeId, fieldName: field.fieldName })}
                             </div>
                             <div className={`text-[10px] truncate ${hintCls}`}>
                               {detected?.classType || 'Custom'} / {field.nodeId}.{field.fieldName}
                             </div>
                           </div>
                           <label className="space-y-1">
-                            <span className={`text-[10px] ${hintCls}`}>来源</span>
+                            <span className={`text-[10px] ${hintCls}`}>{t('comfy.source')}</span>
                             <select
                               value={(field.source || field.fieldName || 'fixed') as string}
                               onChange={(e) => updateComfyField(index, { source: e.target.value })}
                               className={fieldInputCls}
                             >
                               {COMFY_FIELD_SOURCE_OPTIONS.map((option) => (
-                                <option key={option.value} value={option.value}>{option.label}</option>
+                                <option key={option.value} value={option.value}>{t(option.labelKey as any)}</option>
                               ))}
                             </select>
                           </label>
@@ -2075,7 +2021,7 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
                             type="button"
                             onClick={() => removeComfyField(index)}
                             className={isPixel ? 'px-btn text-[11px] px-2 py-1' : 'rounded border px-2 py-1 text-[11px]'}
-                            title="移除此映射"
+                            title={t('comfy.removeMapping')}
                           >
                             <X size={12} />
                           </button>
@@ -2085,7 +2031,7 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
                             value={String(field.value ?? '')}
                             onChange={(e) => updateComfyField(index, { value: e.target.value })}
                             className={fieldInputCls}
-                            placeholder="固定写入这个 ComfyUI 字段的值"
+                            placeholder={t('comfy.fixedValue')}
                           />
                         )}
                       </div>
@@ -2093,11 +2039,11 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
                   })}
                 </div>
               ) : (
-                <p className={`text-[11px] ${hintCls}`}>粘贴 API Workflow 后会自动生成映射；也可以在下面高级 JSON 中手动填写。</p>
+                <p className={`text-[11px] ${hintCls}`}>{t('comfy.mappingEmpty')}</p>
               )}
             </div>
             <details className="space-y-2">
-              <summary className={`cursor-pointer text-[11px] font-bold ${labelCls}`}>高级：直接编辑 fields JSON</summary>
+              <summary className={`cursor-pointer text-[11px] font-bold ${labelCls}`}>{t('comfy.advancedJson')}</summary>
               <PromptTextarea
                 title="ComfyUI fields JSON"
                 value={comfyDraft.fields ?? JSON.stringify(comfyMappedFields, null, 2)}
@@ -2107,7 +2053,7 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
                 className={textareaCls}
                 placeholder='[{"nodeId":"1","fieldName":"text","source":"prompt"}]'
               />
-              <p className={`text-[11px] ${hintCls}`}>用于兼容复杂工作流。普通用户建议使用上方映射表。</p>
+              <p className={`text-[11px] ${hintCls}`}>{t('comfy.advancedJsonNote')}</p>
             </details>
           </AdvancedProviderFormBlock>
         )}
@@ -2117,37 +2063,31 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
             className={formBlockCls}
             labelClassName={labelCls}
             hintClassName={hintCls}
-            title="2. 本地 CLI"
+            title={t('jimeng.sectionTitle')}
             note={guide?.connectionHint}
           >
             <div className={guideBoxCls}>
               <div className="flex items-start gap-2">
                 <Info size={14} className="mt-0.5 shrink-0" />
                 <div className="min-w-0 space-y-2">
-                  <div className={`font-bold ${labelCls}`}>如何安装或更新即梦 CLI？</div>
-                  <p className={hintCls}>
-                    当前节点按 <strong>即梦 CLI v{JIMENG_CLI_SUPPORTED_VERSION}</strong> 适配。在 PowerShell 7、Git Bash 或 WSL 终端执行同一条官方命令即可安装或更新；完成后运行 <code className="font-mono">dreamina login</code> 登录，再回到这里点击“测试连接”。
-                  </p>
+                  <div className={`font-bold ${labelCls}`}>{t('jimeng.installTitle')}</div>
+                  <p className={hintCls}>{t('jimeng.installBody', { version: JIMENG_CLI_SUPPORTED_VERSION })}</p>
                   <code className="block w-full overflow-x-auto rounded border px-2 py-1.5 font-mono text-[11px] leading-relaxed">
                     {JIMENG_CLI_INSTALL_UPDATE_COMMAND}
                   </code>
-                  <p className={hintCls}>
-                    登录验证：<code className="font-mono">dreamina user_credit</code>；切换账号：<code className="font-mono">dreamina relogin</code>；退出：<code className="font-mono">dreamina logout</code>。
-                  </p>
-                  <p className={hintCls}>
-                    Windows 常见路径是 <code className="font-mono">C:\Users\&lt;用户名&gt;\bin\dreamina.exe</code>；如果命令已加入 PATH，可直接填写 <code className="font-mono">dreamina</code>。装在 WSL 里时，勾选下面的 WSL 选项并填写发行版名称。
-                  </p>
+                  <p className={hintCls}>{t('jimeng.loginCommands')}</p>
+                  <p className={hintCls}>{t('jimeng.pathHelp')}</p>
                 </div>
               </div>
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
               <label className="space-y-1 lg:col-span-2">
-                <span className={`text-[11px] ${labelCls}`}>dreamina 可执行路径</span>
+                <span className={`text-[11px] ${labelCls}`}>{t('jimeng.executable')}</span>
                 <input
                   value={provider.jimengConfig?.executablePath || ''}
                   onChange={(e) => updateAdvancedProviderNested(provider.id, 'jimengConfig', { executablePath: e.target.value })}
                   className={fieldInputCls}
-                  placeholder="dreamina 或 C:\\path\\dreamina.exe"
+                  placeholder={t('jimeng.executablePlaceholder')}
                 />
               </label>
               <label className={`flex items-center gap-2 text-[11px] ${labelCls}`}>
@@ -2156,15 +2096,15 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
                   checked={!!provider.jimengConfig?.useWsl}
                   onChange={(e) => updateAdvancedProviderNested(provider.id, 'jimengConfig', { useWsl: e.target.checked })}
                 />
-                CLI 装在 WSL 中
+                {t('jimeng.useWsl')}
               </label>
               <label className="space-y-1">
-                <span className={`text-[11px] ${labelCls}`}>WSL 发行版</span>
+                <span className={`text-[11px] ${labelCls}`}>{t('jimeng.wslDistro')}</span>
                 <input
                   value={provider.jimengConfig?.wslDistro || ''}
                   onChange={(e) => updateAdvancedProviderNested(provider.id, 'jimengConfig', { wslDistro: e.target.value })}
                   className={fieldInputCls}
-                  placeholder="例如 Ubuntu"
+                  placeholder={t('jimeng.wslPlaceholder')}
                 />
               </label>
             </div>
@@ -2176,44 +2116,44 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
             className={formBlockCls}
             labelClassName={labelCls}
             hintClassName={hintCls}
-            title="3. 节点里可选的模型"
+            title={t('providerForm.modelsTitle')}
             note={guide?.modelHint}
           >
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-3">
               <label className="space-y-1 min-w-0">
-                <span className={`text-[11px] ${labelCls}`}>图像模型（一行一个）</span>
+                <span className={`text-[11px] ${labelCls}`}>{t('providerForm.imageModels')}</span>
                 <PromptTextarea
-                  title={`${provider.label || protocolLabel} 图像模型`}
+                  title={t('providerForm.modelEditorTitle', { provider: provider.label || protocolLabel, kind: t('providerForm.imageKind') })}
                   value={stringifyAdvancedProviderModels(provider.imageModels)}
                   onValueChange={(value) => updateAdvancedProvider(provider.id, { imageModels: parseAdvancedProviderModelText(value) })}
                   editorKind="lines"
                   mono
                   className={textareaCls}
-                  placeholder={isJimeng ? '例如 seedream-4.7' : '例如 gpt-image-1'}
+                  placeholder={isJimeng ? t('providerForm.imageJimengPlaceholder') : t('providerForm.imagePlaceholder')}
                 />
               </label>
               <label className="space-y-1 min-w-0">
-                <span className={`text-[11px] ${labelCls}`}>视频模型（一行一个）</span>
+                <span className={`text-[11px] ${labelCls}`}>{t('providerForm.videoModels')}</span>
                 <PromptTextarea
-                  title={`${provider.label || protocolLabel} 视频模型`}
+                  title={t('providerForm.modelEditorTitle', { provider: provider.label || protocolLabel, kind: t('providerForm.videoKind') })}
                   value={stringifyAdvancedProviderModels(provider.videoModels)}
                   onValueChange={(value) => updateAdvancedProvider(provider.id, { videoModels: parseAdvancedProviderModelText(value) })}
                   editorKind="lines"
                   mono
                   className={textareaCls}
-                  placeholder={isJimeng ? '例如 seedance2.0fast_vip / seedance2.0' : '例如 video-model-name'}
+                  placeholder={isJimeng ? t('providerForm.videoJimengPlaceholder') : t('providerForm.videoPlaceholder')}
                 />
               </label>
               <label className="space-y-1 min-w-0">
-                <span className={`text-[11px] ${labelCls}`}>聊天模型（一行一个）</span>
+                <span className={`text-[11px] ${labelCls}`}>{t('providerForm.chatModels')}</span>
                 <PromptTextarea
-                  title={`${provider.label || protocolLabel} 聊天模型`}
+                  title={t('providerForm.modelEditorTitle', { provider: provider.label || protocolLabel, kind: t('providerForm.chatKind') })}
                   value={stringifyAdvancedProviderModels(provider.chatModels)}
                   onValueChange={(value) => updateAdvancedProvider(provider.id, { chatModels: parseAdvancedProviderModelText(value) })}
                   editorKind="lines"
                   mono
                   className={textareaCls}
-                  placeholder={isJimeng ? '即梦 CLI 通常不用填写' : '例如 gpt-4o-mini'}
+                  placeholder={isJimeng ? t('providerForm.chatJimengPlaceholder') : t('providerForm.chatPlaceholder')}
                 />
               </label>
             </div>
@@ -2225,25 +2165,25 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
             className={formBlockCls}
             labelClassName={labelCls}
             hintClassName={hintCls}
-            title="4. ModelScope LoRA（可选）"
-            note={`为 ModelScope 图像模型绑定 LoRA。图像节点会按当前外部模型自动筛选；多个 LoRA 的官方权重总和必须为 1.00，节点内会显示总权重并限制超额；当前启用 ${enabledModelscopeLoraCount}/${modelscopeLoras.length}。`}
+            title={t('lora.title')}
+            note={t('lora.note', { enabled: enabledModelscopeLoraCount, total: modelscopeLoras.length })}
           >
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
                 onClick={() => openExternal('https://www.modelscope.cn/aigc/models')}
                 className={linkBtnCls}
-                title="打开 ModelScope 国内模型库"
+                title={t('lora.cnLibraryTitle')}
               >
-                <ExternalLink size={11} /> 中文模型库
+                <ExternalLink size={11} /> {t('lora.cnLibrary')}
               </button>
               <button
                 type="button"
                 onClick={() => openExternal('https://www.modelscope.ai/civision/models')}
                 className={linkBtnAltCls}
-                title="打开 ModelScope 国际模型库"
+                title={t('lora.intlLibraryTitle')}
               >
-                <ExternalLink size={11} /> 英文模型库
+                <ExternalLink size={11} /> {t('lora.intlLibrary')}
               </button>
               <button
                 type="button"
@@ -2254,13 +2194,13 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
                     : 't8-api-settings-secondary-btn rounded border px-2 py-1 text-[11px] inline-flex items-center gap-1'
                 }
               >
-                <Plus size={12} /> 添加 LoRA
+                <Plus size={12} /> {t('lora.add')}
               </button>
             </div>
 
             {!modelscopeLoras.length ? (
               <div className={`border border-dashed p-3 text-center text-[11px] ${hintCls} ${isPixel ? '' : 'rounded-lg'}`}>
-                暂无 LoRA。点击“添加 LoRA”后填写 LoRA 模型 ID，并绑定到一个 ModelScope 图像模型。
+                {t('lora.empty')}
               </div>
             ) : (
               <div className="space-y-2">
@@ -2279,11 +2219,11 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
                             value={(lora as any).id || ''}
                             onChange={(e) => updateModelscopeLora(index, { id: e.target.value })}
                             className={fieldInputCls}
-                            placeholder="例如 Daniel8152/film"
+                            placeholder={t('lora.idPlaceholder')}
                           />
                         </label>
                         <label className="space-y-1 min-w-0">
-                          <span className={`text-[11px] ${labelCls}`}>绑定图像模型</span>
+                          <span className={`text-[11px] ${labelCls}`}>{t('lora.targetModel')}</span>
                           <select
                             value={target || modelscopeTargetOptions()[0] || ''}
                             onChange={(e) => updateModelscopeLora(index, { targetModel: e.target.value })}
@@ -2295,7 +2235,7 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
                           </select>
                         </label>
                         <label className="space-y-1 min-w-0">
-                          <span className={`text-[11px] ${labelCls}`} title="作为图像节点选中该 LoRA 时的默认权重；节点内会按官方总和 1.00 限制多 LoRA 权重。">默认权重</span>
+                          <span className={`text-[11px] ${labelCls}`} title={t('lora.strengthHelp')}>{t('lora.defaultStrength')}</span>
                           <input
                             type="number"
                             min={0}
@@ -2314,28 +2254,28 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
                               ? 't8-mini-icon-button h-9 w-9 inline-flex items-center justify-center'
                               : 't8-mini-icon-button h-9 w-9 rounded border inline-flex items-center justify-center'
                           }
-                          title="删除 LoRA"
+                          title={t('lora.remove')}
                         >
                           <Trash2 size={13} />
                         </button>
                       </div>
                       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] gap-2">
                         <label className="space-y-1 min-w-0">
-                          <span className={`text-[11px] ${labelCls}`}>显示名</span>
+                          <span className={`text-[11px] ${labelCls}`}>{t('lora.displayName')}</span>
                           <input
                             value={(lora as any).name || ''}
                             onChange={(e) => updateModelscopeLora(index, { name: e.target.value })}
                             className={fieldInputCls}
-                            placeholder="可选，用于节点下拉显示"
+                            placeholder={t('lora.displayNamePlaceholder')}
                           />
                         </label>
                         <label className="space-y-1 min-w-0">
-                          <span className={`text-[11px] ${labelCls}`}>备注</span>
+                          <span className={`text-[11px] ${labelCls}`}>{t('lora.noteLabel')}</span>
                           <input
                             value={(lora as any).note || ''}
                             onChange={(e) => updateModelscopeLora(index, { note: e.target.value })}
                             className={fieldInputCls}
-                            placeholder="可选，例如触发词或用途"
+                            placeholder={t('lora.notePlaceholder')}
                           />
                         </label>
                       </div>
@@ -2345,7 +2285,7 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
                           checked={(lora as any).enabled !== false}
                           onChange={(e) => updateModelscopeLora(index, { enabled: e.target.checked })}
                         />
-                        在图像节点中可用
+                        {t('lora.enabled')}
                       </label>
                     </div>
                   );
@@ -2371,20 +2311,20 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
       <div key={f} className="space-y-2">
         <label className={`text-sm font-medium flex items-center gap-2 flex-wrap ${labelCls}`}>
           <span className={`w-2 h-2 rounded-full ${spec.bullet}`} />
-          {spec.label}
-          <span className={`text-[11px] font-normal ${hintCls}`}>{spec.desc}</span>
+          {t(spec.labelKey as any)}
+          <span className={`text-[11px] font-normal ${hintCls}`}>{t(spec.descKey as any)}</span>
           {pendingClear ? (
             <span className="t8-api-settings-badge text-[10px] font-bold px-1.5 py-0.5 rounded border" data-tone="muted">
-              保存后清空
+              {t('keys.pendingClear')}
             </span>
           ) : hasSaved && (
             <span className="t8-api-settings-badge text-[10px] font-bold px-1.5 py-0.5 rounded border" data-tone="success">
-              ✓ 已保存 {maskedDisplay}
+              {t('keys.saved', { masked: maskedDisplay })}
             </span>
           )}
           {opts.fallbackHint && !hasSaved && (
             <span className="t8-api-settings-badge text-[10px] font-normal px-1.5 py-0.5 rounded border" data-tone="muted">
-              未设置 · 使用通用 Key
+              {t('keys.fallback')}
             </span>
           )}
         </label>
@@ -2394,8 +2334,8 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
             value={inputs[f]}
             onChange={(e) => setInputAt(f, e.target.value)}
             placeholder={pendingClear
-              ? (opts.fallbackHint ? '已标记清空，保存后回到通用 Key' : '已标记清空，保存后移除该 Key')
-              : (hasSaved ? '留空保持不变 / 输入新值覆盖' : (opts.fallbackHint ? '留空则使用通用 Key / 输入独立 Key' : '请输入 sk-...'))}
+              ? (opts.fallbackHint ? t('keys.clearFallbackPlaceholder') : t('keys.clearRemovePlaceholder'))
+              : (hasSaved ? t('keys.keepPlaceholder') : (opts.fallbackHint ? t('keys.fallbackPlaceholder') : t('keys.inputPlaceholder')))}
             className={inputCls}
             autoComplete="off"
           />
@@ -2403,8 +2343,8 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
             type="button"
             onClick={() => handleToggleShow(f)}
             className={eyeBtnCls}
-            title={shows[f] ? '隐藏' : '显示明文'}
-            aria-label={`${spec.label}${shows[f] ? '隐藏' : '显示明文'}`}
+            title={shows[f] ? t('keys.hide') : t('keys.showPlaintext')}
+            aria-label={`${t(spec.labelKey as any)}${shows[f] ? t('keys.hide') : t('keys.showPlaintext')}`}
           >
             {shows[f] ? <EyeOff size={16} /> : <Eye size={16} />}
           </button>
@@ -2413,8 +2353,8 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
               type="button"
               onClick={() => handleClearClassifiedKey(f)}
               className={`${eyeBtnCls} disabled:opacity-40 disabled:cursor-not-allowed`}
-              title={clearDisabled ? '当前没有可清空的分类独立 Key' : (pendingClear ? '取消清空' : '清空该分类独立 Key')}
-              aria-label={`${spec.label}${pendingClear ? '取消清空' : '清空'}`}
+              title={clearDisabled ? t('keys.nothingToClear') : (pendingClear ? t('keys.cancelClear') : t('keys.clearClassified'))}
+              aria-label={`${t(spec.labelKey as any)}${pendingClear ? t('keys.cancelClear') : t('keys.clear')}`}
               disabled={clearDisabled}
             >
               {pendingClear ? <X size={16} /> : <Trash2 size={16} />}
@@ -2464,10 +2404,10 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
             <h2
               className={`t8-api-settings-title text-base font-semibold ${isPixel ? 'px-title' : ''}`}
             >
-              API Key 设置 (通用 + 分类独立)
+              {t('title')}
             </h2>
             <p className={`text-xs mt-0.5 ${hintCls}`}>
-              留空表示保持后端已存的 Key 不变 · 输入新值即覆盖 · 点眼睛可预览明文。
+              {t('subtitle')}
             </p>
           </div>
           <button
@@ -2487,8 +2427,8 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
           <div className="t8-api-settings-divider pb-1" data-ui-font-settings="true">
             <label className={`text-sm font-medium flex items-center gap-2 flex-wrap ${labelCls}`}>
               <Settings2 size={14} className="t8-api-settings-icon" />
-              界面字体
-              <span className={`text-[11px] font-normal ${hintCls}`}>· 缩小画布时提升中文小字号清晰度，立即生效</span>
+              {t('fonts.title')}
+              <span className={`text-[11px] font-normal ${hintCls}`}>{t('fonts.hint')}</span>
             </label>
             <div className={`t8-api-settings-section mt-2 p-3 space-y-3 border ${isPixel ? '' : 'rounded-lg'}`}>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -2505,14 +2445,14 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
                         : 't8-ui-font-option w-full text-left p-2 rounded-md border transition'
                     }
                   >
-                    <span className="block text-xs font-black">{preset.label}</span>
-                    <span className={`mt-1 block text-[10px] leading-snug ${hintCls}`}>{preset.description}</span>
+                    <span className="block text-xs font-black">{t(preset.labelKey)}</span>
+                    <span className={`mt-1 block text-[10px] leading-snug ${hintCls}`}>{t(preset.descriptionKey)}</span>
                   </button>
                 ))}
               </div>
               <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto] gap-2 items-end">
                 <label className={`block min-w-0 ${labelCls}`}>
-                  <span className="block text-[11px] font-bold mb-1">自定义字体栈</span>
+                  <span className="block text-[11px] font-bold mb-1">{t('fonts.customStack')}</span>
                   <input
                     type="text"
                     value={customUiFontDraft}
@@ -2537,7 +2477,7 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
                   }}
                   className={isPixel ? 't8-api-settings-secondary-btn px-btn px-3 py-2' : 't8-api-settings-secondary-btn px-3 py-2 rounded-md border text-xs'}
                 >
-                  恢复推荐
+                  {t('fonts.restoreRecommended')}
                 </button>
               </div>
               <div
@@ -2545,15 +2485,15 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
                 data-ui-font-preview="true"
                 style={{ fontFamily: activeUiFontStack }}
               >
-                <span className="block text-[11px] font-bold">界面字体预览</span>
-                <span>贞贞无限画布 · 节点文字 12px / 14px / 16px · 缩小时看边缘是否清楚</span>
+                <span className="block text-[11px] font-bold">{t('fonts.previewTitle')}</span>
+                <span>{t('fonts.previewText')}</span>
               </div>
             </div>
           </div>
 
           {/* 通用与主力 Key */}
-          {renderKey(COMMON_KEYS[0], { baseUrlNote: `Base URL 锁定: ${FIXED_ZHENZHEN_BASE}` })}
-          {renderKey(COMMON_KEYS[1], { baseUrlNote: `Base URL 锁定: ${FIXED_ZHENZHEN_SD2_BASE}`, clearable: true })}
+          {renderKey(COMMON_KEYS[0], { baseUrlNote: t('keys.lockedBase', { url: FIXED_ZHENZHEN_BASE }) })}
+          {renderKey(COMMON_KEYS[1], { baseUrlNote: t('keys.lockedBase', { url: FIXED_ZHENZHEN_SD2_BASE }), clearable: true })}
           <LocalSettingsAddonSlot
             open={open}
             isPixel={isPixel}
@@ -2563,7 +2503,7 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
           />
           {renderKey(COMMON_KEYS[2], { baseUrlNote: `Base URL: ${RH_BASE}` })}
           {renderKey(COMMON_KEYS[3], { baseUrlNote: `Base URL: ${RH_INTL_BASE}`, clearable: true })}
-          {renderKey(COMMON_KEYS[4], { baseUrlNote: `Base URL 锁定: ${FIXED_ZHENZHEN_BASE} (与贞贞同地址, Key 独立)` })}
+          {renderKey(COMMON_KEYS[4], { baseUrlNote: t('keys.sameBaseIndependent', { url: FIXED_ZHENZHEN_BASE }) })}
 
           {/* 分类独立 Key（默认折叠，点击展开 —— 新手友好） */}
           <div className="t8-api-settings-divider pt-3 border-t">
@@ -2586,15 +2526,15 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
                   }
                 >
                   <Settings2 size={14} className="t8-api-settings-icon" />
-                  <span className="text-xs font-bold">分类独立 API Key【可选】</span>
+                  <span className="text-xs font-bold">{t('classified.title')}</span>
                   <span
                     className="t8-api-settings-badge ml-1 px-1.5 py-0.5 text-[10px] rounded border"
                     data-tone={configuredCount > 0 ? 'success' : 'muted'}
                   >
-                    已配置 {configuredCount}/{totalCount}
+                    {t('state.configured', { configured: configuredCount, total: totalCount })}
                   </span>
                   <span className={`ml-auto flex items-center gap-1 text-[11px] ${hintCls}`}>
-                    {classifiedOpen ? '收起' : '展开'}
+                    {classifiedOpen ? t('state.collapse') : t('state.expand')}
                     {classifiedOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                   </span>
                 </button>
@@ -2602,13 +2542,13 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
             })()}
             {!classifiedOpen && (
               <div className={`text-[11px] mt-2 ${hintCls}`}>
-                不必担心：<b>未填项会自动 fallback 到贞贞工坊通用 Key</b>，新手可直接保存忽略此区块。
+                {t('classified.collapsedHelp')}
               </div>
             )}
             {classifiedOpen && (
               <div className="mt-3">
                 <div className={`text-[11px] ${hintCls} mb-3`}>
-                  为不同模型系列单独配置 Key；<b>未填则自动 fallback 到贞贞工坊通用 Key</b>。后端会根据调用的模型名/路由自动选择。
+                  {t('classified.expandedHelp')}
                 </div>
                 <div className="space-y-4">
                   {CLASSIFIED_KEYS.map((spec) => renderKey(spec, { fallbackHint: true }))}
@@ -2631,35 +2571,35 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
               }
             >
               <ServerCog size={14} className="t8-api-settings-icon" />
-              <span className="text-xs font-bold shrink-0">扩展 API 平台【高级/可选】</span>
-              <span className={`hidden sm:inline text-[11px] ${hintCls}`}>给高级用户接入第三方平台，默认不影响主流程</span>
+              <span className="text-xs font-bold shrink-0">{t('advanced.title')}</span>
+              <span className={`hidden sm:inline text-[11px] ${hintCls}`}>{t('advanced.hint')}</span>
               <span className="ml-auto flex items-center gap-1.5 flex-wrap justify-end">
                 <span
                   className="t8-api-settings-badge px-1.5 py-0.5 text-[10px] rounded border"
                   data-tone={advancedSummary.enabledCount > 0 ? 'success' : 'muted'}
                 >
-                  已启用 {advancedSummary.enabledCount}/{advancedProvidersInput.length || 0}
+                  {t('state.enabledCount', { enabled: advancedSummary.enabledCount, total: advancedProvidersInput.length || 0 })}
                 </span>
-                <span className={`text-[10px] ${hintCls}`}>密钥 {advancedSummary.configuredKeyCount}</span>
+                <span className={`text-[10px] ${hintCls}`}>{t('state.keysCount', { count: advancedSummary.configuredKeyCount })}</span>
               </span>
               <span className={`flex items-center gap-1 text-[11px] ${hintCls}`}>
-                {advancedOpen ? '收起' : '展开'}
+                {advancedOpen ? t('state.collapse') : t('state.expand')}
                 {advancedOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
               </span>
             </button>
             {!advancedOpen && (
               <div className={`text-[11px] mt-2 ${hintCls}`}>
-                未配置或未启用时不会影响贞贞工坊、RunningHub、LLM 独立 Key 等主流程。
+                {t('advanced.collapsedHelp')}
               </div>
             )}
             {advancedOpen && (
               <div className="mt-3 space-y-3">
                 <div className={`text-[11px] leading-relaxed ${hintCls}`}>
-                  这里不是必填项。它只用于 ModelScope、火山引擎、Agnes AI、ComfyUI、即梦 CLI 和 OpenAI 兼容接口；平台开启后，还需要在具体节点的“高级来源”里选择它才会生效。
-                  当前状态：已启用 {advancedSummary.enabledCount} 个，已配置密钥 {advancedSummary.configuredKeyCount} 个，ComfyUI {advancedSummary.comfyuiConfigured ? '已填写地址' : '未填写地址'}，即梦 CLI {advancedSummary.jimengConfigured ? '已填写路径' : '未填写路径'}。
+                  {t('advanced.expandedHelp')}<br />
+                  {t('advanced.summary', { enabled: advancedSummary.enabledCount, keys: advancedSummary.configuredKeyCount, comfy: advancedSummary.comfyuiConfigured ? t('advanced.configuredAddress') : t('advanced.missingAddress'), jimeng: advancedSummary.jimengConfigured ? t('advanced.configuredPath') : t('advanced.missingPath') })}
                 </div>
                 {advancedProvidersInput.length === 0 ? (
-                  <div className={`text-xs ${hintCls}`}>后端尚未返回扩展平台卡片，请先保存或刷新设置。</div>
+                  <div className={`text-xs ${hintCls}`}>{t('advanced.empty')}</div>
                 ) : (
                   <div className="grid grid-cols-1 lg:grid-cols-[250px_minmax(0,1fr)] gap-3 items-start">
                     <div className={`space-y-2 min-w-0 ${isPixel ? '' : 'lg:sticky lg:top-0'}`}>
@@ -2678,13 +2618,13 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
                         >
                           <div className="flex items-center gap-2 min-w-0 w-full">
                             <span className={`w-2 h-2 rounded-full shrink-0 ${provider.enabled ? 'bg-emerald-400' : 'bg-zinc-400'}`} />
-                            <span className="font-bold min-w-0 truncate">{ADVANCED_PROVIDER_LABELS[provider.protocol] || provider.label || provider.id}</span>
+                            <span className="font-bold min-w-0 truncate">{provider.label || advancedProviderLabel(provider.protocol) || provider.id}</span>
                             <span className={`ml-auto text-[10px] shrink-0 ${provider.enabled ? 'text-emerald-500' : hintCls}`}>
-                              {provider.enabled ? '已启用' : '未启用'}
+                              {provider.enabled ? t('state.enabled') : t('state.disabled')}
                             </span>
                           </div>
                           <div className={`mt-1 text-[10px] leading-snug ${hintCls}`}>
-                            {ADVANCED_PROVIDER_GUIDES[provider.protocol]?.nodeScopes.join(' / ') || provider.protocol}
+                            {advancedProviderGuide(provider.protocol).nodeScopes.join(' / ')}
                           </div>
                         </button>
                       ))}
@@ -2712,35 +2652,35 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
               }
             >
               <CloudUpload size={14} className="t8-api-settings-icon" />
-              <span className="text-xs font-bold shrink-0">云端上传目标【可选】</span>
-              <span className={`hidden sm:inline text-[11px] ${hintCls}`}>素材右键上传到对象存储或网盘，不影响主流程</span>
+              <span className="text-xs font-bold shrink-0">{t('cloud.title')}</span>
+              <span className={`hidden sm:inline text-[11px] ${hintCls}`}>{t('cloud.hint')}</span>
               <span className="ml-auto flex items-center gap-1.5 flex-wrap justify-end">
                 <span
                   className="t8-api-settings-badge px-1.5 py-0.5 text-[10px] rounded border"
                   data-tone={cloudSummary.enabledCount > 0 ? 'success' : 'muted'}
                 >
-                  已启用 {cloudSummary.enabledCount}/{cloudSummary.totalCount || 4}
+                  {t('state.enabledCount', { enabled: cloudSummary.enabledCount, total: cloudSummary.totalCount || 4 })}
                 </span>
-                <span className={`text-[10px] ${hintCls}`}>已配置 {cloudSummary.configuredCount}</span>
+                <span className={`text-[10px] ${hintCls}`}>{t('state.configuredCount', { count: cloudSummary.configuredCount })}</span>
               </span>
               <span className={`flex items-center gap-1 text-[11px] ${hintCls}`}>
-                {cloudUploadOpen ? '收起' : '展开'}
+                {cloudUploadOpen ? t('state.collapse') : t('state.expand')}
                 {cloudUploadOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
               </span>
             </button>
             {!cloudUploadOpen && (
               <div className={`text-[11px] mt-2 ${hintCls}`}>
-                未启用时右键菜单不会出现云端上传目标；已启用后可把图像 / 视频 / 音频复制到外部存储。
+                {t('cloud.collapsedHelp')}
               </div>
             )}
             {cloudUploadOpen && (
               <div className="mt-3 space-y-3">
                 <div className={`text-[11px] leading-relaxed ${hintCls}`}>
-                  这里用于外部归档与分享。腾讯云 COS、阿里云 OSS、百度网盘 WebDAV 和夸克网盘 WebDAV 均支持真实上传；网盘目标需要先用 Alist / CloudDrive2 / rclone 等工具提供 WebDAV 地址。
-                  {cloudSummary.defaultLabel ? ` 当前默认目标：${cloudSummary.defaultLabel}。` : ''}
+                  {t('cloud.expandedHelp')}
+                  {cloudSummary.defaultLabel ? ` ${t('cloud.defaultTarget', { label: cloudSummary.defaultLabel })}` : ''}
                 </div>
                 {cloudUploadTargetsInput.length === 0 ? (
-                  <div className={`text-xs ${hintCls}`}>后端尚未返回云端上传目标，请先保存或刷新设置。</div>
+                  <div className={`text-xs ${hintCls}`}>{t('cloud.empty')}</div>
                 ) : (
                   <div className="grid grid-cols-1 lg:grid-cols-[250px_minmax(0,1fr)] gap-3 items-start">
                     <div className={`space-y-2 min-w-0 ${isPixel ? '' : 'lg:sticky lg:top-0'}`}>
@@ -2759,14 +2699,14 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
                         >
                           <div className="flex items-center gap-2 min-w-0 w-full">
                             <span className={`w-2 h-2 rounded-full shrink-0 ${target.enabled ? 'bg-emerald-400' : 'bg-zinc-400'}`} />
-                            <span className="font-bold min-w-0 truncate">{target.label || CLOUD_UPLOAD_LABELS[target.provider] || target.id}</span>
+                            <span className="font-bold min-w-0 truncate">{target.label || cloudProviderLabel(target.provider) || target.id}</span>
                             <span className={`ml-auto text-[10px] shrink-0 ${target.enabled ? 'text-emerald-500' : hintCls}`}>
-                              {target.enabled ? '已启用' : '未启用'}
+                              {target.enabled ? t('state.enabled') : t('state.disabled')}
                             </span>
                           </div>
                           <div className={`mt-1 text-[10px] leading-snug ${hintCls}`}>
-                            {CLOUD_UPLOAD_LABELS[target.provider] || target.provider}
-                            {target.isDefault ? ' · 默认' : ''}
+                            {cloudProviderLabel(target.provider)}
+                            {target.isDefault ? ` · ${t('state.default')}` : ''}
                           </div>
                         </button>
                       ))}
@@ -2784,8 +2724,8 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
           <div className="t8-api-settings-divider pt-3 border-t">
             <label className={`text-sm font-medium flex items-center gap-2 flex-wrap ${labelCls}`}>
               <Volume2 size={14} className="t8-api-settings-icon" />
-              任务完成提示音
-              <span className={`text-[11px] font-normal ${hintCls}`}>· 生成任务完成时播放；未上传时使用默认短提示音</span>
+              {t('sound.title')}
+              <span className={`text-[11px] font-normal ${hintCls}`}>{t('sound.hint')}</span>
             </label>
             <div
               className={
@@ -2797,18 +2737,18 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
               <div className="flex items-start gap-3 justify-between flex-wrap">
                 <div className="min-w-0">
                   <div className={`text-xs font-black ${labelCls}`}>
-                    当前：{hasCustomTaskCompletionSound ? (taskCompletionSoundSettings.name || '自定义提示音') : '默认提示音'}
+                    {t('sound.current', { name: hasCustomTaskCompletionSound ? (taskCompletionSoundSettings.name || t('sound.customName')) : t('sound.defaultName') })}
                   </div>
                   <div className={`mt-1 text-[11px] leading-relaxed ${hintCls}`}>
-                    支持 mp3 / wav / ogg / m4a / aac / flac / webm，最大 20MB。
-                    {hasCustomTaskCompletionSound && taskCompletionSoundSizeLabel ? ` 当前文件 ${taskCompletionSoundSizeLabel}。` : ''}
+                    {t('sound.supported')}
+                    {hasCustomTaskCompletionSound && taskCompletionSoundSizeLabel ? ` ${t('sound.currentFile', { size: taskCompletionSoundSizeLabel })}` : ''}
                   </div>
                 </div>
                 <span
                   className="t8-api-settings-badge px-2 py-1 text-[10px] rounded border shrink-0"
                   data-tone={hasCustomTaskCompletionSound ? 'success' : 'muted'}
                 >
-                  {hasCustomTaskCompletionSound ? '自定义' : '默认'}
+                  {hasCustomTaskCompletionSound ? t('sound.custom') : t('sound.default')}
                 </span>
               </div>
               <input
@@ -2830,7 +2770,7 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
                   }
                 >
                   <FileUp size={13} />
-                  {taskSoundBusy ? '处理中...' : '上传音频'}
+                  {taskSoundBusy ? t('sound.processing') : t('sound.upload')}
                 </button>
                 <button
                   type="button"
@@ -2843,7 +2783,7 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
                   }
                 >
                   <Volume2 size={13} />
-                  {taskSoundTesting ? '试听中...' : '试听'}
+                  {taskSoundTesting ? t('sound.testing') : t('sound.test')}
                 </button>
                 <button
                   type="button"
@@ -2856,18 +2796,18 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
                   }
                 >
                   <Trash2 size={13} />
-                  恢复默认
+                  {t('sound.restoreDefault')}
                 </button>
               </div>
               {taskSoundMessage && (
                 <div
                   className={
-                    taskSoundMessage.includes('失败') || taskSoundMessage.includes('请选择')
+                    taskSoundMessage.tone === 'error'
                       ? 'text-[11px] text-red-400'
                       : 'text-[11px] text-emerald-500'
                   }
                 >
-                  {taskSoundMessage}
+                  {taskSoundMessage.text}
                 </div>
               )}
             </div>
@@ -2877,15 +2817,15 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
           <div className="t8-api-settings-divider pt-3 border-t">
             <label className={`text-sm font-medium flex items-center gap-2 flex-wrap ${labelCls}`}>
               <FolderOpen size={14} className="t8-api-settings-icon" />
-              文件自动保存路径
-              <span className={`text-[11px] font-normal ${hintCls}`}>· 所有可执行节点生成的图像/视频/音频均会自动复制一份到此路径</span>
+              {t('paths.file.title')}
+              <span className={`text-[11px] font-normal ${hintCls}`}>{t('paths.file.hint')}</span>
             </label>
             <div className="flex items-center gap-2 mt-2">
               <input
                 type="text"
                 value={fileSavePathInput}
                 onChange={(e) => setFileSavePathInput(e.target.value)}
-                placeholder="例：D:\\zhenzhen 或 ~/zhenzhen · 路径不存在时会自动创建"
+                placeholder={t('paths.file.placeholder')}
                 className={inputCls}
                 autoComplete="off"
                 spellCheck={false}
@@ -2893,7 +2833,7 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
             </div>
             <div className={`flex items-center gap-2 flex-wrap text-[11px] mt-1.5 ${hintCls}`}>
               <span className="flex items-center gap-1.5">
-                <Lock size={11} /> 仅保存在本地机, 不上传上游。同名文件不覆盖。
+                <Lock size={11} /> {t('paths.file.note')}
               </span>
             </div>
           </div>
@@ -2902,15 +2842,15 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
           <div className="t8-api-settings-divider pt-3 border-t">
             <label className={`text-sm font-medium flex items-center gap-2 flex-wrap ${labelCls}`}>
               <FolderOpen size={14} className="t8-api-settings-icon" />
-              画布自动保存路径
-              <span className={`text-[11px] font-normal ${hintCls}`}>· 当前画布变更后自动导出 JSON，方便更换版本后导入</span>
+              {t('paths.canvas.title')}
+              <span className={`text-[11px] font-normal ${hintCls}`}>{t('paths.canvas.hint')}</span>
             </label>
             <div className="flex items-center gap-2 mt-2">
               <input
                 type="text"
                 value={canvasAutoSavePathInput}
                 onChange={(e) => setCanvasAutoSavePathInput(e.target.value)}
-                placeholder="例：D:\\zhenzhen 或 ~/zhenzhen · 实际保存到此路径下的 T8-penguin-canvas\\canvases"
+                placeholder={t('paths.canvas.placeholder')}
                 className={inputCls}
                 autoComplete="off"
                 spellCheck={false}
@@ -2918,7 +2858,7 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
             </div>
             <div className={`flex items-center gap-2 flex-wrap text-[11px] mt-1.5 ${hintCls}`}>
               <span className="flex items-center gap-1.5">
-                <Lock size={11} /> 默认路径由后端按平台返回：Windows 为 D:\zhenzhen，macOS/Linux 为用户目录下的 zhenzhen。
+                <Lock size={11} /> {t('paths.canvas.note')}
               </span>
             </div>
           </div>
@@ -2927,15 +2867,15 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
           <div className="t8-api-settings-divider pt-3 border-t">
             <label className={`text-sm font-medium flex items-center gap-2 flex-wrap ${labelCls}`}>
               <FolderOpen size={14} className="t8-api-settings-icon" />
-              资源库路径
-              <span className={`text-[11px] font-normal ${hintCls}`}>· 资源文件与分类索引都保存在此路径，更换版本后可继续读取</span>
+              {t('paths.resources.title')}
+              <span className={`text-[11px] font-normal ${hintCls}`}>{t('paths.resources.hint')}</span>
             </label>
             <div className="flex items-center gap-2 mt-2">
               <input
                 type="text"
                 value={resourceLibraryPathInput}
                 onChange={(e) => setResourceLibraryPathInput(e.target.value)}
-                placeholder="例：D:\\zhenzhen\\resources 或 ~/zhenzhen/resources · 路径不存在时会自动创建"
+                placeholder={t('paths.resources.placeholder')}
                 className={inputCls}
                 autoComplete="off"
                 spellCheck={false}
@@ -2943,7 +2883,7 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
             </div>
             <div className={`flex items-center gap-2 flex-wrap text-[11px] mt-1.5 ${hintCls}`}>
               <span className="flex items-center gap-1.5">
-                <Lock size={11} /> 加入资源库会复制一份到此目录，删除资源只删除资源库副本。
+                <Lock size={11} /> {t('paths.resources.note')}
               </span>
             </div>
           </div>
@@ -2952,15 +2892,15 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
           <div className="t8-api-settings-divider pt-3 border-t">
             <label className={`text-sm font-medium flex items-center gap-2 flex-wrap ${labelCls}`}>
               <FolderOpen size={14} className="t8-api-settings-icon" />
-              主题模板路径
-              <span className={`text-[11px] font-normal ${hintCls}`}>· 导入或编辑后的主题 JSON 保存在此路径</span>
+              {t('paths.themes.title')}
+              <span className={`text-[11px] font-normal ${hintCls}`}>{t('paths.themes.hint')}</span>
             </label>
             <div className="flex items-center gap-2 mt-2">
               <input
                 type="text"
                 value={themeTemplatePathInput}
                 onChange={(e) => setThemeTemplatePathInput(e.target.value)}
-                placeholder="例：D:\\zhenzhen\\theme-templates 或 ~/zhenzhen/theme-templates · 路径不存在时会自动创建"
+                placeholder={t('paths.themes.placeholder')}
                 className={inputCls}
                 autoComplete="off"
                 spellCheck={false}
@@ -2968,7 +2908,7 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
             </div>
             <div className={`flex items-center gap-2 flex-wrap text-[11px] mt-1.5 ${hintCls}`}>
               <span className="flex items-center gap-1.5">
-                <Lock size={11} /> 内置主题不可删除；自定义主题可导入、导出、编辑和删除。
+                <Lock size={11} /> {t('paths.themes.note')}
               </span>
             </div>
           </div>
@@ -2977,8 +2917,8 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
           <div className="t8-api-settings-divider pt-3 border-t">
             <label className={`text-sm font-medium flex items-center gap-2 flex-wrap ${labelCls}`}>
               <ExternalLink size={14} className="t8-api-settings-icon" />
-              Eagle 本地接口
-              <span className={`text-[11px] font-normal ${hintCls}`}>· 发送素材到本机 Eagle 时使用</span>
+              {t('paths.eagle.title')}
+              <span className={`text-[11px] font-normal ${hintCls}`}>{t('paths.eagle.hint')}</span>
             </label>
             <div className="flex items-center gap-2 mt-2">
               <input
@@ -2993,7 +2933,7 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
             </div>
             <div className={`flex items-center gap-2 flex-wrap text-[11px] mt-1.5 ${hintCls}`}>
               <span className="flex items-center gap-1.5">
-                <Lock size={11} /> 后端只允许 127.0.0.1 / localhost，避免把本地素材发送到远端代理。
+                <Lock size={11} /> {t('paths.eagle.note')}
               </span>
             </div>
           </div>
@@ -3009,7 +2949,7 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
                 isPixel
                   ? 'text-xs px-3 py-2 border border-[var(--px-ink)] bg-[var(--px-yellow)] text-[var(--px-ink)]'
                   : `text-xs rounded-md px-3 py-2 border ${
-                      backupMessage.includes('失败') || backupMessage.includes('不正确')
+                      backupMessage.tone === 'error'
                         ? 'text-red-300 bg-red-500/10 border-red-500/25'
                         : isDark
                           ? 'text-amber-100 bg-amber-500/10 border-amber-500/25'
@@ -3017,7 +2957,7 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
                     }`
               }
             >
-              {backupMessage}
+              {backupMessage.text}
             </div>
           )}
         </div>
@@ -3045,10 +2985,10 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
                 ? 't8-api-settings-secondary-btn px-btn flex items-center gap-2'
                 : 't8-api-settings-secondary-btn px-3 py-2 text-sm rounded-md border flex items-center gap-2'
             }
-            title="导入设置备份，回填后需点击保存生效"
+            title={t('backup.importTitle')}
           >
             <FileUp size={14} />
-            导入设置
+            {t('backup.import')}
           </button>
           <button
             type="button"
@@ -3058,10 +2998,10 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
                 ? 't8-api-settings-secondary-btn px-btn flex items-center gap-2'
                 : 't8-api-settings-secondary-btn px-3 py-2 text-sm rounded-md border flex items-center gap-2'
             }
-            title="导出包含明文 API Key 的私密备份"
+            title={t('backup.exportTitle')}
           >
             <Download size={14} />
-            导出设置
+            {t('backup.export')}
           </button>
           <button
             onClick={onClose}
@@ -3071,7 +3011,7 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
                 : 't8-api-settings-secondary-btn px-4 py-2 text-sm rounded-md border'
             }
           >
-            取消
+            {t('common:actions.cancel')}
           </button>
           <button
             onClick={handleSave}
@@ -3085,11 +3025,11 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
             {loading ? (
               <Loader2 size={14} className="animate-spin" />
             ) : saved ? (
-              <span>✓ 已保存</span>
+              <span>✓ {t('save.saved')}</span>
             ) : (
               <Save size={14} />
             )}
-            {!loading && !saved && '保存'}
+            {!loading && !saved && t('common:actions.save')}
           </button>
         </div>
       </div>

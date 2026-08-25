@@ -1,4 +1,5 @@
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Handle, Position, useUpdateNodeInternals, type NodeProps, type ResizeParams } from '@xyflow/react';
 import { Hash, Type } from 'lucide-react';
 import { useUpdateNodeData } from './useUpdateNodeData';
@@ -11,6 +12,7 @@ import { useDownstreamMediaMaterials, useUpstreamMaterials, type Material } from
 import { useThemeStore } from '../../stores/theme';
 import SmartTranslateButton from '../SmartTranslateButton';
 import type { SmartTranslationRecord } from '../../utils/smartTranslation';
+import { useCanvasNodeRenderMode } from '../CanvasNodeRenderMode';
 
 /**
  * 文本节点 - 提示词输入
@@ -34,6 +36,8 @@ function uniqueMentionMaterials(materials: Material[]): Material[] {
 }
 
 const TextNode = ({ id, data, selected }: NodeProps) => {
+  const { t } = useTranslation('nodes');
+  const canvasRenderMode = useCanvasNodeRenderMode();
   const update = useUpdateNodeData(id);
   const updateNodeInternals = useUpdateNodeInternals();
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -144,6 +148,27 @@ const TextNode = ({ id, data, selected }: NodeProps) => {
     [mentionMaterials, promptMentions, update],
   );
 
+  if (canvasRenderMode === 'cold') {
+    return (
+      <div
+        ref={rootRef}
+        className="t8-node-cold-shell"
+        data-t8-node-cold-shell="text"
+        style={{ width: size.w, height: size.h ?? 168, minWidth: 220, minHeight: 140 }}
+      >
+        <Handle type="target" position={Position.Left} className="!border-0 !bg-sky-400" />
+        <Handle type="source" position={Position.Right} className="!border-0 !bg-sky-400" />
+        <div className="t8-node-cold-shell__header">
+          <Type size={16} className="shrink-0 text-sky-300" />
+          <div className="t8-node-cold-shell__copy">
+            <strong>{t('text.title')}</strong>
+            <small>{t('text.offscreen', { count: resolvedPrompt.length })}</small>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       ref={rootRef}
@@ -208,13 +233,13 @@ const TextNode = ({ id, data, selected }: NodeProps) => {
         >
           <Type size={13} />
         </div>
-        <div className="flex-1 text-sm font-semibold text-white">文本</div>
+        <div className="flex-1 text-sm font-semibold text-white">{t('text.title')}</div>
         <span className="text-[10px] text-white/30">prompt</span>
       </div>
 
       <div className={`p-2.5 flex flex-col ${size.h ? 'flex-1 min-h-0 overflow-hidden' : ''}`}>
         <MentionPromptInput
-          title="文本节点 Prompt"
+          title={t('text.promptTitle')}
           value={text}
           mentions={promptMentions}
           materials={mentionMaterials}
@@ -224,7 +249,7 @@ const TextNode = ({ id, data, selected }: NodeProps) => {
             promptMentions: mentions,
             promptResolved: resolveMediaMentions(value, mentions, mentionMaterials),
           })}
-          placeholder="输入提示词..."
+          placeholder={t('text.placeholder')}
           promptTemplateKind="image"
           isDark={isDark}
           isPixel={isPixel}
@@ -245,10 +270,10 @@ const TextNode = ({ id, data, selected }: NodeProps) => {
           }`}
         />
         <div className="text-[10px] text-white/30 mt-1 flex items-center gap-2 shrink-0">
-          <span className="shrink-0" title="输出到下游节点">{resolvedPrompt.length} 字符{promptMentions.length ? ` · @${promptMentions.length}` : ''}</span>
+          <span className="shrink-0" title={t('text.downstream')}>{t('text.characters', { count: resolvedPrompt.length })}{promptMentions.length ? ` · @${promptMentions.length}` : ''}</span>
           <label
             className="ml-auto flex items-center gap-1 nodrag nowheel"
-            title="可选：填 RH 应用 nodeInfoList 里的节点序号，下游 RH 节点会按这个 RH# 自动绑定文本参数"
+            title={t('text.rhHint')}
             onMouseDown={(e) => e.stopPropagation()}
           >
             <Hash size={9} />
@@ -257,7 +282,7 @@ const TextNode = ({ id, data, selected }: NodeProps) => {
               onChange={(e) => handleRhNodeIdChange(e.target.value)}
               placeholder="RH#"
               inputMode="numeric"
-              aria-label="RH 节点序号"
+              aria-label={t('text.rhSequence')}
               className="h-5 w-12 rounded border border-white/10 bg-white/5 px-1 text-[10px] text-white outline-none placeholder:text-white/20 focus:border-sky-300/60"
             />
             {rhNodeId && <span className="text-sky-200/70">#{rhNodeId}</span>}

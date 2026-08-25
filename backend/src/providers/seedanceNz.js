@@ -209,6 +209,27 @@ const HAPPYHORSE_MODELS = new Set([
 const HAPPYHORSE_RESOLUTIONS = new Set(['720p', '1080p']);
 const WAN27_SPICY_MODEL = 'wan-2.7-spicy-i2v';
 const WAN27_SPICY_RESOLUTIONS = new Set(['720p', '1080p']);
+const WAN30_I2V_MODELS = new Set([
+  'wan-3.0-i2v',
+  'wan-3.0-global-i2v',
+  'wan-3.0-prime-i2v',
+  'wan-3.0-global-prime-i2v',
+]);
+const WAN30_R2V_MODELS = new Set([
+  'wan-3.0-r2v',
+  'wan-3.0-global-r2v',
+  'wan-3.0-prime-r2v',
+  'wan-3.0-global-prime-r2v',
+]);
+const WAN30_MODELS = new Set([...WAN30_I2V_MODELS, ...WAN30_R2V_MODELS]);
+const WAN30_THINKING_MODELS = new Set(['wan-3.0-global-i2v', 'wan-3.0-global-r2v']);
+const WAN30_SECONDS = new Set(['auto', ...Array.from({ length: 29 }, (_, index) => String(index + 2))]);
+const WAN30_RESOLUTIONS = new Set(['480P', '720P', '1080P']);
+const WAN30_RATIOS = new Set(['adaptive', '16:9', '4:3', '1:1', '3:4', '9:16']);
+const WAN30_PROMPT_MAX_LENGTH = 20000;
+const WAN30_MAX_IMAGES = 10;
+const WAN30_MAX_VIDEOS = 5;
+const WAN30_MAX_AUDIOS = 5;
 const KLING_T2V_MODELS = new Set([
   'kling-v3.0-std-t2v',
   'kling-v3.0-pro-t2v',
@@ -3079,8 +3100,121 @@ async function buildQwenImage30Payload(request, apiKey, options = {}) {
   return { payload, model, taskType };
 }
 
+function normalizeWan30PublicUrl(value, fieldName) {
+  const text = String(value || '').trim();
+  if (!text) return '';
+  if (text.length > 2048) throw new Error(`Wan 3.0 ${fieldName} 不能超过 2048 字符`);
+  let parsed;
+  try {
+    parsed = new URL(text);
+  } catch {
+    throw new Error(`Wan 3.0 ${fieldName} 必须是 http(s) URL`);
+  }
+  if (!['http:', 'https:'].includes(parsed.protocol)) {
+    throw new Error(`Wan 3.0 ${fieldName} 必须是 http(s) URL`);
+  }
+  return text;
+}
+
+async function buildWan30Payload(request, apiKey, options = {}) {
+  const model = String(request.model || '').trim().toLowerCase();
+  if (!WAN30_MODELS.has(model)) throw new Error(`未知 Wan 3.0 模型：${model || '(空)'}`);
+  const taskType = WAN30_I2V_MODELS.has(model) ? 'i2v' : 'r2v';
+  const prompt = String(request.prompt || '').trim();
+  if (prompt.length > WAN30_PROMPT_MAX_LENGTH) {
+    throw new Error(`Wan 3.0 提示词不能超过 ${WAN30_PROMPT_MAX_LENGTH} 字符`);
+  }
+  if (taskType === 'r2v' && !prompt) throw new Error('Wan 3.0 R2V 必须填写提示词');
+
+  const seconds = String(request.duration ?? request.seconds ?? '2').trim();
+  if (!WAN30_SECONDS.has(seconds)) throw new Error('Wan 3.0 时长只支持 auto 或 2-30 秒');
+  const resolution = String(request.resolution || '480P').trim().toUpperCase();
+  if (!WAN30_RESOLUTIONS.has(resolution)) throw new Error('Wan 3.0 分辨率只支持 480P、720P 或 1080P');
+  const ratio = String(request.ratio || 'adaptive').trim();
+  if (!WAN30_RATIOS.has(ratio)) throw new Error(`Wan 3.0 不支持比例 ${ratio}`);
+  const seed = Number(request.seed ?? 0);
+  if (!Number.isInteger(seed) || seed < 0 || seed > 2147483647) {
+    throw new Error('Wan 3.0 seed 必须是 0 到 2147483647 的整数');
+  }
+
+  const imageSources = normalizeList(request.images || request.refImages);
+  const videoSources = normalizeList(request.videos || request.videoUrls || request.video_url);
+  const audioSources = normalizeList(request.audios || request.audioUrls || request.audio_url);
+  const fileUrl = normalizeWan30PublicUrl(request.fileUrl ?? request.file_url, 'file_url');
+  const linkUrl = normalizeWan30PublicUrl(request.linkUrl ?? request.link_url, 'link_url');
+  if (fileUrl && linkUrl) throw new Error('Wan 3.0 file_url 与 link_url 不能同时填写');
+
+  if (taskType === 'i2v') {
+    if (imageSources.length < 1 || imageSources.length > 2) {
+      throw new Error('Wan 3.0 I2V 必须提供 1-2 张图片（首帧/可选尾帧）');
+    }
+    if (videoSources.length || audioSources.length || fileUrl || linkUrl) {
+      throw new Error('Wan 3.0 I2V 只接受首帧与可选尾帧图片');
+    }
+  } else {
+    if (imageSources.length > WAN30_MAX_IMAGES) throw new Error(`Wan 3.0 R2V 最多支持 ${WAN30_MAX_IMAGES} 张图片`);
+    if (videoSources.length > WAN30_MAX_VIDEOS) throw new Error(`Wan 3.0 R2V 最多支持 ${WAN30_MAX_VIDEOS} 个视频`);
+    if (audioSources.length > WAN30_MAX_AUDIOS) throw new Error(`Wan 3.0 R2V 最多支持 ${WAN30_MAX_AUDIOS} 个音频`);
+  }
+
+  const metadata = {
+    resolution,
+    ratio,
+    generate_audio: request.generateAudio !== false && request.generate_audio !== false,
+    seed,
+  };
+  const payload = { model, seconds, metadata };
+  if (prompt) payload.prompt = prompt;
+
+  if (imageSources.length) {
+    payload.images = [];
+    for (const source of imageSources) {
+      payload.images.push(await uploadMedia(source, 'image', apiKey, {
+        ...options,
+        allowedMimes: ['image/jpeg', 'image/png', 'image/webp'],
+        cacheVariant: `wan30-${taskType}-image-v1`,
+      }));
+    }
+  }
+
+  if (taskType === 'i2v') {
+    if (WAN30_THINKING_MODELS.has(model)) {
+      metadata.enable_thinking = request.enableThinking === true || request.enable_thinking === true;
+    }
+    return { payload, model, taskType };
+  }
+
+  if (videoSources.length) {
+    metadata.video_url = [];
+    for (const source of videoSources) {
+      metadata.video_url.push(await uploadMedia(source, 'video', apiKey, {
+        ...options,
+        cacheVariant: 'wan30-r2v-video-v1',
+      }));
+    }
+  }
+  if (audioSources.length) {
+    metadata.audio_url = [];
+    for (const source of audioSources) {
+      metadata.audio_url.push(await uploadMedia(source, 'audio', apiKey, {
+        ...options,
+        cacheVariant: 'wan30-r2v-audio-v1',
+      }));
+    }
+  }
+  if (fileUrl) metadata.file_url = fileUrl;
+  if (linkUrl) metadata.link_url = linkUrl;
+  if (WAN30_THINKING_MODELS.has(model)) {
+    metadata.enable_thinking = request.enableThinking === true
+      || request.enable_thinking === true
+      || Boolean(fileUrl || linkUrl);
+  }
+  return { payload, model, taskType };
+}
+
 async function buildWanPayload(request, apiKey, options = {}) {
   const model = String(request.model || WAN27_SPICY_MODEL).trim();
+  if (WAN30_MODELS.has(model.toLowerCase())) return buildWan30Payload(request, apiKey, options);
   if (model !== WAN27_SPICY_MODEL) throw new Error(`未知 Wan 模型：${model || '(空)'}`);
 
   const sources = normalizeList(request.images || request.refImages);
@@ -4062,10 +4196,10 @@ async function submitWanTask(request, apiKey, options = {}) {
       Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify(built.payload),
-  }, options, 'seedance.nz Wan 2.7 Spicy 任务提交');
-  const data = await responseJson(response, 'seedance.nz Wan 2.7 Spicy 任务提交');
+  }, options, 'seedance.nz Wan 视频任务提交');
+  const data = await responseJson(response, 'seedance.nz Wan 视频任务提交');
   if (!response.ok) throw createUpstreamError(data, response);
-  const taskId = requiredTaskId(data?.id || data?.task_id || data?.data?.id, 'seedance.nz Wan 2.7 Spicy 任务提交', response);
+  const taskId = requiredTaskId(data?.id || data?.task_id || data?.data?.id, 'seedance.nz Wan 视频任务提交', response);
   return { taskId, model: built.model, taskType: built.taskType, ...safeProviderTrace(response, data, { pollCount: 0 }) };
 }
 
@@ -5387,6 +5521,13 @@ module.exports = {
   WHISPER_RESPONSE_FORMATS,
   WAN27_SPICY_MODEL,
   WAN27_SPICY_RESOLUTIONS,
+  WAN30_I2V_MODELS,
+  WAN30_R2V_MODELS,
+  WAN30_MODELS,
+  WAN30_THINKING_MODELS,
+  WAN30_SECONDS,
+  WAN30_RESOLUTIONS,
+  WAN30_RATIOS,
   buildAudioPayload,
   buildFlowMusicPayload,
   buildSunoMusicPayload,
@@ -5398,6 +5539,7 @@ module.exports = {
   buildFashVsrPayload,
   buildViduPayload,
   buildHappyHorsePayload,
+  buildWan30Payload,
   buildWanPayload,
   buildPayload,
   buildSeedance25Payload,

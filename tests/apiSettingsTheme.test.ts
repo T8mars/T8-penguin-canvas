@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
+import { enUS, zhCN } from '../src/i18n/resources.ts';
 
 const apiSettingsSource = readFileSync(new URL('../src/components/ApiSettings.tsx', import.meta.url), 'utf8');
 const appSource = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
@@ -48,86 +49,103 @@ test('ApiSettings advanced provider fields stay mounted while typing and ModelSc
   assert.match(apiSettingsSource, /function\s+AdvancedProviderFormBlock/);
   assert.match(apiSettingsSource, /https:\/\/www\.modelscope\.cn\/my\/access\/token/);
   assert.match(apiSettingsSource, /https:\/\/www\.modelscope\.ai\/my\/access\/token/);
-  assert.match(apiSettingsSource, /获取 Token · 国内/);
-  assert.match(apiSettingsSource, /获取 Token · 国外/);
-  assert.match(apiSettingsSource, /ModelScope LoRA/);
-  assert.match(apiSettingsSource, /中文模型库/);
+  assert.match(apiSettingsSource, /t\('providerForm\.modelscope\.cnAction'\)/);
+  assert.match(apiSettingsSource, /t\('providerForm\.modelscope\.intlAction'\)/);
+  assert.match(apiSettingsSource, /t\('lora\.title'/);
+  assert.equal(zhCN.settings.providerForm.modelscope.cnAction, '获取 Token · 国内');
+  assert.equal(enUS.settings.providerForm.modelscope.cnAction, 'Get token · China');
+  assert.equal(zhCN.settings.lora.title, '4. ModelScope LoRA（可选）');
+  assert.equal(enUS.settings.lora.title, '4. ModelScope LoRA (optional)');
   assert.match(apiSettingsSource, /https:\/\/www\.modelscope\.cn\/aigc\/models/);
 });
 
 test('ApiSettings Jimeng CLI panel explains install, login, and executable path', () => {
-  assert.match(apiSettingsSource, /如何安装或更新即梦 CLI/);
+  assert.match(apiSettingsSource, /t\('jimeng\.installTitle'\)/);
   assert.match(apiSettingsSource, /JIMENG_CLI_INSTALL_UPDATE_COMMAND/);
   assert.match(apiSettingsSource, /JIMENG_CLI_SUPPORTED_VERSION/);
-  assert.match(apiSettingsSource, /dreamina login/);
-  assert.match(apiSettingsSource, /dreamina user_credit/);
-  assert.match(apiSettingsSource, /dreamina relogin/);
-  assert.match(apiSettingsSource, /dreamina logout/);
-  assert.match(apiSettingsSource, /C:\\Users\\&lt;用户名&gt;\\bin\\dreamina\.exe/);
-  assert.match(apiSettingsSource, /测试连接/);
+  assert.match(apiSettingsSource, /t\('jimeng\.installBody'/);
+  assert.match(apiSettingsSource, /t\('jimeng\.loginCommands'\)/);
+  assert.match(apiSettingsSource, /t\('jimeng\.pathHelp'\)/);
+  assert.match(apiSettingsSource, /t\('providerForm\.testConnection'\)/);
+  assert.match(zhCN.settings.jimeng.installBody, /dreamina login/);
+  assert.match(enUS.settings.jimeng.loginCommands, /dreamina user_credit/);
+  assert.match(zhCN.settings.jimeng.loginCommands, /dreamina relogin/);
+  assert.match(enUS.settings.jimeng.loginCommands, /dreamina logout/);
+  assert.match(enUS.settings.jimeng.pathHelp, /C:\\Users\\<username>\\bin\\dreamina\.exe/);
 });
 
 test('ApiSettings ComfyUI panel supports workflow JSON upload and auto-mapping exclude rules', () => {
   assert.match(apiSettingsSource, /handleComfyWorkflowFile/);
-  assert.match(apiSettingsSource, /上传 JSON/);
+  assert.match(apiSettingsSource, /t\('comfy\.upload'\)/);
   assert.match(apiSettingsSource, /applyComfySampleWorkflow/);
-  assert.match(apiSettingsSource, /载入样例/);
+  assert.match(apiSettingsSource, /t\('comfy\.loadSample'\)/);
   assert.match(apiSettingsSource, /buildComfyWorkflowImportChecklist/);
-  assert.match(apiSettingsSource, /自动映射排除规则（可选）/);
+  assert.match(apiSettingsSource, /t\('comfy\.excludeRules'\)/);
   assert.match(apiSettingsSource, /filterComfyFieldsByExcludeRules/);
   assert.match(apiSettingsSource, /parseComfyFieldExcludeRules/);
   assert.match(apiSettingsSource, /comfyExcludeRulesRaw/);
-  assert.match(apiSettingsSource, /排除采样器参数/);
+  assert.match(apiSettingsSource, /t\('comfy\.excludeSampler'\)/);
+  assert.ok(zhCN.settings.comfy.excludeRules.length > 0);
+  assert.ok(enUS.settings.comfy.excludeRules.length > 0);
 });
 
 test('ApiSettings Volcengine panel separates Ark API Key from AK/SK credentials', () => {
-  assert.match(apiSettingsSource, /方舟 Ark API Key（生成用，不是 AK\/SK）/);
-  assert.match(apiSettingsSource, /请输入方舟 Ark API Key，不要填 Access Key ID \/ Secret/);
-  assert.match(apiSettingsSource, /3\. 火山 AK\/SK（可选，素材签名）/);
-  assert.match(apiSettingsSource, /Access Key ID（AK，素材签名）/);
-  assert.match(apiSettingsSource, /Secret Access Key（SK，素材签名）/);
-  assert.match(apiSettingsSource, /目前它只作为素材签名类能力的预留凭证/);
-  assert.match(apiSettingsSource, /Seedance2\.0 开通提醒/);
-  assert.match(apiSettingsSource, /doubao-seedance-2-0-260128/);
-  assert.match(apiSettingsSource, /doubao-seedance-2-0-fast-260128/);
-  assert.match(apiSettingsSource, /ModelNotOpen \/ HTTP 404/);
+  assert.match(apiSettingsSource, /providers\.keyLabels\.volcengine/);
+  assert.match(apiSettingsSource, /t\('providerForm\.enterArkKey'\)/);
+  assert.match(apiSettingsSource, /t\('providerForm\.volc\.akTitle'\)/);
+  assert.match(apiSettingsSource, /t\('providerForm\.volc\.akLabel'\)/);
+  assert.match(apiSettingsSource, /t\('providerForm\.volc\.skLabel'\)/);
+  assert.match(apiSettingsSource, /t\('providerForm\.volc\.whichKeyBody'\)/);
+  assert.match(apiSettingsSource, /t\('providerForm\.volc\.seedanceReminder'\)/);
+  assert.match(zhCN.settings.providerForm.volc.seedanceReminderBody, /doubao-seedance-2-0-260128/);
+  assert.match(enUS.settings.providerForm.volc.seedanceReminderBody, /doubao-seedance-2-0-fast-260128/);
+  assert.match(zhCN.settings.providerForm.volc.seedanceReminderBody, /ModelNotOpen \/ HTTP 404/);
+  assert.match(enUS.settings.providerForm.volc.seedanceReminderBody, /ModelNotOpen \/ HTTP 404/);
 });
 
 test('ApiSettings classified API keys expose explicit clear actions', () => {
   assert.match(apiSettingsSource, /const \[clearedFields, setClearedFields\]/);
   assert.match(apiSettingsSource, /handleClearClassifiedKey/);
-  assert.match(apiSettingsSource, /保存后清空/);
+  assert.match(apiSettingsSource, /t\('keys\.pendingClear'\)/);
   assert.match(apiSettingsSource, /\(patch as any\)\[f\] = ''/);
-  assert.match(apiSettingsSource, /清空该分类独立 Key/);
-  assert.match(apiSettingsSource, /aria-label=\{`\$\{spec\.label\}\$\{pendingClear \? '取消清空' : '清空'\}`\}/);
+  assert.match(apiSettingsSource, /t\('keys\.clearClassified'\)/);
+  assert.match(apiSettingsSource, /aria-label=\{`\$\{t\(spec\.labelKey as any\)\}\$\{pendingClear \? t\('keys\.cancelClear'\) : t\('keys\.clear'\)\}`\}/);
+  assert.equal(zhCN.settings.keys.pendingClear, '保存后清空');
+  assert.equal(enUS.settings.keys.pendingClear, 'Will clear on save');
 });
 
 test('ApiSettings exposes an independent fixed seedance.nz main API key', () => {
-  assert.match(apiSettingsSource, /贞贞的平价AI小屋 API Key/);
-  assert.match(apiSettingsSource, /贞贞的AI工坊（海外） API Key/);
+  assert.match(apiSettingsSource, /labelKey: 'keys\.zhenzhenBudget\.label'/);
+  assert.match(apiSettingsSource, /labelKey: 'keys\.zhenzhen\.label'/);
   assert.match(apiSettingsSource, /FIXED_ZHENZHEN_SD2_BASE/);
   assert.match(apiSettingsSource, /https:\/\/api\.seedance\.nz\/sign-up\?aff=ibVH/);
   assert.match(apiSettingsSource, /zhenzhenSd2ApiKey/);
   assert.match(apiSettingsSource, /clearable: true/);
+  assert.ok(zhCN.settings.keys.zhenzhenBudget.label.length > 0);
+  assert.ok(enUS.settings.keys.zhenzhenBudget.label.length > 0);
 });
 
 test('ApiSettings cloud upload panels link to vendor consoles and secret key reminders', () => {
   assert.match(apiSettingsSource, /https:\/\/console\.cloud\.tencent\.com\/cam\/capi/);
   assert.match(apiSettingsSource, /https:\/\/console\.cloud\.tencent\.com\/lighthouse\/cos\/index\?rid=5/);
-  assert.match(apiSettingsSource, /腾讯云 SecretKey 只会在新建密钥时显示一次/);
+  assert.match(apiSettingsSource, /t\('cloudForm\.tencent\.reminder'\)/);
   assert.match(apiSettingsSource, /https:\/\/ram\.console\.aliyun\.com\/manage\/ak/);
   assert.match(apiSettingsSource, /https:\/\/oss\.console\.aliyun\.com\/bucket/);
-  assert.match(apiSettingsSource, /阿里云 AccessKey Secret 只会在创建时显示一次/);
+  assert.match(apiSettingsSource, /t\('cloudForm\.aliyun\.reminder'\)/);
+  assert.match(zhCN.settings.cloudForm.tencent.reminder, /SecretKey/);
+  assert.match(enUS.settings.cloudForm.tencent.reminder, /SecretKey/);
+  assert.match(zhCN.settings.cloudForm.aliyun.reminder, /AccessKey Secret/);
+  assert.match(enUS.settings.cloudForm.aliyun.reminder, /AccessKey Secret/);
 });
 
 test('ApiSettings exposes custom task completion sound upload without bypassing theme classes', () => {
-  assert.match(apiSettingsSource, /任务完成提示音/);
+  assert.match(apiSettingsSource, /t\('sound\.title'\)/);
   assert.match(apiSettingsSource, /handleTaskCompletionSoundUpload/);
   assert.match(apiSettingsSource, /uploadTaskCompletionSound/);
   assert.match(apiSettingsSource, /resetTaskCompletionSound/);
   assert.match(apiSettingsSource, /accept="audio\/\*,\.mp3,\.wav,\.ogg,\.m4a,\.aac,\.flac,\.webm"/);
-  assert.match(apiSettingsSource, /试听/);
-  assert.match(apiSettingsSource, /恢复默认/);
+  assert.match(apiSettingsSource, /t\('sound\.test'\)/);
+  assert.match(apiSettingsSource, /t\('sound\.restoreDefault'\)/);
   assert.match(apiSettingsSource, /t8-api-settings-section/);
   assert.match(apiSettingsSource, /t8-api-settings-secondary-btn/);
 });
@@ -148,10 +166,10 @@ test('UI font preference resolves readable defaults and custom stacks', async ()
 
 test('ApiSettings exposes a persisted global UI font control', () => {
   assert.match(apiSettingsSource, /UI_FONT_PRESETS/);
-  assert.match(apiSettingsSource, /界面字体/);
+  assert.match(apiSettingsSource, /t\('fonts\.title'\)/);
   assert.match(apiSettingsSource, /data-ui-font-settings="true"/);
   assert.match(apiSettingsSource, /data-ui-font-preset/);
-  assert.match(apiSettingsSource, /界面字体预览/);
+  assert.match(apiSettingsSource, /t\('fonts\.previewTitle'\)/);
   assert.match(apiSettingsSource, /setUiFontPreset/);
   assert.match(apiSettingsSource, /setCustomUiFont/);
   assert.match(themeStoreSource, /uiFontPreset/);

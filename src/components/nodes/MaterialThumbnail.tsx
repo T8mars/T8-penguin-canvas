@@ -1,4 +1,5 @@
 import { memo, type MouseEvent, type PointerEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Video as VideoIcon,
   Music,
@@ -67,6 +68,7 @@ const MaterialThumbnail = ({
   isSortOver = false,
   onSortPointerDown,
 }: Props) => {
+  const { t } = useTranslation('nodes');
   const stopFlowPointer = (event: PointerEvent<HTMLDivElement>) => {
     if (onSortPointerDown) {
       onSortPointerDown(event);
@@ -263,7 +265,7 @@ const MaterialThumbnail = ({
             cursor: 'pointer',
             ...(isPixel ? { borderLeft: '1.5px solid #1a1a1a', borderTop: '1.5px solid #1a1a1a' } : {}),
           }}
-          title={removable ? '移除本地素材' : '从本节点排除此上游素材'}
+          title={removable ? t('shared.removeLocal') : t('shared.excludeUpstream')}
         >
           <X size={9} />
         </button>

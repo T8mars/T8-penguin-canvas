@@ -25,13 +25,13 @@ test('shared prompt editor components expose modal and textarea affordances', ()
 
   assert.match(modal, /data-canvas-floating-ui="prompt-expand-editor"/);
   assert.match(modal, /flex min-h-0 flex-1 flex-col p-4/);
-  assert.match(modal, /Ctrl\+Enter 完成/);
-  assert.match(modal, /Esc 取消/);
-  assert.match(modal, /readOnly \? '当前字段为只读，可查看或复制。'/);
+  assert.match(modal, /shared\.editorStats/);
+  assert.match(modal, /readOnly \? t\('shared\.readOnlyField'\)/);
   assert.match(modal, /editorKind\?:\s*PromptExpandEditorKind/);
-  assert.match(modal, /格式化 JSON/);
-  assert.match(modal, /校验 JSON/);
-  assert.match(modal, /整理列表/);
+  assert.match(modal, /shared\.formatJson/);
+  assert.match(modal, /shared\.validateJson/);
+  assert.match(modal, /shared\.normalizeList/);
+  assert.match(modal, /toolMessageError/);
   assert.match(modal, /stripCompositionLeak/);
   assert.match(modal, /createPlainInputRunSnapshot/);
   assert.match(modal, /compositionLeakRef/);
@@ -172,16 +172,16 @@ test('core generation nodes use expanded prompt editing', () => {
   const panorama = read('../src/components/nodes/Panorama3DNode.tsx');
 
   assert.match(image, /import PromptTextarea from '\.\.\/PromptTextarea'/);
-  assert.match(image, /title="图像 Prompt"/);
+  assert.match(image, /title=\{translate\('nodes:image\.promptTitle'\)\}/);
   assert.match(image, /title="ComfyUI 正向 Prompt"/);
   assert.match(image, /title="ComfyUI 负向 Prompt"/);
   assert.match(image, /title="图像扩展模型 System Prompt"/);
 
-  assert.match(video, /title="视频 Prompt"/);
-  assert.match(seedance, /title="SD2\.0 Prompt"/);
-  assert.match(audio, /title="音频歌词 \/ 提示词"/);
-  assert.match(llm, /title="LLM 系统提示词"/);
-  assert.match(llm, /title="LLM 用户输入"/);
+  assert.match(video, /title=\{translate\('nodes:video\.promptTitle'\)\}/);
+  assert.match(seedance, /title=\{isSeedance25 \? 'SD2\.5 Prompt' : 'SD2\.0 Prompt'\}/);
+  assert.match(audio, /title=\{translate\('nodes:audio\.promptTitle'\)\}/);
+  assert.match(llm, /title=\{t\('llm\.systemPromptTitle'\)\}/);
+  assert.match(llm, /title=\{t\('llm\.userInputTitle'\)\}/);
   assert.match(panorama, /title="3D 全景提示词"/);
 });
 
@@ -213,7 +213,7 @@ test('configuration JSON and list editors reuse expanded prompt editing', () => 
   assert.match(apiSettings, /title="ComfyUI fields JSON"/);
   assert.match(apiSettings, /editorKind="json"/);
   assert.match(apiSettings, /editorKind="lines"/);
-  assert.match(apiSettings, /title=\{`\$\{provider\.label \|\| protocolLabel\} 图像模型`\}/);
+  assert.match(apiSettings, /title=\{t\('providerForm\.modelEditorTitle', \{ provider: provider\.label \|\| protocolLabel, kind: t\('providerForm\.imageKind'\) \}\)\}/);
 
   assert.match(comfyMaker, /import PromptTextarea from '\.\.\/PromptTextarea'/);
   assert.match(comfyMaker, /title="ComfyUI Workflow JSON"/);

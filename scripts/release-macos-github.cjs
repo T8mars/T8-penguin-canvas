@@ -96,7 +96,7 @@ function macReleaseSection(binding, artifacts) {
       + (signed
         ? '- 已使用 Apple Developer ID 签名并完成 Apple 公证；自动更新使用同一 Release 的 `latest-mac.yml` 与 ZIP。\n'
         : '- 本次为首次技术预览：仅做 ad-hoc 完整性签名，尚无 Apple Developer ID 与公证。首次打开请在 Finder 中右键应用并选择“打开”，系统仍会明确提示来源。\n')
-      + `- Mac 构建源码固定为 \`${binding.sourceRef}\` / \`${binding.sourceTarget}\`；既有 v3.0.0 Windows Tag 和安装包未移动、未覆盖。\n`
+      + `- Mac 构建源码固定为 \`${binding.sourceRef}\` / \`${binding.sourceTarget}\`；同版 Windows Tag、安装包和更新清单未移动、未覆盖。\n`
       + '- 云端 Provider、画布、数据库、素材与内置 FFmpeg/FFprobe 已打包；Windows 专用的去水印/ParseHub Python 离线运行时未冒充为 Mac 能力，相关本地工具需要用户另行安装兼容 Python 环境。\n\n'
       + `${digestRows}\n`,
   };

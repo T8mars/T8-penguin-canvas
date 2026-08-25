@@ -18,14 +18,15 @@ test('upload and output material nodes expose per-material delete actions', () =
   assert.match(upload, /handleRemoveUploadItem/);
   assert.match(output, /handleRemoveOutputMaterial/);
   assert.match(upload, /删除素材/);
-  assert.match(output, /删除素材/);
+  assert.match(output, /t\('nodes:output\.removeMaterial'/);
   assert.match(upload, /group-hover\/upload-image/);
   assert.match(output, /group-hover\/output-image-card/);
   assert.match(output, /t8-output-image-action-stack/);
   assert.match(output, /t8-output-image-action-stack--compact/);
   assert.match(output, /t8-output-image-action-stack--above/);
   assert.match(output, /t8-output-image-media--grid/);
-  assert.match(output, /grid grid-cols-2 gap-1\.5/);
+  assert.match(output, /resolveOutputGridColumns/);
+  assert.match(output, /gridTemplateColumns: `repeat\(\$\{imageGridColumns\}, minmax\(0, 1fr\)\)`/);
   assert.match(output, /t8-material-action-button/);
   assert.match(output, /iconSize=\{displayImageUrls\.length >= 2 \? 10 : 14\}/);
 

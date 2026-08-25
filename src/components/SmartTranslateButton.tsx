@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { Loader2 } from 'lucide-react';
+import NodeVisible from '../i18n/NodeVisible';
 import { runRhTextTranslation } from '../services/rhToolboxCapabilities';
 import { logBus } from '../stores/logs';
 import {
@@ -118,7 +119,8 @@ const SmartTranslateButton = ({
   };
 
   return (
-    <button
+    <NodeVisible>
+      <button
       type="button"
       data-smart-translate-trigger
       className={`nodrag nopan inline-flex h-6 min-w-6 items-center justify-center rounded border border-lime-400/30 bg-lime-500/15 px-1 text-[11px] font-bold text-lime-200 shadow-sm transition hover:bg-lime-500/25 hover:text-white disabled:cursor-not-allowed disabled:opacity-40 ${className}`}
@@ -137,7 +139,8 @@ const SmartTranslateButton = ({
       }}
     >
       {busy ? <Loader2 size={12} className="animate-spin" /> : '译'}
-    </button>
+      </button>
+    </NodeVisible>
   );
 };
 

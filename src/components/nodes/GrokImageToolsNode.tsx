@@ -6,6 +6,7 @@ import { useRunTrigger } from '../../hooks/useRunTrigger';
 import type { RunNodeLifecycleReporter } from '../../types/project';
 import { requestCanvasNodeRun } from '../../utils/canvasRunRequest';
 import { useUpdateNodeData } from './useUpdateNodeData';
+import NodeVisible from '../../i18n/NodeVisible';
 
 type ToolMode = 'segment' | 'region-edit';
 const delay = (ms: number, signal?: AbortSignal) => new Promise<void>((resolve, reject) => {
@@ -99,7 +100,7 @@ function GrokImageToolsNode({ id, data, selected }: NodeProps) {
     update({ selectionJson: JSON.stringify(next) });
   };
 
-  return <div className={`w-[360px] rounded-2xl border-2 bg-zinc-950/95 text-white ${selected ? 'border-sky-400' : 'border-sky-400/35'}`}>
+  return <NodeVisible><div className={`w-[360px] rounded-2xl border-2 bg-zinc-950/95 text-white ${selected ? 'border-sky-400' : 'border-sky-400/35'}`}>
     <Handle type="target" position={Position.Left} className="!bg-sky-400 !border-0" />
     <Handle type="source" position={Position.Right} className="!bg-sky-400 !border-0" />
     <div className="flex items-center gap-2 border-b border-white/10 px-3 py-2.5"><ScanSearch size={18} className="text-sky-300"/><div><div className="font-semibold">Grok 分割编辑</div><div className="text-[10px] text-white/45">Grok Image · 专用对象工作流</div></div></div>
@@ -110,7 +111,7 @@ function GrokImageToolsNode({ id, data, selected }: NodeProps) {
       {(localError || d?.error) && <div className="rounded border border-red-400/30 bg-red-500/10 p-2 text-[10px] text-red-200">{localError || d.error}</div>}
       <button type="button" disabled={busy} onClick={() => { if (!requestCanvasNodeRun(id)) setLocalError('无法发起画布运行'); }} className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-sky-300 to-cyan-300 py-2.5 font-semibold text-zinc-950 disabled:opacity-40">{busy ? <><Loader2 size={16} className="animate-spin"/>处理中 {d?.progress || ''}</> : <><Play size={16}/>{mode === 'segment' ? '执行智能分割' : '执行区域编辑'}</>}</button>
     </div>
-  </div>;
+  </div></NodeVisible>;
 }
 
 export default memo(GrokImageToolsNode);

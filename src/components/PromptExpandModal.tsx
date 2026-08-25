@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type CompositionEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Check, CheckCircle2, Copy, ListFilter, Wand2, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import {
   createCompositionLeakSnapshot,
   createPlainInputRunSnapshot,
@@ -34,12 +35,12 @@ function promptStats(value: string) {
   return { chars: text.length, lines };
 }
 
-async function copyText(value: string) {
+async function copyText(value: string, fallbackPrompt: string) {
   if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
     await navigator.clipboard.writeText(value);
     return;
   }
-  if (typeof window !== 'undefined') window.prompt('复制文本:', value);
+  if (typeof window !== 'undefined') window.prompt(fallbackPrompt, value);
 }
 
 function formatJson(value: string) {
@@ -81,8 +82,10 @@ export default function PromptExpandModal({
   editorKind = 'text',
   children,
 }: PromptExpandModalProps) {
+  const { t } = useTranslation('nodes');
   const stats = useMemo(() => promptStats(value), [value]);
   const [toolMessage, setToolMessage] = useState('');
+  const [toolMessageError, setToolMessageError] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const composingRef = useRef(false);
   const lastPlainInputRef = useRef<PlainInputRunSnapshot | null>(null);
@@ -91,6 +94,7 @@ export default function PromptExpandModal({
   useEffect(() => {
     if (open) {
       setToolMessage('');
+      setToolMessageError(false);
       composingRef.current = false;
       lastPlainInputRef.current = null;
       compositionLeakRef.current = null;
@@ -148,24 +152,29 @@ export default function PromptExpandModal({
     try {
       const formatted = formatJson(value);
       onValueChange(formatted);
-      setToolMessage('JSON 已格式化');
+      setToolMessageError(false);
+      setToolMessage(t('shared.jsonFormatted'));
     } catch (error: any) {
-      setToolMessage(`JSON 格式错误：${error?.message || '无法解析'}`);
+      setToolMessageError(true);
+      setToolMessage(t('shared.jsonInvalid', { message: error?.message || t('shared.parseFailed') }));
     }
   };
 
   const handleValidateJson = () => {
     try {
       validateJson(value);
-      setToolMessage('JSON 格式正确');
+      setToolMessageError(false);
+      setToolMessage(t('shared.jsonValid'));
     } catch (error: any) {
-      setToolMessage(`JSON 格式错误：${error?.message || '无法解析'}`);
+      setToolMessageError(true);
+      setToolMessage(t('shared.jsonInvalid', { message: error?.message || t('shared.parseFailed') }));
     }
   };
 
   const handleNormalizeLines = () => {
     onValueChange(normalizeLines(value));
-    setToolMessage('已整理为空行去重列表');
+    setToolMessageError(false);
+    setToolMessage(t('shared.linesNormalized'));
   };
 
   const rememberPlainInput = (text: string, caret: number, data: string) => {
@@ -229,7 +238,7 @@ export default function PromptExpandModal({
         onMouseDown={(event) => event.stopPropagation()}
         role="dialog"
         aria-modal="true"
-        aria-label={title || '放大编辑提示词'}
+        aria-label={title || t('shared.expandPrompt')}
       >
         <header
           className={`flex items-center justify-between gap-3 px-4 py-3 ${
@@ -237,12 +246,12 @@ export default function PromptExpandModal({
           }`}
         >
           <div className="min-w-0">
-            <div className="truncate text-sm font-bold">{title || '放大编辑提示词'}</div>
+            <div className="truncate text-sm font-bold">{title || t('shared.expandPrompt')}</div>
             <div className={`mt-0.5 text-[11px] ${isPixel ? 'text-[var(--px-ink)] opacity-70' : isDark ? 'text-white/45' : 'text-zinc-500'}`}>
-              {stats.chars} 字 · {stats.lines} 行 · Alt+Enter 打开 · Ctrl+Enter 完成 · Esc 取消
+              {t('shared.editorStats', { chars: stats.chars, lines: stats.lines })}
             </div>
           </div>
-          <button type="button" className={btnBase} onClick={onCancel} title="关闭">
+          <button type="button" className={btnBase} onClick={onCancel} title={t('shared.close')}>
             <X size={14} />
           </button>
         </header>
@@ -253,20 +262,20 @@ export default function PromptExpandModal({
               {editorKind === 'json' && (
                 <>
                   <button type="button" className={toolBtn} onClick={handleFormatJson} disabled={readOnly}>
-                    <Wand2 size={13} /> 格式化 JSON
+                    <Wand2 size={13} /> {t('shared.formatJson')}
                   </button>
                   <button type="button" className={toolBtn} onClick={handleValidateJson}>
-                    <CheckCircle2 size={13} /> 校验 JSON
+                    <CheckCircle2 size={13} /> {t('shared.validateJson')}
                   </button>
                 </>
               )}
               {editorKind === 'lines' && (
                 <button type="button" className={toolBtn} onClick={handleNormalizeLines} disabled={readOnly}>
-                  <ListFilter size={13} /> 整理列表
+                  <ListFilter size={13} /> {t('shared.normalizeList')}
                 </button>
               )}
               {toolMessage && (
-                <span className={`text-[11px] ${toolMessage.includes('错误') ? 'text-red-400' : isDark ? 'text-cyan-200' : 'text-cyan-700'}`}>
+                <span className={`text-[11px] ${toolMessageError ? 'text-red-400' : isDark ? 'text-cyan-200' : 'text-cyan-700'}`}>
                   {toolMessage}
                 </span>
               )}
@@ -298,17 +307,17 @@ export default function PromptExpandModal({
           }`}
         >
           <div className={`text-[11px] ${isPixel ? 'text-[var(--px-ink)] opacity-70' : isDark ? 'text-white/45' : 'text-zinc-500'}`}>
-            {readOnly ? '当前字段为只读，可查看或复制。' : '完成后会写回原节点字段。'}
+            {readOnly ? t('shared.readOnlyField') : t('shared.writeBackHint')}
           </div>
           <div className="flex items-center gap-2">
-            <button type="button" className={btnBase} onClick={() => copyText(value)} title="复制当前文本">
-              <Copy size={13} /> 复制
+            <button type="button" className={btnBase} onClick={() => copyText(value, t('shared.copyTextPrompt'))} title={t('shared.copyCurrent')}>
+              <Copy size={13} /> {t('shared.copy')}
             </button>
             <button type="button" className={btnBase} onClick={onCancel}>
-              取消
+              {t('shared.cancel')}
             </button>
             <button type="button" className={`${primaryBtn} ${readOnly ? 'opacity-45' : ''}`} disabled={readOnly} onClick={onApply}>
-              <Check size={13} /> 完成
+              <Check size={13} /> {t('shared.done')}
             </button>
           </div>
         </footer>

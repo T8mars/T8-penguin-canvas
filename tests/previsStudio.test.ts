@@ -30,7 +30,7 @@ test('完整工作台按需加载且样式隔离，不在紧凑节点常驻 WebG
   const editor = read('src/features/previs-studio/PrevisStudioEditor.tsx');
   assert.match(node, /lazy\(\(\) => import\('\.\.\/\.\.\/features\/previs-studio\/PrevisStudioEditor'\)\)/);
   assert.match(node, /createPortal\(/);
-  assert.match(node, /完整工作台/);
+  assert.match(node, /t\('previs\.fullWorkbench'\)/);
   assert.doesNotMatch(node, /<Canvas[\s>]/);
   assert.match(editor, /attachShadow\(\{ mode: 'open' \}\)/);
   assert.match(editor, /monoform-studio\.css\?inline/);
@@ -79,13 +79,16 @@ test('静帧和动画导出遵守 5 秒、24 FPS、H.264 MP4 与停止合同', (
 test('参考项目出处、固定提交和感谢在节点与完整工作台中均可见', () => {
   const node = read('src/components/nodes/PrevisStudioNode.tsx');
   const studio = read('src/features/previs-studio/MonoformStudio.jsx');
+  const resources = read('src/i18n/resources.ts');
   const notice = read('public/previs-studio/NOTICE.txt');
   for (const content of [node, studio, notice]) {
     assert.ok(content.includes(SOURCE_URL));
     assert.ok(content.includes(SOURCE_COMMIT));
   }
-  assert.match(node, /感谢原作者/);
-  assert.match(studio, /感谢原作者/);
+  assert.match(node, /t\('previs\.thanks'\)/);
+  assert.match(studio, /t\('previs\.studio\.sourceCredit'\)/);
+  assert.match(resources, /感谢原作者/);
+  assert.match(resources, /thanks to the original author/);
 });
 
 test('固定导入的上游二进制资源没有漂移', () => {

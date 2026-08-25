@@ -1400,11 +1400,27 @@ export async function queryVidu(taskId: string): Promise<HappyHorseQueryResult> 
 }
 
 export interface WanSubmitRequest {
-  model: 'wan-2.7-spicy-i2v';
+  model:
+    | 'wan-2.7-spicy-i2v'
+    | 'wan-3.0-global-i2v'
+    | 'wan-3.0-global-r2v'
+    | 'wan-3.0-i2v'
+    | 'wan-3.0-r2v'
+    | 'wan-3.0-prime-i2v'
+    | 'wan-3.0-prime-r2v'
+    | 'wan-3.0-global-prime-i2v'
+    | 'wan-3.0-global-prime-r2v';
   prompt?: string;
-  duration: number;
-  resolution: '720p' | '1080p';
+  duration: number | 'auto';
+  resolution: '720p' | '1080p' | '480P' | '720P' | '1080P';
+  ratio?: 'adaptive' | '16:9' | '4:3' | '1:1' | '3:4' | '9:16';
   images: string[];
+  videos?: string[];
+  audios?: string[];
+  generateAudio?: boolean;
+  enableThinking?: boolean;
+  fileUrl?: string;
+  linkUrl?: string;
   negativePrompt?: string;
   audioUrl?: string;
   promptExtend?: boolean;
@@ -1421,14 +1437,14 @@ export async function submitWan(req: WanSubmitRequest, transport: ProviderSubmis
     headers: providerSubmissionHeaders(transport),
     body: JSON.stringify(req),
   });
-  const data = await safeJsonResponse(r, 'Wan 2.7 Spicy 提交');
+  const data = await safeJsonResponse(r, 'Wan 视频提交');
   if (!r.ok || !data.success) throw providerResponseError(r, data);
   return withProviderTransportTrace(data.data, r);
 }
 
 export async function queryWan(taskId: string): Promise<HappyHorseQueryResult> {
   const r = await fetch(`/api/proxy/video/wan/status/${encodeURIComponent(taskId)}`);
-  const data = await safeJsonResponse(r, 'Wan 2.7 Spicy 查询');
+  const data = await safeJsonResponse(r, 'Wan 视频查询');
   if (!r.ok || !data.success) throw providerResponseError(r, data);
   return withProviderTransportTrace(data.data, r);
 }

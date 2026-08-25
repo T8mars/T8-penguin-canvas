@@ -61,7 +61,7 @@ test('unified run hook skips the executor but still archives reused output and c
   assert.match(hook, /if \(reusedExistingResult\)[\s\S]*phase: 'reused-existing-output'[\s\S]*return;/);
   assert.match(hook, /!reusedExistingResult && \(initialTrace\.provider \|\| initialTrace\.model\)/);
   assert.match(hook, /reusedResult: true/);
-  assert.match(hook, /markDone\(nodeId, capturedExecutionToken, true\)/);
+  assert.match(hook, /markDone\(executionNodeId, capturedExecutionToken, true\)/);
 });
 
 test('new nodes and shared schema default reuseResult to false', () => {

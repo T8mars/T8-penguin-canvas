@@ -29,9 +29,15 @@ const {
   installChromiumResponseHeaderBridge,
   installGlobalSystemFetchBridge,
 } = require('./systemFetchBridge.cjs');
+const {
+  electronT,
+  getElectronLocale,
+  initializeElectronLocale,
+  normalizeElectronLocale,
+  setElectronLocale,
+} = require('./i18n.cjs');
 
 const APP_VERSION = require('../package.json').version;
-const UPDATE_DISABLED_MESSAGE = '开发模式不会检查 GitHub Release 更新';
 const ELECTRON_BACKEND_SHUTDOWN_DEADLINE_MS = 15_000;
 const ELECTRON_STARTUP_SHELL_PAINT_DEADLINE_MS = 2_500;
 const ELECTRON_FRONTEND_LOAD_RETRY_DELAY_MS = 250;
@@ -73,7 +79,9 @@ let updaterState = {
   status: 'idle',
   currentVersion: APP_VERSION,
   availableVersion: null,
-  message: '等待检查更新',
+  messageKey: 'updater.idle',
+  messageParams: {},
+  message: electronT('updater.idle'),
   progress: null,
   downloaded: false,
   error: null,
@@ -688,7 +696,7 @@ function createVibeXRhLoginWindowOptions() {
     parent: mainWindow && !mainWindow.isDestroyed() ? mainWindow : undefined,
     modal: false,
     show: true,
-    title: 'RunningHub 登录',
+    title: electronT('auth.runningHubLogin'),
     backgroundColor: '#0f172a',
     webPreferences: {
       contextIsolation: true,
@@ -825,10 +833,10 @@ function parseAuthSession() {
 async function openParseAuthWindow(profileId) {
   const profile = getParseAuthProfile(profileId);
   if (!profile) {
-    return { success: false, message: '未知平台，无法打开授权窗口' };
+    return localizedElectronResult(false, 'PARSE_AUTH_PROFILE_UNKNOWN', 'auth.unknownOpen');
   }
   if (!app.isReady()) {
-    return { success: false, message: '应用尚未初始化完成，请稍后再试' };
+    return localizedElectronResult(false, 'PARSE_AUTH_APP_NOT_READY', 'auth.appNotReady');
   }
 
   const authWindow = new BrowserWindow({
@@ -839,7 +847,7 @@ async function openParseAuthWindow(profileId) {
     parent: mainWindow && !mainWindow.isDestroyed() ? mainWindow : undefined,
     modal: false,
     show: true,
-    title: `${profile.label} 授权登录`,
+    title: electronT('auth.loginTitle', { platform: profile.label }),
     backgroundColor: '#111111',
     webPreferences: {
       partition: PARSE_AUTH_PARTITION,
@@ -871,7 +879,7 @@ async function openParseAuthWindow(profileId) {
 
   try {
     await authWindow.loadURL(profile.authUrl);
-    return { success: true, message: `已打开 ${profile.label} 官方登录窗口，请登录后回到节点点击“检测授权”` };
+    return localizedElectronResult(true, 'PARSE_AUTH_WINDOW_OPENED', 'auth.opened', { platform: profile.label });
   } catch (error) {
     return { success: false, message: normalizeError(error) };
   }
@@ -954,17 +962,17 @@ function normalizeCookieTextForStore(value) {
     .replace(/^;+|;+$/g, '');
   if (!text) return '';
   if (text.length > 12000) {
-    throw new Error('Cookie 过长，请删掉无关字段后再保存');
+    throw localizedElectronError('auth.cookieTooLong', 'PARSE_AUTH_COOKIE_TOO_LONG');
   }
   if (!/(^|;\s*)[^=;\s]+=[^;]+/.test(text)) {
-    throw new Error('Cookie 格式不正确，请粘贴 name=value; name2=value2 格式');
+    throw localizedElectronError('auth.cookieInvalid', 'PARSE_AUTH_COOKIE_INVALID');
   }
   return text;
 }
 
 function ensureParseAuthEncryption() {
   if (!safeStorage || !safeStorage.isEncryptionAvailable()) {
-    throw new Error('当前系统加密能力不可用，已拒绝明文保存 Cookie；可继续仅本次解析使用');
+    throw localizedElectronError('auth.encryptionUnavailable', 'PARSE_AUTH_ENCRYPTION_UNAVAILABLE');
   }
 }
 
@@ -1013,7 +1021,7 @@ async function listSavedParseAuth(profileId) {
 async function saveParseAuthRecord(profileId, cookieText, meta = {}) {
   const profile = getParseAuthProfile(profileId);
   if (!profile) {
-    return { success: false, message: '未知平台，无法保存授权 Cookie' };
+    return localizedElectronResult(false, 'PARSE_AUTH_PROFILE_UNKNOWN', 'auth.unknownSave');
   }
   let normalized = '';
   try {
@@ -1043,26 +1051,38 @@ async function saveParseAuthRecord(profileId, cookieText, meta = {}) {
         [profile.id]: record,
       },
     });
-    return { success: true, data: maskParseAuthRecord(record), message: `${profile.label} 授权已加密保存到本机` };
+    return localizedElectronResult(
+      true,
+      'PARSE_AUTH_SAVED',
+      'auth.saved',
+      { platform: profile.label },
+      maskParseAuthRecord(record),
+    );
   } catch (error) {
-    return { success: false, message: normalizeError(error) };
+    return {
+      success: false,
+      code: String(error?.code || 'PARSE_AUTH_SAVE_FAILED'),
+      messageKey: error?.messageKey,
+      params: error?.params,
+      message: normalizeError(error),
+    };
   }
 }
 
 async function loadParseAuthRecord(profileId) {
   const profile = getParseAuthProfile(profileId);
   if (!profile) {
-    return { success: false, message: '未知平台，无法读取本机授权' };
+    return localizedElectronResult(false, 'PARSE_AUTH_PROFILE_UNKNOWN', 'auth.unknownLoad');
   }
   try {
     const store = readParseAuthStore();
     const record = store.records?.[profile.id];
     if (!record) {
-      return { success: false, message: `本机没有保存 ${profile.label} 授权` };
+      return localizedElectronResult(false, 'PARSE_AUTH_NOT_SAVED', 'auth.notSaved', { platform: profile.label });
     }
     const cookie = decryptParseAuthCookie(record);
     if (!cookie) {
-      return { success: false, message: `${profile.label} 授权为空，请重新登录保存` };
+      return localizedElectronResult(false, 'PARSE_AUTH_EMPTY', 'auth.empty', { platform: profile.label });
     }
     return {
       success: true,
@@ -1070,7 +1090,10 @@ async function loadParseAuthRecord(profileId) {
         ...maskParseAuthRecord(record),
         cookie,
       },
-      message: `已载入 ${profile.label} 本机授权`,
+      code: 'PARSE_AUTH_LOADED',
+      messageKey: 'auth.loaded',
+      params: { platform: profile.label },
+      message: electronT('auth.loaded', { platform: profile.label }),
     };
   } catch (error) {
     return { success: false, message: normalizeError(error) };
@@ -1091,7 +1114,7 @@ function removeSavedParseAuthRecord(profileId) {
 async function getParseAuthCookie(profileId) {
   const profile = getParseAuthProfile(profileId);
   if (!profile) {
-    return { success: false, message: '未知平台，无法读取授权 Cookie' };
+    return localizedElectronResult(false, 'PARSE_AUTH_PROFILE_UNKNOWN', 'auth.unknownRead');
   }
   const ses = parseAuthSession();
   const all = [];
@@ -1116,7 +1139,7 @@ async function getParseAuthCookie(profileId) {
   });
   const cookieText = cookies.map((cookie) => `${cookie.name}=${cookie.value}`).join('; ');
   if (!cookieText) {
-    return { success: false, message: `还没有读取到 ${profile.label} Cookie，请先在授权窗口登录官方账号` };
+    return localizedElectronResult(false, 'PARSE_AUTH_COOKIE_MISSING', 'auth.missingCookie', { platform: profile.label });
   }
   return { success: true, data: summarizeCookie(cookieText, cookies, profile) };
 }
@@ -1124,7 +1147,7 @@ async function getParseAuthCookie(profileId) {
 async function clearParseAuthCookie(profileId) {
   const profile = getParseAuthProfile(profileId);
   if (!profile) {
-    return { success: false, message: '未知平台，无法清除授权 Cookie' };
+    return localizedElectronResult(false, 'PARSE_AUTH_PROFILE_UNKNOWN', 'auth.unknownClear');
   }
   const ses = parseAuthSession();
   const all = [];
@@ -1148,7 +1171,10 @@ async function clearParseAuthCookie(profileId) {
   return {
     success: true,
     data: { profileId: profile.id, label: profile.label, removed, savedRemoved },
-    message: `已清除 ${profile.label} 授权缓存${savedRemoved ? '和本机授权库' : ''}`,
+    code: 'PARSE_AUTH_CLEARED',
+    messageKey: savedRemoved ? 'auth.clearedAll' : 'auth.clearedCache',
+    params: { platform: profile.label },
+    message: electronT(savedRemoved ? 'auth.clearedAll' : 'auth.clearedCache', { platform: profile.label }),
   };
 }
 
@@ -1447,7 +1473,12 @@ async function pickMediaFiles(options = {}) {
     : ['image', 'video'];
   const allowedKinds = new Set(requestedKinds.filter((kind) => ['image', 'video', 'audio', 'model3d'].includes(kind)));
   if (allowedKinds.size === 0) {
-    return { success: false, message: '没有可选择的素材类型' };
+    return {
+      success: false,
+      code: 'PICK_MEDIA_KIND_REQUIRED',
+      messageKey: 'dialogs.noMediaKinds',
+      message: electronT('dialogs.noMediaKinds'),
+    };
   }
   const directory = Boolean(options.directory);
   const properties = directory
@@ -1455,7 +1486,15 @@ async function pickMediaFiles(options = {}) {
     : ['openFile', ...(options.multiple === false ? [] : ['multiSelections'])];
   const filters = [
     {
-      name: allowedKinds.size > 1 ? '图像 / 视频 / 音频 / 3D' : allowedKinds.has('image') ? '图像' : allowedKinds.has('video') ? '视频' : allowedKinds.has('audio') ? '音频' : '3D 模型',
+      name: allowedKinds.size > 1
+        ? electronT('dialogs.mixedMedia')
+        : allowedKinds.has('image')
+          ? electronT('dialogs.image')
+          : allowedKinds.has('video')
+            ? electronT('dialogs.video')
+            : allowedKinds.has('audio')
+              ? electronT('dialogs.audio')
+              : electronT('dialogs.model3d'),
       extensions: Array.from(PICK_MEDIA_META.entries())
         .filter(([, meta]) => allowedKinds.has(meta.kind))
         .map(([ext]) => ext.replace(/^\./, '')),
@@ -1495,10 +1534,10 @@ async function pickDirectory(options = {}) {
   const result = await dialog.showOpenDialog(mainWindow, {
     title: typeof options.title === 'string'
       ? options.title.slice(0, 120)
-      : '选择交付位置',
+      : electronT('dialogs.deliveryTitle'),
     buttonLabel: typeof options.buttonLabel === 'string'
       ? options.buttonLabel.slice(0, 40)
-      : '选择此文件夹',
+      : electronT('dialogs.deliveryButton'),
     properties: ['openDirectory', 'createDirectory'],
   });
   if (result.canceled || !result.filePaths?.[0]) {
@@ -1604,6 +1643,9 @@ function sendDragOutStatus(event, payload, status) {
       requestId: typeof payload?.requestId === 'string' ? payload.requestId.slice(0, 120) : '',
       success: !!status.success,
       message: String(status.message || ''),
+      code: typeof status.code === 'string' ? status.code : undefined,
+      messageKey: typeof status.messageKey === 'string' ? status.messageKey : undefined,
+      params: status.params && typeof status.params === 'object' ? status.params : undefined,
       file: status.file ? path.basename(String(status.file)) : '',
     });
   } catch (error) {
@@ -1638,23 +1680,74 @@ function normalizeError(error) {
   return String(error);
 }
 
+function localizedElectronError(messageKey, code, params = {}) {
+  const error = new Error(electronT(messageKey, params));
+  error.code = code;
+  error.messageKey = messageKey;
+  error.params = params;
+  return error;
+}
+
+function localizedElectronResult(success, code, messageKey, params = {}, data) {
+  return {
+    success,
+    code,
+    messageKey,
+    params,
+    message: electronT(messageKey, params),
+    ...(data === undefined ? {} : { data }),
+  };
+}
+
 function emitUpdaterStatus(patch = {}) {
-  updaterState = {
+  const nextState = {
     ...updaterState,
     ...patch,
     currentVersion: APP_VERSION,
     packaged: isPackaged(),
     updatedAt: new Date().toISOString(),
   };
+  if (nextState.messageKey) {
+    nextState.message = electronT(nextState.messageKey, nextState.messageParams || {});
+  }
+  updaterState = nextState;
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send('t8pc:updater-status', updaterState);
   }
   return updaterState;
 }
 
+function applyElectronLocale(locale) {
+  const normalized = normalizeElectronLocale(locale);
+  if (!normalized) {
+    return {
+      success: false,
+      code: 'ELECTRON_LOCALE_UNSUPPORTED',
+      messageKey: 'locale.unsupported',
+      message: electronT('locale.unsupported'),
+      locale: getElectronLocale(),
+    };
+  }
+  setElectronLocale(normalized);
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.setTitle(electronT('app.mainTitle', { version: APP_VERSION }));
+  }
+  if (logWindow && !logWindow.isDestroyed()) {
+    logWindow.setTitle(electronT('startup.windowTitle'));
+  }
+  emitUpdaterStatus();
+  return { success: true, locale: normalized };
+}
+
 function ensureAutoUpdater() {
   if (!isPackaged()) {
-    return { ok: false, message: UPDATE_DISABLED_MESSAGE };
+    return {
+      ok: false,
+      code: 'UPDATER_DISABLED_IN_DEVELOPMENT',
+      messageKey: 'updater.disabled',
+      messageParams: {},
+      message: electronT('updater.disabled'),
+    };
   }
   if (autoUpdater) return { ok: true, updater: autoUpdater };
   try {
@@ -1678,7 +1771,8 @@ function ensureAutoUpdater() {
       dbgLog('[updater] checking GitHub Releases');
       emitUpdaterStatus({
         status: 'checking',
-        message: '正在检查更新',
+        messageKey: 'updater.checking',
+        messageParams: {},
         progress: null,
         downloaded: false,
         error: null,
@@ -1690,7 +1784,8 @@ function ensureAutoUpdater() {
       emitUpdaterStatus({
         status: 'available',
         availableVersion: version,
-        message: version ? `发现新版本 v${version}` : '发现新版本',
+        messageKey: version ? 'updater.availableVersion' : 'updater.available',
+        messageParams: version ? { version } : {},
         progress: null,
         downloaded: false,
         error: null,
@@ -1700,7 +1795,8 @@ function ensureAutoUpdater() {
       dbgLog('[updater] no update available');
       emitUpdaterStatus({
         status: 'not-available',
-        message: '已是最新版本',
+        messageKey: 'updater.notAvailable',
+        messageParams: {},
         progress: null,
         downloaded: false,
         error: null,
@@ -1709,7 +1805,8 @@ function ensureAutoUpdater() {
     autoUpdater.on('download-progress', (progress) => {
       emitUpdaterStatus({
         status: 'downloading',
-        message: '正在下载更新',
+        messageKey: 'updater.downloading',
+        messageParams: {},
         progress: {
           percent: Number(progress && progress.percent ? progress.percent : 0),
           transferred: Number(progress && progress.transferred ? progress.transferred : 0),
@@ -1726,9 +1823,10 @@ function ensureAutoUpdater() {
       emitUpdaterStatus({
         status: 'downloaded',
         availableVersion: version || null,
-        message: process.platform === 'darwin'
-          ? '更新已下载，点击后将安装并自动重启'
-          : '更新已下载，点击后会打开安装向导',
+        messageKey: process.platform === 'darwin'
+          ? 'updater.downloadedMac'
+          : 'updater.downloadedWindows',
+        messageParams: {},
         progress: null,
         downloaded: true,
         error: null,
@@ -1739,7 +1837,8 @@ function ensureAutoUpdater() {
       dbgLog(`[updater] error: ${message}`);
       emitUpdaterStatus({
         status: 'error',
-        message: '更新失败',
+        messageKey: 'updater.failed',
+        messageParams: {},
         error: message,
         progress: null,
       });
@@ -1749,7 +1848,13 @@ function ensureAutoUpdater() {
   } catch (error) {
     const message = normalizeError(error);
     dbgLog(`[updater] init failed: ${message}`);
-    return { ok: false, message };
+    return {
+      ok: false,
+      code: 'UPDATER_INIT_FAILED',
+      messageKey: 'updater.failed',
+      messageParams: {},
+      message,
+    };
   }
 }
 
@@ -1758,8 +1863,16 @@ async function checkForUpdatesByUser() {
   if (!ready.ok) {
     return {
       success: false,
+      code: ready.code,
+      messageKey: ready.messageKey,
+      params: ready.messageParams,
       message: ready.message,
-      status: emitUpdaterStatus({ status: 'disabled', message: ready.message, error: null }),
+      status: emitUpdaterStatus({
+        status: 'disabled',
+        messageKey: ready.messageKey || 'updater.disabled',
+        messageParams: ready.messageParams || {},
+        error: ready.code === 'UPDATER_INIT_FAILED' ? ready.message : null,
+      }),
     };
   }
   try {
@@ -1769,8 +1882,11 @@ async function checkForUpdatesByUser() {
     const message = normalizeError(error);
     return {
       success: false,
+      code: 'UPDATER_CHECK_FAILED',
+      messageKey: 'updater.checkFailed',
+      params: {},
       message,
-      status: emitUpdaterStatus({ status: 'error', message: '更新检查失败', error: message }),
+      status: emitUpdaterStatus({ status: 'error', messageKey: 'updater.checkFailed', messageParams: {}, error: message }),
     };
   }
 }
@@ -1780,8 +1896,16 @@ async function downloadAvailableUpdate() {
   if (!ready.ok) {
     return {
       success: false,
+      code: ready.code,
+      messageKey: ready.messageKey,
+      params: ready.messageParams,
       message: ready.message,
-      status: emitUpdaterStatus({ status: 'disabled', message: ready.message, error: null }),
+      status: emitUpdaterStatus({
+        status: 'disabled',
+        messageKey: ready.messageKey || 'updater.disabled',
+        messageParams: ready.messageParams || {},
+        error: ready.code === 'UPDATER_INIT_FAILED' ? ready.message : null,
+      }),
     };
   }
   try {
@@ -1791,8 +1915,11 @@ async function downloadAvailableUpdate() {
     const message = normalizeError(error);
     return {
       success: false,
+      code: 'UPDATER_DOWNLOAD_FAILED',
+      messageKey: 'updater.downloadFailed',
+      params: {},
       message,
-      status: emitUpdaterStatus({ status: 'error', message: '更新下载失败', error: message }),
+      status: emitUpdaterStatus({ status: 'error', messageKey: 'updater.downloadFailed', messageParams: {}, error: message }),
     };
   }
 }
@@ -1802,15 +1929,26 @@ function installDownloadedUpdate() {
   if (!ready.ok) {
     return {
       success: false,
+      code: ready.code,
+      messageKey: ready.messageKey,
+      params: ready.messageParams,
       message: ready.message,
-      status: emitUpdaterStatus({ status: 'disabled', message: ready.message, error: null }),
+      status: emitUpdaterStatus({
+        status: 'disabled',
+        messageKey: ready.messageKey || 'updater.disabled',
+        messageParams: ready.messageParams || {},
+        error: ready.code === 'UPDATER_INIT_FAILED' ? ready.message : null,
+      }),
     };
   }
   if (!updaterState.downloaded) {
     return {
       success: false,
-      message: '还没有已下载的更新',
-      status: emitUpdaterStatus({ message: '还没有已下载的更新' }),
+      code: 'UPDATER_NOT_DOWNLOADED',
+      messageKey: 'updater.notDownloaded',
+      params: {},
+      message: electronT('updater.notDownloaded'),
+      status: emitUpdaterStatus({ messageKey: 'updater.notDownloaded', messageParams: {} }),
     };
   }
   // Windows keeps the NSIS installer visible. macOS installs the signed ZIP
@@ -1821,9 +1959,10 @@ function installDownloadedUpdate() {
     success: true,
     status: emitUpdaterStatus({
       status: 'installing',
-      message: isMac
-        ? '正在安装更新，应用将自动重启'
-        : '正在打开安装向导，请按提示完成安装',
+      messageKey: isMac
+        ? 'updater.installingMac'
+        : 'updater.installingWindows',
+      messageParams: {},
     }),
   };
 }
@@ -1832,10 +1971,10 @@ function startInitialUpdateCheck() {
   if (initialUpdateCheckStarted) return;
   initialUpdateCheckStarted = true;
   if (!isPackaged()) {
-    emitUpdaterStatus({ status: 'disabled', message: UPDATE_DISABLED_MESSAGE, error: null });
+    emitUpdaterStatus({ status: 'disabled', messageKey: 'updater.disabled', messageParams: {}, error: null });
     return;
   }
-  emitUpdaterStatus({ status: 'idle', message: '等待检查更新', error: null });
+  emitUpdaterStatus({ status: 'idle', messageKey: 'updater.idle', messageParams: {}, error: null });
   setTimeout(() => {
     void checkForUpdatesByUser();
   }, 2500);
@@ -2042,7 +2181,7 @@ function createMainWindow() {
     minHeight: 640,
     show: false,
     backgroundColor: '#0b0b0d',
-    title: `贞贞的无限画布（企鹅共创版） v${APP_VERSION}`,
+    title: electronT('app.mainTitle', { version: APP_VERSION }),
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
@@ -2122,21 +2261,21 @@ function createMainWindow() {
     frontendLoadGeneration += 1;
     frontendLoadInFlight = null;
     mainFrontendLoaded = false;
-    lastFrontendLoadError = error || lastFrontendLoadError || new Error('前端页面未在截止时间内就绪');
+    lastFrontendLoadError = error || lastFrontendLoadError || new Error(electronT('startup.frontendDeadline'));
     clearRevealDeadline();
     const detail = escapeStartupHtml(normalizeError(lastFrontendLoadError)).slice(0, 800);
-    const failureHtml = '<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">' +
-      '<meta name="viewport" content="width=device-width,initial-scale=1"><title>画布启动失败</title>' +
+    const failureHtml = '<!doctype html><html lang="' + getElectronLocale() + '"><head><meta charset="utf-8">' +
+      '<meta name="viewport" content="width=device-width,initial-scale=1"><title>' + escapeStartupHtml(electronT('startup.failureDocumentTitle')) + '</title>' +
       '<style>html,body{margin:0;min-height:100%;background:#0b0b0d;color:#eef2f4;font-family:system-ui,sans-serif}' +
       'main{max-width:720px;margin:10vh auto;padding:36px;border:1px solid #344148;border-radius:20px;background:#12171a}' +
       'h1{font-size:26px;margin:0 0 14px;color:#ffcf72}p{line-height:1.7;color:#b8c4c9}' +
       'code{display:block;overflow-wrap:anywhere;padding:14px;border-radius:10px;background:#090c0e;color:#ff9aa8}' +
       '.actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:24px}a{padding:12px 18px;border-radius:10px;text-decoration:none;font-weight:700}' +
       '.retry{background:#91e65c;color:#10210a}.backend{border:1px solid #5fd8f4;color:#8be7fb}</style></head><body><main>' +
-      '<h1>画布界面暂时未能载入</h1><p>本地后端已经启动，但前端页面加载或显示超时。你可以立即重试，或直接打开本地后端界面。</p>' +
+      '<h1>' + escapeStartupHtml(electronT('startup.failureHeading')) + '</h1><p>' + escapeStartupHtml(electronT('startup.failureBody')) + '</p>' +
       '<code>' + detail + '</code><div class="actions"><a class="retry" href="' +
-      MAIN_WINDOW_STARTUP_RETRY_URL + '">重新加载画布</a><a class="backend" href="' +
-      MAIN_WINDOW_STARTUP_BACKEND_URL + '">打开本地后端界面</a></div></main></body></html>';
+      MAIN_WINDOW_STARTUP_RETRY_URL + '">' + escapeStartupHtml(electronT('startup.retry')) + '</a><a class="backend" href="' +
+      MAIN_WINDOW_STARTUP_BACKEND_URL + '">' + escapeStartupHtml(electronT('startup.openBackend')) + '</a></div></main></body></html>';
     markElectronStartupStage('main-window-local-error', reason);
     const failureLoad = pendingMainWindow.loadURL(
       'data:text/html;charset=utf-8,' + encodeURIComponent(failureHtml),
@@ -2209,7 +2348,7 @@ function createMainWindow() {
         lastFrontendLoadError = fallbackError;
       }
     }
-    throw lastError || new Error('前端页面未能加载');
+    throw lastError || new Error(electronT('startup.frontendLoadFailed'));
   };
   const beginMainWindowLoad = (targetUrl = url, options = {}) => {
     mainFrontendLoaded = false;
@@ -2238,7 +2377,7 @@ function createMainWindow() {
       return;
     }
     void showMainWindowStartupFailure(
-      lastFrontendLoadError || new Error('前端页面未在 15 秒内载入'),
+      lastFrontendLoadError || new Error(electronT('startup.frontendTimeout')),
       'frontend-reveal-deadline',
     );
   }, ELECTRON_MAIN_WINDOW_REVEAL_DEADLINE_MS);
@@ -2323,7 +2462,7 @@ function createMainWindow() {
 function createLogWindow() {
   const tmpDir = app.getPath('temp');
   const logHtmlPath = path.join(tmpDir, 't8pc-app-log.html');
-  const html = `<!doctype html><html><head><meta charset="utf-8"><title>启动中...</title>
+  const html = `<!doctype html><html lang="${getElectronLocale()}"><head><meta charset="utf-8"><title>${electronT('startup.documentTitle')}</title>
 <style>html,body{margin:0;padding:0;background:#0b0b0d;color:#9be9ff;font-family:Consolas,monospace;}
 .h{padding:14px 18px;border-bottom:1px solid #222;font-size:14px;display:flex;align-items:center;gap:10px;}
 .h b{color:#ffd76b;}
@@ -2331,8 +2470,8 @@ function createLogWindow() {
 #log{padding:12px 18px;white-space:pre-wrap;line-height:1.5;font-size:12px;max-height:260px;overflow:auto;}
 @keyframes spin{to{transform:rotate(360deg)}}@media(prefers-reduced-motion:reduce){.spin{animation:none;border-top-color:#ffd76b}}
 </style></head><body>
-<div class="h"><span class="spin" aria-hidden="true"></span>🐧 <b>贞贞的无限画布</b><span>正在安全启动</span><span style="margin-left:auto;color:#666;">v${APP_VERSION}</span></div>
-<div id="log">[启动] 本地启动壳已载入，正在验证数据库与后端服务...\n</div>
+<div class="h"><span class="spin" aria-hidden="true"></span>🐧 <b>${electronT('app.name')}</b><span>${electronT('startup.safeStarting')}</span><span style="margin-left:auto;color:#666;">v${APP_VERSION}</span></div>
+<div id="log">${electronT('startup.initialStatus')}\n</div>
 </body></html>`;
   fs.writeFileSync(logHtmlPath, html, 'utf-8');
 
@@ -2342,7 +2481,7 @@ function createLogWindow() {
     show: false,
     frame: true,
     backgroundColor: '#0b0b0d',
-    title: '🐧 启动中…',
+    title: electronT('startup.windowTitle'),
     webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: false },
   });
   logWindow.removeMenu();
@@ -2372,18 +2511,14 @@ function assertTrustedMainRenderer(event) {
     || mainWindow.isDestroyed()
     || !event?.sender
     || event.sender.id !== mainWindow.webContents.id) {
-    const error = new Error('只允许当前贞贞无限画布窗口处理 Agent 授权');
-    error.code = 'AGENT_CONTROL_RENDERER_FORBIDDEN';
-    throw error;
+    throw localizedElectronError('agent.rendererForbidden', 'AGENT_CONTROL_RENDERER_FORBIDDEN');
   }
 }
 
 function requireAgentControlAuthService() {
   const service = backendModule?.agentControlAuthService;
   if (!service) {
-    const error = new Error('Agent Control 服务尚未就绪，请稍后重试');
-    error.code = 'AGENT_CONTROL_NOT_READY';
-    throw error;
+    throw localizedElectronError('agent.serviceNotReady', 'AGENT_CONTROL_NOT_READY');
   }
   return service;
 }
@@ -2391,9 +2526,7 @@ function requireAgentControlAuthService() {
 function requireAgentControlApprovalService() {
   const service = backendModule?.agentControlApprovalService;
   if (!service) {
-    const error = new Error('Agent 操作确认服务尚未就绪，请稍后重试');
-    error.code = 'AGENT_CONTROL_NOT_READY';
-    throw error;
+    throw localizedElectronError('agent.approvalNotReady', 'AGENT_CONTROL_NOT_READY');
   }
   return service;
 }
@@ -2405,6 +2538,8 @@ function agentControlIpcResult(action) {
     return {
       success: false,
       code: String(error?.code || 'AGENT_CONTROL_IPC_FAILED'),
+      messageKey: typeof error?.messageKey === 'string' ? error.messageKey : undefined,
+      params: error?.params && typeof error.params === 'object' ? error.params : undefined,
       message: normalizeError(error),
     };
   }
@@ -2415,8 +2550,12 @@ ipcMain.handle('t8pc:get-info', () => ({
   backendPort,
   userData: getUserDataDir(),
   version: APP_VERSION,
+  locale: getElectronLocale(),
   updater: updaterState,
 }));
+
+ipcMain.handle('t8pc:locale:get', () => ({ locale: getElectronLocale() }));
+ipcMain.handle('t8pc:locale:set', (_event, locale) => applyElectronLocale(locale));
 
 ipcMain.handle('t8pc:open-external', async (_event, url) => openExternalUrl(url));
 ipcMain.handle('t8pc:open-path', async (_event, targetPath) => openLocalPath(targetPath));
@@ -2469,29 +2608,50 @@ ipcMain.on('t8pc:drag-file-out', (event, payload) => {
   try {
     const file = resolveDragOutFile(payload);
     if (!file) {
-      const message = '找不到可拖出的本地文件，只支持本机 input/output/thumbnails 素材';
+      const messageKey = 'drag.missing';
+      const message = electronT(messageKey);
       dbgLog(`[drag-out] unsupported or missing file: ${String(payload?.url || payload?.path || '').slice(0, 180)}`);
-      sendDragOutStatus(event, payload, { success: false, message });
+      sendDragOutStatus(event, payload, {
+        success: false,
+        code: 'DRAG_FILE_NOT_LOCAL',
+        messageKey,
+        params: {},
+        message,
+      });
       return;
     }
     if (!event.sender || typeof event.sender.startDrag !== 'function') {
-      throw new Error('当前 Electron 版本不支持 webContents.startDrag');
+      throw localizedElectronError('drag.unsupported', 'DRAG_FILE_UNSUPPORTED');
     }
     event.sender.startDrag({
       file,
       icon: dragOutIconForFile(file, String(payload?.kind || '')),
     });
-    sendDragOutStatus(event, payload, { success: true, message: '系统拖出已启动，拖到文件夹后松开鼠标', file });
+    sendDragOutStatus(event, payload, {
+      success: true,
+      code: 'DRAG_FILE_STARTED',
+      messageKey: 'drag.started',
+      params: {},
+      message: electronT('drag.started'),
+      file,
+    });
   } catch (error) {
     const message = normalizeError(error);
     dbgLog(`[drag-out] startDrag failed: ${message}`);
-    sendDragOutStatus(event, payload, { success: false, message });
+    sendDragOutStatus(event, payload, {
+      success: false,
+      code: String(error?.code || 'DRAG_FILE_FAILED'),
+      messageKey: typeof error?.messageKey === 'string' ? error.messageKey : undefined,
+      params: error?.params && typeof error.params === 'object' ? error.params : undefined,
+      message,
+    });
   }
 });
 
 // ---------- 生命周期 ----------
 app.whenReady().then(async () => {
   if (!ELECTRON_SINGLE_INSTANCE_OWNER || electronQuitRequested) return;
+  initializeElectronLocale(getUserDataDir(), app.getLocale());
   createLogWindow();
   await waitForStartupShellPaint();
   markElectronStartupStage('backend-start-requested');
@@ -2502,7 +2662,7 @@ app.whenReady().then(async () => {
     if (electronQuitRequested) return;
     // 等后端真正可访问
     const backendReady = await waitForBackend(backendPort, backendInstanceId, 30);
-    if (!backendReady) throw new Error(`后端未能在端口 ${backendPort} 就绪`);
+    if (!backendReady) throw new Error(electronT('startup.backendNotReady', { port: backendPort }));
     markElectronStartupStage('backend-transport-ready');
     if (electronQuitRequested) return;
     createMainWindow();

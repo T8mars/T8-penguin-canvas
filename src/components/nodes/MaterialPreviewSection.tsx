@@ -1,4 +1,5 @@
 import { memo, useEffect, useMemo, useRef, useState, type PointerEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Image as ImageIcon,
   Video as VideoIcon,
@@ -69,13 +70,6 @@ const ICON_MAP = {
   video: VideoIcon,
   audio: Music,
 };
-const LABEL_MAP = {
-  text: '文本',
-  image: '图像',
-  video: '视频',
-  audio: '音频',
-};
-
 const MaterialPreviewSection = ({
   texts = [],
   images = [],
@@ -91,8 +85,16 @@ const MaterialPreviewSection = ({
   isPixel,
   groups = ['text', 'image', 'video', 'audio'],
   imageUploadAction,
-  title = '上游素材',
+  title,
 }: Props) => {
+  const { t } = useTranslation('nodes');
+  const resolvedTitle = title || t('shared.upstreamMaterials');
+  const labelMap = {
+    text: t('shared.materialText'),
+    image: t('shared.materialImage'),
+    video: t('shared.materialVideo'),
+    audio: t('shared.materialAudio'),
+  };
   const total = texts.length + images.length + videos.length + audios.length;
   const sortScopeRef = useRef(`material-preview-${Math.random().toString(36).slice(2)}`);
   const [sortDrag, setSortDrag] = useState<{ activeId: string; overId: string | null; moved: boolean } | null>(null);
@@ -289,20 +291,20 @@ const MaterialPreviewSection = ({
         style={headerStyle}
       >
         <Layers size={12} />
-        <span style={{ flex: 1, textAlign: 'left' }}>{title}</span>
+        <span style={{ flex: 1, textAlign: 'left' }}>{resolvedTitle}</span>
         {excludedCount > 0 && onRestoreExcluded && (
           <button
             type="button"
             className="nodrag nopan"
             style={restoreStyle}
-            title="恢复当前节点排除的上游素材"
+            title={t('shared.restoreExcluded')}
             onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => {
               e.stopPropagation();
               onRestoreExcluded();
             }}
           >
-            恢复{excludedCount}
+            {t('shared.restoreCount', { count: excludedCount })}
           </button>
         )}
         <span className="t8-material-preview-count" style={headerCountStyle}>{total}</span>
@@ -330,7 +332,7 @@ const MaterialPreviewSection = ({
                 <div className="t8-material-preview-group-label flex items-center gap-1" style={groupLabelStyle}>
                   <Ic size={10} />
                   <span>
-                    {LABEL_MAP[g]} ({list.length}
+                    {labelMap[g]} ({list.length}
                     {showUpload && imageUploadAction?.remaining != null
                       ? `/${list.length + imageUploadAction.remaining}`
                       : ''}
@@ -366,7 +368,7 @@ const MaterialPreviewSection = ({
                       onPointerDown={(e) => e.stopPropagation()}
                       className="t8-material-preview-upload nodrag"
                       style={uploadBtnStyle}
-                      title={imageUploadAction.title || '上传本地素材'}
+                      title={imageUploadAction.title || t('shared.uploadLocal')}
                     >
                       <Plus size={16} />
                     </button>

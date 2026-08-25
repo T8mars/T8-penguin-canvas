@@ -28,3 +28,31 @@ test('NodeID badge anchors to the visible node card instead of the ReactFlow wra
   assert.match(slamDunkCss, /--t8-node-serial-offset-x:\s*12px/);
   assert.match(slamDunkCss, /--t8-node-serial-offset-y:\s*-12px/);
 });
+
+test('the visible node card stays first so every light and visual theme can skin it', () => {
+  const canvasSource = readProjectFile('src/components/Canvas.tsx');
+  const baseCss = readProjectFile('src/styles/index.css');
+  const pixelCss = readProjectFile('src/styles/theme-pixel.css');
+  const opCss = readProjectFile('src/styles/theme-op.css');
+
+  assert.match(
+    canvasSource,
+    /<CanvasNodeRenderModeProvider mode=\{renderMode\}>\s*<Component \{\.\.\.props\} \/>[\s\S]*?<span ref=\{anchorRef\} className="t8-node-temperature-anchor"/,
+  );
+  assert.doesNotMatch(
+    canvasSource,
+    /<CanvasNodeRenderModeProvider mode=\{renderMode\}>\s*<span ref=\{anchorRef\} className="t8-node-temperature-anchor"/,
+  );
+  assert.match(
+    baseCss,
+    /html\[data-theme-visual="tech"\]\[data-theme-mode="light"\] \.react-flow__node:not\(\.react-flow__node-groupBox\) > div:first-child/,
+  );
+  assert.match(
+    pixelCss,
+    /html\[data-theme-style="pixel"\] \.react-flow__node:not\(\.react-flow__node-groupBox\) > div:first-child/,
+  );
+  assert.match(
+    opCss,
+    /html\[data-theme-visual="op"\] \.react-flow__node:not\(\.react-flow__node-groupBox\) > div:first-child/,
+  );
+});

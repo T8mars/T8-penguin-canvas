@@ -1,6 +1,8 @@
 import { memo, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Handle, Position, useNodeConnections, useNodesData, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
 import { Box, Camera, ChevronLeft, ChevronRight, Download, Loader2, RotateCw } from 'lucide-react';
+import { useCanvasNodeRenderMode } from '../CanvasNodeRenderMode';
 import * as THREE from 'three';
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
@@ -162,6 +164,8 @@ function disposeRenderer(renderer: THREE.WebGLRenderer) {
 }
 
 const Model3DPreviewNode = ({ id, data, selected }: NodeProps) => {
+  const { t: translate } = useTranslation(['nodes', 'common']);
+  const canvasRenderMode = useCanvasNodeRenderMode();
   const update = useUpdateNodeData(id);
   const updateNodeInternals = useUpdateNodeInternals();
   const { theme, style: themeStyle } = useThemeStore();
@@ -223,6 +227,7 @@ const Model3DPreviewNode = ({ id, data, selected }: NodeProps) => {
   const border = isPixel ? 'var(--px-ink)' : isLight ? 'rgba(37,99,235,0.22)' : 'rgba(96,165,250,0.28)';
 
   useEffect(() => {
+    if (canvasRenderMode === 'cold') return;
     const mount = mountRef.current;
     if (!mount) return;
 
@@ -326,7 +331,7 @@ const Model3DPreviewNode = ({ id, data, selected }: NodeProps) => {
       if (rendererRef.current === renderer) rendererRef.current = null;
       clearThreeMount(mount, renderer);
     };
-  }, [autoRotate, currentUrl, isDark, size.h, size.w]);
+  }, [autoRotate, canvasRenderMode, currentUrl, isDark, size.h, size.w]);
 
   const onResize = (_event: any, params: { width: number; height: number }) => {
     const next = { w: Math.round(params.width), h: Math.round(params.height) };
@@ -362,6 +367,26 @@ const Model3DPreviewNode = ({ id, data, selected }: NodeProps) => {
       update({ status: 'error', error: error?.message || '快照失败，可能是远端模型贴图没有允许跨域读取' });
     }
   };
+
+  if (canvasRenderMode === 'cold') {
+    return (
+      <div
+        className="t8-node-cold-shell"
+        data-t8-node-cold-shell="model-3d-preview"
+        style={{ width: size.w, height: size.h, minWidth: 360, minHeight: 300 }}
+      >
+        <Handle type="target" position={Position.Left} className="!border-0" style={{ ...handleStyle, background: PORT_COLOR.model3d, left: -6 }} />
+        <Handle type="source" position={Position.Right} className="!border-0" style={{ ...handleStyle, background: PORT_COLOR.image, right: -6 }} />
+        <div className="t8-node-cold-shell__header">
+          <Box size={16} className="shrink-0" style={{ color: accent }} />
+          <div className="t8-node-cold-shell__copy">
+            <strong>{translate('nodes:model3dPreview.title')}</strong>
+            <small>{currentUrl ? fileNameFromUrl(currentUrl) : translate('nodes:model3dPreview.waiting')} · {translate('common:performance.offscreenPreview')}</small>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div

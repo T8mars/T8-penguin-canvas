@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { TFunction } from 'i18next';
+import { useTranslation } from 'react-i18next';
 import {
   Eye,
   FolderPlus,
@@ -22,6 +24,7 @@ import {
   X,
 } from 'lucide-react';
 import type { CSSProperties } from 'react';
+import { localizeApiError } from '../i18n/apiErrors';
 import { useThemeStore } from '../stores/theme';
 import * as api from '../services/api';
 import type { ResourceAddKind, ResourceCategory, ResourceItem, ResourceKind } from '../services/api';
@@ -31,14 +34,14 @@ import { summarizeWorkflowResource } from '../utils/workflowResource';
 import LoopingVideo from './LoopingVideo';
 import SmartImage from './SmartImage';
 
-const KIND_META: Record<ResourceKind, { label: string; icon: typeof ImageIcon; accent: string }> = {
-  image: { label: '图像', icon: ImageIcon, accent: '#fbbf24' },
-  video: { label: '视频', icon: Video, accent: '#fb7185' },
-  audio: { label: '音频', icon: Music, accent: '#a78bfa' },
-  panorama: { label: '全景', icon: Globe2, accent: '#38bdf8' },
-  set: { label: '素材集', icon: PackageOpen, accent: '#2dd4bf' },
-  pose: { label: '姿势', icon: PersonStanding, accent: '#fb923c' },
-  workflow: { label: '工作流', icon: Workflow, accent: '#60a5fa' },
+const KIND_META: Record<ResourceKind, { labelKey: string; icon: typeof ImageIcon; accent: string }> = {
+  image: { labelKey: 'kinds.image', icon: ImageIcon, accent: '#fbbf24' },
+  video: { labelKey: 'kinds.video', icon: Video, accent: '#fb7185' },
+  audio: { labelKey: 'kinds.audio', icon: Music, accent: '#a78bfa' },
+  panorama: { labelKey: 'kinds.panorama', icon: Globe2, accent: '#38bdf8' },
+  set: { labelKey: 'kinds.set', icon: PackageOpen, accent: '#2dd4bf' },
+  pose: { labelKey: 'kinds.pose', icon: PersonStanding, accent: '#fb923c' },
+  workflow: { labelKey: 'kinds.workflow', icon: Workflow, accent: '#60a5fa' },
 };
 
 const LOCAL_UPLOAD_ACCEPT: Record<ResourceAddKind, string> = {
@@ -52,8 +55,8 @@ function isLocalUploadKind(kind: ResourceKind): kind is ResourceAddKind {
   return kind === 'image' || kind === 'video' || kind === 'audio' || kind === 'panorama';
 }
 
-function localUploadTitle(file: File) {
-  const raw = file.name || '本地资产';
+function localUploadTitle(file: File, fallback: string) {
+  const raw = file.name || fallback;
   const withoutExt = raw.replace(/\.[^/.]+$/, '').trim();
   return (withoutExt || raw).slice(0, 120);
 }
@@ -68,18 +71,19 @@ interface ResourceLibraryDrawerProps {
   onInsertMaterial: (item: ResourceItem) => void | Promise<void>;
 }
 
-function formatSize(size: number) {
+function formatSize(size: number, locale: string) {
   if (!Number.isFinite(size) || size <= 0) return '';
-  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
-  return `${(size / 1024 / 1024).toFixed(1)} MB`;
+  const number = new Intl.NumberFormat(locale, { maximumFractionDigits: 1, minimumFractionDigits: 1 });
+  if (size < 1024 * 1024) return `${number.format(size / 1024)} KB`;
+  return `${number.format(size / 1024 / 1024)} MB`;
 }
 
-function materialSetLabel(kind?: string) {
-  if (kind === 'image') return '图像集';
-  if (kind === 'video') return '视频集';
-  if (kind === 'audio') return '音频集';
-  if (kind === 'text') return '文本集';
-  return '素材集';
+function materialSetLabel(kind: string | undefined, t: TFunction<'resources'>) {
+  if (kind === 'image') return t('setKinds.image');
+  if (kind === 'video') return t('setKinds.video');
+  if (kind === 'audio') return t('setKinds.audio');
+  if (kind === 'text') return t('setKinds.text');
+  return t('setKinds.material');
 }
 
 type WorkflowPreview = NonNullable<ResourceItem['workflowPreview']>;
@@ -95,21 +99,22 @@ function workflowNodeColor(type: string) {
   return '#f8fafc';
 }
 
-function workflowNodeShortLabel(type: string, label: string) {
-  if (type === 'image') return '图';
-  if (type === 'video') return '视';
+function workflowNodeShortLabel(type: string, label: string, t: TFunction<'resources'>) {
+  if (type === 'image') return t('shortLabels.image');
+  if (type === 'video') return t('shortLabels.video');
   if (type === 'seedance') return 'SD';
-  if (type === 'audio') return '音';
+  if (type === 'audio') return t('shortLabels.audio');
   if (type === 'llm') return 'AI';
-  if (type === 'output') return '出';
-  if (type === 'upload') return '入';
-  if (type === 'material-set') return '集';
-  if (type === 'pose-master') return '姿';
-  if (type === 'portrait-master') return '肖';
+  if (type === 'output') return t('shortLabels.output');
+  if (type === 'upload') return t('shortLabels.upload');
+  if (type === 'material-set') return t('shortLabels.set');
+  if (type === 'pose-master') return t('shortLabels.pose');
+  if (type === 'portrait-master') return t('shortLabels.portrait');
   return Array.from(label || type || '?').slice(0, 2).join('');
 }
 
 function WorkflowTopologyCard({ item, accent }: { item: ResourceItem; accent: string }) {
+  const { t } = useTranslation('resources');
   const preview = item.workflowPreview as WorkflowPreview | undefined;
   const markerId = `workflow-arrow-${String(item.id).replace(/[^a-zA-Z0-9_-]/g, '-')}`;
   if (!preview?.nodes?.length) {
@@ -125,7 +130,7 @@ function WorkflowTopologyCard({ item, accent }: { item: ResourceItem; accent: st
   const nodeMap = new Map(preview.nodes.map((node) => [node.id, node]));
   return (
     <div className="relative h-full w-full overflow-hidden">
-      <svg viewBox="0 0 100 100" className="absolute inset-0 h-full w-full" role="img" aria-label={`${item.title} 工作流拓扑预览`}>
+      <svg viewBox="0 0 100 100" className="absolute inset-0 h-full w-full" role="img" aria-label={t('workflow.topologyAria', { title: item.title })}>
         <defs>
           <pattern id={`${markerId}-grid`} width="10" height="10" patternUnits="userSpaceOnUse">
             <path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255,255,255,.12)" strokeWidth="0.6" />
@@ -160,14 +165,14 @@ function WorkflowTopologyCard({ item, accent }: { item: ResourceItem; accent: st
               <circle cx={node.x} cy={node.y} r="8.6" fill="rgba(0,0,0,.44)" stroke="rgba(255,255,255,.72)" strokeWidth="1" />
               <circle cx={node.x} cy={node.y} r="6.8" fill={color} stroke="rgba(0,0,0,.38)" strokeWidth="1" />
               <text x={node.x} y={node.y + 2.4} textAnchor="middle" fontSize="5.4" fontWeight="800" fill="#0f172a">
-                {workflowNodeShortLabel(node.type, node.label)}
+                {workflowNodeShortLabel(node.type, node.label, t)}
               </text>
             </g>
           );
         })}
       </svg>
       <div className="absolute left-1.5 top-1.5 rounded-full bg-black/50 px-2 py-0.5 text-[10px] font-semibold text-white shadow">
-        拓扑预览
+        {t('workflow.topology')}
       </div>
       <div className="absolute bottom-1.5 left-1.5 right-1.5 flex items-center justify-between gap-1 rounded-md bg-black/55 px-2 py-1 text-[10px] font-semibold text-white">
         <span className="truncate">{summarizeWorkflowResource(item)}</span>
@@ -194,6 +199,7 @@ type CategoryDialogState =
 type ItemRenameDialogState = { item: ResourceItem; value: string };
 
 export default function ResourceLibraryDrawer({ open, onClose, onInsertMaterial }: ResourceLibraryDrawerProps) {
+  const { t, i18n } = useTranslation('resources');
   const { theme, style } = useThemeStore();
   const isDark = theme === 'dark';
   const isPixel = style === 'pixel';
@@ -225,12 +231,12 @@ export default function ResourceLibraryDrawer({ open, onClose, onInsertMaterial 
     if (filteredCats) setCategories(filteredCats);
     if (filteredItems) setItems(filteredItems);
     if (!nextCats || !nextItems) {
-      setMsg((catRes as any)?.error || (itemRes as any)?.error || '资源库加载失败');
+      setMsg(localizeApiError(!nextCats ? catRes : itemRes, { fallback: t('messages.loadFailed') }));
     } else if (kind === 'panorama' && nextCats.length > 0 && filteredCats?.length === 0) {
-      setMsg('后端尚未加载全景资源类型，请重启开发后端后再打开资源库。');
+      setMsg(t('messages.panoramaBackendRestart'));
     }
     setLoading(false);
-  }, [open, kind, categoryId, q, favoriteOnly]);
+  }, [open, kind, categoryId, q, favoriteOnly, t]);
 
   useEffect(() => {
     load();
@@ -252,16 +258,17 @@ export default function ResourceLibraryDrawer({ open, onClose, onInsertMaterial 
 
   const activeMeta = KIND_META[kind];
   const ActiveIcon = activeMeta.icon;
-  const totalText = useMemo(() => `${items.length} 个资源`, [items.length]);
+  const activeMetaLabel = t(activeMeta.labelKey);
+  const totalText = useMemo(() => t('count', { count: items.length }), [items.length, t]);
   const localUploadSupported = isLocalUploadKind(kind);
   const localUploadCategory = categoryId !== 'all' ? categories.find((cat) => cat.id === categoryId) : undefined;
   const localUploadCategoryId = localUploadSupported && categoryId !== 'all' ? categoryId : '';
   const localUploadAccept = localUploadSupported ? LOCAL_UPLOAD_ACCEPT[kind] : '';
-  const localUploadTargetLabel = localUploadCategory?.name || '当前分类';
+  const localUploadTargetLabel = localUploadCategory?.name || t('currentCategory');
 
   const openAddCategoryDialog = () => {
     setMsg('');
-    setCategoryDialog({ mode: 'add', kind, label: activeMeta.label, value: '' });
+    setCategoryDialog({ mode: 'add', kind, label: activeMetaLabel, value: '' });
   };
 
   const openRenameCategoryDialog = (cat: ResourceCategory) => {
@@ -274,18 +281,18 @@ export default function ResourceLibraryDrawer({ open, onClose, onInsertMaterial 
     if (!categoryDialog) return;
     const name = categoryDialog.value.trim();
     if (!name) {
-      setMsg('请输入分类名称');
+      setMsg(t('messages.categoryNameRequired'));
       return;
     }
     if (categoryDialog.mode === 'add') {
       const r = await api.addResourceCategory(categoryDialog.kind, name);
       if (r.success) {
-        setMsg(`已创建分类：${name}`);
+        setMsg(t('messages.categoryCreated', { name }));
         setCategoryId(r.data.id);
         setCategoryDialog(null);
         await load();
       } else {
-        setMsg(r.error || '分类创建失败');
+        setMsg(localizeApiError(r, { fallback: t('messages.categoryCreateFailed') }));
       }
       return;
     }
@@ -295,19 +302,19 @@ export default function ResourceLibraryDrawer({ open, onClose, onInsertMaterial 
     }
     const r = await api.renameResourceCategory(categoryDialog.category.id, name);
     if (r.success) {
-      setMsg('分类已重命名');
+      setMsg(t('messages.categoryRenamed'));
       setCategoryDialog(null);
     } else {
-      setMsg(r.error || '分类重命名失败');
+      setMsg(localizeApiError(r, { fallback: t('messages.categoryRenameFailed') }));
     }
     await load();
   };
 
   const removeCategory = async (cat: ResourceCategory) => {
     if (cat.system) return;
-    if (!window.confirm(`删除分类「${cat.name}」？该分类内资源会移动到未分类。`)) return;
+    if (!window.confirm(t('messages.categoryDeleteConfirm', { name: cat.name }))) return;
     const r = await api.deleteResourceCategory(cat.id);
-    setMsg(r.success ? '分类已删除' : r.error || '分类删除失败');
+    setMsg(r.success ? t('messages.categoryDeleted') : localizeApiError(r, { fallback: t('messages.categoryDeleteFailed') }));
     if (categoryId === cat.id) setCategoryId('all');
     await load();
   };
@@ -319,7 +326,7 @@ export default function ResourceLibraryDrawer({ open, onClose, onInsertMaterial 
       window.dispatchEvent(new CustomEvent('penguin:resources-changed'));
       return true;
     } else {
-      setMsg(r.error || '资源更新失败');
+      setMsg(localizeApiError(r, { fallback: t('messages.itemUpdateFailed') }));
       return false;
     }
   };
@@ -333,7 +340,7 @@ export default function ResourceLibraryDrawer({ open, onClose, onInsertMaterial 
     if (!itemRenameDialog) return;
     const title = itemRenameDialog.value.trim();
     if (!title) {
-      setMsg('请输入资源名称');
+      setMsg(t('messages.resourceNameRequired'));
       return;
     }
     if (title === itemRenameDialog.item.title) {
@@ -346,11 +353,11 @@ export default function ResourceLibraryDrawer({ open, onClose, onInsertMaterial 
 
   const handleLocalUploadButtonClick = () => {
     if (!localUploadSupported) {
-      setMsg(`${activeMeta.label}暂不支持本地文件直传`);
+      setMsg(t('messages.uploadUnsupported', { kind: activeMetaLabel }));
       return;
     }
     if (!localUploadCategoryId) {
-      setMsg('请先选择一个分类再上传本地资产');
+      setMsg(t('messages.selectCategoryBeforeUpload'));
       return;
     }
     localUploadInputRef.current?.click();
@@ -360,13 +367,13 @@ export default function ResourceLibraryDrawer({ open, onClose, onInsertMaterial 
     const files = Array.from(fileList || []);
     if (files.length === 0) return;
     if (!localUploadSupported || !localUploadCategoryId) {
-      setMsg('请先选择一个分类再上传本地资产');
+      setMsg(t('messages.selectCategoryBeforeUpload'));
       return;
     }
     const uploadKind = kind;
     const uploadTargetName = localUploadTargetLabel;
     setUploadingLocal(true);
-    setMsg(`正在上传 ${files.length} 个本地资产到「${uploadTargetName}」...`);
+    setMsg(t('messages.uploading', { count: files.length, name: uploadTargetName }));
     let saved = 0;
     let duplicates = 0;
     const failures: string[] = [];
@@ -377,40 +384,40 @@ export default function ResourceLibraryDrawer({ open, onClose, onInsertMaterial 
           url: uploaded.url,
           kind: uploadKind,
           categoryId: localUploadCategoryId,
-          title: localUploadTitle(file),
+          title: localUploadTitle(file, t('localAsset')),
         });
         if (added.success) {
           saved += 1;
           if (added.data.duplicate) duplicates += 1;
         } else {
-          failures.push(`${file.name}: ${added.error || '入库失败'}`);
+          failures.push(`${file.name}: ${localizeApiError(added, { fallback: t('messages.ingestFailed') })}`);
         }
       } catch (e: any) {
-        failures.push(`${file.name}: ${e?.message || '上传失败'}`);
+        failures.push(`${file.name}: ${localizeApiError(e, { fallback: t('messages.uploadFailed') })}`);
       }
     }
     if (saved > 0) {
       await load();
       window.dispatchEvent(new CustomEvent('penguin:resources-changed'));
     }
-    const duplicateText = duplicates > 0 ? `，其中 ${duplicates} 个已存在` : '';
+    const duplicateText = duplicates > 0 ? t('messages.duplicateSuffix', { count: duplicates }) : '';
     if (failures.length > 0) {
-      setMsg(`已上传 ${saved} 个${duplicateText}，失败 ${failures.length} 个：${failures.slice(0, 2).join('；')}`);
+      setMsg(t('messages.uploadPartial', { saved, duplicateText, failed: failures.length, details: failures.slice(0, 2).join('；') }));
     } else {
-      setMsg(`已上传 ${saved} 个本地资产到「${uploadTargetName}」${duplicateText}`);
+      setMsg(t('messages.uploadSuccess', { saved, name: uploadTargetName, duplicateText }));
     }
     setUploadingLocal(false);
   };
 
   const deleteItem = async (item: ResourceItem) => {
-    if (!window.confirm(`从资源库删除「${item.title}」？`)) return;
+    if (!window.confirm(t('messages.itemDeleteConfirm', { name: item.title }))) return;
     const r = await api.deleteResourceItem(item.id);
     if (r.success) {
       setItems((prev) => prev.filter((x) => x.id !== item.id));
-      setMsg('资源已删除');
+      setMsg(t('messages.itemDeleted'));
       window.dispatchEvent(new CustomEvent('penguin:resources-changed'));
     } else {
-      setMsg(r.error || '资源删除失败');
+      setMsg(localizeApiError(r, { fallback: t('messages.itemDeleteFailed') }));
     }
   };
 
@@ -418,22 +425,22 @@ export default function ResourceLibraryDrawer({ open, onClose, onInsertMaterial 
     try {
       await onInsertMaterial(item);
       await api.updateResourceItem(item.id, { touch: true });
-      setMsg(item.kind === 'pose' ? '已恢复为姿势大师节点' : item.kind === 'workflow' ? '已插入工作流' : '已插入画布');
+      setMsg(item.kind === 'pose' ? t('messages.poseRestored') : item.kind === 'workflow' ? t('messages.workflowInserted') : t('messages.canvasInserted'));
     } catch (e: any) {
-      setMsg(e?.message || '插入失败');
+      setMsg(localizeApiError(e, { fallback: t('messages.insertFailed') }));
     }
   };
 
   const sendItem = async (item: ResourceItem) => {
     const materials = resourceItemToSendMaterials(item);
     if (materials.length === 0) {
-      setMsg('该资源没有可发送素材');
+      setMsg(t('messages.noSendable'));
       return;
     }
     window.dispatchEvent(new CustomEvent('penguin:open-send-materials', {
       detail: {
         materials,
-        sourceLabel: `资源库 · ${item.title}`,
+        sourceLabel: t('messages.sendSource', { title: item.title }),
         defaultMode: item.kind === 'set' ? 'material-set' : 'upload',
       },
     }));
@@ -459,11 +466,11 @@ export default function ResourceLibraryDrawer({ open, onClose, onInsertMaterial 
     }
     setHoverPreview({
       src,
-      title: item.title || '图像预览',
+      title: item.title || t('messages.imagePreview'),
       left,
       top,
     });
-  }, []);
+  }, [t]);
 
   const hideImagePreview = useCallback(() => {
     setHoverPreview(null);
@@ -517,11 +524,11 @@ export default function ResourceLibraryDrawer({ open, onClose, onInsertMaterial 
         <div className="flex items-center gap-2 min-w-0">
           <Library size={18} style={{ color: activeMeta.accent }} />
           <div className="min-w-0">
-            <div className="text-sm font-semibold leading-none">资源库</div>
+            <div className="text-sm font-semibold leading-none">{t('title')}</div>
             <div className={`text-[11px] mt-1 ${subtle}`}>{totalText}</div>
           </div>
         </div>
-        <button onClick={onClose} className={isPixel ? 't8-mini-icon-button px-btn px-btn--icon px-btn--ghost' : `t8-mini-icon-button h-9 w-9 p-0 rounded-md ${isDark ? 'hover:bg-white/10' : 'hover:bg-black/5'}`} title="关闭">
+        <button onClick={onClose} className={isPixel ? 't8-mini-icon-button px-btn px-btn--icon px-btn--ghost' : `t8-mini-icon-button h-9 w-9 p-0 rounded-md ${isDark ? 'hover:bg-white/10' : 'hover:bg-black/5'}`} title={t('common:actions.close')}>
           <X size={16} />
         </button>
       </div>
@@ -538,7 +545,7 @@ export default function ResourceLibraryDrawer({ open, onClose, onInsertMaterial 
               className={isPixel ? `px-btn px-btn--sm ${active ? 'px-btn--yellow' : ''}` : `flex-1 h-8 rounded-md text-xs flex items-center justify-center gap-1.5 ${active ? 'text-zinc-950' : subtle}`}
               style={!isPixel && active ? { background: meta.accent } : undefined}
             >
-              <Icon size={13} /> {meta.label}
+              <Icon size={13} /> {t(meta.labelKey)}
             </button>
           );
         })}
@@ -551,14 +558,14 @@ export default function ResourceLibraryDrawer({ open, onClose, onInsertMaterial 
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="搜索名称 / 标签"
+              placeholder={t('searchPlaceholder')}
               className={`${inputCls} w-full pl-8`}
             />
           </div>
           <button
             onClick={() => setFavoriteOnly((v) => !v)}
             className={isPixel ? `resource-library-favorite-filter t8-mini-icon-button px-btn px-btn--icon ${favoriteOnly ? 'px-btn--yellow' : 'px-btn--ghost'}` : `resource-library-favorite-filter t8-mini-icon-button h-9 w-9 p-0 rounded-md border flex items-center justify-center ${favoriteOnly ? 'text-amber-300 border-amber-400/50 bg-amber-400/10' : isDark ? 'border-white/10 hover:bg-white/10' : 'border-black/10 hover:bg-black/5'}`}
-            title="收藏"
+            title={t('favorite')}
           >
             <Star size={15} fill={favoriteOnly ? 'currentColor' : 'none'} />
           </button>
@@ -592,11 +599,11 @@ export default function ResourceLibraryDrawer({ open, onClose, onInsertMaterial 
                   ? `nodrag nopan px-btn px-btn--sm flex items-center gap-1 ${localUploadCategoryId ? 'px-btn--yellow' : 'px-btn--ghost opacity-70'}`
                   : `nodrag nopan h-9 shrink-0 rounded-md border px-2 text-xs font-semibold flex items-center gap-1.5 ${localUploadCategoryId ? 'text-zinc-950' : subtle} ${uploadingLocal ? 'opacity-70 cursor-progress' : isDark ? 'border-white/10 hover:bg-white/10' : 'border-black/10 hover:bg-black/5'}`}
                 style={!isPixel && localUploadCategoryId ? { background: activeMeta.accent, borderColor: activeMeta.accent } : undefined}
-                title={localUploadCategoryId ? `上传到「${localUploadTargetLabel}」` : '先选择一个分类'}
+                title={localUploadCategoryId ? t('upload.to', { name: localUploadTargetLabel }) : t('upload.selectCategory')}
                 aria-disabled={!localUploadCategoryId || uploadingLocal}
               >
                 <Upload size={14} />
-                <span>{uploadingLocal ? '上传中' : '上传'}</span>
+                <span>{uploadingLocal ? t('upload.uploading') : t('upload.action')}</span>
               </button>
             </>
           )}
@@ -616,7 +623,7 @@ export default function ResourceLibraryDrawer({ open, onClose, onInsertMaterial 
             }}
             className={`nodrag nopan w-full text-left px-2 py-1.5 text-xs rounded ${categoryId === 'all' ? (isPixel ? 'bg-[var(--px-yellow)] border-2 border-[var(--px-ink)]' : 'bg-cyan-500/15 text-cyan-300') : ''}`}
           >
-            全部
+            {t('all')}
           </button>
           {categories.map((cat) => (
             <div key={cat.id} className="group flex items-center gap-1">
@@ -646,8 +653,8 @@ export default function ResourceLibraryDrawer({ open, onClose, onInsertMaterial 
                       openRenameCategoryDialog(cat);
                     }}
                     className="nodrag nopan p-1 hover:opacity-100"
-                    title="重命名"
-                    aria-label={`重命名分类 ${cat.name}`}
+                    title={t('rename')}
+                    aria-label={t('dialogs.renameCategoryAria', { name: cat.name })}
                   >
                     <Pencil size={10} />
                   </button>
@@ -661,8 +668,8 @@ export default function ResourceLibraryDrawer({ open, onClose, onInsertMaterial 
                       removeCategory(cat);
                     }}
                     className="nodrag nopan p-1 hover:opacity-100 text-red-400"
-                    title="删除"
-                    aria-label={`删除分类 ${cat.name}`}
+                    title={t('remove')}
+                    aria-label={`${t('remove')} ${cat.name}`}
                   >
                     <Trash2 size={10} />
                   </button>
@@ -680,9 +687,9 @@ export default function ResourceLibraryDrawer({ open, onClose, onInsertMaterial 
               openAddCategoryDialog();
             }}
             className={`nodrag nopan w-full mt-2 ${itemBtn} flex items-center justify-center gap-1`}
-            title="新建分类"
+            title={t('newCategory')}
           >
-            <FolderPlus size={12} /> 分类
+            <FolderPlus size={12} /> {t('category')}
           </button>
         </aside>
 
@@ -693,12 +700,12 @@ export default function ResourceLibraryDrawer({ open, onClose, onInsertMaterial 
             </div>
           )}
           {loading && (
-            <div className={`text-xs ${subtle}`}>加载中...</div>
+            <div className={`text-xs ${subtle}`}>{t('state.loading')}</div>
           )}
           {!loading && items.length === 0 && (
             <div className={`h-56 flex flex-col items-center justify-center text-xs ${subtle}`}>
               <ActiveIcon size={28} style={{ color: activeMeta.accent }} />
-              <span className="mt-2">暂无资源</span>
+              <span className="mt-2">{t('state.empty')}</span>
             </div>
           )}
           <div className="grid grid-cols-2 gap-2">
@@ -722,14 +729,14 @@ export default function ResourceLibraryDrawer({ open, onClose, onInsertMaterial 
                     })}
                 title={
                   isPortraitResource
-                    ? '点击恢复为肖像大师节点'
+                    ? t('card.clickPortrait')
                     : item.kind === 'set'
-                    ? '点击插入整个素材集'
+                    ? t('card.clickSet')
                     : item.kind === 'pose'
-                      ? '点击恢复为姿势大师节点'
+                      ? t('card.clickPose')
                       : item.kind === 'workflow'
-                        ? '点击插入工作流到当前画布'
-                        : 'Ctrl+拖拽到节点，或拖到画布空白处创建素材节点'
+                        ? t('card.clickWorkflow')
+                        : t('card.dragHint')
                 }
               >
                 <div className="relative h-28 overflow-hidden bg-black/80">
@@ -745,8 +752,8 @@ export default function ResourceLibraryDrawer({ open, onClose, onInsertMaterial 
                       <button
                         type="button"
                         className="nodrag nopan t8-mini-icon-button resource-card-preview-trigger"
-                        title="悬停预览大图"
-                        aria-label="悬停预览大图"
+                        title={t('card.previewLarge')}
+                        aria-label={t('card.previewLarge')}
                         onMouseEnter={(event) => showImagePreview(event.currentTarget, item)}
                         onMouseLeave={hideImagePreview}
                         onFocus={(event) => showImagePreview(event.currentTarget, item)}
@@ -802,14 +809,14 @@ export default function ResourceLibraryDrawer({ open, onClose, onInsertMaterial 
                                 ) : (
                                   <div className="flex h-full w-full items-center gap-1 p-1 text-left text-[9px] leading-tight text-[var(--t8-text-muted)]">
                                     <FileText size={12} className="shrink-0" />
-                                    <span className="line-clamp-3 break-all">{child.text || child.name || '文本'}</span>
+                                    <span className="line-clamp-3 break-all">{child.text || child.name || t('card.textFallback')}</span>
                                   </div>
                                 )}
                               </div>
                             ))}
                           </div>
                           <div className="absolute bottom-1.5 left-1.5 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-semibold text-white">
-                            {materialSetLabel(item.materialSetKind)} · {item.materialSetItems?.length || 0}
+                            {materialSetLabel(item.materialSetKind, t)} · {item.materialSetItems?.length || 0}
                           </div>
                         </>
                       )}
@@ -837,7 +844,7 @@ export default function ResourceLibraryDrawer({ open, onClose, onInsertMaterial 
                   <button
                     onClick={() => updateItem(item, { favorite: !item.favorite })}
                     className="t8-mini-icon-button absolute top-1.5 right-1.5 h-7 w-7 rounded-full bg-black/55 text-amber-300 flex items-center justify-center"
-                    title="收藏"
+                    title={t('favorite')}
                   >
                     <Star size={13} fill={item.favorite ? 'currentColor' : 'none'} />
                   </button>
@@ -846,16 +853,16 @@ export default function ResourceLibraryDrawer({ open, onClose, onInsertMaterial 
                   <div className="text-xs font-medium truncate" title={item.title}>{item.title}</div>
                   <div className={`text-[10px] truncate ${subtle}`}>
                     {isPortraitResource
-                      ? '肖像大师配置 · 可恢复节点'
+                      ? t('card.portraitDescription')
                       : item.kind === 'set'
-                      ? `${materialSetLabel(item.materialSetKind)} · ${item.materialSetItems?.length || 0} 项`
+                      ? t('card.setDescription', { label: materialSetLabel(item.materialSetKind, t), count: item.materialSetItems?.length || 0 })
                       : item.kind === 'pose'
-                        ? '姿势大师配置 · 可恢复节点'
+                        ? t('card.poseDescription')
                         : item.kind === 'workflow'
-                          ? `${summarizeWorkflowResource(item)} · 可插入画布`
+                          ? t('workflow.insertable', { summary: summarizeWorkflowResource(item) })
                           : item.kind === 'panorama'
-                            ? `全景贴图 · ${formatSize(item.size) || item.mime || '图像'}`
-                      : formatSize(item.size) || item.mime || item.kind}
+                            ? t('card.panoramaDescription', { detail: formatSize(item.size, i18n.resolvedLanguage || i18n.language) || item.mime || t('kinds.image') })
+                      : formatSize(item.size, i18n.resolvedLanguage || i18n.language) || item.mime || t(`kinds.${item.kind}`)}
                   </div>
                   {item.kind === 'audio' && <audio src={item.fileUrl} controls className="w-full h-8" />}
                   <select
@@ -870,8 +877,8 @@ export default function ResourceLibraryDrawer({ open, onClose, onInsertMaterial 
                       onClick={() => insertItem(item)}
                       className="nodrag nopan t8-mini-icon-button resource-card-action"
                       style={miniInsertStyle}
-                      title={isPortraitResource ? '恢复为肖像大师节点' : '插入画布'}
-                      aria-label={isPortraitResource ? '恢复为肖像大师节点' : '插入画布'}
+                      title={isPortraitResource ? t('card.restorePortrait') : t('card.insertCanvas')}
+                      aria-label={isPortraitResource ? t('card.restorePortrait') : t('card.insertCanvas')}
                     >
                       <Plus size={15} />
                     </button>
@@ -880,8 +887,8 @@ export default function ResourceLibraryDrawer({ open, onClose, onInsertMaterial 
                       className="nodrag nopan t8-mini-icon-button resource-card-action"
                       style={miniActionBase}
                       disabled={item.kind === 'workflow'}
-                      title={item.kind === 'workflow' ? '工作流可直接插入当前画布' : '发送到画布 / Eagle'}
-                      aria-label="发送到画布 / Eagle"
+                      title={item.kind === 'workflow' ? t('card.workflowSendHint') : t('card.send')}
+                      aria-label={t('card.send')}
                     >
                       <Send size={13} />
                     </button>
@@ -889,7 +896,7 @@ export default function ResourceLibraryDrawer({ open, onClose, onInsertMaterial 
                       onClick={() => openItemRenameDialog(item)}
                       className="nodrag nopan t8-mini-icon-button resource-card-action"
                       style={miniActionBase}
-                      title="重命名"
+                      title={t('rename')}
                     >
                       <Pencil size={13} />
                     </button>
@@ -897,7 +904,7 @@ export default function ResourceLibraryDrawer({ open, onClose, onInsertMaterial 
                       onClick={() => deleteItem(item)}
                       className="nodrag nopan t8-mini-icon-button resource-card-action"
                       style={miniDeleteStyle}
-                      title="删除"
+                      title={t('remove')}
                     >
                       <Trash2 size={13} />
                     </button>
@@ -915,7 +922,7 @@ export default function ResourceLibraryDrawer({ open, onClose, onInsertMaterial 
           className="absolute inset-0 z-20 flex items-center justify-center bg-black/45 p-4"
           role="dialog"
           aria-modal="true"
-          aria-label={categoryDialog.mode === 'add' ? `新建${categoryDialog.label}分类` : `重命名分类 ${categoryDialog.label}`}
+          aria-label={categoryDialog.mode === 'add' ? t('dialogs.addCategoryAria', { kind: categoryDialog.label }) : t('dialogs.renameCategoryAria', { name: categoryDialog.label })}
           onPointerDown={stopResourceControlEvent}
           onMouseDown={stopResourceControlEvent}
           onClick={(event) => {
@@ -938,18 +945,18 @@ export default function ResourceLibraryDrawer({ open, onClose, onInsertMaterial 
             <div className="mb-3 flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="text-sm font-semibold">
-                  {categoryDialog.mode === 'add' ? `新建${categoryDialog.label}分类` : '重命名分类'}
+                  {categoryDialog.mode === 'add' ? t('dialogs.addCategoryTitle', { kind: categoryDialog.label }) : t('dialogs.renameCategoryTitle')}
                 </div>
                 <div className={`mt-1 text-[11px] leading-relaxed ${subtle}`}>
                   {categoryDialog.mode === 'add'
-                    ? '给当前大分类添加一个新的子分类，方便后续整理资源。'
-                    : `当前名称：${categoryDialog.label}`}
+                    ? t('dialogs.addCategoryHelp')
+                    : t('dialogs.currentName', { name: categoryDialog.label })}
                 </div>
               </div>
               <button
                 type="button"
                 className={isPixel ? 't8-mini-icon-button px-btn px-btn--icon px-btn--ghost' : `t8-mini-icon-button h-8 w-8 shrink-0 rounded-md ${isDark ? 'hover:bg-white/10' : 'hover:bg-black/5'}`}
-                title="关闭"
+                title={t('common:actions.close')}
                 onClick={() => setCategoryDialog(null)}
               >
                 <X size={15} />
@@ -966,7 +973,7 @@ export default function ResourceLibraryDrawer({ open, onClose, onInsertMaterial 
                   setCategoryDialog(null);
                 }
               }}
-              placeholder="输入分类名称"
+              placeholder={t('dialogs.categoryPlaceholder')}
               className={`${inputCls} w-full`}
             />
             <div className="mt-4 grid grid-cols-2 gap-2">
@@ -975,14 +982,14 @@ export default function ResourceLibraryDrawer({ open, onClose, onInsertMaterial 
                 className={isPixel ? 'px-btn px-btn--ghost' : `h-9 rounded-md border text-sm font-medium ${isDark ? 'border-white/10 hover:bg-white/10' : 'border-black/10 hover:bg-black/5'}`}
                 onClick={() => setCategoryDialog(null)}
               >
-                取消
+                {t('common:actions.cancel')}
               </button>
               <button
                 type="submit"
                 data-resource-category-dialog-confirm
                 className={isPixel ? 'px-btn px-btn--yellow' : 'h-9 rounded-md bg-cyan-400 text-sm font-semibold text-zinc-950 hover:bg-cyan-300'}
               >
-                {categoryDialog.mode === 'add' ? '创建' : '保存'}
+                {categoryDialog.mode === 'add' ? t('dialogs.create') : t('common:actions.save')}
               </button>
             </div>
           </form>
@@ -994,7 +1001,7 @@ export default function ResourceLibraryDrawer({ open, onClose, onInsertMaterial 
           className="absolute inset-0 z-20 flex items-center justify-center bg-black/45 p-4"
           role="dialog"
           aria-modal="true"
-          aria-label={`重命名资源 ${itemRenameDialog.item.title}`}
+          aria-label={t('dialogs.renameResourceAria', { name: itemRenameDialog.item.title })}
           onPointerDown={stopResourceControlEvent}
           onMouseDown={stopResourceControlEvent}
           onClick={(event) => {
@@ -1016,15 +1023,15 @@ export default function ResourceLibraryDrawer({ open, onClose, onInsertMaterial 
           >
             <div className="mb-3 flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <div className="text-sm font-semibold">重命名资源</div>
+                <div className="text-sm font-semibold">{t('dialogs.renameResourceTitle')}</div>
                 <div className={`mt-1 truncate text-[11px] leading-relaxed ${subtle}`} title={itemRenameDialog.item.title}>
-                  当前名称：{itemRenameDialog.item.title}
+                  {t('dialogs.currentName', { name: itemRenameDialog.item.title })}
                 </div>
               </div>
               <button
                 type="button"
                 className={isPixel ? 't8-mini-icon-button px-btn px-btn--icon px-btn--ghost' : `t8-mini-icon-button h-8 w-8 shrink-0 rounded-md ${isDark ? 'hover:bg-white/10' : 'hover:bg-black/5'}`}
-                title="关闭"
+                title={t('common:actions.close')}
                 onClick={() => setItemRenameDialog(null)}
               >
                 <X size={15} />
@@ -1041,7 +1048,7 @@ export default function ResourceLibraryDrawer({ open, onClose, onInsertMaterial 
                   setItemRenameDialog(null);
                 }
               }}
-              placeholder="输入资源名称"
+              placeholder={t('dialogs.resourcePlaceholder')}
               className={`${inputCls} w-full`}
             />
             <div className="mt-4 grid grid-cols-2 gap-2">
@@ -1050,14 +1057,14 @@ export default function ResourceLibraryDrawer({ open, onClose, onInsertMaterial 
                 className={isPixel ? 'px-btn px-btn--ghost' : `h-9 rounded-md border text-sm font-medium ${isDark ? 'border-white/10 hover:bg-white/10' : 'border-black/10 hover:bg-black/5'}`}
                 onClick={() => setItemRenameDialog(null)}
               >
-                取消
+                {t('common:actions.cancel')}
               </button>
               <button
                 type="submit"
                 data-resource-item-rename-dialog-confirm
                 className={isPixel ? 'px-btn px-btn--yellow' : 'h-9 rounded-md bg-cyan-400 text-sm font-semibold text-zinc-950 hover:bg-cyan-300'}
               >
-                保存
+                {t('common:actions.save')}
               </button>
             </div>
           </form>

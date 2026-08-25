@@ -320,7 +320,7 @@ test('image edit board actions await async production and route Provider edits t
   assert.match(uploadNode, /actionId: 'image-edit\.annotation'/);
   assert.match(outputNode, /resolveSecondaryProviderActionForRun/);
   assert.match(uploadNode, /resolveSecondaryProviderActionForRun/);
-  assert.match(outputNode, /logBus\.error\(error\?\.message \|\| '标注改图失败', logSource\);/);
+  assert.match(outputNode, /logBus\.error\(error\?\.message \|\| t\('nodes:output\.errors\.annotationFailed'\), logSource\);/);
   assert.match(uploadNode, /logBus\.error\(error\?\.message \|\| '标注改图失败', logSource\);/);
   assert.match(outputNode, /if \(providerRequested && !providerResponded\) \{\s*await reporter\.providerResponse\([\s\S]*?throw error;/);
   assert.match(uploadNode, /if \(providerRequested && !providerResponded\) \{\s*await reporter\.providerResponse\([\s\S]*?throw error;/);
@@ -346,9 +346,9 @@ test('Cowart-inspired workflow is wired through node registry, toolbar, canvas, 
   });
 
   assert.match(toolbar, /onCreateGenerationTarget:\s*\(\)\s*=>\s*void/);
-  assert.match(toolbar, /生成目标框/);
+  assert.match(toolbar, /t\('toolbar\.generationTargetDetail'\)/);
   assert.match(toolbar, /onExportResourcePackage:\s*\(\)\s*=>\s*void/);
-  assert.match(toolbar, /资源包/);
+  assert.match(toolbar, /t\('toolbar\.exportResources/);
   assert.match(toolbar, /PackageOpen/);
   assert.doesNotMatch(toolbar, /aria-label="导出资源包"[\s\S]{0,160}<Archive size=\{15\}/);
 

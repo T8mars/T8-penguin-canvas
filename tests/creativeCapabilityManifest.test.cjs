@@ -211,6 +211,12 @@ test('capability graph validates real node types and fails closed on drift', () 
   assert.equal(graph.counts.missingOperationRisk, 0);
   assert.equal(graph.counts.unknownNodeReferences, 0);
   assert.match(graph.aggregateDigest, /^[a-f0-9]{64}$/);
+  assert.match(graph.sourceDigests.i18nNodeCatalog, /^[a-f0-9]{64}$/);
+  assert.match(graph.sourceDigests.i18nRendererResources, /^[a-f0-9]{64}$/);
+  assert.match(graph.sourceDigests.i18nElectronCatalog, /^[a-f0-9]{64}$/);
+  assert.equal(graph.generatedFrom.i18nNodeCatalog, 'src/i18n/nodeCatalog.ts');
+  assert.equal(graph.generatedFrom.i18nRendererResources, 'src/i18n/resources.ts');
+  assert.equal(graph.generatedFrom.i18nElectronCatalog, 'electron/i18n-catalog.json');
   assert.deepEqual(
     graph.capabilities.find((capability) => capability.id === 'director.materialize').nodeTypes,
     ['story', 'director-storyboard'],

@@ -46,6 +46,7 @@ function evaluateWorktreeRole({
   head = '',
   mode = 'inspect',
   allowLegacyF2 = false,
+  allowCoreRelease = false,
 } = {}) {
   const normalizedMode = String(mode || 'inspect').toLowerCase();
   const pathRole = classifyWorktreePath(root);
@@ -76,7 +77,10 @@ function evaluateWorktreeRole({
       errors.push('development must use the canonical T8-penguin-canvas path or T8-penguin-canvas-dev-<topic>');
     }
   } else if (normalizedMode === 'release') {
-    if (pathRole !== 'release') errors.push('formal release requires a release-named worktree');
+    const coreRelease = allowCoreRelease === true && pathRole === 'core' && isReleaseBranch(branch);
+    if (pathRole !== 'release' && !coreRelease) {
+      errors.push('formal release requires a release-named worktree or an explicitly authorized canonical-core release branch');
+    }
     if (!detached && !isReleaseBranch(branch)) {
       errors.push('formal release requires codex/release-* or a detached fixed commit');
     } else if (!detached && pathRole === 'release') {
@@ -161,6 +165,7 @@ function inspectCurrentWorktree(root = process.cwd(), mode = 'inspect', options 
       head,
       mode,
       allowLegacyF2: options.allowLegacyF2 === true,
+      allowCoreRelease: options.allowCoreRelease === true,
     }),
     head,
   };
@@ -183,6 +188,7 @@ if (require.main === module) {
     const mode = process.argv[2] || 'inspect';
     const result = inspectCurrentWorktree(process.cwd(), mode, {
       allowLegacyF2: process.env.T8_ALLOW_LEGACY_F2_WORKTREE === '1',
+      allowCoreRelease: process.env.T8_ALLOW_CORE_RELEASE === '1',
     });
     process.stdout.write(`${formatInspection(result)}\n`);
     if (!result.ok) process.exitCode = 1;

@@ -488,6 +488,7 @@ test('story node is wired into shared schema, Canvas and roadmap', () => {
   const types = fs.readFileSync(path.join(root, 'src/types/canvas.ts'), 'utf8');
   const roadmap = fs.readFileSync(path.join(root, 'roadmap.md'), 'utf8');
   const storyNode = fs.readFileSync(path.join(root, 'src/components/nodes/StoryNode.tsx'), 'utf8');
+  const i18nResources = fs.readFileSync(path.join(root, 'src/i18n/resources.ts'), 'utf8');
   const directorNode = fs.readFileSync(path.join(root, 'src/components/nodes/DirectorStoryboardNode.tsx'), 'utf8');
   const entry = schema.types.find((item: any) => item.type === 'story');
   assert.ok(entry, 'story must be in shared node schema');
@@ -500,7 +501,9 @@ test('story node is wired into shared schema, Canvas and roadmap', () => {
   assert.match(storyNode, /productionRevision !== capturedRevision/);
   assert.match(storyNode, /LLM_MODELS/);
   assert.match(storyNode, /SEEDANCE_NZ_LLM_MODELS/);
-  assert.match(storyNode, /贞贞AI工坊内置LLM[\s\S]*贞贞的平价AI小屋/);
+  assert.match(storyNode, /storyT\('providers\.workshopLlm'\)[\s\S]*storyT\('providers\.budgetHouse'\)/);
+  assert.match(i18nResources, /workshopLlm: '贞贞AI工坊内置LLM'[\s\S]*budgetHouse: '贞贞的平价AI小屋'/);
+  assert.match(i18nResources, /workshopLlm: 'Zhenzhen AI Workshop built-in LLM'[\s\S]*budgetHouse: 'Zhenzhen Budget AI House'/);
   assert.match(storyNode, /generateLlm\(\{ source: builtinSource, model,/);
   assert.match(storyNode, /IMAGE_MODELS\.find\(\(item\) => item\.id === 'gpt-image-2'\)/);
   assert.match(storyNode, /ZHENZHEN_BUDGET_GPT2_MODEL_OPTIONS/);
@@ -509,7 +512,7 @@ test('story node is wired into shared schema, Canvas and roadmap', () => {
   assert.match(storyNode, /STORY_BUDGET_IMAGE_MODELS\.has\(model[\s\S]*submitSeedreamNz/);
   assert.match(storyNode, /resolution: isLowpriceModel \? '2k' : '1k'/);
   assert.match(storyNode, /size: isLowpriceModel \? imageAspectRatio : undefined/);
-  assert.match(storyNode, /<option value="seedance-nz">贞贞的平价AI小屋<\/option>/);
+  assert.match(storyNode, /<option value="seedance-nz">\{storyT\('providers\.budgetHouse'\)\}<\/option>/);
   assert.doesNotMatch(storyNode, /贞贞平价 AI 工坊（国内）/);
   assert.match(storyNode, /LEGACY_SEEDANCE_MODEL_OPTIONS/);
   assert.match(storyNode, /SEEDANCE_NZ_MODEL_OPTIONS/);
@@ -520,7 +523,7 @@ test('story node is wired into shared schema, Canvas and roadmap', () => {
   assert.match(storyNode, /api\.getResourceItems\(\{ kind: 'image', q: resourceQuery\.trim\(\) \}\)/);
   assert.match(storyNode, /updateAsset\(asset\.id, \{[\s\S]*?source: 'existing'[\s\S]*?url: item\.fileUrl[\s\S]*?\}, true\)/);
   assert.match(storyNode, /api\.updateResourceItem\(item\.id, \{ touch: true \}\)/);
-  assert.match(storyNode, /从资产库选择图片/);
+  assert.match(storyNode, /storyT\('chooseLibraryImage'\)/);
   assert.match(directorNode, /resolveAdvancedProviderSelection\(advancedProviders, 'video'/);
   assert.match(directorNode, /generateExternalVideo/);
 });
@@ -541,6 +544,7 @@ test('story orchestration progress never auto-creates output material nodes', ()
 
 test('story production actions switch the visible workbench stage', () => {
   const storyNode = fs.readFileSync(path.join(root, 'src/components/nodes/StoryNode.tsx'), 'utf8');
+  const i18nResources = fs.readFileSync(path.join(root, 'src/i18n/resources.ts'), 'utf8');
   const requestAction = storyNode.slice(storyNode.indexOf('const requestRun = useCallback'), storyNode.indexOf('const stopRun = useCallback'));
   const reviewAction = storyNode.slice(storyNode.indexOf('const enterAssetReview = useCallback'), storyNode.indexOf('const stopRun = useCallback'));
   const assetsAction = storyNode.slice(storyNode.indexOf('const generateAssets = useCallback'), storyNode.indexOf('const compile = useCallback'));
@@ -551,7 +555,7 @@ test('story production actions switch the visible workbench stage', () => {
   assert.match(reviewAction, /stage: 'assets'/);
   assert.match(reviewAction, /可先电脑上传、绑定上游或资产库/);
   assert.doesNotMatch(reviewAction, /requestCanvasNodeRun|requestRun\(/);
-  assert.match(storyNode, /确认镜头，进入准备资产'[\s\S]*?mode: 'review-assets'/);
+  assert.match(storyNode, /storyT\('confirmShots'\)[\s\S]*?mode: 'review-assets'/);
   assert.match(storyNode, /mainAction\.mode === 'review-assets' \? enterAssetReview\(\) : requestRun\(mainAction\.mode\)/);
   assert.match(requestAction, /mode === 'compile'[\s\S]*?setActiveStage\('prompts'\)/);
   assert.match(requestAction, /setLocalMessage\(`\$\{STORY_RUN_LABEL\[mode\]\}请求正在提交…`\)/);
@@ -570,10 +574,10 @@ test('story production actions switch the visible workbench stage', () => {
   assert.match(storyNode, /if \(activeSession\)[\s\S]*?activeSession\.enqueue\(assetId\)/);
   assert.match(storyNode, /const assetActionsBlocked = busy && !assetRunActive/);
   assert.match(storyNode, /generating \? <Loader2 size=\{11\} className="animate-spin" \/>/);
-  assert.match(storyNode, /旧素材保留至新图成功/);
+  assert.match(storyNode, /storyT\('retainOldAsset'\)/);
   assert.match(storyNode, /revisionGuard\.finalizeTail[\s\S]*?revisionGuard\.expected = committed\.productionRevision/);
   assert.match(storyNode, /if \(replaceExisting\)[\s\S]*?setActiveStage\('assets'\)[\s\S]*?原素材仅在新结果成功后才被替换/);
-  assert.match(storyNode, /generating \? '生成中' : asset\.url && kind !== 'audio' \? '重生成' : 'AI'/);
+  assert.match(storyNode, /generating \? storyT\('generating'\) : asset\.url && kind !== 'audio' \? storyT\('regenerateShort'\) : 'AI'/);
   assert.match(storyNode, /confirmRemoveAsset\(selectedKindAsset\)/);
   assert.match(storyNode, /confirmRemoveAsset\(asset\)/);
   assert.match(storyNode, /确认删除资产「\$\{asset\.name\}」/);
@@ -581,16 +585,16 @@ test('story production actions switch the visible workbench stage', () => {
   assert.match(storyNode, /const confirmClearAssetMedia = useCallback/);
   assert.match(storyNode, /确认清空资产「\$\{asset\.name\}」的当前\$\{materialKind\}？资产设定、提示词和镜头关联都会保留/);
   assert.match(storyNode, /source: 'missing', status: 'pending', url: '', taskId: '', taskProvider: '', taskModel: '', taskEndpoint: '', taskClipIds: \[\], error: '', generatedAt: ''/);
-  assert.match(storyNode, /confirmClearAssetMedia\(asset\)[\s\S]*?<Eraser size=\{11\} \/>清空/);
-  assert.match(storyNode, /confirmClearAssetMedia\(selectedAsset\)[\s\S]*?清空素材/);
-  assert.match(storyNode, /左侧脸部特写，右侧同一人物正面／侧面／背面三视图/);
-  assert.match(storyNode, /默认只展示服装本体，不出现人物或环境/);
+  assert.match(storyNode, /confirmClearAssetMedia\(asset\)[\s\S]*?<Eraser size=\{11\} \/>\{storyT\('clear'\)\}/);
+  assert.match(storyNode, /confirmClearAssetMedia\(selectedAsset\)[\s\S]*?storyT\('clearAsset'\)/);
+  assert.match(i18nResources, /左侧脸部特写，右侧同一人物正面／侧面／背面三视图/);
+  assert.match(i18nResources, /show only the garment by default/);
   assert.match(videosAction, /setActiveStage\('videos'\)/);
   assert.match(composeAction, /setActiveStage\('compose'\)/);
   assert.match(storyNode, /data-story-compose-state=\{project\.composeTaskStatus\}/);
-  assert.match(storyNode, /正在合成成片，请稍候/);
+  assert.match(storyNode, /storyT\('composingPleaseWait'\)/);
   assert.match(storyNode, /data-story-compose-error="true"/);
-  assert.match(storyNode, /project\.finalVideoUrl \|\| project\.composeTaskStatus === 'failed' \? '重新合成'/);
+  assert.match(storyNode, /project\.finalVideoUrl \|\| project\.composeTaskStatus === 'failed' \? storyT\('recompose'\)/);
   assert.match(storyNode, /const existingTaskId = ACTIVE_TASK_STATUSES\.has\(current\.composeTaskStatus\)[\s\S]*?\? current\.composeTaskId[\s\S]*?: ''/);
   assert.match(storyNode, /const composeAlreadySucceeded = current\.stage === 'compose'[\s\S]*?current\.composeTaskStatus === 'succeeded'[\s\S]*?Boolean\(current\.finalVideoUrl\)/);
   assert.match(storyNode, /成片已生成，但保存运行记录失败/);

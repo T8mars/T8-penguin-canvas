@@ -1,0 +1,145 @@
+{
+  "schema": "t8-workflow-fragment",
+  "version": 1,
+  "title": "Wan 3.0 海外 Prime R2V（贞贞的平价AI小屋）",
+  "nodes": [
+    {
+      "id": "wan-3.0-global-prime-r2v-images",
+      "type": "upload",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "data": {
+        "label": "上传参考图片（最多 10 张）",
+        "uploadType": "image",
+        "lockedUploadType": "image"
+      }
+    },
+    {
+      "id": "wan-3.0-global-prime-r2v-videos",
+      "type": "upload",
+      "position": {
+        "x": 0,
+        "y": 220
+      },
+      "data": {
+        "label": "上传参考视频（最多 5 个）",
+        "uploadType": "video",
+        "lockedUploadType": "video"
+      }
+    },
+    {
+      "id": "wan-3.0-global-prime-r2v-audios",
+      "type": "upload",
+      "position": {
+        "x": 0,
+        "y": 440
+      },
+      "data": {
+        "label": "上传参考音频（最多 5 个）",
+        "uploadType": "audio",
+        "lockedUploadType": "audio"
+      }
+    },
+    {
+      "id": "wan-3.0-global-prime-r2v",
+      "type": "video",
+      "position": {
+        "x": 460,
+        "y": 40
+      },
+      "data": {
+        "label": "Wan 3.0 海外 Prime R2V（贞贞的平价AI小屋）",
+        "mainId": "wan-2.7-spicy",
+        "model": "wan-3.0-global-prime-r2v",
+        "videoBuiltinSource": "seedance-nz",
+        "ratio": "adaptive",
+        "duration": 2,
+        "resolution": "480P",
+        "generateAudio": true,
+        "wan30EnableThinking": false,
+        "wan30FileUrl": "",
+        "wan30LinkUrl": "",
+        "wan30Seed": 0,
+        "prompt": "综合参考图片、视频与音频的主体、动作和节奏，生成连贯电影感镜头",
+        "reuseResult": false
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "wan-3.0-global-prime-r2v-images-edge",
+      "source": "wan-3.0-global-prime-r2v-images",
+      "target": "wan-3.0-global-prime-r2v"
+    },
+    {
+      "id": "wan-3.0-global-prime-r2v-videos-edge",
+      "source": "wan-3.0-global-prime-r2v-videos",
+      "target": "wan-3.0-global-prime-r2v"
+    },
+    {
+      "id": "wan-3.0-global-prime-r2v-audios-edge",
+      "source": "wan-3.0-global-prime-r2v-audios",
+      "target": "wan-3.0-global-prime-r2v"
+    }
+  ],
+  "nodeCount": 4,
+  "edgeCount": 3,
+  "nodeTypes": [
+    "upload",
+    "upload",
+    "upload",
+    "video"
+  ],
+  "topologyPreview": {
+    "nodes": [
+      {
+        "id": "wan-3.0-global-prime-r2v-images",
+        "type": "upload",
+        "label": "上传参考图片（最多 10 张）",
+        "x": 50,
+        "y": 50
+      },
+      {
+        "id": "wan-3.0-global-prime-r2v-videos",
+        "type": "upload",
+        "label": "上传参考视频（最多 5 个）",
+        "x": 50,
+        "y": 270
+      },
+      {
+        "id": "wan-3.0-global-prime-r2v-audios",
+        "type": "upload",
+        "label": "上传参考音频（最多 5 个）",
+        "x": 50,
+        "y": 490
+      },
+      {
+        "id": "wan-3.0-global-prime-r2v",
+        "type": "video",
+        "label": "Wan 3.0 海外 Prime R2V（贞贞的平价AI小屋）",
+        "x": 510,
+        "y": 90
+      }
+    ],
+    "edges": [
+      {
+        "id": "wan-3.0-global-prime-r2v-images-edge",
+        "source": "wan-3.0-global-prime-r2v-images",
+        "target": "wan-3.0-global-prime-r2v"
+      },
+      {
+        "id": "wan-3.0-global-prime-r2v-videos-edge",
+        "source": "wan-3.0-global-prime-r2v-videos",
+        "target": "wan-3.0-global-prime-r2v"
+      },
+      {
+        "id": "wan-3.0-global-prime-r2v-audios-edge",
+        "source": "wan-3.0-global-prime-r2v-audios",
+        "target": "wan-3.0-global-prime-r2v"
+      }
+    ]
+  },
+  "savedAt": "2026-08-25T00:00:00.000Z"
+}

@@ -39,6 +39,10 @@ import {
   useState,
 } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
+import LocalizedVisibleTree from '../i18n/LocalizedVisibleTree';
+import { localizeCreatorAgentStarterIdea } from '../i18n/creatorAgentStarterEnglish';
+import { CREATOR_AGENT_VISIBLE_CATALOG } from '../i18n/workbenchVisibleCatalog';
 import './CreatorAgentModels.css';
 import './CreatorAgentRichText.css';
 import * as api from '../services/api';
@@ -402,6 +406,14 @@ const CREATOR_UPLOAD_MAX_CONCURRENCY = 3;
 const CREATOR_IME_COMMIT_GUARD_MS = 140;
 const CREATOR_SHELL_READINESS_SCHEMA = 't8-creator-agent-shell-readiness-receipt-v1';
 const CREATOR_SHELL_TARGET_MS = 300;
+
+function CreatorAgentVisible({ children }: { children: ReactNode }) {
+  return (
+    <LocalizedVisibleTree area="creatorAgent" catalog={CREATOR_AGENT_VISIBLE_CATALOG}>
+      {children}
+    </LocalizedVisibleTree>
+  );
+}
 
 function storageKey(projectId: string, canvasId: string) {
   return `${SESSION_STORAGE_PREFIX}:${projectId}:${canvasId}`;
@@ -860,6 +872,7 @@ function LifecycleActivity(props: { event: CreatorAgentEvent }) {
     return null;
   }
   return (
+    <CreatorAgentVisible>
     <article className={`t8-creator-agent-activity is-${tone}`}>
       <span>{icon}</span>
       <div>
@@ -867,6 +880,7 @@ function LifecycleActivity(props: { event: CreatorAgentEvent }) {
         <small>{detail}</small>
       </div>
     </article>
+    </CreatorAgentVisible>
   );
 }
 
@@ -1010,6 +1024,7 @@ function RealRunActivity(props: {
     `${outputs} 个产物引用`,
   ].join(' · ');
   return (
+    <CreatorAgentVisible>
     <article className={`t8-creator-agent-run is-${presentation.tone}`}>
       <span>{presentation.icon}</span>
       <div>
@@ -1070,6 +1085,7 @@ function RealRunActivity(props: {
         )}
       </aside>
     </article>
+    </CreatorAgentVisible>
   );
 }
 
@@ -1445,6 +1461,7 @@ function PlanCard(props: {
       ? '来源节点待处理'
       : statusLabel;
   return (
+    <CreatorAgentVisible>
     <article
       className="t8-creator-agent-plan"
       data-creator-agent-plan-id={plan.planId}
@@ -2059,6 +2076,7 @@ function PlanCard(props: {
         </button>
       )}
     </article>
+    </CreatorAgentVisible>
   );
 }
 
@@ -2153,6 +2171,7 @@ function CandidateComparison(props: {
     && reviewCandidate.review.requiredDimensions.every((dimension) => reviewDimensions[dimension]),
   );
   return (
+    <CreatorAgentVisible>
     <section className="t8-creator-agent-comparison" aria-label="真实候选对比">
       <header>
         <div>
@@ -2323,10 +2342,13 @@ function CandidateComparison(props: {
         </section>
       )}
     </section>
+    </CreatorAgentVisible>
   );
 }
 
 export default function CreatorAgentPanel(props: CreatorAgentPanelProps) {
+  const { i18n } = useTranslation();
+  const uiLocale = i18n.resolvedLanguage || i18n.language;
   const [open, setOpen] = useState(false);
   const [session, setSession] = useState<CreatorAgentSession | null>(null);
   const [draft, setDraft] = useState('');
@@ -2615,11 +2637,12 @@ export default function CreatorAgentPanel(props: CreatorAgentPanelProps) {
     contextKey: starterIdeaContextKey,
     mode: starterIdeaMode,
     rotation: starterIdeaRotation,
-  }), [
+  }).map((idea) => localizeCreatorAgentStarterIdea(idea, uiLocale)), [
     starterIdeaContextKey,
     starterIdeaMode,
     starterIdeaRotation,
     starterIdeaSessionSeed,
+    uiLocale,
   ]);
 
   const contextReceipt = useMemo(() => {
@@ -4641,7 +4664,8 @@ export default function CreatorAgentPanel(props: CreatorAgentPanelProps) {
   }[launcherStatus];
 
   const launcherButton = (
-    <button
+    <CreatorAgentVisible>
+      <button
         ref={launcherButtonRef}
         type="button"
         className={`t8-creator-agent-launcher nodrag nopan${open ? ' is-open' : ''}`}
@@ -4678,9 +4702,11 @@ export default function CreatorAgentPanel(props: CreatorAgentPanelProps) {
         />
         <span className="sr-only">贞贞创作 Agent，{launcherStatusLabel}</span>
       </button>
+    </CreatorAgentVisible>
   );
 
   return (
+    <CreatorAgentVisible>
     <>
       {launcherHost ? createPortal(launcherButton, launcherHost) : launcherButton}
 
@@ -5815,5 +5841,6 @@ export default function CreatorAgentPanel(props: CreatorAgentPanelProps) {
         </aside>
       )}
     </>
+    </CreatorAgentVisible>
   );
 }

@@ -1,6 +1,8 @@
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { AlertCircle, Loader2, Music, Sparkles, Square, Upload, X } from 'lucide-react';
+import { useCanvasNodeRenderMode } from '../CanvasNodeRenderMode';
 import {
   submitAudio,
   queryAudio,
@@ -118,6 +120,8 @@ function audioUploadExtension(mime: string, preferredName: string, url: string):
 }
 
 const AudioNode = ({ id, data, selected }: NodeProps) => {
+  const { t: translate } = useTranslation(['nodes', 'common']);
+  const canvasRenderMode = useCanvasNodeRenderMode();
   const update = useUpdateNodeData(id);
   const hasAutoOutput = useHasAutoOutput(id);
   const [error, setError] = useState<string | null>(null);
@@ -1466,6 +1470,31 @@ const AudioNode = ({ id, data, selected }: NodeProps) => {
   const textColor = PORT_COLOR.text;
   const videoColor = PORT_COLOR.video;
 
+  if (canvasRenderMode === 'cold') {
+    return (
+      <div className="t8-node-cold-shell w-[320px]" data-t8-node-cold-shell="audio" style={{ minHeight: 112 }}>
+        <Handle type="target" position={Position.Left} style={{ background: audioColor, border: 0 }} />
+        {isWhisper || isMinimaxClone || (isSunoNz && sunoNzAction.resultFamily === 'text') || (isLyria && flowMusicAction.resultFamily === 'text') ? (
+          <Handle type="source" id="text" position={Position.Right} style={{ background: textColor, border: 0 }} />
+        ) : (isSunoNz && sunoNzAction.resultFamily === 'video') || (isLyria && flowMusicAction.resultFamily === 'video') ? (
+          <Handle type="source" id="video" position={Position.Right} style={{ background: videoColor, border: 0 }} />
+        ) : (
+          <>
+            <Handle type="source" id="audio-0" position={Position.Right} style={{ background: audioColor, border: 0, top: '48%' }} />
+            <Handle type="source" id="audio-1" position={Position.Right} style={{ background: audioColor, border: 0, top: '52%' }} />
+          </>
+        )}
+        <div className="t8-node-cold-shell__header">
+          <Music size={16} className="shrink-0 text-violet-300" />
+          <div className="t8-node-cold-shell__copy">
+            <strong>{translate('nodes:audio.title')}</strong>
+            <small>{audioProviderMode} · {translate('common:performance.offscreenPreview')}</small>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       {...dropProps}
@@ -1501,25 +1530,25 @@ const AudioNode = ({ id, data, selected }: NodeProps) => {
           <Music size={13} />
         </div>
         <div className="flex-1 min-w-0">
-          <div className="text-sm font-semibold text-white">音频 · {
+          <div className="text-sm font-semibold text-white">{translate('nodes:audio.titleWithProvider', { provider:
             isWhisper ? 'Whisper'
               : isSeedAudio ? 'Seed Audio'
                 : isQwen3Tts ? 'Qwen3-TTS'
                   : isMinimaxAudio ? 'MiniMax'
                     : isMureka ? 'Mureka'
                       : isLyria ? 'Lyria' : 'Suno'
-          }</div>
+          })}</div>
           <div className="text-[10px] text-white/40 truncate">
             {isWhisper
-              ? 'whisper-1 · 贞贞的平价AI小屋'
+              ? `whisper-1 · ${translate('nodes:generation.budgetHouse')}`
               : isSeedAudio
-                ? 'doubao-seed-audio-1.0 · 贞贞的平价AI小屋'
+                ? `doubao-seed-audio-1.0 · ${translate('nodes:generation.budgetHouse')}`
                 : isSeedanceNzAudio
-                  ? `${isQwen3Tts ? qwenTtsModel : isMinimaxAudio ? minimaxAudioModel : murekaModel} · 贞贞的平价AI小屋`
+                  ? `${isQwen3Tts ? qwenTtsModel : isMinimaxAudio ? minimaxAudioModel : murekaModel} · ${translate('nodes:generation.budgetHouse')}`
                 : isLyria
-                  ? `${flowMusicOperation} · flowmusic · 贞贞的平价AI小屋`
+                  ? `${flowMusicOperation} · flowmusic · ${translate('nodes:generation.budgetHouse')}`
                 : isSunoNz
-                  ? `${sunoNzOperation} · 贞贞的平价AI小屋`
+                  ? `${sunoNzOperation} · ${translate('nodes:generation.budgetHouse')}`
                   : `${version} · ${MODES.find((m) => m.id === mode)?.label}`}
           </div>
         </div>
@@ -1549,7 +1578,7 @@ const AudioNode = ({ id, data, selected }: NodeProps) => {
 
         {isSuno && (
           <div className="rounded border border-violet-300/20 bg-violet-400/[0.05] p-2">
-            <label className="text-[10px] text-white/50 block mb-1">Suno API 平台</label>
+            <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:audio.sunoPlatform')}</label>
             <select
               value={sunoPlatform}
               onChange={(e) => update({
@@ -1560,8 +1589,8 @@ const AudioNode = ({ id, data, selected }: NodeProps) => {
               })}
               className="w-full rounded bg-white/5 border border-white/10 px-2 py-1 text-xs text-white outline-none focus:border-violet-300/40"
             >
-              <option value="zhenzhen" className="bg-zinc-900">贞贞的AI工坊（原有）</option>
-              <option value="seedance-nz" className="bg-zinc-900">贞贞的平价AI小屋</option>
+              <option value="zhenzhen" className="bg-zinc-900">{translate('nodes:audio.workshopLegacy')}</option>
+              <option value="seedance-nz" className="bg-zinc-900">{translate('nodes:generation.budgetHouse')}</option>
             </select>
           </div>
         )}
@@ -1569,7 +1598,7 @@ const AudioNode = ({ id, data, selected }: NodeProps) => {
         {isSuno && !isSunoNz && (
         <div className="grid grid-cols-2 gap-2">
           <div>
-            <label className="text-[10px] text-white/50 block mb-1">模式</label>
+            <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:audio.mode')}</label>
             <select
               value={mode}
               onChange={(e) => update({ mode: e.target.value })}
@@ -1583,7 +1612,7 @@ const AudioNode = ({ id, data, selected }: NodeProps) => {
             </select>
           </div>
           <div>
-            <label className="text-[10px] text-white/50 block mb-1">版本</label>
+            <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:audio.version')}</label>
             <select
               value={version}
               onChange={(e) => update({ version: e.target.value })}
@@ -1602,7 +1631,7 @@ const AudioNode = ({ id, data, selected }: NodeProps) => {
         {isSunoNz && (
           <div className="rounded border border-cyan-300/20 bg-cyan-400/[0.05] p-2 space-y-2">
             <div>
-              <label className="text-[10px] text-white/50 block mb-1">Suno 操作（31 项）</label>
+              <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:audio.sunoActions')}</label>
               <select
                 value={sunoNzOperation}
                 onChange={(e) => {
@@ -1625,7 +1654,7 @@ const AudioNode = ({ id, data, selected }: NodeProps) => {
             </div>
             {sunoNzAction.allowedVersions.length > 0 && (
               <div>
-                <label className="text-[10px] text-white/50 block mb-1">版本</label>
+                <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:audio.version')}</label>
                 <select
                   value={sunoNzVersion}
                   onChange={(e) => update({ sunoNzVersion: e.target.value })}
@@ -1647,7 +1676,7 @@ const AudioNode = ({ id, data, selected }: NodeProps) => {
         {isLyria && (
           <div className="rounded border border-fuchsia-300/20 bg-fuchsia-400/[0.05] p-2 space-y-2">
             <div>
-              <label className="text-[10px] text-white/50 block mb-1">Lyria / Flow Music 操作（9 项）</label>
+              <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:audio.flowMusicActions')}</label>
               <select
                 value={flowMusicOperation}
                 onChange={(e) => update({ flowMusicOperation: e.target.value, status: 'idle', error: null, taskId: undefined })}
@@ -1660,21 +1689,21 @@ const AudioNode = ({ id, data, selected }: NodeProps) => {
             </div>
             {flowMusicAction.supportsLyria35 && (
               <div>
-                <label className="text-[10px] text-white/50 block mb-1">生成版本</label>
+                <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:audio.generationVersion')}</label>
                 <select value={flowMusicVersion} onChange={(e) => update({ flowMusicVersion: e.target.value })} className="w-full rounded bg-white/5 border border-white/10 px-2 py-1 text-xs text-white outline-none">
-                  {FLOWMUSIC_VERSIONS.map((item) => <option key={item} value={item} className="bg-zinc-900">{item === 'default' ? '默认版本' : item}</option>)}
+                  {FLOWMUSIC_VERSIONS.map((item) => <option key={item} value={item} className="bg-zinc-900">{item === 'default' ? translate('nodes:audio.defaultVersion') : item}</option>)}
                 </select>
               </div>
             )}
             {flowMusicOperation === 'flowmusic-generation' && (
               <>
                 <div>
-                  <label className="text-[10px] text-white/50 block mb-1">歌词（曲风提示词与歌词至少一个非空）</label>
-                  <textarea value={flowMusicLyrics} onChange={(e) => update({ flowMusicLyrics: e.target.value })} placeholder="支持完整歌词与段落标签" className="h-24 w-full resize-y rounded bg-white/5 border border-white/10 px-2 py-1 text-[11px] text-white outline-none" />
+                  <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:audio.lyricsRequirement')}</label>
+                  <textarea value={flowMusicLyrics} onChange={(e) => update({ flowMusicLyrics: e.target.value })} placeholder={translate('nodes:audio.fullLyricsPlaceholder')} className="h-24 w-full resize-y rounded bg-white/5 border border-white/10 px-2 py-1 text-[11px] text-white outline-none" />
                 </div>
                 <div className="grid grid-cols-2 gap-1.5">
                   <label className="text-[10px] text-white/50">BPM<input type="number" min={1} value={flowMusicBpm} onChange={(e) => update({ flowMusicBpm: Number(e.target.value) || 120 })} className="mt-1 w-full rounded bg-white/5 border border-white/10 px-2 py-1 text-xs text-white" /></label>
-                  <label className="text-[10px] text-white/50">时长(秒)<input type="number" min={1} max={240} value={flowMusicLength} onChange={(e) => update({ flowMusicLength: Number(e.target.value) || 60 })} className="mt-1 w-full rounded bg-white/5 border border-white/10 px-2 py-1 text-xs text-white" /></label>
+                  <label className="text-[10px] text-white/50">{translate('nodes:generation.durationSeconds')}<input type="number" min={1} max={240} value={flowMusicLength} onChange={(e) => update({ flowMusicLength: Number(e.target.value) || 60 })} className="mt-1 w-full rounded bg-white/5 border border-white/10 px-2 py-1 text-xs text-white" /></label>
                 </div>
               </>
             )}
@@ -1718,18 +1747,18 @@ const AudioNode = ({ id, data, selected }: NodeProps) => {
         {isQwen3Tts && (
           <div className="rounded border border-cyan-300/20 bg-cyan-400/[0.05] p-2 space-y-2">
             <div>
-              <label className="text-[10px] text-white/50 block mb-1">Qwen3-TTS 模型</label>
+              <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:audio.qwenModel')}</label>
               <select value={qwenTtsModel} onChange={(e) => update({ qwenTtsModel: e.target.value })} className="w-full rounded bg-white/5 border border-white/10 px-2 py-1 text-xs text-white outline-none">
                 {QWEN3_TTS_MODELS.map((item) => <option key={item} value={item} className="bg-zinc-900">{item}</option>)}
               </select>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="text-[10px] text-white/50 block mb-1">音色 ID</label>
+                <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:audio.voiceId')}</label>
                 <input value={qwenTtsVoice} onChange={(e) => update({ qwenTtsVoice: e.target.value })} placeholder="Cherry" className="w-full rounded bg-white/5 border border-white/10 px-2 py-1 text-xs text-white outline-none" />
               </div>
               <div>
-                <label className="text-[10px] text-white/50 block mb-1">语言</label>
+                <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:audio.language')}</label>
                 <select value={qwenTtsLanguage} onChange={(e) => update({ qwenTtsLanguage: e.target.value })} className="w-full rounded bg-white/5 border border-white/10 px-2 py-1 text-xs text-white outline-none">
                   {QWEN3_TTS_LANGUAGE_TYPES.map((item) => <option key={item} value={item} className="bg-zinc-900">{item}</option>)}
                 </select>
@@ -1737,11 +1766,11 @@ const AudioNode = ({ id, data, selected }: NodeProps) => {
             </div>
             {qwenTtsModel === QWEN3_TTS_INSTRUCT_FLASH_MODEL && (
               <div className="space-y-1">
-                <label className="text-[10px] text-white/50 block">表达指令（中文或英文，可选）</label>
-                <textarea value={qwenTtsInstructions} onChange={(e) => update({ qwenTtsInstructions: e.target.value })} placeholder="例如：温柔、自然、语速稍慢" className="h-14 w-full resize-none rounded bg-white/5 border border-white/10 px-2 py-1 text-[11px] text-white outline-none" />
+                <label className="text-[10px] text-white/50 block">{translate('nodes:audio.expressionInstruction')}</label>
+                <textarea value={qwenTtsInstructions} onChange={(e) => update({ qwenTtsInstructions: e.target.value })} placeholder={translate('nodes:audio.expressionPlaceholder')} className="h-14 w-full resize-none rounded bg-white/5 border border-white/10 px-2 py-1 text-[11px] text-white outline-none" />
                 <label className="flex items-center gap-2 text-[10px] text-white/60">
                   <input type="checkbox" checked={qwenTtsOptimizeInstructions} onChange={(e) => update({ qwenTtsOptimizeInstructions: e.target.checked })} className="accent-cyan-400" />
-                  由上游优化非空表达指令
+                  {translate('nodes:audio.optimizeInstruction')}
                 </label>
               </div>
             )}
@@ -1751,7 +1780,7 @@ const AudioNode = ({ id, data, selected }: NodeProps) => {
         {isMinimaxAudio && (
           <div className="rounded border border-cyan-300/20 bg-cyan-400/[0.05] p-2 space-y-2">
             <div>
-              <label className="text-[10px] text-white/50 block mb-1">MiniMax 模型</label>
+              <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:audio.minimaxModel')}</label>
               <select value={minimaxAudioModel} onChange={(e) => update({ minimaxAudioModel: e.target.value })} className="w-full rounded bg-white/5 border border-white/10 px-2 py-1 text-xs text-white outline-none">
                 {MINIMAX_AUDIO_MODELS.map((item) => <option key={item} value={item} className="bg-zinc-900">{item}</option>)}
               </select>
@@ -1759,13 +1788,13 @@ const AudioNode = ({ id, data, selected }: NodeProps) => {
             {isMinimaxMusic && (
               <>
                 <div className="grid grid-cols-2 gap-2 text-[10px] text-white/65">
-                  <label className="flex items-center gap-2"><input type="checkbox" checked={minimaxInstrumental} onChange={(e) => update({ minimaxInstrumental: e.target.checked })} className="accent-cyan-400" />纯音乐</label>
-                  <label className="flex items-center gap-2"><input type="checkbox" checked={minimaxLyricsOptimizer} onChange={(e) => update({ minimaxLyricsOptimizer: e.target.checked })} className="accent-cyan-400" />自动生成/优化歌词</label>
+                  <label className="flex items-center gap-2"><input type="checkbox" checked={minimaxInstrumental} onChange={(e) => update({ minimaxInstrumental: e.target.checked })} className="accent-cyan-400" />{translate('nodes:audio.instrumental')}</label>
+                  <label className="flex items-center gap-2"><input type="checkbox" checked={minimaxLyricsOptimizer} onChange={(e) => update({ minimaxLyricsOptimizer: e.target.checked })} className="accent-cyan-400" />{translate('nodes:audio.optimizeLyrics')}</label>
                 </div>
                 {!minimaxInstrumental && (
                   <div>
-                    <label className="text-[10px] text-white/50 block mb-1">歌词</label>
-                    <textarea value={minimaxLyrics} onChange={(e) => update({ minimaxLyrics: e.target.value })} placeholder="可包含 [Verse] / [Chorus] 等结构标签" className="h-20 w-full resize-none rounded bg-white/5 border border-white/10 px-2 py-1 text-[11px] text-white outline-none" />
+                    <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:audio.lyrics')}</label>
+                    <textarea value={minimaxLyrics} onChange={(e) => update({ minimaxLyrics: e.target.value })} placeholder={translate('nodes:audio.fullLyricsPlaceholder')} className="h-20 w-full resize-none rounded bg-white/5 border border-white/10 px-2 py-1 text-[11px] text-white outline-none" />
                   </div>
                 )}
               </>
@@ -1773,16 +1802,16 @@ const AudioNode = ({ id, data, selected }: NodeProps) => {
             {!isMinimaxMusic && !isMinimaxClone && (
               <>
                 <div>
-                  <label className="text-[10px] text-white/50 block mb-1">音色 ID</label>
+                  <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:audio.voiceId')}</label>
                   <input value={minimaxVoiceId} onChange={(e) => update({ minimaxVoiceId: e.target.value })} placeholder="Wise_Woman" className="w-full rounded bg-white/5 border border-white/10 px-2 py-1 text-xs text-white outline-none" />
                 </div>
                 <div className="grid grid-cols-3 gap-1.5">
-                  <label className="text-[10px] text-white/50">语速<input type="number" min={0.5} max={2} step={0.05} value={minimaxSpeed} onChange={(e) => update({ minimaxSpeed: Number(e.target.value) || 1 })} className="mt-1 w-full rounded bg-white/5 border border-white/10 px-2 py-1 text-xs text-white" /></label>
-                  <label className="text-[10px] text-white/50">音量<input type="number" min={0.1} max={10} step={0.1} value={minimaxVolume} onChange={(e) => update({ minimaxVolume: Number(e.target.value) || 1 })} className="mt-1 w-full rounded bg-white/5 border border-white/10 px-2 py-1 text-xs text-white" /></label>
-                  <label className="text-[10px] text-white/50">音高<input type="number" min={-12} max={12} step={1} value={minimaxPitch} onChange={(e) => update({ minimaxPitch: Number(e.target.value) || 0 })} className="mt-1 w-full rounded bg-white/5 border border-white/10 px-2 py-1 text-xs text-white" /></label>
+                  <label className="text-[10px] text-white/50">{translate('nodes:audio.speechRate')}<input type="number" min={0.5} max={2} step={0.05} value={minimaxSpeed} onChange={(e) => update({ minimaxSpeed: Number(e.target.value) || 1 })} className="mt-1 w-full rounded bg-white/5 border border-white/10 px-2 py-1 text-xs text-white" /></label>
+                  <label className="text-[10px] text-white/50">{translate('nodes:audio.volume')}<input type="number" min={0.1} max={10} step={0.1} value={minimaxVolume} onChange={(e) => update({ minimaxVolume: Number(e.target.value) || 1 })} className="mt-1 w-full rounded bg-white/5 border border-white/10 px-2 py-1 text-xs text-white" /></label>
+                  <label className="text-[10px] text-white/50">{translate('nodes:audio.pitch')}<input type="number" min={-12} max={12} step={1} value={minimaxPitch} onChange={(e) => update({ minimaxPitch: Number(e.target.value) || 0 })} className="mt-1 w-full rounded bg-white/5 border border-white/10 px-2 py-1 text-xs text-white" /></label>
                 </div>
                 <div>
-                  <label className="text-[10px] text-white/50 block mb-1">语言增强</label>
+                  <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:audio.languageBoost')}</label>
                   <select value={minimaxLanguageBoost} onChange={(e) => update({ minimaxLanguageBoost: e.target.value })} className="w-full rounded bg-white/5 border border-white/10 px-2 py-1 text-xs text-white">
                     {MINIMAX_LANGUAGE_BOOSTS.map((item) => <option key={item} value={item} className="bg-zinc-900">{item}</option>)}
                   </select>
@@ -1823,13 +1852,13 @@ const AudioNode = ({ id, data, selected }: NodeProps) => {
           <div className="rounded border border-cyan-300/20 bg-cyan-400/[0.05] p-2 space-y-2">
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="text-[10px] text-white/50 block mb-1">Mureka 模型</label>
+                <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:audio.murekaModel')}</label>
                 <select value={murekaModel} onChange={(e) => update({ murekaModel: e.target.value })} className="w-full rounded bg-white/5 border border-white/10 px-2 py-1 text-[10px] text-white">
                   {MUREKA_BGM_MODELS.map((item) => <option key={item} value={item} className="bg-zinc-900">{item}</option>)}
                 </select>
               </div>
               <div>
-                <label className="text-[10px] text-white/50 block mb-1">生成数量</label>
+                <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:audio.generationCount')}</label>
                 <select value={murekaCount} onChange={(e) => update({ murekaCount: Number(e.target.value) })} className="w-full rounded bg-white/5 border border-white/10 px-2 py-1 text-xs text-white">
                   {[1, 2, 3].map((item) => <option key={item} value={item} className="bg-zinc-900">{item}</option>)}
                 </select>
@@ -1859,7 +1888,7 @@ const AudioNode = ({ id, data, selected }: NodeProps) => {
         {isSuno && !isSunoNz && (
         <>
         <div>
-          <label className="text-[10px] text-white/50 block mb-1">标题</label>
+          <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:audio.songTitle')}</label>
           <input
             type="text"
             value={title}
@@ -1869,7 +1898,7 @@ const AudioNode = ({ id, data, selected }: NodeProps) => {
           />
         </div>
         <div>
-          <label className="text-[10px] text-white/50 block mb-1">风格 Tags</label>
+          <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:audio.styleTags')}</label>
           <input
             type="text"
             value={tags}
@@ -1883,36 +1912,36 @@ const AudioNode = ({ id, data, selected }: NodeProps) => {
         {isSunoNz && sunoNzOperation === 'suno-generation' && (
           <div className="rounded border border-white/10 bg-black/10 p-2 space-y-2">
             <div>
-              <label className="text-[10px] text-white/50 block mb-1">标题（可选）</label>
+              <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:audio.titleOptional')}</label>
               <input value={title} onChange={(e) => update({ title: e.target.value })} placeholder="My Song" className="w-full rounded bg-white/5 border border-white/10 px-2 py-1 text-xs text-white outline-none" />
             </div>
             <div>
-              <label className="text-[10px] text-white/50 block mb-1">风格（可选）</label>
+              <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:audio.styleOptional')}</label>
               <input value={sunoStyle} onChange={(e) => update({ sunoStyle: e.target.value })} placeholder="pop, cinematic, female vocal" className="w-full rounded bg-white/5 border border-white/10 px-2 py-1 text-xs text-white outline-none" />
             </div>
             <div className="grid grid-cols-2 gap-1.5">
               <label className="flex items-center gap-1.5 rounded border border-white/10 px-2 py-1 text-[10px] text-white/65">
                 <input type="checkbox" checked={sunoCustom} onChange={(e) => update({ sunoCustom: e.target.checked })} />
-                自定义模式
+                {translate('nodes:audio.customMode')}
               </label>
               <label className="flex items-center gap-1.5 rounded border border-white/10 px-2 py-1 text-[10px] text-white/65">
                 <input type="checkbox" checked={sunoInstrumental} onChange={(e) => update({ sunoInstrumental: e.target.checked })} />
-                纯音乐
+                {translate('nodes:audio.instrumental')}
               </label>
             </div>
             <div>
-              <label className="text-[10px] text-white/50 block mb-1">人声性别（可选）</label>
+              <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:audio.vocalGenderOptional')}</label>
               <select value={sunoVocalGender} onChange={(e) => update({ sunoVocalGender: e.target.value })} className="w-full rounded bg-white/5 border border-white/10 px-2 py-1 text-xs text-white outline-none">
-                <option value="" className="bg-zinc-900">自动</option>
-                <option value="m" className="bg-zinc-900">男声</option>
-                <option value="f" className="bg-zinc-900">女声</option>
+                <option value="" className="bg-zinc-900">{translate('nodes:generation.automatic')}</option>
+                <option value="m" className="bg-zinc-900">{translate('nodes:audio.male')}</option>
+                <option value="f" className="bg-zinc-900">{translate('nodes:audio.female')}</option>
               </select>
             </div>
           </div>
         )}
         {isSunoNz && sunoNzOperation === 'suno-upsample-tags' && (
           <div>
-            <label className="text-[10px] text-white/50 block mb-1">风格 Tags</label>
+            <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:audio.styleTags')}</label>
             <input value={tags} onChange={(e) => update({ tags: e.target.value })} placeholder="pop, cinematic, energetic" className="w-full rounded bg-white/5 border border-white/10 px-2 py-1 text-xs text-white outline-none" />
           </div>
         )}
@@ -1934,7 +1963,7 @@ const AudioNode = ({ id, data, selected }: NodeProps) => {
                         : sunoNzOperation === 'suno-lyrics' ? '歌词主题 / 要求' : '歌词 / 提示词'
           }</label>
           <MentionPromptInput
-            title="音频歌词 / 提示词"
+            title={translate('nodes:audio.promptTitle')}
             value={localPrompt}
             mentions={promptMentions}
             materials={mentionMaterials}
@@ -2036,13 +2065,13 @@ const AudioNode = ({ id, data, selected }: NodeProps) => {
             </div>
             <div className="grid grid-cols-2 gap-1.5">
               <div>
-                <label className="text-[10px] text-white/50 block mb-1">格式</label>
+              <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:audio.format')}</label>
                 <select value={seedAudioFormat} onChange={(e) => update({ seedAudioFormat: e.target.value })} className="w-full rounded bg-white/5 border border-white/10 px-2 py-1 text-xs text-white outline-none">
                   {['wav', 'mp3', 'pcm', 'ogg_opus'].map((item) => <option key={item} value={item} className="bg-zinc-900">{item}</option>)}
                 </select>
               </div>
               <div>
-                <label className="text-[10px] text-white/50 block mb-1">采样率</label>
+              <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:audio.sampleRate')}</label>
                 <select value={seedAudioSampleRate} onChange={(e) => update({ seedAudioSampleRate: e.target.value })} className="w-full rounded bg-white/5 border border-white/10 px-2 py-1 text-xs text-white outline-none">
                   {['8000', '16000', '24000', '32000', '44100'].map((item) => <option key={item} value={item} className="bg-zinc-900">{item} Hz</option>)}
                 </select>
@@ -2069,7 +2098,7 @@ const AudioNode = ({ id, data, selected }: NodeProps) => {
         {isSuno && !isSunoNz && (
         <div className="grid grid-cols-2 gap-2">
           <div>
-            <label className="text-[10px] text-white/50 block mb-1">Seed (0=随机)</label>
+            <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.seedRandom')}</label>
             <input
               type="number"
               value={seed}
@@ -2257,32 +2286,32 @@ const AudioNode = ({ id, data, selected }: NodeProps) => {
             className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded bg-violet-500/20 hover:bg-violet-500/30 text-violet-200 text-xs font-medium transition-colors"
           >
             <Sparkles size={12} /> {isWhisper
-              ? '开始转写'
-              : isLyria ? `执行 ${flowMusicAction.label}`
-              : isSunoNz ? `执行 ${sunoNzAction.label}`
-                : isMinimaxClone ? '创建克隆音色'
-                  : '生成音频'}
+              ? translate('nodes:audio.startTranscription')
+              : isLyria ? translate('nodes:audio.execute', { action: flowMusicAction.label })
+              : isSunoNz ? translate('nodes:audio.execute', { action: sunoNzAction.label })
+                : isMinimaxClone ? translate('nodes:audio.createCloneVoice')
+                  : translate('nodes:audio.generateAudio')}
           </button>
         ) : (
           <button
             onClick={handleStop}
             className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded bg-zinc-500/20 hover:bg-zinc-500/30 text-zinc-200 text-xs font-medium transition-colors"
           >
-            <Square size={11} /> 停止
+            <Square size={11} /> {translate('nodes:generation.stop')}
           </button>
         )}
 
         {isBusy && (
           <div className="flex items-center gap-1 text-[10px] text-violet-200/80">
             <Loader2 size={11} className="animate-spin" />
-            {isWhisper ? '正在转写...' : status === 'submitting' ? '提交任务...' : pollProgress.includes('正在下载') ? pollProgress : `轮询中 ${pollProgress}`}
+            {isWhisper ? translate('nodes:audio.transcribing') : status === 'submitting' ? translate('nodes:audio.submitting') : pollProgress.includes('正在下载') ? pollProgress : translate('nodes:audio.polling', { progress: pollProgress })}
             {taskId && <span className="ml-auto text-white/30">{taskId.slice(0, 10)}…</span>}
           </div>
         )}
 
         {isWhisper && transcript && (
           <div className="rounded border border-cyan-300/20 bg-cyan-400/[0.05] px-2 py-1.5">
-            <div className="mb-1 text-[10px] font-semibold text-cyan-100/80">转写结果</div>
+            <div className="mb-1 text-[10px] font-semibold text-cyan-100/80">{translate('nodes:audio.transcriptResult')}</div>
             <div className="max-h-28 overflow-y-auto whitespace-pre-wrap break-words text-[11px] leading-relaxed text-white/75">{transcript}</div>
           </div>
         )}
@@ -2322,10 +2351,10 @@ const AudioNode = ({ id, data, selected }: NodeProps) => {
 
         {((isSunoNz && sunoFileUrls.length > 0) || (isLyria && Array.isArray(d?.fileUrls) && d.fileUrls.length > 0)) && (
           <div className="rounded border border-white/10 bg-white/[0.03] p-2 space-y-1">
-            <div className="text-[10px] font-semibold text-white/60">结果文件</div>
+            <div className="text-[10px] font-semibold text-white/60">{translate('nodes:audio.resultFiles')}</div>
             {(isLyria ? d.fileUrls : sunoFileUrls).map((url: string, index: number) => (
               <a key={`${url}:${index}`} href={url} download className="block truncate text-[10px] text-cyan-200 hover:underline">
-                下载文件 {index + 1} · {url.split('/').pop()}
+                {translate('nodes:audio.downloadFile', { index: index + 1 })} · {url.split('/').pop()}
               </a>
             ))}
           </div>
@@ -2357,12 +2386,12 @@ const AudioNode = ({ id, data, selected }: NodeProps) => {
                 data-drag-url={t.audioUrl}
                 data-drag-preview={t.audioUrl}
                 data-drag-node-id={id}
-                data-resource-title={t.title || t.audioUrl.split('/').pop() || '生成音频'}
+                data-resource-title={t.title || t.audioUrl.split('/').pop() || translate('nodes:audio.generateAudio')}
                 data-prompt-template-kind="video"
                 data-prompt-template-category="video-music-audio"
                 data-prompt-template-prompt={d?.lastPrompt || localPrompt}
                 onMouseDown={(e) => beginMaterialDrag(e, { kind: 'audio', url: t.audioUrl, sourceNodeId: id, previewUrl: t.audioUrl })}
-                title="按住 Ctrl 拖拽到其他节点"
+                title={translate('nodes:generation.ctrlDrag')}
               />
             </div>
           ))}

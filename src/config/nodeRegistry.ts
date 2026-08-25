@@ -1,5 +1,6 @@
 import schemaManifest from '../../backend/src/shared/canvasNodeSchema.json' with { type: 'json' };
 import type { NodeMeta } from '../types/canvas';
+import { nodeDescriptionKey, nodeLabelKey } from '../i18n/nodeCatalog';
 
 interface CanvasNodeSchemaManifest {
   schema: 't8-canvas-node-schema-v1';
@@ -28,15 +29,17 @@ interface CanvasNodeSchemaManifest {
 export const CANVAS_NODE_SCHEMA_MANIFEST = schemaManifest as unknown as CanvasNodeSchemaManifest;
 
 const DEV_NODE_REGISTRY: NodeMeta[] = import.meta.env?.DEV ? [
-  { type: 'rh-toolbox-maker', label: 'RH工具箱制作器', category: 'rh', description: '维护者专用：在画布内制作 RH工具箱 manifest 模板，开发环境可见，用户包不打入', icon: 'FileJson', color: 'emerald' },
-  { type: 'fal-toolbox-maker', label: 'FAL应用制作工具', category: 'fal', description: '维护者专用：从 fal.ai API 文档生成 Fal超市 manifest 草稿，开发环境可见，用户包不打入', icon: 'FileJson', color: 'violet' },
+  { type: 'rh-toolbox-maker', label: 'RH工具箱制作器', labelKey: nodeLabelKey('rh-toolbox-maker'), category: 'rh', description: '维护者专用：在画布内制作 RH工具箱 manifest 模板，开发环境可见，用户包不打入', descriptionKey: nodeDescriptionKey('rh-toolbox-maker'), icon: 'FileJson', color: 'emerald' },
+  { type: 'fal-toolbox-maker', label: 'FAL应用制作工具', labelKey: nodeLabelKey('fal-toolbox-maker'), category: 'fal', description: '维护者专用：从 fal.ai API 文档生成 Fal超市 manifest 草稿，开发环境可见，用户包不打入', descriptionKey: nodeDescriptionKey('fal-toolbox-maker'), icon: 'FileJson', color: 'violet' },
 ] : [];
 
 const manifestRegistry: NodeMeta[] = CANVAS_NODE_SCHEMA_MANIFEST.types.map((item) => ({
   type: item.type,
   label: item.label,
+  labelKey: nodeLabelKey(item.type),
   category: item.category,
   description: item.description,
+  descriptionKey: nodeDescriptionKey(item.type),
   icon: item.icon,
   color: item.color,
   ...(item.hidden === true ? { hidden: true } : {}),

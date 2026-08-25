@@ -680,7 +680,12 @@ interface ExecutorRegistration {
   executor: SecondaryProviderActionExecutor;
 }
 
-const executorRegistry = new Map<string, ExecutorRegistration>();
+// React may briefly keep the previous instance alive while a replacement for
+// the same logical node is mounted (StrictMode, Suspense, or HMR). Treat that
+// overlap as a scoped registration stack: the newest live instance owns
+// execution, and removing it restores the previous live instance. Keys still
+// include node id + action id + target, so executors can never cross nodes.
+const executorRegistry = new Map<string, ExecutorRegistration[]>();
 
 function executorKey(nodeId: string, actionId: SecondaryProviderActionId, target: SecondaryProviderActionTarget) {
   return `${nodeId}\u0000${actionId}\u0000${target}`;
@@ -693,11 +698,14 @@ export function registerSecondaryProviderActionExecutor(
   executor: SecondaryProviderActionExecutor,
 ) {
   const key = executorKey(nodeId, actionId, target);
-  if (executorRegistry.has(key)) throw new Error(`次级 Provider action executor 重复注册：${actionId}/${target}`);
   const entry = { token: Symbol(key), executor };
-  executorRegistry.set(key, entry);
+  executorRegistry.set(key, [...(executorRegistry.get(key) || []), entry]);
   return () => {
-    if (executorRegistry.get(key)?.token === entry.token) executorRegistry.delete(key);
+    const registrations = executorRegistry.get(key);
+    if (!registrations) return;
+    const next = registrations.filter((registration) => registration.token !== entry.token);
+    if (next.length > 0) executorRegistry.set(key, next);
+    else executorRegistry.delete(key);
   };
 }
 
@@ -707,7 +715,8 @@ export async function executeRegisteredSecondaryProviderAction(
 ) {
   const validated = validateSecondaryProviderAction(action);
   if (!validated) throw new Error('次级 Provider action 已损坏，已停止调用 Provider');
-  const entry = executorRegistry.get(executorKey(validated.nodeId, validated.actionId, validated.target));
+  const registrations = executorRegistry.get(executorKey(validated.nodeId, validated.actionId, validated.target));
+  const entry = registrations?.[registrations.length - 1];
   if (!entry) throw new Error(`次级 Provider action executor 不可用：${validated.actionId}/${validated.target}`);
   await entry.executor({ action: validated, reporter });
 }

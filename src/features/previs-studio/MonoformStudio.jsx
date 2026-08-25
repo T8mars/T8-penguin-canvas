@@ -1,4 +1,5 @@
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Box, BoxSelect, Camera, ChevronDown, CircleDot, Copy, Download,
   FileImage, FileVideo2, Focus, FolderOpen, Grid3X3, Import, Lock, MousePointer2, Move3D, Pause, Play, Plus,
@@ -20,13 +21,13 @@ const BRAND_MARK_URL = `${import.meta.env.BASE_URL}previs-studio/branding/monofo
 export const MONOFORM_SOURCE_URL = 'https://github.com/GuiYi-Xi/monoform-previs-studio'
 export const MONOFORM_SOURCE_COMMIT = '77f4bae83eeee550a6f416757231f438155bf674'
 const ASPECT_RATIOS = [
-  { value: '16:9', label: '16 : 9 · 横屏视频', ratio: 16 / 9 },
-  { value: '9:16', label: '9 : 16 · 竖屏短视频', ratio: 9 / 16 },
-  { value: '4:3', label: '4 : 3 · 经典画幅', ratio: 4 / 3 },
-  { value: '3:2', label: '3 : 2 · 摄影画幅', ratio: 3 / 2 },
-  { value: '1:1', label: '1 : 1 · 方形画幅', ratio: 1 },
-  { value: '1.85:1', label: '1.85 : 1 · 影院宽屏', ratio: 1.85 },
-  { value: '2.39:1', label: '2.39 : 1 · 电影宽银幕', ratio: 2.39 },
+  { value: '16:9', labelKey: 'landscape', ratio: 16 / 9 },
+  { value: '9:16', labelKey: 'vertical', ratio: 9 / 16 },
+  { value: '4:3', labelKey: 'classic', ratio: 4 / 3 },
+  { value: '3:2', labelKey: 'photo', ratio: 3 / 2 },
+  { value: '1:1', labelKey: 'square', ratio: 1 },
+  { value: '1.85:1', labelKey: 'cinema', ratio: 1.85 },
+  { value: '2.39:1', labelKey: 'anamorphic', ratio: 2.39 },
 ]
 const aspectValue = value => ASPECT_RATIOS.find(option => option.value === value)?.ratio || 16 / 9
 const nextPaint = () => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
@@ -73,6 +74,10 @@ const ease = t => t * t * (3 - 2 * t)
 const normalizeInterpolation = value => ['smooth', 'linear', 'hold'].includes(value) ? value : 'smooth'
 const segmentAmount = (key, amount) => key?.interpolation === 'hold' ? 0 : key?.interpolation === 'linear' ? amount : ease(amount)
 const normalizeKeyframes = keys => (keys || []).map(key => ({ ...key, interpolation: normalizeInterpolation(key.interpolation) }))
+const POSE_ENGLISH_LABELS = { idle: 'Standing', tpose: 'T-pose', sad_pose: 'Slouched', walk: 'Walk', run: 'Run', agree: 'Nod', headShake: 'Head shake' }
+const POSE_GROUP_ENGLISH_LABELS = { '基础': 'Basic', '移动': 'Movement', '表演': 'Performance' }
+const JOINT_GROUP_ENGLISH_LABELS = { '躯干与头部': 'Torso and head', '左臂': 'Left arm', '右臂': 'Right arm', '左腿': 'Left leg', '右腿': 'Right leg', '左手指': 'Left fingers', '右手指': 'Right fingers' }
+const englishBoneLabel = id => id.replace(/^mixamorig/, '').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/_/g, ' ')
 
 function normalizePerson(object) {
   if (object?.type !== 'person') return object
@@ -277,17 +282,18 @@ function AssetCard({ icon: Icon, title, subtitle, onClick, previewClass = '' }) 
 }
 
 function SceneList({ objects, selectedId, onSelect, onToggleVisible, onToggleLock }) {
+  const { t } = useTranslation('nodes')
   return (
     <div className="scene-list">
       <div className={`scene-row ${selectedId === CAMERA_ID ? 'is-selected' : ''}`} onClick={() => onSelect(CAMERA_ID)}>
-        <Camera size={14} /><span>主摄像机</span><i className="status-dot live" />
+        <Camera size={14} /><span>{t('previs.studio.mainCamera')}</span><i className="status-dot live" />
       </div>
       {objects.map(object => (
         <div key={object.id} className={`scene-row ${selectedId === object.id ? 'is-selected' : ''}`} onClick={() => onSelect(object.id)}>
           {object.type === 'person' ? <UserRound size={14} /> : object.type === 'model' ? <Sparkles size={14} /> : object.type === 'depthMesh' ? <ScanLine size={14} /> : <Box size={14} />}
           <span>{object.name}</span>
-          <button className="scene-row-action" title={object.locked ? '解除锁定' : '锁定物体'} onClick={event => { event.stopPropagation(); onToggleLock(object.id) }}>{object.locked ? <Lock size={11} /> : <Unlock size={11} />}</button>
-          <button className="scene-row-action visibility-action" title={object.visible === false ? '显示物体' : '隐藏物体'} onClick={event => { event.stopPropagation(); onToggleVisible(object.id) }}><i className={`status-dot ${object.visible === false ? '' : 'on'}`} /></button>
+          <button className="scene-row-action" title={object.locked ? t('previs.studio.unlock') : t('previs.studio.lockObject')} onClick={event => { event.stopPropagation(); onToggleLock(object.id) }}>{object.locked ? <Lock size={11} /> : <Unlock size={11} />}</button>
+          <button className="scene-row-action visibility-action" title={object.visible === false ? t('previs.studio.showObject') : t('previs.studio.hideObject')} onClick={event => { event.stopPropagation(); onToggleVisible(object.id) }}><i className={`status-dot ${object.visible === false ? '' : 'on'}`} /></button>
         </div>
       ))}
     </div>
@@ -295,38 +301,35 @@ function SceneList({ objects, selectedId, onSelect, onToggleVisible, onToggleLoc
 }
 
 function LeftSidebar({ objects, selectedId, onSelect, onAddPerson, onAddPrimitive, onImport, onToggleVisible, onToggleLock }) {
+  const { t } = useTranslation('nodes')
   const [tab, setTab] = useState('assets')
   const inputRef = useRef(null)
   return (
     <aside className="left-sidebar panel">
       <div className="panel-tabs">
-        <button className={tab === 'assets' ? 'is-active' : ''} onClick={() => setTab('assets')}>资源库</button>
-        <button className={tab === 'scene' ? 'is-active' : ''} onClick={() => setTab('scene')}>场景层级</button>
+        <button className={tab === 'assets' ? 'is-active' : ''} onClick={() => setTab('assets')}>{t('previs.studio.assets')}</button>
+        <button className={tab === 'scene' ? 'is-active' : ''} onClick={() => setTab('scene')}>{t('previs.studio.hierarchy')}</button>
       </div>
       {tab === 'assets' ? (
         <div className="assets-scroll">
-          <div className="section-kicker">人物体型</div>
-          <AssetCard icon={UserRound} title="标准人物" subtitle="中性比例 · 可换动作" onClick={() => onAddPerson('standard')} previewClass="person-preview" />
-          <AssetCard icon={UserRound} title="女性人体" subtitle="窄肩宽髋 · 真人比例" onClick={() => onAddPerson('female')} previewClass="person-preview female" />
-          <AssetCard icon={UserRound} title="男性人体" subtitle="宽肩躯干 · 真人比例" onClick={() => onAddPerson('male')} previewClass="person-preview male" />
-          <AssetCard icon={UserRound} title="修长人物" subtitle="高挑比例 · 适合走位" onClick={() => onAddPerson('tall')} previewClass="person-preview tall" />
-          <AssetCard icon={UserRound} title="宽体人物" subtitle="厚重比例 · 强轮廓" onClick={() => onAddPerson('broad')} previewClass="person-preview broad" />
-          <div className="section-kicker section-gap">基础物体</div>
+          <div className="section-kicker">{t('previs.studio.bodyTypes')}</div>
+          {['standard', 'female', 'male', 'tall', 'broad'].map(bodyType => <AssetCard key={bodyType} icon={UserRound} title={t(`previs.studio.bodyCards.${bodyType}.title`)} subtitle={t(`previs.studio.bodyCards.${bodyType}.subtitle`)} onClick={() => onAddPerson(bodyType)} previewClass={`person-preview${bodyType === 'standard' ? '' : ` ${bodyType}`}`} />)}
+          <div className="section-kicker section-gap">{t('previs.studio.primitives')}</div>
           <div className="primitive-grid">
-            <button onClick={() => onAddPrimitive('box')}><Box size={24} /><span>方块</span></button>
-            <button onClick={() => onAddPrimitive('sphere')}><CircleDot size={24} /><span>球体</span></button>
-            <button onClick={() => onAddPrimitive('cylinder')}><CircleDot size={24} /><span>圆柱</span></button>
-            <button onClick={() => onAddPrimitive('plane')}><Grid3X3 size={24} /><span>平面</span></button>
+            <button onClick={() => onAddPrimitive('box')}><Box size={24} /><span>{t('previs.studio.objectTypes.box')}</span></button>
+            <button onClick={() => onAddPrimitive('sphere')}><CircleDot size={24} /><span>{t('previs.studio.objectTypes.sphere')}</span></button>
+            <button onClick={() => onAddPrimitive('cylinder')}><CircleDot size={24} /><span>{t('previs.studio.objectTypes.cylinder')}</span></button>
+            <button onClick={() => onAddPrimitive('plane')}><Grid3X3 size={24} /><span>{t('previs.studio.objectTypes.plane')}</span></button>
           </div>
-          <div className="section-kicker section-gap">场景粗模</div>
+          <div className="section-kicker section-gap">{t('previs.studio.blockout')}</div>
           <div className="primitive-grid blockout-grid">
-            {[['arch', '拱门'], ['stairs', '楼梯'], ['door', '门'], ['window', '窗'], ['table', '桌子'], ['chair', '椅子'], ['sofa', '沙发'], ['roof', '屋顶'], ['tree', '树木'], ['vehicle', '车辆']].map(([type, label]) => (
-              <button key={type} onClick={() => onAddPrimitive(type)}><Box size={20} /><span>{label}</span></button>
+            {['arch', 'stairs', 'door', 'window', 'table', 'chair', 'sofa', 'roof', 'tree', 'vehicle'].map(type => (
+              <button key={type} onClick={() => onAddPrimitive(type)}><Box size={20} /><span>{t(`previs.studio.objectTypes.${type}`)}</span></button>
             ))}
           </div>
-          <div className="section-kicker section-gap">外部模型</div>
+          <div className="section-kicker section-gap">{t('previs.studio.externalModels')}</div>
           <button className="import-drop" onClick={() => inputRef.current?.click()}>
-            <Import size={18} /><strong>导入 GLB / GLTF</strong><span>导入本地三维模型</span>
+            <Import size={18} /><strong>{t('previs.studio.importGlb')}</strong><span>{t('previs.studio.importLocalModel')}</span>
           </button>
           <input ref={inputRef} className="visually-hidden" type="file" accept=".glb,.gltf" onChange={onImport} />
         </div>
@@ -338,8 +341,10 @@ function LeftSidebar({ objects, selectedId, onSelect, onAddPerson, onAddPrimitiv
 }
 
 function Inspector({ selected, camera, selectedJoint, customPoses, onSelectJoint, onUpdateObject, onUpdateCamera, onDelete, onDuplicate, onFocus, onToggleLock, onSaveCustomPose, onApplyCustomPose, onDeleteCustomPose }) {
+  const { t, i18n } = useTranslation('nodes')
+  const useEnglishLabels = i18n.resolvedLanguage?.startsWith('en')
   if (!selected) {
-    return <aside className="right-sidebar panel empty-inspector"><MousePointer2 size={24} /><span>选择场景中的物体</span></aside>
+    return <aside className="right-sidebar panel empty-inspector"><MousePointer2 size={24} /><span>{t('previs.studio.selectObject')}</span></aside>
   }
   const isCamera = selected.id === CAMERA_ID
   const position = isCamera ? camera.position : selected.position
@@ -358,47 +363,47 @@ function Inspector({ selected, camera, selectedJoint, customPoses, onSelectJoint
   return (
     <aside className="right-sidebar panel">
       <div className="inspector-head">
-        <div><small>{isCamera ? 'CAMERA' : typeLabel}</small>{isCamera ? <strong>主摄像机</strong> : <input className="inspector-name-input" value={selected.name} onChange={event => onUpdateObject({ name: event.target.value })} aria-label="物体名称" />}</div>
+        <div><small>{isCamera ? 'CAMERA' : typeLabel}</small>{isCamera ? <strong>{t('previs.studio.mainCamera')}</strong> : <input className="inspector-name-input" value={selected.name} onChange={event => onUpdateObject({ name: event.target.value })} aria-label={t('previs.studio.objectName')} />}</div>
         <div className="inspector-head-actions">
-          <ToolButton icon={Focus} label="聚焦" onClick={onFocus} />
-          {!isCamera && <ToolButton icon={selected.locked ? Unlock : Lock} label={selected.locked ? '解除锁定' : '锁定'} onClick={onToggleLock} />}
-          {!isCamera && <ToolButton icon={Copy} label="复制" onClick={onDuplicate} />}
-          {!isCamera && <ToolButton icon={Trash2} label="删除" onClick={onDelete} />}
+          <ToolButton icon={Focus} label={t('previs.studio.focus')} onClick={onFocus} />
+          {!isCamera && <ToolButton icon={selected.locked ? Unlock : Lock} label={selected.locked ? t('previs.studio.unlock') : t('previs.studio.lock')} onClick={onToggleLock} />}
+          {!isCamera && <ToolButton icon={Copy} label={t('previs.studio.copy')} onClick={onDuplicate} />}
+          {!isCamera && <ToolButton icon={Trash2} label={t('previs.studio.delete')} onClick={onDelete} />}
         </div>
       </div>
       <div className="inspector-scroll">
-        {!isCamera && selected.locked && <div className="locked-banner"><Lock size={12} /> 已锁定空间变换</div>}
+        {!isCamera && selected.locked && <div className="locked-banner"><Lock size={12} /> {t('previs.studio.lockedTransform')}</div>}
         <div className="inspector-section">
-          <div className="section-title"><span>变换</span><ChevronDown size={14} /></div>
-          <VectorFields title="位置" value={position} onChange={value => isCamera ? onUpdateCamera({ position: value }) : onUpdateObject({ position: value })} disabled={!isCamera && selected.locked} />
-          {!isCamera && <VectorFields title={selected.type === 'person' ? '整体旋转 · X 纵向 / Y 水平 / Z 翻滚' : '旋转'} value={selected.rotation} degrees onChange={rotation => onUpdateObject({ rotation })} disabled={selected.locked} />}
-          {!isCamera && <VectorFields title="缩放" value={selected.scale} onChange={scale => onUpdateObject({ scale })} disabled={selected.locked} />}
-          {isCamera && <VectorFields title="观察目标" value={camera.target} onChange={target => onUpdateCamera({ target })} />}
+          <div className="section-title"><span>{t('previs.studio.transform')}</span><ChevronDown size={14} /></div>
+          <VectorFields title={t('previs.studio.position')} value={position} onChange={value => isCamera ? onUpdateCamera({ position: value }) : onUpdateObject({ position: value })} disabled={!isCamera && selected.locked} />
+          {!isCamera && <VectorFields title={selected.type === 'person' ? t('previs.studio.personRotation') : t('previs.studio.rotation')} value={selected.rotation} degrees onChange={rotation => onUpdateObject({ rotation })} disabled={selected.locked} />}
+          {!isCamera && <VectorFields title={t('previs.studio.scale')} value={selected.scale} onChange={scale => onUpdateObject({ scale })} disabled={selected.locked} />}
+          {isCamera && <VectorFields title={t('previs.studio.target')} value={camera.target} onChange={target => onUpdateCamera({ target })} />}
         </div>
         {isCamera ? (
           <div className="inspector-section">
-            <div className="section-title"><span>镜头</span><ChevronDown size={14} /></div>
-            <label className="range-field"><span>焦距</span><input type="range" min="18" max="120" value={camera.focalLength} onChange={e => onUpdateCamera({ focalLength: Number(e.target.value) })} /><output>{Math.round(camera.focalLength)} mm</output></label>
-            <div className="camera-info"><span>传感器</span><strong>全画幅 36 mm</strong></div>
-            <label className="select-field aspect-field"><span>画面比例</span><select value={camera.aspectRatio || '16:9'} onChange={e => onUpdateCamera({ aspectRatio: e.target.value })}>{ASPECT_RATIOS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
+            <div className="section-title"><span>{t('previs.studio.camera')}</span><ChevronDown size={14} /></div>
+            <label className="range-field"><span>{t('previs.studio.focalLength')}</span><input type="range" min="18" max="120" value={camera.focalLength} onChange={e => onUpdateCamera({ focalLength: Number(e.target.value) })} /><output>{Math.round(camera.focalLength)} mm</output></label>
+            <div className="camera-info"><span>{t('previs.studio.sensor')}</span><strong>{t('previs.studio.fullFrame')}</strong></div>
+            <label className="select-field aspect-field"><span>{t('previs.studio.aspectRatio')}</span><select value={camera.aspectRatio || '16:9'} onChange={e => onUpdateCamera({ aspectRatio: e.target.value })}>{ASPECT_RATIOS.map(option => <option key={option.value} value={option.value}>{t(`previs.studio.aspectOptions.${option.labelKey}`)}</option>)}</select></label>
           </div>
         ) : selected.type === 'person' ? (
           <div className="inspector-section">
-            <div className="section-title"><span>人物</span><ChevronDown size={14} /></div>
-            <label className="select-field"><span>体型</span><select value={selected.bodyType} onChange={e => onUpdateObject({ bodyType: e.target.value })}><option value="standard">中性人体</option><option value="female">女性人体</option><option value="male">男性人体</option><option value="tall">修长人体</option><option value="broad">宽体人体</option></select></label>
-            <label className="select-field"><span>动作预设</span><select value={normalizePoseId(selected.pose)} onChange={e => applyPreset(e.target.value)}>{RIG_PRESET_OPTIONS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
-            <label className="range-field pose-time-field"><span>动作相位</span><input type="range" min="0" max="1" step="0.01" value={Number.isFinite(selected.poseTime) ? selected.poseTime : presetPhase(selected.pose)} onChange={e => onUpdateObject({ poseTime: Number(e.target.value) })} /><output>{Math.round((Number.isFinite(selected.poseTime) ? selected.poseTime : presetPhase(selected.pose)) * 100)}%</output></label>
-            <p className="pose-source-note">动作来源：Three.js 官方 X-Bot 骨骼动画。当前模型没有面部骨骼或表情，只提供身体、头颈和四肢动作。</p>
+            <div className="section-title"><span>{t('previs.studio.person')}</span><ChevronDown size={14} /></div>
+            <label className="select-field"><span>{t('previs.studio.bodyType')}</span><select value={selected.bodyType} onChange={e => onUpdateObject({ bodyType: e.target.value })}>{['standard', 'female', 'male', 'tall', 'broad'].map(bodyType => <option key={bodyType} value={bodyType}>{t(`previs.studio.bodyOptions.${bodyType}`)}</option>)}</select></label>
+            <label className="select-field"><span>{t('previs.studio.posePreset')}</span><select value={normalizePoseId(selected.pose)} onChange={e => applyPreset(e.target.value)}>{RIG_PRESET_OPTIONS.map(([value, label]) => <option key={value} value={value}>{useEnglishLabels ? POSE_ENGLISH_LABELS[value] || value : label}</option>)}</select></label>
+            <label className="range-field pose-time-field"><span>{t('previs.studio.posePhase')}</span><input type="range" min="0" max="1" step="0.01" value={Number.isFinite(selected.poseTime) ? selected.poseTime : presetPhase(selected.pose)} onChange={e => onUpdateObject({ poseTime: Number(e.target.value) })} /><output>{Math.round((Number.isFinite(selected.poseTime) ? selected.poseTime : presetPhase(selected.pose)) * 100)}%</output></label>
+            <p className="pose-source-note">{t('previs.studio.poseSource')}</p>
             <div className="pose-library">
-              <div className="pose-library-head"><span>动作库</span><small>{RIG_PRESET_OPTIONS.length} PRESETS</small></div>
+              <div className="pose-library-head"><span>{t('previs.studio.poseLibrary')}</span><small>{t('previs.studio.presetCount', { count: RIG_PRESET_OPTIONS.length })}</small></div>
               {RIG_PRESET_GROUPS.map(group => (
                 <div className="pose-group" key={group.label}>
-                  <div className="pose-group-label">{group.label}</div>
+                  <div className="pose-group-label">{useEnglishLabels ? POSE_GROUP_ENGLISH_LABELS[group.label] || group.label : group.label}</div>
                   <div className="pose-grid">
                     {group.poses.map(([value, label]) => (
-                      <button key={value} type="button" data-pose={value} className={selected.pose === value ? 'is-active' : ''} onClick={() => applyPreset(value)} title={`${group.label} · ${label}`}>
+                      <button key={value} type="button" data-pose={value} className={selected.pose === value ? 'is-active' : ''} onClick={() => applyPreset(value)} title={`${useEnglishLabels ? POSE_GROUP_ENGLISH_LABELS[group.label] || group.label : group.label} · ${useEnglishLabels ? POSE_ENGLISH_LABELS[value] || value : label}`}>
                         <span className="pose-figure"><i /><i /><i /></span>
-                        <strong>{label}</strong>
+                        <strong>{useEnglishLabels ? POSE_ENGLISH_LABELS[value] || value : label}</strong>
                       </button>
                     ))}
                   </div>
@@ -406,37 +411,37 @@ function Inspector({ selected, camera, selectedJoint, customPoses, onSelectJoint
               ))}
             </div>
             <div className="joint-editor">
-              <div className="joint-editor-head"><span>完整骨骼</span><small>{JOINT_DEFINITIONS.length} 根均可旋转</small></div>
-              <label className="select-field"><span>当前骨骼</span><select value={selectedJoint} onChange={event => onSelectJoint(event.target.value)}>{JOINT_GROUPS.map(group => <optgroup key={group.label} label={group.label}>{group.joints.map(joint => <option key={joint.id} value={joint.id}>{joint.label}</option>)}</optgroup>)}</select></label>
-              <VectorFields title="关节旋转" value={jointRotation} degrees onChange={updateJoint} />
-              <button type="button" className="joint-reset-button" onClick={() => updateJoint([0, 0, 0])}>重置当前关节</button>
-              <button type="button" className="joint-reset-button" onClick={() => onUpdateObject({ joints: presetJoints() })}>重置全部骨骼</button>
-              <p className="joint-editor-hint">按 Q 后拖动青绿色的手脚控制点可摆放四肢末端；拖动人物其他部位或金色骨骼点可旋转单根骨骼。按住 Shift 左右拖可调整单骨骼扭转，也可使用 X/Y/Z 数值精确调整。</p>
+              <div className="joint-editor-head"><span>{t('previs.studio.fullRig')}</span><small>{t('previs.studio.rotatableBones', { count: JOINT_DEFINITIONS.length })}</small></div>
+              <label className="select-field"><span>{t('previs.studio.currentJoint')}</span><select value={selectedJoint} onChange={event => onSelectJoint(event.target.value)}>{JOINT_GROUPS.map(group => <optgroup key={group.label} label={useEnglishLabels ? JOINT_GROUP_ENGLISH_LABELS[group.label] || group.label : group.label}>{group.joints.map(joint => <option key={joint.id} value={joint.id}>{useEnglishLabels ? englishBoneLabel(joint.id) : joint.label}</option>)}</optgroup>)}</select></label>
+              <VectorFields title={t('previs.studio.jointRotation')} value={jointRotation} degrees onChange={updateJoint} />
+              <button type="button" className="joint-reset-button" onClick={() => updateJoint([0, 0, 0])}>{t('previs.studio.resetJoint')}</button>
+              <button type="button" className="joint-reset-button" onClick={() => onUpdateObject({ joints: presetJoints() })}>{t('previs.studio.resetRig')}</button>
+              <p className="joint-editor-hint">{t('previs.studio.jointHint')}</p>
               <label className="foot-lock-control">
                 <input type="checkbox" checked={Boolean(selected.footLock)} onChange={event => onUpdateObject({ footLock: event.target.checked })} />
-                <span><strong>脚底锁定</strong><small>脚部 IK 保持当前脚底高度，只沿地面拖动</small></span>
+                <span><strong>{t('previs.studio.footLock')}</strong><small>{t('previs.studio.footLockHelp')}</small></span>
               </label>
             </div>
             <div className="custom-pose-library">
-              <div className="joint-editor-head"><span>我的姿势</span><small>{customPoses.length} SAVED</small></div>
-              <button type="button" className="save-custom-pose" onClick={() => onSaveCustomPose(selected)}><Save size={12} /> 保存当前姿势</button>
+              <div className="joint-editor-head"><span>{t('previs.studio.customPoses')}</span><small>{t('previs.studio.savedCount', { count: customPoses.length })}</small></div>
+              <button type="button" className="save-custom-pose" onClick={() => onSaveCustomPose(selected)}><Save size={12} /> {t('previs.studio.savePose')}</button>
               {customPoses.length ? (
                 <div className="custom-pose-list">
                   {customPoses.map(customPose => (
                     <div className="custom-pose-row" key={customPose.id}>
-                      <button type="button" onClick={() => onApplyCustomPose(customPose)} title={`应用“${customPose.name}”`}>{customPose.name}</button>
-                      <button type="button" className="custom-pose-delete" onClick={() => onDeleteCustomPose(customPose.id)} title={`删除“${customPose.name}”`} aria-label={`删除“${customPose.name}”`}><Trash2 size={11} /></button>
+                      <button type="button" onClick={() => onApplyCustomPose(customPose)} title={t('previs.studio.applyPose', { name: customPose.name })}>{customPose.name}</button>
+                      <button type="button" className="custom-pose-delete" onClick={() => onDeleteCustomPose(customPose.id)} title={t('previs.studio.deletePose', { name: customPose.name })} aria-label={t('previs.studio.deletePose', { name: customPose.name })}><Trash2 size={11} /></button>
                     </div>
                   ))}
                 </div>
-              ) : <p className="custom-pose-empty">还没有保存的姿势。调整骨骼后可存入本机姿势库。</p>}
+              ) : <p className="custom-pose-empty">{t('previs.studio.noCustomPoses')}</p>}
             </div>
-            <label className="color-field person-color-field"><span>人物颜色</span><input type="color" value={selected.color || '#e8e3d8'} onChange={e => onUpdateObject({ color: e.target.value })} /><output>{selected.color || '#e8e3d8'}</output></label>
+            <label className="color-field person-color-field"><span>{t('previs.studio.personColor')}</span><input type="color" value={selected.color || '#e8e3d8'} onChange={e => onUpdateObject({ color: e.target.value })} /><output>{selected.color || '#e8e3d8'}</output></label>
           </div>
         ) : (
           <div className="inspector-section">
-            <div className="section-title"><span>外观</span><ChevronDown size={14} /></div>
-            <label className="color-field"><span>白模材质</span><input type="color" value={selected.color || '#d8d3c8'} onChange={e => onUpdateObject({ color: e.target.value })} /><output>{selected.color || '#d8d3c8'}</output></label>
+            <div className="section-title"><span>{t('previs.studio.appearance')}</span><ChevronDown size={14} /></div>
+            <label className="color-field"><span>{t('previs.studio.material')}</span><input type="color" value={selected.color || '#d8d3c8'} onChange={e => onUpdateObject({ color: e.target.value })} /><output>{selected.color || '#d8d3c8'}</output></label>
           </div>
         )}
       </div>
@@ -445,6 +450,7 @@ function Inspector({ selected, camera, selectedJoint, customPoses, onSelectJoint
 }
 
 function Timeline({ currentFrame, onSeek, playing, onTogglePlay, keyframes, onAddKeyframe, onDeleteKeyframe, objectTrack, onAddObjectKeyframe, onDeleteObjectKeyframe, selectedKeyframe, onSelectKeyframe, onMoveKeyframe, onCopyKeyframe, onPasteKeyframe, onDeleteSelectedKeyframe, onChangeInterpolation, hasClipboard }) {
+  const { t } = useTranslation('nodes')
   const [dragging, setDragging] = useState(null)
   const scrub = useCallback((event, rect) => {
     onSeek(Math.round(clamp((event.clientX - rect.left) / rect.width, 0, 1) * TOTAL_FRAMES))
@@ -482,12 +488,13 @@ function Timeline({ currentFrame, onSeek, playing, onTogglePlay, keyframes, onAd
   const renderTrack = (frames, kind, onDelete, trackId = null) => (
     <div className={`track ${kind}-track`} onPointerDown={onPointerDown}>
       <div className="track-fill" style={{ width: `${currentFrame / TOTAL_FRAMES * 100}%` }} />
-      {!frames.length && <span className="empty-track-note">暂无关键帧</span>}
+      {!frames.length && <span className="empty-track-note">{t('previs.studio.timeline.noKeys')}</span>}
       {frames.map(key => {
         const isDragged = dragging?.kind === kind && dragging?.trackId === trackId && dragging?.fromFrame === key.frame
         const displayFrame = isDragged ? dragging.toFrame : key.frame
         const isSelected = selectedKeyframe?.kind === kind && selectedKeyframe?.trackId === trackId && selectedKeyframe?.frame === key.frame
-        return <button key={key.frame} className={`keyframe ${kind} ${key.frame === currentFrame ? 'is-current' : ''} ${isSelected ? 'is-selected' : ''}`} data-interpolation={normalizeInterpolation(key.interpolation)} style={{ left: `${displayFrame / TOTAL_FRAMES * 100}%` }} title={`第 ${key.frame} 帧 · ${normalizeInterpolation(key.interpolation) === 'smooth' ? '平滑' : normalizeInterpolation(key.interpolation) === 'linear' ? '线性' : '保持'} · 拖动可移动`} onPointerDown={event => beginKeyDrag(event, key, kind, trackId)} onDoubleClick={event => { event.stopPropagation(); onDelete(key.frame); onSelectKeyframe(null) }} />
+        const interpolation = normalizeInterpolation(key.interpolation)
+        return <button key={key.frame} className={`keyframe ${kind} ${key.frame === currentFrame ? 'is-current' : ''} ${isSelected ? 'is-selected' : ''}`} data-interpolation={interpolation} style={{ left: `${displayFrame / TOTAL_FRAMES * 100}%` }} title={t('previs.studio.timeline.keyTitle', { frame: key.frame, interpolation: t(`previs.studio.timeline.${interpolation}`) })} onPointerDown={event => beginKeyDrag(event, key, kind, trackId)} onDoubleClick={event => { event.stopPropagation(); onDelete(key.frame); onSelectKeyframe(null) }} />
       })}
       <div className="playhead" style={{ left: `${currentFrame / TOTAL_FRAMES * 100}%` }}><i /></div>
     </div>
@@ -495,34 +502,34 @@ function Timeline({ currentFrame, onSeek, playing, onTogglePlay, keyframes, onAd
   return (
     <section className="timeline panel">
       <div className="timeline-controls">
-        <ToolButton icon={SkipBack} label="回到开头" onClick={() => onSeek(0)} />
+        <ToolButton icon={SkipBack} label={t('previs.studio.timeline.start')} onClick={() => onSeek(0)} />
         <button className={`play-button ${playing ? 'is-playing' : ''}`} onClick={onTogglePlay}>{playing ? <Pause size={16} fill="currentColor" /> : <Play size={16} fill="currentColor" />}</button>
-        <ToolButton icon={SkipForward} label="跳到结尾" onClick={() => onSeek(TOTAL_FRAMES)} />
-        <div className="time-readout"><strong>{String(currentFrame).padStart(3, '0')}</strong><span>/ {TOTAL_FRAMES} 帧</span></div>
+        <ToolButton icon={SkipForward} label={t('previs.studio.timeline.end')} onClick={() => onSeek(TOTAL_FRAMES)} />
+        <div className="time-readout"><strong>{String(currentFrame).padStart(3, '0')}</strong><span>{t('previs.studio.timeline.frames', { count: TOTAL_FRAMES })}</span></div>
         <div className="timeline-key-editor">
           {selectedKeyframe ? (
             <>
-              <span>{selectedKeyframe.kind === 'camera' ? '镜头' : '物体'} · {selectedKeyframe.frame} 帧</span>
-              <select value={selectedKeyframe.interpolation} onChange={event => onChangeInterpolation(event.target.value)} title="插值方式">
-                <option value="smooth">平滑</option>
-                <option value="linear">线性</option>
-                <option value="hold">保持</option>
+              <span>{selectedKeyframe.kind === 'camera' ? t('previs.studio.timeline.cameraKey') : t('previs.studio.timeline.objectKey')} · {selectedKeyframe.frame}</span>
+              <select value={selectedKeyframe.interpolation} onChange={event => onChangeInterpolation(event.target.value)} title={t('previs.studio.timeline.interpolation')}>
+                <option value="smooth">{t('previs.studio.timeline.smooth')}</option>
+                <option value="linear">{t('previs.studio.timeline.linear')}</option>
+                <option value="hold">{t('previs.studio.timeline.hold')}</option>
               </select>
-              <div><button onClick={onCopyKeyframe} title="复制关键帧"><Copy size={12} /></button><button onClick={onPasteKeyframe} disabled={!hasClipboard} title="粘贴到当前帧"><Plus size={12} /></button><button onClick={onDeleteSelectedKeyframe} title="删除关键帧"><Trash2 size={12} /></button></div>
+              <div><button onClick={onCopyKeyframe} title={t('previs.studio.timeline.copyKey')}><Copy size={12} /></button><button onClick={onPasteKeyframe} disabled={!hasClipboard} title={t('previs.studio.timeline.pasteKey')}><Plus size={12} /></button><button onClick={onDeleteSelectedKeyframe} title={t('previs.studio.timeline.deleteKey')}><Trash2 size={12} /></button></div>
             </>
-          ) : <span className="timeline-key-empty">点击关键帧进行编辑</span>}
+          ) : <span className="timeline-key-empty">{t('previs.studio.timeline.editHint')}</span>}
         </div>
       </div>
       <div className="timeline-body">
         <div className="ruler timeline-ruler">{[0, 24, 48, 72, 96, 120].map(frame => <span key={frame} style={{ left: `${frame / TOTAL_FRAMES * 100}%` }}>{frame}</span>)}</div>
-        <div className="track-label camera-track-label"><Camera size={13} /><span>主摄像机</span></div>
+        <div className="track-label camera-track-label"><Camera size={13} /><span>{t('previs.studio.mainCamera')}</span></div>
         <div className="camera-track-slot">{renderTrack(keyframes, 'camera', onDeleteKeyframe)}</div>
-        <button className="keyframe-button camera-keyframe-button" onClick={onAddKeyframe}><Plus size={13} /> 镜头关键帧</button>
+        <button className="keyframe-button camera-keyframe-button" onClick={onAddKeyframe}><Plus size={13} /> {t('previs.studio.timeline.cameraTrack')}</button>
         {objectTrack && (
           <>
             <div className="track-label object-track-label">{objectTrack.type === 'person' ? <UserRound size={13} /> : <Box size={13} />}<span>{objectTrack.name}</span></div>
             <div className="object-track-slot">{renderTrack(objectTrack.keyframes, 'object', onDeleteObjectKeyframe, objectTrack.id)}</div>
-            <button className="keyframe-button object-keyframe-button" onClick={onAddObjectKeyframe}><Plus size={13} /> 物体关键帧</button>
+            <button className="keyframe-button object-keyframe-button" onClick={onAddObjectKeyframe}><Plus size={13} /> {t('previs.studio.timeline.objectTrack')}</button>
           </>
         )}
       </div>
@@ -533,12 +540,13 @@ function Timeline({ currentFrame, onSeek, playing, onTogglePlay, keyframes, onAd
 function MonoformStudio({
   initialProject = null,
   storageKey = PROJECT_STORAGE_KEY,
-  projectTitle = '未命名白模镜头',
+  projectTitle = '',
   onProjectChange,
   onImportAsset,
   onRequestRun,
   onClose,
 }, ref) {
+  const { t } = useTranslation('nodes')
   const startupProject = useMemo(() => normalizeProject(initialProject) || readCachedProject(storageKey), [])
   const [objects, setObjects] = useState(() => startupProject?.objects || initialObjects)
   const [selectedId, setSelectedId] = useState(() => startupProject?.objects?.[0]?.id || 'actor-lead')
@@ -559,7 +567,7 @@ function MonoformStudio({
   const [showGrid, setShowGrid] = useState(true)
   const [viewFocusRequest, setViewFocusRequest] = useState(null)
   const [toast, setToast] = useState('')
-  const [saveStatus, setSaveStatus] = useState(startupProject ? '已恢复自动保存' : '自动保存已开启')
+  const [saveStatus, setSaveStatus] = useState(startupProject ? 'restored' : 'ready')
   const [, setHistoryVersion] = useState(0)
   const loadRef = useRef(null)
   const playStartRef = useRef(null)
@@ -635,14 +643,14 @@ function MonoformStudio({
   }, [currentProject])
 
   useEffect(() => {
-    setSaveStatus('保存中…')
+    setSaveStatus('saving')
     const timer = setTimeout(() => {
       try {
         localStorage.setItem(storageKey, JSON.stringify(currentProject))
         onProjectChange?.(currentProject)
-        setSaveStatus('已自动保存')
+        setSaveStatus('saved')
       } catch {
-        setSaveStatus('自动保存空间不足')
+        setSaveStatus('quota')
       }
     }, 900)
     return () => clearTimeout(timer)
@@ -681,8 +689,8 @@ function MonoformStudio({
     history.restoring = true
     applyProjectSnapshot(previous)
     setHistoryVersion(version => version + 1)
-    setToast('已撤销')
-  }, [applyProjectSnapshot, flushHistory])
+    setToast(t('previs.studio.messages.undone'))
+  }, [applyProjectSnapshot, flushHistory, t])
 
   const redo = useCallback(() => {
     const history = historyRef.current
@@ -693,8 +701,8 @@ function MonoformStudio({
     history.restoring = true
     applyProjectSnapshot(next)
     setHistoryVersion(version => version + 1)
-    setToast('已重做')
-  }, [applyProjectSnapshot])
+    setToast(t('previs.studio.messages.redone'))
+  }, [applyProjectSnapshot, t])
 
   const focusSelected = useCallback(() => {
     if (selectedId === CAMERA_ID) {
@@ -805,15 +813,15 @@ function MonoformStudio({
         : await new Promise((resolve, reject) => {
           const reader = new FileReader()
           reader.onload = () => resolve(reader.result)
-          reader.onerror = () => reject(new Error('模型文件读取失败'))
+          reader.onerror = () => reject(new Error(t('previs.studio.messages.modelReadFailed')))
           reader.readAsDataURL(file)
         })
       const id = uid()
       setObjects(list => [...list, { id, name: file.name.replace(/\.(glb|gltf)$/i, ''), type: 'model', url, assetName: file.name, position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1], color: '#ddd8cc' }])
       setSelectedId(id)
-      setToast('模型已加入场景')
+      setToast(t('previs.studio.messages.modelAdded'))
     } catch (error) {
-      setToast(error?.message || '模型导入失败')
+      setToast(error?.message || t('previs.studio.messages.modelImportFailed'))
     }
   }
   const updateObjectById = (id, patch) => {
@@ -826,8 +834,8 @@ function MonoformStudio({
   const updateSelected = patch => updateObjectById(selectedId, patch)
   const saveCustomPose = person => {
     if (!person || person.type !== 'person') return
-    const suggestedName = `自定义姿势 ${customPoses.length + 1}`
-    const name = window.prompt('为当前姿势命名', suggestedName)?.trim()
+    const suggestedName = t('previs.studio.messages.defaultPoseName', { index: customPoses.length + 1 })
+    const name = window.prompt(t('previs.studio.messages.poseName'), suggestedName)?.trim()
     if (!name) return
     const rig = poseForObject(person)
     setCustomPoses(list => [...list, {
@@ -838,7 +846,7 @@ function MonoformStudio({
       rigRoot: [...rig.root],
       joints: cloneJointPose(rig.joints),
     }])
-    setToast(`姿势“${name}”已保存到本机`)
+    setToast(t('previs.studio.messages.poseSaved', { name }))
   }
   const applyCustomPose = customPose => {
     if (!customPose || !activeObject || activeObject.type !== 'person') return
@@ -848,18 +856,18 @@ function MonoformStudio({
       rigRoot: [...(customPose.rigRoot || presetRoot())],
       joints: cloneJointPose(customPose.joints),
     })
-    setToast(`已应用姿势“${customPose.name}”`)
+    setToast(t('previs.studio.messages.poseApplied', { name: customPose.name }))
   }
   const deleteCustomPose = poseId => {
     const pose = customPoses.find(item => item.id === poseId)
-    if (!pose || !window.confirm(`删除姿势“${pose.name}”？`)) return
+    if (!pose || !window.confirm(t('previs.studio.messages.poseDeleteConfirm', { name: pose.name }))) return
     setCustomPoses(list => list.filter(item => item.id !== poseId))
-    setToast(`已删除姿势“${pose.name}”`)
+    setToast(t('previs.studio.messages.poseDeleted', { name: pose.name }))
   }
   const deleteSelected = () => {
     if (selectedId === CAMERA_ID) return
     const source = objects.find(object => object.id === selectedId)
-    if (source?.locked) { setToast('物体已锁定，请先解除锁定'); return }
+    if (source?.locked) { setToast(t('previs.studio.messages.objectLocked')); return }
     setObjects(list => list.filter(object => object.id !== selectedId))
     setCharacterKeyframes(tracks => {
       const next = { ...tracks }
@@ -877,7 +885,7 @@ function MonoformStudio({
     const source = objects.find(object => object.id === selectedId)
     if (!source) return
     const id = uid()
-    const duplicate = { ...source, id, name: `${source.name} 副本`, position: [source.position[0] + 0.6, source.position[1], source.position[2] + 0.6] }
+    const duplicate = { ...source, id, name: `${source.name} ${t('previs.studio.messages.copySuffix')}`, position: [source.position[0] + 0.6, source.position[1], source.position[2] + 0.6] }
     setObjects(list => [...list, duplicate])
     setCharacterKeyframes(tracks => {
       const sourceTrack = tracks[source.id]
@@ -894,7 +902,7 @@ function MonoformStudio({
     const next = { frame: currentFrame, interpolation: normalizeInterpolation(existing?.interpolation), position: [...camera.position], target: [...camera.target], focalLength: camera.focalLength }
     setKeyframes(list => [...list.filter(key => key.frame !== currentFrame), next].sort((a, b) => a.frame - b.frame))
     setSelectedKeyframe({ kind: 'camera', frame: currentFrame, trackId: null })
-    setToast(`已记录第 ${currentFrame} 帧`)
+    setToast(t('previs.studio.messages.cameraRecorded', { frame: currentFrame }))
   }
   const deleteKeyframe = frame => {
     setKeyframes(list => list.filter(key => key.frame !== frame))
@@ -915,7 +923,7 @@ function MonoformStudio({
       delete nextDrafts[activeObject.id]
       return nextDrafts
     })
-    setToast(`已记录“${activeObject.name}”第 ${currentFrame} 帧`)
+    setToast(t('previs.studio.messages.objectRecorded', { name: activeObject.name, frame: currentFrame }))
   }
   const deleteObjectKeyframe = frame => {
     if (!activeObject) return
@@ -939,7 +947,7 @@ function MonoformStudio({
     else setCharacterKeyframes(tracks => ({ ...tracks, [trackId]: move(tracks[trackId] || []) }))
     setSelectedKeyframe({ kind, trackId, frame: toFrame })
     seekToFrame(toFrame)
-    setToast(`关键帧已移动到第 ${toFrame} 帧`)
+    setToast(t('previs.studio.messages.keyMoved', { frame: toFrame }))
   }
   const changeSelectedInterpolation = interpolation => {
     if (!selectedKeyframeInfo) return
@@ -953,7 +961,7 @@ function MonoformStudio({
     const key = track?.find(item => item.frame === selectedKeyframeInfo.frame)
     if (!key) return
     setKeyframeClipboard({ kind: selectedKeyframeInfo.kind, key: JSON.parse(JSON.stringify(key)) })
-    setToast('关键帧已复制')
+    setToast(t('previs.studio.messages.keyCopied'))
   }
   const pasteKeyframe = () => {
     if (!keyframeClipboard) return
@@ -962,11 +970,11 @@ function MonoformStudio({
       setKeyframes(list => [...list.filter(key => key.frame !== currentFrame), next].sort((a, b) => a.frame - b.frame))
       setSelectedKeyframe({ kind: 'camera', frame: currentFrame, trackId: null })
     } else {
-      if (!activeObject) { setToast('请先选择要粘贴关键帧的物体'); return }
+      if (!activeObject) { setToast(t('previs.studio.messages.selectPasteObject')); return }
       setCharacterKeyframes(tracks => ({ ...tracks, [activeObject.id]: [...(tracks[activeObject.id] || []).filter(key => key.frame !== currentFrame), next].sort((a, b) => a.frame - b.frame) }))
       setSelectedKeyframe({ kind: 'object', frame: currentFrame, trackId: activeObject.id })
     }
-    setToast(`关键帧已粘贴到第 ${currentFrame} 帧`)
+    setToast(t('previs.studio.messages.keyPasted', { frame: currentFrame }))
   }
   const deleteSelectedKeyframe = () => {
     if (!selectedKeyframeInfo) return
@@ -989,15 +997,15 @@ function MonoformStudio({
       link.click()
       URL.revokeObjectURL(link.href)
     }
-    if (download) setToast(cached ? '工程 JSON 已导出' : '工程已导出，但浏览器自动保存空间不足')
-    else setToast(cached ? '工程已保存到浏览器' : '浏览器保存空间不足，请使用“导出工程”备份')
+    if (download) setToast(cached ? t('previs.studio.messages.projectJsonExported') : t('previs.studio.messages.projectExportQuota'))
+    else setToast(cached ? t('previs.studio.messages.projectSaved') : t('previs.studio.messages.projectSaveQuota'))
   }
   const handleCaptureImage = async ({ download = true } = {}) => {
     if (exporting || capturingImage) return
     const exportToken = ++exportCancellationRef.current
     const assertExportActive = () => {
       if (exportCancellationRef.current === exportToken) return
-      const error = new Error('白模预演导出已停止')
+      const error = new Error(t('previs.stopped'))
       error.code = 'PREVIS_EXPORT_CANCELLED'
       throw error
     }
@@ -1013,10 +1021,10 @@ function MonoformStudio({
         canvas = imageCaptureCanvasRef.current
         if (canvas?.width === width && canvas?.height === height) break
       }
-      if (!canvas || canvas.width !== width || canvas.height !== height) throw new Error('截图画面初始化失败')
+      if (!canvas || canvas.width !== width || canvas.height !== height) throw new Error(t('previs.studio.messages.captureInitFailed'))
       await nextPaint()
       assertExportActive()
-      const blob = await new Promise((resolve, reject) => canvas.toBlob(result => result ? resolve(result) : reject(new Error('PNG 生成失败')), 'image/png'))
+      const blob = await new Promise((resolve, reject) => canvas.toBlob(result => result ? resolve(result) : reject(new Error(t('previs.studio.messages.pngFailed'))), 'image/png'))
       assertExportActive()
       if (download) {
         const link = document.createElement('a')
@@ -1028,10 +1036,10 @@ function MonoformStudio({
         link.remove()
         URL.revokeObjectURL(link.href)
       }
-      setToast(`摄像机截图已导出 · ${width} × ${height}`)
+      setToast(t('previs.studio.messages.captureDone', { width, height }))
       return { blob, width, height, frame: currentFrameRef.current, fps: FPS, aspectRatio: camera.aspectRatio || '16:9' }
     } catch (error) {
-      setToast(error?.message || '摄像机截图失败')
+      setToast(error?.message || t('previs.studio.messages.captureFailed'))
       throw error
     } finally {
       setCapturingImage(false)
@@ -1043,7 +1051,7 @@ function MonoformStudio({
     const exportToken = ++exportCancellationRef.current
     const assertExportActive = () => {
       if (exportCancellationRef.current === exportToken) return
-      const error = new Error('白模预演导出已停止')
+      const error = new Error(t('previs.stopped'))
       error.code = 'PREVIS_EXPORT_CANCELLED'
       throw error
     }
@@ -1059,14 +1067,14 @@ function MonoformStudio({
     exportCanvasRef.current = null
 
     try {
-      if (typeof VideoEncoder === 'undefined') throw new Error('当前浏览器不支持视频编码，请使用最新版 Chrome 或 Edge')
+      if (typeof VideoEncoder === 'undefined') throw new Error(t('previs.studio.messages.videoUnsupported'))
       const {
         BufferTarget, CanvasSource, Mp4OutputFormat, Output,
         QUALITY_HIGH, getFirstEncodableVideoCodec,
       } = await import('mediabunny')
       const { width, height } = exportDimensions
       const codec = await getFirstEncodableVideoCodec(['avc'], { width, height, quality: QUALITY_HIGH })
-      if (!codec) throw new Error('当前设备没有可用的 MP4 视频编码器')
+      if (!codec) throw new Error(t('previs.studio.messages.encoderMissing'))
 
       let canvas = null
       for (let attempt = 0; attempt < 120; attempt += 1) {
@@ -1075,7 +1083,7 @@ function MonoformStudio({
         canvas = exportCanvasRef.current
         if (canvas?.width === width && canvas?.height === height) break
       }
-      if (!canvas || canvas.width !== width || canvas.height !== height) throw new Error('导出画面初始化失败')
+      if (!canvas || canvas.width !== width || canvas.height !== height) throw new Error(t('previs.studio.messages.exportInitFailed'))
 
       output = new Output({ format: new Mp4OutputFormat(), target: new BufferTarget() })
       const videoSource = new CanvasSource(canvas, {
@@ -1100,7 +1108,7 @@ function MonoformStudio({
       await output.finalize()
       assertExportActive()
       const buffer = output.target.buffer
-      if (!buffer) throw new Error('MP4 文件生成失败')
+      if (!buffer) throw new Error(t('previs.studio.messages.mp4Failed'))
       const blob = new Blob([buffer], { type: 'video/mp4' })
       if (download) {
         const link = document.createElement('a')
@@ -1112,11 +1120,11 @@ function MonoformStudio({
         link.remove()
         URL.revokeObjectURL(link.href)
       }
-      setToast(`MP4 已导出 · ${width} × ${height} · 24 FPS`)
+      setToast(t('previs.studio.messages.mp4Done', { width, height }))
       return { blob, width, height, fps: FPS, frameCount: TOTAL_FRAMES, durationSeconds: TOTAL_FRAMES / FPS, aspectRatio: camera.aspectRatio || '16:9', codec: 'h264', hasAudio: false }
     } catch (error) {
       if (output && output.state !== 'finalized') await output.cancel().catch(() => {})
-      setToast(error?.message || 'MP4 导出失败')
+      setToast(error?.message || t('previs.studio.messages.mp4ExportFailed'))
       throw error
     } finally {
       setCurrentFrame(originalFrame)
@@ -1146,8 +1154,8 @@ function MonoformStudio({
         currentFrameRef.current = 0
         setPlaying(false)
         setSelectedId(CAMERA_ID)
-        setToast('工程已打开')
-      } catch { setToast('工程文件无法读取') }
+        setToast(t('previs.studio.messages.projectOpened'))
+      } catch { setToast(t('previs.studio.messages.projectOpenFailed')) }
     }
     reader.readAsText(file)
     event.target.value = ''
@@ -1172,7 +1180,7 @@ function MonoformStudio({
     cancelExport: () => {
       exportCancellationRef.current += 1
       setPlaying(false)
-      setToast('白模预演导出已停止')
+      setToast(t('previs.stopped'))
     },
     saveProject: () => saveProject(),
   }), [currentProject, handleCaptureImage, handleExportMp4])
@@ -1182,26 +1190,26 @@ function MonoformStudio({
       <header className="topbar">
         <div className="brand-mark">
           <span className="brand-glyph"><img src={BRAND_MARK_URL} alt="" /></span>
-          <div><strong>T8 白模预演</strong><small>MONOFORM PREVIS STUDIO · 完整复刻</small></div>
+          <div><strong>{t('previs.studio.brand')}</strong><small>{t('previs.studio.replica')}</small></div>
         </div>
         <nav className="top-actions">
-          <button onClick={resetProject}><Plus size={14} /> 新建</button>
-          <button onClick={() => loadRef.current?.click()}><FolderOpen size={14} /> 打开</button>
-          <button onClick={() => saveProject()}><Save size={14} /> 保存</button>
+          <button onClick={resetProject}><Plus size={14} /> {t('previs.studio.newProject')}</button>
+          <button onClick={() => loadRef.current?.click()}><FolderOpen size={14} /> {t('previs.studio.openProject')}</button>
+          <button onClick={() => saveProject()}><Save size={14} /> {t('previs.studio.saveProject')}</button>
           <input ref={loadRef} className="visually-hidden" type="file" accept=".json" onChange={loadProject} />
           <span className="top-divider" />
-          <ToolButton icon={Undo2} label="撤销" shortcut="Ctrl+Z" onClick={undo} disabled={!historyRef.current.past.length} />
-          <ToolButton icon={Redo2} label="重做" shortcut="Ctrl+Y" onClick={redo} disabled={!historyRef.current.future.length} />
+          <ToolButton icon={Undo2} label={t('previs.studio.undo')} shortcut="Ctrl+Z" onClick={undo} disabled={!historyRef.current.past.length} />
+          <ToolButton icon={Redo2} label={t('previs.studio.redo')} shortcut="Ctrl+Y" onClick={redo} disabled={!historyRef.current.future.length} />
         </nav>
-        <div className="project-title"><i className={`status-dot ${saveStatus === '保存中…' ? '' : 'live'}`} /><span>{projectTitle}</span><small>{saveStatus}</small></div>
-          <a className="source-credit" href={MONOFORM_SOURCE_URL} target="_blank" rel="noreferrer" title={`参考提交 ${MONOFORM_SOURCE_COMMIT}`}>
-            <Github size={13} /><span>出处：GuiYi-Xi/monoform-previs-studio · 感谢原作者</span><Heart size={12} />
+        <div className="project-title"><i className={`status-dot ${saveStatus === 'saving' ? '' : 'live'}`} /><span>{projectTitle || t('previs.unnamedShot')}</span><small>{t(`previs.studio.status.${saveStatus}`)}</small></div>
+          <a className="source-credit" href={MONOFORM_SOURCE_URL} target="_blank" rel="noreferrer" title={t('previs.studio.sourceCommit', { commit: MONOFORM_SOURCE_COMMIT })}>
+            <Github size={13} /><span>{t('previs.studio.sourceCredit')}</span><Heart size={12} />
           </a>
         <div className="export-actions">
-          <button className="project-export-button" onClick={() => saveProject({ download: true })} disabled={exporting || capturingImage}><Download size={14} /> 导出工程</button>
-          <button className="project-export-button capture-image-button" onClick={() => onRequestRun ? onRequestRun('image') : void handleCaptureImage({ download: true })} disabled={exporting || capturingImage}><FileImage size={14} /> {capturingImage ? '截图中…' : '截图 PNG'}</button>
-          <button className="export-button" onClick={() => onRequestRun ? onRequestRun('video') : void handleExportMp4({ download: true })} disabled={exporting || capturingImage}><FileVideo2 size={14} /> {exporting ? `${exportProgress}%` : '导出 MP4'}</button>
-          {onClose && <button className="project-close-button" onClick={onClose} title="关闭白模预演"><X size={16} /></button>}
+          <button className="project-export-button" onClick={() => saveProject({ download: true })} disabled={exporting || capturingImage}><Download size={14} /> {t('previs.studio.exportProject')}</button>
+          <button className="project-export-button capture-image-button" onClick={() => onRequestRun ? onRequestRun('image') : void handleCaptureImage({ download: true })} disabled={exporting || capturingImage}><FileImage size={14} /> {capturingImage ? t('previs.studio.capturing') : t('previs.studio.capturePng')}</button>
+          <button className="export-button" onClick={() => onRequestRun ? onRequestRun('video') : void handleExportMp4({ download: true })} disabled={exporting || capturingImage}><FileVideo2 size={14} /> {exporting ? `${exportProgress}%` : t('previs.studio.exportMp4')}</button>
+          {onClose && <button className="project-close-button" onClick={onClose} title={t('previs.studio.close')}><X size={16} /></button>}
         </div>
       </header>
 
@@ -1209,32 +1217,32 @@ function MonoformStudio({
         <LeftSidebar objects={objects} selectedId={selectedId} onSelect={setSelectedId} onAddPerson={addPerson} onAddPrimitive={addPrimitive} onImport={importModel} onToggleVisible={id => updateObjectById(id, { visible: objects.find(item => item.id === id)?.visible === false })} onToggleLock={id => updateObjectById(id, { locked: !objects.find(item => item.id === id)?.locked })} />
         <section className="viewport-shell">
           <div className="viewport-toolbar floating-panel">
-            <ToolButton icon={MousePointer2} label="选择" active={!['translate', 'rotate', 'scale'].includes(transformMode)} onClick={() => setTransformMode('select')} shortcut="Q" />
+            <ToolButton icon={MousePointer2} label={t('previs.studio.tools.select')} active={!['translate', 'rotate', 'scale'].includes(transformMode)} onClick={() => setTransformMode('select')} shortcut="Q" />
             <span />
-            <ToolButton icon={Move3D} label="移动" active={transformMode === 'translate'} onClick={() => setTransformMode('translate')} shortcut="W" />
-            <ToolButton icon={RotateCw} label="旋转" active={transformMode === 'rotate'} onClick={() => setTransformMode('rotate')} shortcut="E" />
-            <ToolButton icon={BoxSelect} label="缩放" active={transformMode === 'scale'} onClick={() => setTransformMode('scale')} shortcut="R" />
+            <ToolButton icon={Move3D} label={t('previs.studio.tools.move')} active={transformMode === 'translate'} onClick={() => setTransformMode('translate')} shortcut="W" />
+            <ToolButton icon={RotateCw} label={t('previs.studio.tools.rotate')} active={transformMode === 'rotate'} onClick={() => setTransformMode('rotate')} shortcut="E" />
+            <ToolButton icon={BoxSelect} label={t('previs.studio.tools.scale')} active={transformMode === 'scale'} onClick={() => setTransformMode('scale')} shortcut="R" />
           </div>
           <div className="viewport-mode-help">
-            {transformMode === 'select' && 'Q 人物摆姿 · 青色手脚 IK · 金色单骨骼 · Shift 扭转'}
-            {transformMode === 'translate' && 'W 整体移动 · 拖动红 / 绿 / 蓝坐标轴'}
-            {transformMode === 'rotate' && 'E 整体旋转 · 左右拖=水平 · 上下拖=纵向 · Shift 拖=翻滚'}
-            {transformMode === 'scale' && 'R 整体缩放 · 拖动坐标轴或中心块'}
+            {transformMode === 'select' && t('previs.studio.tools.selectHelp')}
+            {transformMode === 'translate' && t('previs.studio.tools.moveHelp')}
+            {transformMode === 'rotate' && t('previs.studio.tools.rotateHelp')}
+            {transformMode === 'scale' && t('previs.studio.tools.scaleHelp')}
           </div>
           <div className="viewport-view-options floating-panel">
-            <button className={showGrid ? 'is-active' : ''} onClick={() => setShowGrid(value => !value)}><Grid3X3 size={14} /> 网格</button>
-            <button><span className="solid-sphere" /> 实体</button>
+            <button className={showGrid ? 'is-active' : ''} onClick={() => setShowGrid(value => !value)}><Grid3X3 size={14} /> {t('previs.studio.grid')}</button>
+            <button><span className="solid-sphere" /> {t('previs.studio.solid')}</button>
           </div>
-          <div className="viewport-label"><strong>透视视图</strong><span>场景单位 · 世界坐标</span></div>
+          <div className="viewport-label"><strong>{t('previs.studio.perspective')}</strong><span>{t('previs.studio.worldCoordinates')}</span></div>
           <MainViewport objects={animatedObjects} selectedId={selectedId} activeJoint={selectedJoint} onSelect={setSelectedId} onJointSelect={(objectId, jointId) => { setSelectedId(objectId); setSelectedJoint(jointId) }} transformMode={transformMode} onUpdateObject={updateObjectById} cameraData={displayCamera} onUpdateCamera={patch => setCamera(current => ({ ...current, ...patch }))} showGrid={showGrid} focusRequest={viewFocusRequest} />
-          <div className="navigation-hint"><span><MousePointer2 size={12} /> 左键选择</span><span>中键旋转视角</span><span>滚轮缩放</span></div>
+          <div className="navigation-hint"><span><MousePointer2 size={12} /> {t('previs.studio.leftSelect')}</span><span>{t('previs.studio.middleRotate')}</span><span>{t('previs.studio.wheelZoom')}</span></div>
           <div className="camera-monitor">
-            <div className="monitor-head"><div><Video size={13} /><strong>摄像机 01</strong><span>SHOT PREVIEW</span></div><button onClick={() => setSelectedId(CAMERA_ID)}><ZoomIn size={13} /></button></div>
+            <div className="monitor-head"><div><Video size={13} /><strong>{t('previs.studio.cameraNumber')}</strong><span>SHOT PREVIEW</span></div><button onClick={() => setSelectedId(CAMERA_ID)}><ZoomIn size={13} /></button></div>
             <div className="monitor-frame">
               <div className={`monitor-canvas ${previewAspectClass}`} style={{ '--preview-aspect': previewAspect }}>
                 <CameraPreview objects={animatedObjects} cameraData={displayCamera} />
                 <span className="safe-frame" />
-                <span className="owner-watermark" aria-label="MONOFORM 品牌标识"><i><img src={BRAND_MARK_URL} alt="" /></i><b>MONOFORM</b></span>
+                <span className="owner-watermark" aria-label={t('previs.studio.brandAria')}><i><img src={BRAND_MARK_URL} alt="" /></i><b>MONOFORM</b></span>
                 <span className="monitor-timecode">00:00:{String(Math.floor(currentFrame / FPS)).padStart(2, '0')}:{String(currentFrame % FPS).padStart(2, '0')}</span>
                 <span className="monitor-focal">{Math.round(displayCamera.focalLength)} mm · {displayCamera.aspectRatio || '16:9'}</span>
               </div>
@@ -1276,7 +1284,7 @@ function MonoformStudio({
           <div className="export-progress-overlay" role="status" aria-live="polite">
             <div className="export-progress-card">
               <FileVideo2 size={20} />
-              <div className="export-progress-copy"><strong>正在编码 MP4</strong><span>{exportDimensions.width} × {exportDimensions.height} · 24 FPS · 第 {Math.round(exportProgress / 100 * TOTAL_FRAMES)} / {TOTAL_FRAMES} 帧</span></div>
+              <div className="export-progress-copy"><strong>{t('previs.studio.encoding')}</strong><span>{t('previs.studio.encodingFrame', { width: exportDimensions.width, height: exportDimensions.height, frame: Math.round(exportProgress / 100 * TOTAL_FRAMES), total: TOTAL_FRAMES })}</span></div>
               <output>{exportProgress}%</output>
               <div className="export-progress-track"><i style={{ width: `${exportProgress}%` }} /></div>
             </div>

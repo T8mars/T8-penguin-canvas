@@ -1,7 +1,66 @@
 {
   "$schema": "本文件为 T8-penguin-canvas 节点清单防丢失锁,任何节点删减都需要在 roadmap.md 中说明并更新本文件。",
-  "version": "3.0.0",
-  "lastUpdated": "2026-08-24-v3.0.0-mac-preview-released",
+  "version": "3.0.1",
+  "lastUpdated": "2026-08-26-v3.0.1-release-authorized",
+  "electronReleaseV301": {
+    "status": "release-authorized-build-pending",
+    "date": "2026-08-26",
+    "releaseIncluded": false,
+    "version": "3.0.1",
+    "tag": "v3.0.1",
+    "scope": [
+      "Wan Video 现有 Tab 新增 8 个 Wan 3.0 I2V/R2V、Global 与 Prime 精确模型，保留旧默认模型、旧画布字段和其他 Provider。",
+      "新增 8 份无凭据 Wan 3.0 工作流；8/8 模型均真实提交成功，结果完整下载并通过 FFprobe/FFmpeg 解码。",
+      "修复新节点在白天模式仍使用黑色固定外壳、英文界面残留内置中文和画布左侧重复悬浮工具的问题。",
+      "OutputNode 增加版本化自适应/自由/比例视图及按需原图查看器；大画布增加可解释性能档、组代理、离屏重节点冷壳、轻量边和可取消稳定性证据器。",
+      "#24 与 #25 继续保持开放，等待真实受影响重画布、安装版资源回落、Provider 英文金路径、全浮层、缩放和读屏验收；发布不等于关闭这些问题。"
+    ],
+    "platformPlan": {
+      "windows": "核心目录固定源码通过低资源单核/BelowNormal/零压缩级别的 dist:release，发布 EXE、blockmap 与 latest.yml。",
+      "mac": "同一正式 v3.0.1 Tag 在真实 macos-15 arm64 runner 生成 DMG、ZIP 与 latest-mac.yml，并追加到同一 Release；未配置 Developer ID 时明确标记 unsigned-preview。"
+    },
+    "evidenceBoundary": {
+      "technicalGates": "must-pass-before-publish",
+      "affectedUserInstallF8F10AndInstalledUpgrade": "deferred-not-passed",
+      "deferralApproval": "owner-approved-post-release-v3.0.1",
+      "rule": "用户授权先发布、证据后补只适用于反馈用户安装、多端协作、F8-F10 与安装升级证据；测试、构建、加密、运行时、NSIS、provenance、sealed recovery、固定 Tag/target、Windows/Mac 资产回下载及 Latest 均不可延期。"
+    }
+  },
+  "wan30VideoModels": {
+    "status": "development-live-verified-release-authorized-v3.0.1",
+    "date": "2026-08-25",
+    "releaseIncluded": true,
+    "provider": "seedance-nz",
+    "platform": "贞贞的平价AI小屋",
+    "tab": "Wan Video",
+    "models": [
+      "wan-3.0-global-i2v",
+      "wan-3.0-global-r2v",
+      "wan-3.0-i2v",
+      "wan-3.0-r2v",
+      "wan-3.0-prime-i2v",
+      "wan-3.0-prime-r2v",
+      "wan-3.0-global-prime-i2v",
+      "wan-3.0-global-prime-r2v"
+    ],
+    "contract": "I2V 只接受一张首帧；R2V 接受 1-3 张有序参考图；各模型的时长、分辨率、比例、Prompt 和参考素材约束在前端、Provider 与代理三层付费前失败关闭，不静默改写模型。",
+    "workflows": [
+      "docs/workflows/wan-3.0-global-i2v.json",
+      "docs/workflows/wan-3.0-global-r2v.json",
+      "docs/workflows/wan-3.0-i2v.json",
+      "docs/workflows/wan-3.0-r2v.json",
+      "docs/workflows/wan-3.0-prime-i2v.json",
+      "docs/workflows/wan-3.0-prime-r2v.json",
+      "docs/workflows/wan-3.0-global-prime-i2v.json",
+      "docs/workflows/wan-3.0-global-prime-r2v.json"
+    ],
+    "verification": [
+      "Wan 3.0 模型、UI、Payload、状态恢复、工作流和节点运行边界专项 10/10 通过。",
+      "8 个模型以一次性进程凭据逐一真实提交、轮询成功、完整下载，并通过 FFprobe 探测和 FFmpeg 全量解码。",
+      "脱敏报告 output/wan30-live-20260825/report.json 不含 API Key、taskId、签名 URL 或原始 Provider 响应；临时私有恢复状态已删除。"
+    ],
+    "compatibility": "视频节点默认渠道和默认模型不变；旧 Wan、Seedance、Hailuo、Flux、Grok、FlashVSR、历史画布及已发布工作流不迁移。"
+  },
   "macDesktopRelease": {
     "status": "released-v3.0.0-mac-arm64-preview-live-verified",
     "date": "2026-08-24",
@@ -13954,6 +14013,35 @@
     "boundaries": [
       "内部能力、风险、批准、Run 与证据合同没有删除，只改变默认可见层级。",
       "未执行 build、Electron 打包、提交、推送、tag 或发布。"
+    ]
+  },
+  "githubIssues222425Implementation": {
+    "status": "release-authorized-v3.0.1-development-verified",
+    "date": "2026-08-25",
+    "releaseIncluded": true,
+    "issues": {
+      "22": "OutputNode adaptive/free/aspect views and explicit full-size detail viewer implemented; the original issue remains correctly closed and is not reopened.",
+      "24": "Lab performance stages implemented; issue remains open pending a real affected heavy canvas, five-minute resource recovery evidence, and packaged-platform verification.",
+      "25": "Core bilingual runtime and visible English surfaces implemented; issue remains open pending real Provider English gold paths, all popovers, zoom, and screen-reader acceptance."
+    },
+    "highlights": [
+      "OutputNode preserves legacy-auto for old canvases, uses measured remaining media space, and requests full-size images only from the explicit detail viewer.",
+      "Canvas performance includes deterministic 100/500/1000-node fixtures, explainable automatic/balanced/performance modes, group proxies, mounted offscreen heavy shells, lightweight deletable edges, and a cancellable low-frequency five-minute stability probe.",
+      "The stability evaluator fails closed for incomplete sampling or retained DOM/media growth and reports inconclusive when the browser does not expose heap, instead of claiming success without evidence.",
+      "Internationalization now covers the shell, Electron bridge, stable error envelopes, 81 built-in node catalog entries, core nodes and large workbenches while preserving user, Provider, prompt, model-ID, and persisted-enum content.",
+      "An opt-in runtime visible-text audit reduced the current English main surface from 47 built-in Chinese findings to zero; the ignored private recharge chooser uses its own bilingual copy.",
+      "Built-in top-bar promotions now have bilingual display contracts while preserving authoritative URLs, provider identifiers, and persisted values."
+    ],
+    "verification": [
+      "npm run type-check passed after the implementation slice.",
+      "Focused Output/performance/i18n/error/workbench regression passed 35/35, including fail-closed excessive heap-growth coverage.",
+      "Runtime English audit scanned 329 visible text nodes and 203 visible attributes with zero findings on the current main surface; recharge, Image Tagger, API Keys, and Plugin Installation popovers also returned zero findings.",
+      "The temporary Vite development service was stopped after validation and port 11422 had no listener; the existing packaged application on port 18766 was identified and deliberately left running."
+    ],
+    "boundaries": [
+      "This implementation is included in the fixed v3.0.1 release source; technical packaging and remote evidence are recorded only after the formal pipeline converges.",
+      "Issue #24 must not close before real affected-canvas five-minute recovery and packaged-platform evidence; Issue #25 must not close before Provider English gold paths plus full zoom/screen-reader acceptance.",
+      "The runtime English audit is opt-in only and explicitly excludes user/provider/runtime-diagnostic content."
     ]
   }
 }

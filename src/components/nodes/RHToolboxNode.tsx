@@ -66,6 +66,7 @@ import { resolveMediaMentions, type MediaMention } from './mediaMentions';
 import LoopingVideo from '../LoopingVideo';
 import SmartImage from '../SmartImage';
 import LazyAudio from '../LazyAudio';
+import NodeVisible from '../../i18n/NodeVisible';
 import ResizableCorners from './ResizableCorners';
 
 const handleStyle: CSSProperties = {
@@ -1287,7 +1288,7 @@ const RHToolboxNode = ({ id, data, selected }: NodeProps) => {
               {imageUrls.map((url, index) => <SmartImage key={`${url}-${index}`} src={url} alt="RH工具箱输出" className="w-full rounded object-contain" thumbSize={720} />)}
               {videoUrls.map((url, index) => <LoopingVideo key={`${url}-${index}`} src={url} controls className="w-full rounded" />)}
               {audioUrls.map((url, index) => <LazyAudio key={`${url}-${index}`} src={url} controls className="w-full h-8" />)}
-              {outputText && <div className="rounded p-2 text-[11px] whitespace-pre-wrap" style={{ background: surface, border: `1px solid ${border}`, color: text }}>{outputText}</div>}
+              {outputText && <div data-provider-content className="rounded p-2 text-[11px] whitespace-pre-wrap" style={{ background: surface, border: `1px solid ${border}`, color: text }}>{outputText}</div>}
             </div>
           )}
         </div>
@@ -1296,7 +1297,8 @@ const RHToolboxNode = ({ id, data, selected }: NodeProps) => {
   };
 
   return (
-    <div className="relative flex flex-col" style={rootStyle}>
+    <NodeVisible>
+      <div className="relative flex flex-col" style={rootStyle}>
       <Handle type="target" position={Position.Left} className="!border-0" style={{ ...handleStyle, background: PORT_COLOR.any, left: -6 }} />
       <Handle type="source" position={Position.Right} className="!border-0" style={{ ...handleStyle, background: PORT_COLOR.any, right: -6 }} />
       <ResizableCorners
@@ -1311,7 +1313,8 @@ const RHToolboxNode = ({ id, data, selected }: NodeProps) => {
         {renderHeader()}
         {activeToolId ? renderRunner() : renderLauncher()}
       </div>
-    </div>
+      </div>
+    </NodeVisible>
   );
 };
 

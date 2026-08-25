@@ -48,6 +48,7 @@ import type { RunNodeLifecycleReporter } from '../../types/project';
 import { SEEDANCE_NZ_LLM_MODELS } from '../../config/llm';
 import { useUpstreamMaterials } from './useUpstreamMaterials';
 import { useUpdateNodeData } from './useUpdateNodeData';
+import InspirationVisible from '../../i18n/InspirationVisible';
 
 const ZHENZHEN_LLM_MODELS = LLM_MODELS.filter((model) => !model.imageOutput);
 const DEFAULT_ZHENZHEN_MODEL = ZHENZHEN_LLM_MODELS.find((model) => model.id === 'gemini-3.5-flash')?.id
@@ -260,14 +261,14 @@ function Seedance20PromptEnhancerNode({ id, data, selected }: NodeProps) {
   };
 
   return (
-    <div className="relative w-[420px]">
+    <InspirationVisible>
+      <div className="t8-inspiration-node-shell relative w-[420px]" data-inspiration-node="seedance20-prompt-enhancer">
       <Handle type="target" position={Position.Left} className="!border-0 !bg-cyan-300 !z-10" />
       <Handle type="source" position={Position.Right} className="!border-0 !bg-cyan-300 !z-10" />
       <div
-        className={`overflow-hidden rounded-2xl border-2 transition-all ${selected ? 'border-cyan-400 shadow-2xl shadow-cyan-500/20' : 'border-white/15 hover:border-white/30'}`}
-        style={{ background: 'rgba(16,19,25,.97)' }}
+        className={`t8-node t8-inspiration-node overflow-hidden rounded-2xl border-2 transition-all ${selected ? 'border-cyan-400 shadow-2xl shadow-cyan-500/20' : 'border-white/15 hover:border-white/30'}`}
       >
-        <div className="flex items-center gap-2.5 border-b border-white/10 px-3 py-2.5">
+        <div className="t8-node-header t8-inspiration-node__header flex items-center gap-2.5 border-b border-white/10 px-3 py-2.5">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-500/20 text-cyan-100 ring-1 ring-cyan-400/30"><WandSparkles size={17} /></div>
           <div className="min-w-0 flex-1">
             <div className="truncate text-sm font-semibold text-white">Seedance 2.0 提示词增强器</div>
@@ -418,7 +419,8 @@ function Seedance20PromptEnhancerNode({ id, data, selected }: NodeProps) {
           )}
         </div>
       </div>
-    </div>
+      </div>
+    </InspirationVisible>
   );
 }
 

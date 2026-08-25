@@ -29,6 +29,7 @@ import {
   type MouseEvent as ReactMouseEvent,
 } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 import { PORT_COLOR } from '../../config/portTypes';
 import { ANIME_TAG_MASTER_CATEGORIES, ANIME_TAG_MASTER_ITEMS } from '../../data/animeTagMasterManifest';
 import { useRunTrigger } from '../../hooks/useRunTrigger';
@@ -65,6 +66,7 @@ import {
   type AnimeTagUserLibrary,
 } from '../../utils/animeTagMaster';
 import { useUpdateNodeData } from './useUpdateNodeData';
+import InspirationVisible from '../../i18n/InspirationVisible';
 
 const EMPTY_LIBRARY: AnimeTagUserLibrary = { categories: [], items: [] };
 const EMPTY_CUSTOM_DRAFT = {
@@ -225,11 +227,50 @@ function downloadJson(filename: string, data: unknown) {
   URL.revokeObjectURL(url);
 }
 
-function toCategoryOptions(items: readonly AnimeTagCategory[]) {
+function toCategoryOptions(items: readonly AnimeTagCategory[], english: boolean) {
+  const englishNames: Record<string, string> = {
+    artist: 'Artist',
+    copyright: 'Copyright',
+    character: 'Character',
+    general: 'General',
+    meta: 'Style / Meta',
+  };
   return items.map((item) => ({
     value: item.id,
-    label: item.name,
+    label: english && item.builtIn
+      ? englishNames[item.id] || item.name.split('/').at(-1)?.trim() || item.name
+      : item.name,
   }));
+}
+
+function displayOnlineCategoryName(item: { id: string; name: string }, english: boolean) {
+  if (!english) return item.name;
+  const englishNames: Record<string, string> = {
+    artist: 'Artist',
+    copyright: 'Copyright',
+    character: 'Character',
+    'general-meta': 'General / Meta',
+  };
+  return englishNames[item.id] || item.name;
+}
+
+function displayAnimeTagName(item: AnimeTagItem | null | undefined, english: boolean) {
+  if (!item) return '';
+  return english && !item.userCreated ? item.name || item.chineseName : item.chineseName || item.name;
+}
+
+function displayAnimeTagCategory(item: AnimeTagItem | null | undefined, english: boolean) {
+  if (!item) return '';
+  if (!english || item.userCreated) return item.categoryName;
+  const englishNames: Record<string, string> = {
+    artist: 'Artist',
+    copyright: 'Copyright',
+    character: 'Character',
+    general: 'General',
+    meta: 'Style / Meta',
+  };
+  const builtIn = ANIME_TAG_MASTER_CATEGORIES.find((category) => category.id === item.categoryId);
+  return englishNames[item.categoryId] || builtIn?.name.split('/').at(-1)?.trim() || item.categoryId || item.categoryName;
 }
 
 function categoryToOnlineCategory(value: string): AnimeTagOnlineCategoryId | null {
@@ -334,6 +375,8 @@ function AnimeTagPreviewImage({
 }
 
 function AnimeTagMasterNode({ id, data, selected }: NodeProps) {
+  const { i18n } = useTranslation();
+  const isEnglish = (i18n.resolvedLanguage || i18n.language).toLowerCase().startsWith('en');
   const rf = useReactFlow();
   const update = useUpdateNodeData(id);
   const importRef = useRef<HTMLInputElement | null>(null);
@@ -1217,15 +1260,18 @@ function AnimeTagMasterNode({ id, data, selected }: NodeProps) {
   })() : undefined;
 
   const hoverPreviewPopover = hoverPreviewItem ? createPortal(
-    <div className="anime-tag-master-hover-preview-popover nodrag nopan" style={hoverPreviewStyle}>
-      <AnimeTagPreviewImage item={hoverPreviewItem} alt={`${hoverPreviewItem.name} 100% 大图预览`} preferFull />
-      <span>100%</span>
-    </div>,
+    <InspirationVisible>
+      <div className="anime-tag-master-hover-preview-popover nodrag nopan" style={hoverPreviewStyle}>
+        <AnimeTagPreviewImage item={hoverPreviewItem} alt={`${hoverPreviewItem.name} 100% 大图预览`} preferFull />
+        <span>100%</span>
+      </div>
+    </InspirationVisible>,
     document.body,
   ) : null;
 
   const libraryModal = libraryOpen ? createPortal(
-    <div className="anime-tag-master-modal-backdrop nodrag nopan" onWheelCapture={(event) => event.stopPropagation()}>
+    <InspirationVisible>
+      <div className="anime-tag-master-modal-backdrop nodrag nopan" onWheelCapture={(event) => event.stopPropagation()}>
       <section className="anime-tag-master-modal" data-anime-tag-library-modal onWheelCapture={stopCanvasWheel}>
         <header className="anime-tag-master-modal-header">
           <div>
@@ -1245,7 +1291,7 @@ function AnimeTagMasterNode({ id, data, selected }: NodeProps) {
           </label>
           <select value={category} onChange={(event) => updateCategory(event.target.value)}>
             <option value="all">全部分类</option>
-            {toCategoryOptions(categoryOptions).map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+            {toCategoryOptions(categoryOptions, isEnglish).map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
           </select>
           <select value={source} onChange={(event) => updateSource(event.target.value)}>
             <option value="all">全部来源</option>
@@ -1271,9 +1317,9 @@ function AnimeTagMasterNode({ id, data, selected }: NodeProps) {
                     {renderPreviewImage(displayItem, `${item.name} ${item.chineseName}`, false, false)}
                   </button>
                   <div className="anime-tag-master-card-body">
-                    <strong>{item.chineseName}</strong>
+                    <strong>{displayAnimeTagName(item, isEnglish)}</strong>
                     <span>{item.name}</span>
-                    <small>{item.categoryName} · {item.source}</small>
+                    <small>{displayAnimeTagCategory(item, isEnglish)} · {item.source}</small>
                     {typeof item.postCount === 'number' ? <small>{item.postCount.toLocaleString()} posts{item.source === 'gelbooru' ? ' · 全站' : ''}</small> : null}
                     <p>{item.tags.slice(0, 12).join(', ')}</p>
                     <div className="anime-tag-master-card-actions">
@@ -1299,7 +1345,7 @@ function AnimeTagMasterNode({ id, data, selected }: NodeProps) {
                 {ANIME_TAG_ONLINE_PROVIDERS.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
               </select>
               <select value={onlineCategory} onChange={(event) => updateOnlineCategory(event.target.value as AnimeTagOnlineCategoryId)}>
-                {ANIME_TAG_ONLINE_CATEGORY_OPTIONS.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                {ANIME_TAG_ONLINE_CATEGORY_OPTIONS.map((item) => <option key={item.id} value={item.id}>{displayOnlineCategoryName(item, isEnglish)}</option>)}
               </select>
               <input value={onlineQuery} onChange={(event) => updateOnlineQuery(event.target.value)} onKeyDown={handleOnlineQueryKeyDown} placeholder="输入 booru tag，可留空浏览" />
               <button type="button" onClick={() => void searchOnline()}>懒加载搜索</button>
@@ -1383,12 +1429,14 @@ function AnimeTagMasterNode({ id, data, selected }: NodeProps) {
           </aside>
         </div>
       </section>
-    </div>,
+      </div>
+    </InspirationVisible>,
     document.body,
   ) : null;
 
   const lightbox = activeLightboxTag ? createPortal(
-    <div className="anime-tag-master-lightbox-backdrop nodrag nopan" data-anime-tag-lightbox onWheelCapture={(event) => event.stopPropagation()}>
+    <InspirationVisible>
+      <div className="anime-tag-master-lightbox-backdrop nodrag nopan" data-anime-tag-lightbox onWheelCapture={(event) => event.stopPropagation()}>
       <button type="button" className="atm-icon-button lightbox-close" aria-label="关闭预览" onClick={() => setLightboxIndex(null)}>
         <X size={18} />
       </button>
@@ -1398,8 +1446,8 @@ function AnimeTagMasterNode({ id, data, selected }: NodeProps) {
       <figure className="anime-tag-master-lightbox">
         <AnimeTagPreviewImage item={activeLightboxTag} alt={`${activeLightboxTag.name} ${activeLightboxTag.chineseName}`} preferFull />
         <figcaption>
-          <strong>{activeLightboxTag.chineseName}</strong>
-          <span>{activeLightboxTag.name} · {activeLightboxTag.categoryName}</span>
+          <strong>{displayAnimeTagName(activeLightboxTag, isEnglish)}</strong>
+          <span>{activeLightboxTag.name} · {displayAnimeTagCategory(activeLightboxTag, isEnglish)}</span>
           <p>{activeLightboxTag.tags.slice(0, 18).join(', ')}</p>
           <button type="button" onClick={() => void copyPrompt(activeLightboxTag)}>复制标签提示词</button>
         </figcaption>
@@ -1407,16 +1455,18 @@ function AnimeTagMasterNode({ id, data, selected }: NodeProps) {
       <button type="button" className="atm-icon-button lightbox-next" aria-label="下一张" onClick={() => moveLightbox(1)}>
         <ChevronRight size={22} />
       </button>
-    </div>,
+      </div>
+    </InspirationVisible>,
     document.body,
   ) : null;
 
   return (
-    <div
-      className={`anime-tag-master-node ${selected ? 'is-selected' : ''}`}
-      data-anime-tag-master-root
-      onWheelCapture={(event) => event.stopPropagation()}
-    >
+    <InspirationVisible>
+      <div
+        className={`anime-tag-master-node ${selected ? 'is-selected' : ''}`}
+        data-anime-tag-master-root
+        onWheelCapture={(event) => event.stopPropagation()}
+      >
       <Handle id="text" type="target" position={Position.Left} style={{ ...handleStyle, background: PORT_COLOR.text, top: 166 }} />
       <Handle id="image" type="target" position={Position.Left} style={{ ...handleStyle, background: PORT_COLOR.image, top: 204 }} />
       <Handle id="text" type="source" position={Position.Right} style={{ ...handleStyle, background: PORT_COLOR.text, top: 164 }} />
@@ -1435,11 +1485,11 @@ function AnimeTagMasterNode({ id, data, selected }: NodeProps) {
 
       <section className="anime-tag-master-section nodrag nopan">
         <div className="anime-tag-master-selected">
-          {renderPreviewImage(displaySelectedTag, displaySelectedTag?.name || '动漫标签')}
+          {renderPreviewImage(displaySelectedTag, displayAnimeTagName(displaySelectedTag, isEnglish) || '动漫标签')}
           <div>
-            <strong>{selectedTag?.chineseName || '请选择标签'}</strong>
+            <strong>{displayAnimeTagName(selectedTag, isEnglish) || '请选择标签'}</strong>
             <span>{selectedTag?.name || 'No tag selected'}</span>
-            <small>{selectedTag?.categoryName || '打开标签库选择'}</small>
+            <small>{displayAnimeTagCategory(selectedTag, isEnglish) || '打开标签库选择'}</small>
           </div>
         </div>
         <p className="anime-tag-master-cue">{selectedTag?.tags.slice(0, 14).join(', ')}</p>
@@ -1453,7 +1503,7 @@ function AnimeTagMasterNode({ id, data, selected }: NodeProps) {
         <div className="anime-tag-master-filter-row">
           <select aria-label="标签分类" value={category} onChange={(event) => updateCategory(event.target.value)}>
             <option value="all">全部分类</option>
-            {toCategoryOptions(categoryOptions).map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+            {toCategoryOptions(categoryOptions, isEnglish).map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
           </select>
           <select aria-label="标签来源" value={source} onChange={(event) => updateSource(event.target.value)}>
             <option value="all">全部来源</option>
@@ -1468,7 +1518,7 @@ function AnimeTagMasterNode({ id, data, selected }: NodeProps) {
             {ANIME_TAG_ONLINE_PROVIDERS.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
           </select>
           <select aria-label="在线图库分类" value={onlineCategory} onChange={(event) => updateOnlineCategory(event.target.value as AnimeTagOnlineCategoryId)}>
-            {ANIME_TAG_ONLINE_CATEGORY_OPTIONS.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+            {ANIME_TAG_ONLINE_CATEGORY_OPTIONS.map((item) => <option key={item.id} value={item.id}>{displayOnlineCategoryName(item, isEnglish)}</option>)}
           </select>
           <input aria-label="在线图库搜索词" value={onlineQuery} onChange={(event) => updateOnlineQuery(event.target.value)} onKeyDown={handleOnlineQueryKeyDown} placeholder="输入 booru tag" />
           <button type="button" className="anime-tag-master-online-search" aria-label="在线懒加载搜索" title="在线懒加载搜索" onClick={() => void searchOnline()}>
@@ -1499,8 +1549,8 @@ function AnimeTagMasterNode({ id, data, selected }: NodeProps) {
             const displayItem = itemWithLazyPreview(item) || item;
             return (
               <button key={item.id} type="button" className={selectedTag?.id === item.id ? 'active' : ''} onClick={() => selectOnlineItem(item)}>
-                {renderPreviewImage(displayItem, item.chineseName, false, false)}
-                <span className="anime-tag-master-grid-title">{item.chineseName}</span>
+                {renderPreviewImage(displayItem, displayAnimeTagName(item, isEnglish), false, false)}
+                <span className="anime-tag-master-grid-title">{displayAnimeTagName(item, isEnglish)}</span>
               </button>
             );
           })}
@@ -1525,7 +1575,8 @@ function AnimeTagMasterNode({ id, data, selected }: NodeProps) {
       {libraryModal}
       {lightbox}
       {hoverPreviewPopover}
-    </div>
+      </div>
+    </InspirationVisible>
   );
 }
 

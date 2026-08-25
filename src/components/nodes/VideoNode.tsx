@@ -1,6 +1,8 @@
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Handle, Position, useReactFlow, type NodeProps } from '@xyflow/react';
 import { AlertCircle, Loader2, Video as VideoIcon, Sparkles, Square, X } from 'lucide-react';
+import { useCanvasNodeRenderMode } from '../CanvasNodeRenderMode';
 import {
   VIDEO_MODELS,
   inferVideoBuiltinSource,
@@ -15,6 +17,9 @@ import {
   ZHENZHEN_VIDEO_V31_LITE_MODEL,
   ZHENZHEN_VIDEO_V31_QUALITY_MODEL,
   FASHVSR_VIDEO_UPSCALE_MODEL,
+  WAN30_I2V_MODELS,
+  WAN30_R2V_MODELS,
+  WAN30_THINKING_MODELS,
   GROK_VIDEO_1_5_NEW_SIZES,
   grokVideo15NewSizeFromRatio,
   isFalVideoModel,
@@ -63,8 +68,10 @@ import {
   type KlingModel,
   type UpscalerResolution,
   type ViduQ3Model,
+  type WanSubmitRequest,
 } from '../../services/generation';
 import { useUpdateNodeData } from './useUpdateNodeData';
+import NodeVisible from '../../i18n/NodeVisible';
 import { useHasAutoOutput } from './useHasAutoOutput';
 import { useRunTrigger } from '../../hooks/useRunTrigger';
 import { requestCanvasNodeRun } from '../../utils/canvasRunRequest';
@@ -160,6 +167,8 @@ const normalizeJimengSeedanceMode = (value: unknown): JimengSeedanceMode => {
 };
 
 const VideoNode = ({ id, data, selected }: NodeProps) => {
+  const { t: translate } = useTranslation(['nodes', 'common']);
+  const canvasRenderMode = useCanvasNodeRenderMode();
   const update = useUpdateNodeData(id);
   const hasAutoOutput = useHasAutoOutput(id);
   const { getEdges, getNodes } = useReactFlow();
@@ -267,6 +276,11 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
   const isFashVsr = isUpscaler && apiModel === FASHVSR_VIDEO_UPSCALE_MODEL;
   const isVidu = !isExternalSelected && modelDef.kind === 'vidu';
   const isWan = !isExternalSelected && modelDef.kind === 'wan';
+  const isWan30 = isWan && apiModel.startsWith('wan-3.0-');
+  const wan30Mode: 'i2v' | 'r2v' = (WAN30_I2V_MODELS as readonly string[]).includes(apiModel)
+    ? 'i2v'
+    : (WAN30_R2V_MODELS as readonly string[]).includes(apiModel) ? 'r2v' : 'i2v';
+  const wan30SupportsThinking = isWan30 && (WAN30_THINKING_MODELS as readonly string[]).includes(apiModel);
   const isApimartBudgetVideo = !isExternalSelected && isZhenzhenApimartVideoModel(apiModel);
   const isApimartOmni = apiModel === ZHENZHEN_VIDEO_G_OMNI_FLASH_MODEL;
   const isApimartOmniLowprice = apiModel === ZHENZHEN_VIDEO_G_OMNI_FLASH_LOWPRICE_MODEL;
@@ -385,6 +399,10 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
   const wanAudioUrl: string = typeof d?.wanAudioUrl === 'string' ? d.wanAudioUrl : '';
   const wanPromptExtend: boolean = d?.wanPromptExtend === true;
   const wanSeed: number = Number.isInteger(d?.wanSeed) ? d.wanSeed : -1;
+  const wan30Seed: number = Number.isInteger(d?.wan30Seed) ? d.wan30Seed : 0;
+  const wan30EnableThinking: boolean = d?.wan30EnableThinking === true;
+  const wan30FileUrl: string = typeof d?.wan30FileUrl === 'string' ? d.wan30FileUrl : '';
+  const wan30LinkUrl: string = typeof d?.wan30LinkUrl === 'string' ? d.wan30LinkUrl : '';
 
   // FAL 专属参数
   const isFal = isFalVideoModel(apiModel);
@@ -548,7 +566,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
     isUpscaler
       ? 0
       : isWan
-      ? 1
+      ? isWan30 ? wan30Mode === 'i2v' ? 2 : 10 : 1
       : isKling
       ? klingMode === 'i2v' ? 2 : klingMode === 'r2v' ? 4 : 0
       : isVidu
@@ -590,6 +608,8 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
       : modelDef.maxRefImages;
   const maxMentionVideos = isUpscaler
     ? 1
+    : isWan30 && wan30Mode === 'r2v'
+    ? 5
     : isKling && klingMode === 'edit'
     ? 1
     : isSeedance25 && seedance25Mode === 'multi'
@@ -605,6 +625,8 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
     : isJimengSeedanceSelected ? jimengSeedanceLimits.videos : 0;
   const maxMentionAudios = isSeedance25 && seedance25Mode === 'multi'
     ? SEEDANCE25_MULTI_MAX_AUDIOS
+    : isWan30 && wan30Mode === 'r2v'
+    ? 5
     : isMinimaxH3OwAudioDrive
     ? 1
     : isHailuoH3 && hailuoMode === 'multi'
@@ -634,6 +656,10 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
         ? apimartOmniLowpriceMode === 'reference_video' ? ['text', 'video'] : apimartOmniLowpriceMode === 'text' ? ['text'] : ['text', 'image']
       : isUpscaler
         ? ['video']
+      : isWan30 && wan30Mode === 'r2v'
+        ? ['text', 'image', 'video', 'audio']
+      : isWan30
+        ? ['text', 'image']
       : isKling && klingMode === 'edit'
         ? ['text', 'video']
       : isSeedance25 && seedance25Mode === 'multi'
@@ -647,7 +673,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
       : isHailuoH3 && hailuoMode === 'multi'
         ? ['text', 'image', 'video', 'audio']
         : ['text', 'image']),
-    [modelDef.kind, isJimengSeedanceSelected, isApimartOmni, isApimartOmniLowprice, apimartOmniLowpriceMode, isUpscaler, isKling, klingMode, isSeedance25, seedance25Mode, isFlux3, flux3Mode, isMinimaxH3OwAudioDrive, isHailuoH3, hailuoMode],
+    [modelDef.kind, isJimengSeedanceSelected, isApimartOmni, isApimartOmniLowprice, apimartOmniLowpriceMode, isUpscaler, isWan30, wan30Mode, isKling, klingMode, isSeedance25, seedance25Mode, isFlux3, flux3Mode, isMinimaxH3OwAudioDrive, isHailuoH3, hailuoMode],
   );
 
   // 收集上游 prompt + 参考图/视频/音频 (按用户拖拽顺序), 合并本地拖入素材
@@ -1057,7 +1083,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
     const finalPrompt = (upstreamPrompt || resolvedLocalPrompt || '').trim();
     if (
       !finalPrompt
-      && !isWan
+      && !(isWan && (!isWan30 || wan30Mode === 'i2v'))
       && !isUpscaler
       && !(isHappyHorse && happyHorseMode !== 't2v')
       && !(isHailuo && hailuoMode === 'i2v')
@@ -1301,7 +1327,40 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
         return;
       }
     }
-    if (isWan && imageUrls.length === 0) {
+    if (isWan30 && finalPrompt.length > 20000) {
+      setError('Wan 3.0 提示词不能超过 20000 字符');
+      return;
+    }
+    if (isWan30 && wan30Mode === 'i2v') {
+      if (imageUrls.length < 1 || imageUrls.length > 2) {
+        setError('Wan 3.0 I2V 必须提供 1-2 张图片（首帧/可选尾帧）');
+        logBus.error('生成中止: Wan 3.0 I2V 图片数量不合法', src);
+        return;
+      }
+      if (videoUrls.length || audioUrls.length || wan30FileUrl.trim() || wan30LinkUrl.trim()) {
+        setError('Wan 3.0 I2V 只接受首帧与可选尾帧图片');
+        return;
+      }
+    } else if (isWan30) {
+      if (imageUrls.length > 10 || videoUrls.length > 5 || audioUrls.length > 5) {
+        setError('Wan 3.0 R2V 最多支持 10 张图片、5 个视频和 5 个音频');
+        return;
+      }
+      if (wan30FileUrl.trim() && wan30LinkUrl.trim()) {
+        setError('Wan 3.0 R2V 的文件 URL 与网页 URL 不能同时填写');
+        return;
+      }
+      for (const [label, value] of [['文件 URL', wan30FileUrl], ['网页 URL', wan30LinkUrl]] as const) {
+        if (!value.trim()) continue;
+        try {
+          const parsed = new URL(value.trim());
+          if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error('protocol');
+        } catch {
+          setError(`Wan 3.0 ${label} 必须是 http(s) URL`);
+          return;
+        }
+      }
+    } else if (isWan && imageUrls.length === 0) {
       setError('Wan 2.7 Spicy 必须连接或拖入 1 张首帧图');
       logBus.error('生成中止: Wan 2.7 Spicy 缺少首帧图', src);
       return;
@@ -1553,6 +1612,47 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
       }
 
       if (isWan) {
+        if (isWan30) {
+          const wan30Images = imageUrls.slice(0, wan30Mode === 'i2v' ? 2 : 10);
+          const wan30Videos = wan30Mode === 'r2v' ? videoUrls.slice(0, 5) : [];
+          const wan30Audios = wan30Mode === 'r2v' ? audioUrls.slice(0, 5) : [];
+          const wan30Resolution = ['480P', '720P', '1080P'].includes(resolution) ? resolution : '480P';
+          logBus.info(
+            `提交 Wan 3.0: ${apiModel} · ${duration === -1 ? 'auto' : `${duration}s`} · ${wan30Resolution} · ${ratio} · 图${wan30Images.length}/视${wan30Videos.length}/音${wan30Audios.length}`,
+            src,
+          );
+          const result = await submitWan({
+            model: apiModel as WanSubmitRequest['model'],
+            prompt: finalPrompt || undefined,
+            duration: duration === -1 ? 'auto' : Number(duration) || 2,
+            resolution: wan30Resolution as '480P' | '720P' | '1080P',
+            ratio: (['adaptive', '16:9', '4:3', '1:1', '3:4', '9:16'].includes(ratio) ? ratio : 'adaptive') as WanSubmitRequest['ratio'],
+            images: wan30Images,
+            videos: wan30Videos,
+            audios: wan30Audios,
+            generateAudio,
+            enableThinking: wan30SupportsThinking && wan30EnableThinking,
+            fileUrl: wan30Mode === 'r2v' ? wan30FileUrl.trim() || undefined : undefined,
+            linkUrl: wan30Mode === 'r2v' ? wan30LinkUrl.trim() || undefined : undefined,
+            seed: wan30Seed,
+          }, { submissionKey: reporter?.providerSubmissionKey });
+          if (!isCurrentGenerationRun(runId)) return;
+          await reporter?.providerSubmitted({
+            provider: traceProvider,
+            model: traceModel,
+            upstreamTaskId: result.taskId,
+            requestId: result.requestId,
+            transportHttpStatus: result.transportHttpStatus,
+            upstreamHttpStatus: result.upstreamHttpStatus,
+            usage: result.usage,
+            httpStatusSource: 'local-backend',
+          });
+          update({ status: 'polling', taskId: result.taskId, lastPrompt: finalPrompt, progress: '0%', provider: 'seedance-nz', apiModel });
+          logBus.info(`Wan 3.0 任务 ${result.taskId} 已提交，开始轮询`, src);
+          await startPolling(result.taskId, runId, reporter);
+          return;
+        }
+
         const firstImage = imageUrls[0];
         logBus.info(
           `提交 Wan 2.7 Spicy: ${apiModel} · ${duration}s · ${resolution || '720p'} · promptExtend=${wanPromptExtend}`,
@@ -2122,8 +2222,25 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
     ? `上游素材 · 图${Math.min(refsCount, jimengImageLimit)}/${jimengImageLimit} 视${Math.min(videoRefsCount, jimengSeedanceLimits.videos)}/${jimengSeedanceLimits.videos} 音${Math.min(audioRefsCount, jimengSeedanceLimits.audios)}/${jimengSeedanceLimits.audios}`
     : `上游素材 · 参考图 ${Math.min(refsCount, maxMentionRefs)}/${maxMentionRefs}`;
 
+  if (canvasRenderMode === 'cold') {
+    return (
+      <div className="t8-node-cold-shell w-[300px]" data-t8-node-cold-shell="video" style={{ minHeight: 112 }}>
+        <Handle type="target" position={Position.Left} className="!border-0 !bg-rose-400" />
+        <Handle type="source" position={Position.Right} className="!border-0 !bg-rose-400" />
+        <div className="t8-node-cold-shell__header">
+          <VideoIcon size={16} className="shrink-0 text-rose-300" />
+          <div className="t8-node-cold-shell__copy">
+            <strong>{translate(isFashVsrVariant ? 'nodes:video.flashTitle' : 'nodes:video.title')}</strong>
+            <small>{apiModel || modelDef.label || 'Video'} · {translate('common:performance.offscreenPreview')}</small>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div
+    <NodeVisible>
+      <div
       {...dropProps}
       className={`relative rounded-xl border-2 transition-all w-[300px] ${
         selected ? 'border-rose-400 shadow-2xl shadow-rose-500/20' : isAccepting ? 'border-emerald-400' : 'border-white/15 hover:border-white/30'
@@ -2145,12 +2262,12 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
           <VideoIcon size={13} />
         </div>
         <div className="flex-1">
-          <div className="text-sm font-semibold text-white">{isFashVsrVariant ? 'FlashVSR 视频超分' : '视频'}</div>
+          <div className="text-sm font-semibold text-white">{translate(isFashVsrVariant ? 'nodes:video.flashTitle' : 'nodes:video.title')}</div>
           <div className="text-[10px] text-white/40">
             {isExternalSelected && providerSelection.provider
-              ? `${providerSelection.provider.label || providerSelection.provider.id} · ${externalProviderModel || '未选模型'}`
+              ? `${providerSelection.provider.label || providerSelection.provider.id} · ${externalProviderModel || translate('nodes:generation.unselectedModel')}`
               : isSeedanceNzVideo
-                ? `贞贞的平价AI小屋 · ${apiModel}`
+                ? `${translate('nodes:generation.budgetHouse')} · ${apiModel}`
               : `${modelDef.label} · ${modelDef.kind}`}
           </div>
         </div>
@@ -2164,19 +2281,19 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
               onClick={() => update({ advancedProviderOpen: !d?.advancedProviderOpen })}
               className="w-full flex items-center justify-between text-[10px] font-semibold text-white/70 hover:text-white"
             >
-              <span>高级来源</span>
+              <span>{translate('nodes:generation.advancedSource')}</span>
               <span>
                 {isExternalSelected && providerSelection.provider
                   ? providerSelection.provider.label
                   : videoBuiltinSource === 'seedance-nz'
-                    ? '贞贞的平价AI小屋'
-                    : '贞贞的AI工坊'}
+                    ? translate('nodes:generation.budgetHouse')
+                    : translate('nodes:generation.workshop')}
               </span>
             </button>
             {d?.advancedProviderOpen && (
               <div className="space-y-2">
                 <div>
-                  <label className="text-[10px] text-white/50 block mb-1">平台</label>
+                  <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.platform')}</label>
                   <select
                     value={isExternalSelected
                       ? providerSelection.providerId
@@ -2214,8 +2331,8 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
                     style={{ background: '#18181b', color: '#ffffff' }}
                     className="w-full rounded border border-white/10 px-2 py-1 text-xs outline-none focus:border-white/30"
                   >
-                    <option value="zhenzhen" style={{ background: '#18181b', color: '#ffffff' }}>贞贞的AI工坊（默认）</option>
-                    <option value="builtin:seedance-nz" style={{ background: '#18181b', color: '#ffffff' }}>贞贞的平价AI小屋</option>
+                    <option value="zhenzhen" style={{ background: '#18181b', color: '#ffffff' }}>{translate('nodes:generation.workshopDefault')}</option>
+                    <option value="builtin:seedance-nz" style={{ background: '#18181b', color: '#ffffff' }}>{translate('nodes:generation.budgetHouse')}</option>
                     {videoAdvancedProviders.map((provider) => (
                       <option key={provider.id} value={provider.id} style={{ background: '#18181b', color: '#ffffff' }}>
                         {provider.label || provider.id}
@@ -2225,7 +2342,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
                 </div>
                 {isExternalSelected && providerSelection.provider && (
                   <div>
-                    <label className="text-[10px] text-white/50 block mb-1">外部模型</label>
+                    <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.externalModel')}</label>
                     <select
                       value={externalProviderModel}
                       onChange={(e) => {
@@ -2261,7 +2378,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
                 )}
                 {savedExternalMissing && (
                   <div className="text-[10px] text-amber-200 bg-amber-500/10 border border-amber-500/20 rounded px-2 py-1">
-                    当前画布记录的扩展平台未启用或不存在，已临时回到默认来源。
+                    {translate('nodes:generation.missingProvider')}
                   </div>
                 )}
               </div>
@@ -2287,7 +2404,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
         {/* 子模型(主项目 veo_model / gk_model) */}
         {!isExternalSelected && builtinApiModelOptions.length > 1 && (
           <div>
-            <label className="text-[10px] text-white/50 block mb-1">具体模型</label>
+            <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.specificModel')}</label>
             <select
               value={apiModel}
               onChange={(e) => {
@@ -2321,6 +2438,9 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
                      : {}),
                    ...(nextModel.startsWith('flux-3-video-')
                      ? { ratio: 'auto', duration: 5, resolution: 'hd', flux3Draft: false, flux3AudioMode: 'api_default', flux3SafetyTolerance: 'api_default' }
+                     : {}),
+                   ...(nextModel.startsWith('wan-3.0-')
+                     ? { ratio: 'adaptive', duration: 2, resolution: '480P', generateAudio: true, wan30Seed: 0, wan30EnableThinking: false, wan30FileUrl: '', wan30LinkUrl: '' }
                      : {}),
                    ...(nextModel.endsWith('-short-play')
                      ? { ratio: '9:16', duration: 8, resolution: '1080p' }
@@ -2359,13 +2479,13 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
           <>
             <div className="grid grid-cols-2 gap-1.5">
               <div>
-                <label className="text-[10px] text-white/50 block mb-1">比例 (FAL)</label>
+                <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.aspectRatio')} (FAL)</label>
                 <select value={vfRatio} onChange={(e) => update({ vfRatio: e.target.value })} className="w-full rounded bg-white/5 border border-white/10 px-2 py-1 text-xs text-white outline-none focus:border-white/30">
                   {VEO_FAL_RATIOS.map((r) => <option key={r} value={r} className="bg-zinc-900">{r}</option>)}
                 </select>
               </div>
               <div>
-                <label className="text-[10px] text-white/50 block mb-1">时长</label>
+                <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.duration')}</label>
                 <select value={vfDuration} onChange={(e) => update({ vfDuration: e.target.value })} className="w-full rounded bg-white/5 border border-white/10 px-2 py-1 text-xs text-white outline-none focus:border-white/30">
                   {VEO_FAL_DURATIONS.map((d) => <option key={d} value={d} className="bg-zinc-900">{d}</option>)}
                 </select>
@@ -2373,7 +2493,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
             </div>
             <div className="grid grid-cols-2 gap-1.5">
               <div>
-                <label className="text-[10px] text-white/50 block mb-1">分辨率</label>
+                <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.resolution')}</label>
                 <select value={vfResolution} onChange={(e) => update({ vfResolution: e.target.value })} className="w-full rounded bg-white/5 border border-white/10 px-2 py-1 text-xs text-white outline-none focus:border-white/30">
                   {VEO_FAL_RESOLUTIONS.map((r) => <option key={r} value={r} className="bg-zinc-900">{r}</option>)}
                 </select>
@@ -2417,7 +2537,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
                   </select>
                 </div>
                 <div>
-                  <label className="text-[10px] text-white/50 block mb-1">比例 (FAL)</label>
+                  <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.aspectRatio')} (FAL)</label>
                   <select value={gkfRatio} onChange={(e) => update({ gkfRatio: e.target.value })} className="w-full rounded bg-white/5 border border-white/10 px-2 py-1 text-xs text-white outline-none focus:border-white/30">
                     {GROK_FAL_RATIOS.map((r) => <option key={r} value={r} className="bg-zinc-900">{r}</option>)}
                   </select>
@@ -2426,11 +2546,11 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
             )}
             <div className="grid grid-cols-2 gap-1.5">
               <div>
-                <label className="text-[10px] text-white/50 block mb-1">时长(s)</label>
+                <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.durationSeconds')}</label>
                 <input type="number" value={gkfDuration} min={1} max={30} onChange={(e) => update({ gkfDuration: Number(e.target.value) || 6 })} className="w-full rounded bg-white/5 border border-white/10 px-2 py-1 text-xs text-white outline-none focus:border-white/30" />
               </div>
               <div>
-                <label className="text-[10px] text-white/50 block mb-1">分辨率</label>
+                <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.resolution')}</label>
                 <select value={gkfResolution} onChange={(e) => update({ gkfResolution: e.target.value })} className="w-full rounded bg-white/5 border border-white/10 px-2 py-1 text-xs text-white outline-none focus:border-white/30">
                   {GROK_FAL_RESOLUTIONS.map((r) => <option key={r} value={r} className="bg-zinc-900">{r}</option>)}
                 </select>
@@ -2467,7 +2587,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
                 </select>
               </div>
               <div>
-                <label className="text-[10px] text-white/50 block mb-1">比例</label>
+                <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.aspectRatio')}</label>
                 <select value={soraRatio} onChange={(e) => update({ soraRatio: e.target.value })} className="w-full rounded bg-white/5 border border-white/10 px-2 py-1 text-xs text-white outline-none focus:border-white/30">
                   {SORA2_FAL_RATIOS.map((r) => <option key={r} value={r} className="bg-zinc-900">{r}</option>)}
                 </select>
@@ -2475,13 +2595,13 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
             </div>
             <div className="grid grid-cols-2 gap-1.5">
               <div>
-                <label className="text-[10px] text-white/50 block mb-1">时长</label>
+                <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.duration')}</label>
                 <select value={String(soraDuration)} onChange={(e) => update({ soraDuration: Number(e.target.value) || 4 })} className="w-full rounded bg-white/5 border border-white/10 px-2 py-1 text-xs text-white outline-none focus:border-white/30">
                   {SORA2_FAL_DURATIONS.map((d) => <option key={d} value={d} className="bg-zinc-900">{d}s</option>)}
                 </select>
               </div>
               <div>
-                <label className="text-[10px] text-white/50 block mb-1">分辨率</label>
+                <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.resolution')}</label>
                 <select value={soraResolution} onChange={(e) => update({ soraResolution: e.target.value })} className="w-full rounded bg-white/5 border border-white/10 px-2 py-1 text-xs text-white outline-none focus:border-white/30">
                   {SORA2_FAL_RESOLUTIONS.map((r) => <option key={r} value={r} className="bg-zinc-900">{r}</option>)}
                 </select>
@@ -2657,15 +2777,15 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
             )}
             <div className="grid grid-cols-2 gap-1.5">
               <div>
-                <label className="text-[10px] text-white/50 block mb-1">生成音频</label>
+                  <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:video.generateAudio')}</label>
                 <select
                   value={flux3AudioMode}
                   onChange={(e) => update({ flux3AudioMode: e.target.value })}
                   className="w-full rounded bg-white/5 border border-white/10 px-2 py-1 text-xs text-white outline-none focus:border-amber-300/40"
                 >
                   <option value="api_default" className="bg-zinc-900">API 默认</option>
-                  <option value="enabled" className="bg-zinc-900">开启</option>
-                  <option value="disabled" className="bg-zinc-900">关闭</option>
+                  <option value="enabled" className="bg-zinc-900">{translate('nodes:generation.enabled')}</option>
+                  <option value="disabled" className="bg-zinc-900">{translate('nodes:generation.disabled')}</option>
                 </select>
               </div>
               <div>
@@ -2798,14 +2918,92 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
           </div>
         )}
 
-        {isWan && (
+        {isWan && (isWan30 ? (
+          <div className="rounded border border-orange-300/20 bg-orange-400/[0.06] p-2 space-y-2">
+            <div className="text-[10px] leading-relaxed text-white/60">
+              {wan30Mode === 'i2v'
+                ? translate('nodes:video.wan30I2vHint')
+                : translate('nodes:video.wan30R2vHint')}
+              <div className="mt-1 text-white/35">{translate('nodes:video.wan30BudgetHint')}</div>
+            </div>
+            <div className="grid grid-cols-2 gap-1.5">
+              <div>
+                <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.aspectRatio')}</label>
+                <select
+                  value={ratio}
+                  onChange={(e) => update({ ratio: e.target.value })}
+                  className="w-full rounded bg-white/5 border border-white/10 px-2 py-1 text-xs text-white outline-none focus:border-orange-300/40"
+                >
+                  {['adaptive', '16:9', '4:3', '1:1', '3:4', '9:16'].map((item) => (
+                    <option key={item} value={item} className="bg-zinc-900">{item}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:video.generateAudio')}</label>
+                <select
+                  value={generateAudio ? 'enabled' : 'disabled'}
+                  onChange={(e) => update({ generateAudio: e.target.value === 'enabled' })}
+                  className="w-full rounded bg-white/5 border border-white/10 px-2 py-1 text-xs text-white outline-none focus:border-orange-300/40"
+                >
+                  <option value="enabled" className="bg-zinc-900">{translate('nodes:generation.enabled')}</option>
+                  <option value="disabled" className="bg-zinc-900">{translate('nodes:generation.disabled')}</option>
+                </select>
+              </div>
+            </div>
+            {wan30SupportsThinking && (
+              <label className="flex items-center gap-1.5 text-[10px] text-white/60 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={wan30EnableThinking}
+                  onChange={(e) => update({ wan30EnableThinking: e.target.checked })}
+                  className="accent-orange-400"
+                />
+                {translate('nodes:video.wan30Thinking')}
+              </label>
+            )}
+            {wan30Mode === 'r2v' && (
+              <div className="grid grid-cols-2 gap-1.5">
+                <div>
+                  <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:video.wan30FileUrl')}</label>
+                  <input
+                    value={wan30FileUrl}
+                    onChange={(e) => update({ wan30FileUrl: e.target.value })}
+                    placeholder="https://..."
+                    className="w-full rounded bg-white/5 border border-white/10 px-2 py-1 text-xs text-white outline-none focus:border-orange-300/40 placeholder:text-white/25"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:video.wan30WebUrl')}</label>
+                  <input
+                    value={wan30LinkUrl}
+                    onChange={(e) => update({ wan30LinkUrl: e.target.value })}
+                    placeholder="https://..."
+                    className="w-full rounded bg-white/5 border border-white/10 px-2 py-1 text-xs text-white outline-none focus:border-orange-300/40 placeholder:text-white/25"
+                  />
+                </div>
+              </div>
+            )}
+            <div>
+              <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:video.wan30Seed')}</label>
+              <input
+                type="number"
+                min={0}
+                max={2147483647}
+                value={wan30Seed}
+                onChange={(e) => update({ wan30Seed: Math.max(0, Math.min(2147483647, Number(e.target.value) || 0)) })}
+                className="w-full rounded bg-white/5 border border-white/10 px-2 py-1 text-xs text-white outline-none focus:border-orange-300/40"
+              />
+            </div>
+          </div>
+        ) : (
           <div className="rounded border border-orange-300/20 bg-orange-400/[0.06] p-2 space-y-2">
             <div className="text-[10px] leading-relaxed text-white/60">
               Wan 2.7 Spicy 仅支持图生视频，必须提供 1 张首帧图；提示词可选。
               <div className="mt-1 text-white/35">贞贞的平价AI小屋 · 海外模型 · 2-15 秒 · 720p / 1080p</div>
             </div>
             <div>
-              <label className="text-[10px] text-white/50 block mb-1">反向提示词（可选）</label>
+              <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.negativePromptOptional')}</label>
               <textarea
                 value={wanNegativePrompt}
                 onChange={(e) => update({ wanNegativePrompt: e.target.value })}
@@ -2833,7 +3031,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
                 扩写提示词
               </label>
               <div>
-                <label className="text-[10px] text-white/50 block mb-1">Seed（-1 随机）</label>
+                <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.seedRandom')}</label>
                 <input
                   type="number"
                   min={-1}
@@ -2845,7 +3043,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
               </div>
             </div>
           </div>
-        )}
+        ))}
 
         {isJimengSeedanceSelected && (
           <div className="rounded border border-white/10 bg-white/5 p-1.5 space-y-1">
@@ -2895,7 +3093,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
         {showGenericVideoControls && !isGrok15New && !isWan && !isHailuo && !isKling && !isUpscaler && !isVidu && (
         <div className="grid grid-cols-2 gap-1.5">
           <div>
-            <label className="text-[10px] text-white/50 block mb-1">比例</label>
+            <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.aspectRatio')}</label>
             <select
               value={ratio}
               onChange={(e) => update({ ratio: e.target.value })}
@@ -2909,7 +3107,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
           {/* 时长(grok / seedance) */}
           {durationOptions.length > 0 && (
             <div>
-              <label className="text-[10px] text-white/50 block mb-1">时长(s)</label>
+              <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.durationSeconds')}</label>
               <select
                 value={String(duration)}
                 onChange={(e) => update({ duration: Number(e.target.value) })}
@@ -2952,7 +3150,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
             <div className="grid grid-cols-2 gap-1.5">
               {(hailuoMode !== 'i2v' || isMinimaxH3Ow) && (
                 <div>
-                  <label className="text-[10px] text-white/50 block mb-1">比例</label>
+                  <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.aspectRatio')}</label>
                   <select
                     value={ratio}
                     onChange={(e) => update({ ratio: e.target.value })}
@@ -2965,7 +3163,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
                 </div>
               )}
               <div>
-                <label className="text-[10px] text-white/50 block mb-1">时长(s)</label>
+                <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.durationSeconds')}</label>
                 <select
                   value={String(hailuoDuration)}
                   onChange={(e) => {
@@ -2989,7 +3187,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
               </div>
             </div>
             <div>
-              <label className="text-[10px] text-white/50 block mb-1">分辨率</label>
+              <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.resolution')}</label>
               <select
                 value={isMinimaxH3Ow
                   ? resolution === '720p' ? '720p' : '480p'
@@ -3021,7 +3219,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
             <div className={klingMode === 'edit' ? '' : 'grid grid-cols-2 gap-1.5'}>
               {klingMode !== 'edit' && (
                 <div>
-                  <label className="text-[10px] text-white/50 block mb-1">比例</label>
+                  <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.aspectRatio')}</label>
                   <select
                     value={ratio}
                     onChange={(e) => update({ ratio: e.target.value })}
@@ -3034,7 +3232,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
                 </div>
               )}
               <div>
-                <label className="text-[10px] text-white/50 block mb-1">时长(s)</label>
+                <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.durationSeconds')}</label>
                 <select
                   value={String(klingDuration)}
                   onChange={(e) => update({ duration: Number(e.target.value) })}
@@ -3048,7 +3246,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
             </div>
             {klingMode !== 'edit' && (
               <div>
-                <label className="text-[10px] text-white/50 block mb-1">反向提示词（可选）</label>
+                <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.negativePromptOptional')}</label>
                 <textarea
                   value={klingNegativePrompt}
                   maxLength={20480}
@@ -3076,7 +3274,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
             )}
             <div className="grid grid-cols-2 gap-1.5">
               <div>
-                <label className="text-[10px] text-white/50 block mb-1">比例</label>
+                <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.aspectRatio')}</label>
                 <select
                   value={viduRatio}
                   onChange={(e) => update({ ratio: e.target.value })}
@@ -3088,7 +3286,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
                 </select>
               </div>
               <div>
-                <label className="text-[10px] text-white/50 block mb-1">时长(s)</label>
+                <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.durationSeconds')}</label>
                 <select
                   value={String(viduDuration)}
                   onChange={(e) => update({ duration: Number(e.target.value) })}
@@ -3102,7 +3300,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
             </div>
             <div className="grid grid-cols-2 gap-1.5">
               <div>
-                <label className="text-[10px] text-white/50 block mb-1">分辨率</label>
+                <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.resolution')}</label>
                 <select
                   value={viduResolution}
                   disabled={viduMode === 'short-play'}
@@ -3129,7 +3327,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
                 </div>
               ) : (
                 <div>
-                  <label className="text-[10px] text-white/50 block mb-1">Seed（-1 随机）</label>
+                  <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.seedRandom')}</label>
                   <input
                     type="number"
                     min={-1}
@@ -3177,14 +3375,14 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
 
         {isWan && durationOptions.length > 0 && (
           <div>
-            <label className="text-[10px] text-white/50 block mb-1">时长(s)</label>
+            <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.durationSeconds')}</label>
             <select
               value={String(duration)}
               onChange={(e) => update({ duration: Number(e.target.value) })}
               className="w-full rounded bg-white/5 border border-white/10 px-2 py-1 text-xs text-white outline-none focus:border-white/30"
             >
               {durationOptions.map((seconds) => (
-                <option key={seconds} value={seconds} className="bg-zinc-900">{seconds}s</option>
+                <option key={seconds} value={seconds} className="bg-zinc-900">{seconds === -1 ? 'auto' : `${seconds}s`}</option>
               ))}
             </select>
           </div>
@@ -3193,7 +3391,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
         {/* 分辨率(仅 grok 非FAL) */}
         {showGenericVideoControls && !isHailuo && !isKling && !isVidu && resolutionOptions.length > 0 && (
           <div>
-            <label className="text-[10px] text-white/50 block mb-1">分辨率</label>
+            <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.resolution')}</label>
             <select
               value={resolution || resolutionOptions[0]}
               onChange={(e) => update({ resolution: e.target.value })}
@@ -3273,7 +3471,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
         {/* Seed(非FAL) */}
         {showGenericVideoControls && !isHappyHorse && !isFlux3 && !isKling && !isUpscaler && !isWan && !isApimartBudgetVideo && (
         <div>
-          <label className="text-[10px] text-white/50 block mb-1">Seed (0=随机)</label>
+          <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.seedRandom')}</label>
           <input
             type="number"
             value={seed}
@@ -3373,7 +3571,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
                       data-drag-node-id={id}
                       onMouseDown={(e) => beginMaterialDrag(e, { kind: 'audio', url: u, sourceNodeId: id, previewUrl: u })}
                       className="text-[14px] cursor-grab"
-                      title="按住 Ctrl 拖拽"
+                      title={translate('nodes:generation.ctrlDrag')}
                     >
                       ♪
                     </span>
@@ -3393,20 +3591,22 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
 
         {/* Prompt */}
         {!isUpscaler && <div>
-          <label className="text-[10px] text-white/50 block mb-1">
-            {isVidu && viduMode === 'short-play'
-              ? '短剧脚本内容（必填）'
+              <label className="text-[10px] text-white/50 block mb-1">
+                {isWan30 && wan30Mode === 'r2v'
+                  ? translate('nodes:video.wan30LocalPromptRequired')
+                  : isVidu && viduMode === 'short-play'
+                  ? '短剧脚本内容（必填）'
               : isKling && klingMode !== 'i2v'
                 ? '本地 Prompt（必填）'
                 : '本地 Prompt(可选)'}
           </label>
           <MentionPromptInput
-            title="视频 Prompt"
+            title={translate('nodes:video.promptTitle')}
             value={localPrompt}
             mentions={promptMentions}
             materials={mentionMaterials}
             onChange={(value, mentions) => update({ prompt: value, promptMentions: mentions })}
-            placeholder="备用:无上游连接时使用"
+            placeholder={translate('nodes:generation.promptFallback')}
             isDark={isDark}
             isPixel={isPixel}
             promptTemplateKind="video"
@@ -3426,14 +3626,14 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
             onClick={() => requestCanvasNodeRun(id)}
             className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 text-xs font-medium transition-colors"
           >
-            <Sparkles size={12} /> {isUpscaler ? '开始超分' : '生成视频'}
+            <Sparkles size={12} /> {translate(isUpscaler ? 'nodes:video.startUpscale' : 'nodes:video.generateVideo')}
           </button>
         ) : (
           <button
             onClick={handleStop}
             className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded bg-zinc-500/20 hover:bg-zinc-500/30 text-zinc-200 text-xs font-medium transition-colors"
           >
-            <Square size={11} /> 停止({progress || (status === 'submitting' ? '提交中' : '排队中')})
+            <Square size={11} /> {translate('nodes:generation.stopWithStatus', { status: progress || translate(status === 'submitting' ? 'nodes:video.submitting' : 'nodes:video.queued') })}
           </button>
         )}
 
@@ -3465,16 +3665,17 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
             data-drag-url={videoUrl}
             data-drag-preview={videoUrl}
             data-drag-node-id={id}
-            data-resource-title={videoUrl.split('/').pop() || '生成视频'}
+            data-resource-title={videoUrl.split('/').pop() || translate('nodes:video.generatedVideo')}
             data-prompt-template-kind="video"
             data-prompt-template-category="video-image-to-video"
             data-prompt-template-prompt={d?.lastPrompt || localPrompt}
             onMouseDown={(e) => beginMaterialDrag(e, { kind: 'video', url: videoUrl, sourceNodeId: id, previewUrl: videoUrl })}
-            title="按住 Ctrl 拖拽到其他节点"
+            title={translate('nodes:video.dragHint')}
           />
         </div>
       )}
-    </div>
+      </div>
+    </NodeVisible>
   );
 };
 

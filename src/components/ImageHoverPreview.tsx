@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { Eye } from 'lucide-react';
+import { previewImageUrl } from '../utils/mediaPreview';
 import {
   placeImagePreviewPanel,
   type ImagePreviewRect,
@@ -13,6 +14,7 @@ type ImageHoverPreviewProps = {
   buttonClassName?: string;
   iconSize?: number;
   title?: string;
+  onOpen?: () => void;
 };
 
 function rectFromDom(rect: DOMRect): ImagePreviewRect {
@@ -31,12 +33,14 @@ export default function ImageHoverPreview({
   alt,
   buttonClassName = '',
   iconSize = 14,
-  title = '悬停预览100%',
+  title = '悬停预览，点击查看原图',
+  onOpen,
 }: ImageHoverPreviewProps) {
   const buttonRef = useRef<HTMLButtonElement | null>(null);
   const [open, setOpen] = useState(false);
   const [anchor, setAnchor] = useState<ImagePreviewRect | null>(null);
   const [naturalSize, setNaturalSize] = useState<ImagePreviewSize | null>(null);
+  const hoverSrc = useMemo(() => previewImageUrl(src, 1024), [src]);
 
   const updateAnchor = useCallback(() => {
     const rect = buttonRef.current?.getBoundingClientRect();
@@ -109,6 +113,8 @@ export default function ImageHoverPreview({
         onClick={(event) => {
           event.preventDefault();
           event.stopPropagation();
+          hidePreview();
+          onOpen?.();
         }}
       >
         <Eye size={iconSize} />
@@ -118,7 +124,7 @@ export default function ImageHoverPreview({
             <div className="t8-image-preview-popover" style={panelStyle}>
               <img
                 className="t8-image-preview-popover__image"
-                src={src}
+                src={hoverSrc}
                 alt={alt || title}
                 width={placement.width}
                 height={placement.height}

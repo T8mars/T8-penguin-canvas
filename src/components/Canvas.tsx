@@ -1,4 +1,6 @@
 import { createContext, lazy, Suspense, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ComponentType, type CSSProperties, type DragEvent as ReactDragEvent, type MouseEvent as ReactMouseEvent, type RefObject, type SetStateAction } from 'react';
+import { useTranslation } from 'react-i18next';
+import NodeDomLanguageBoundary from '../i18n/NodeDomLanguageBoundary';
 import {
   ReactFlow,
   Background,
@@ -36,10 +38,25 @@ import { getTemplateMode, resolveThemeTemplate } from '../theme/defaultTemplates
 import { createCanvasNodeExecutionKey, matchesRunCompletion, registerRunNodeExecutionContexts, useRunBusStore, type RunNodeExecutionContext } from '../stores/runBus';
 import { useGroupBusStore, GROUP_COLORS, DEFAULT_GROUP_NAME } from '../stores/groupBus';
 import { useRadialMenuStore } from '../stores/radialMenu';
+import { useCanvasPerformanceStore } from '../stores/performance';
 import { topologicalSort } from '../utils/topologicalSort';
 import { excludeRandomRouteBranchDescendants } from '../utils/randomRoute';
 import { createRunLaunchQueue } from '../utils/runLaunchQueue';
 import { installGlobalWheelBlockObserver } from '../utils/wheelBlock';
+import {
+  CANVAS_NODE_TEMPERATURE_EVENT,
+  installCanvasNodeVisibilityObserver,
+} from '../utils/canvasNodeVisibility';
+import { markCanvasPerformance } from '../utils/canvasPerformanceProbe';
+import {
+  estimateCanvasHeavyMediaCount,
+  isPerformancePinnedNode,
+  resolveCanvasPerformanceDecision,
+} from '../utils/canvasPerformance';
+import {
+  buildCanvasPerformanceFixture,
+  readCanvasPerformanceFixtureSize,
+} from '../utils/canvasPerformanceFixture';
 import {
   resolveCanvasZoomReadabilityTier,
   snapCanvasViewportToDevicePixels,
@@ -220,6 +237,13 @@ import type { FarmStoryPanelCanvasHint } from './FarmStoryPanel';
 import SendMaterialsModal from './SendMaterialsModal';
 import RunPreflightModal from './RunPreflightModal';
 import SmartImage from './SmartImage';
+import CanvasPerformanceControl from './CanvasPerformanceControl';
+import {
+  CanvasNodeRenderModeProvider,
+  CanvasPerformanceRenderProvider,
+  useCanvasPerformanceRenderingEnabled,
+  type CanvasNodeRenderMode,
+} from './CanvasNodeRenderMode';
 import { useCanvasHistory } from '../hooks/useCanvasHistory';
 import { materializeCanvasPatchDraft, type CanvasPatchDraft, type WorkflowDoctorCanvasHighlight } from '../utils/workflowDoctor';
 import {
@@ -287,6 +311,7 @@ import type { CanvasTemplate } from '../config/canvasTemplates';
 import type { CanvasPatch, CanvasPatchPreview, CanvasPatchRecord, VersionedCanvasData, RunContext, RunIntent } from '../types/project';
 import PlaceholderNode from './nodes/PlaceholderNode';
 import DeletableEdge from './edges/DeletableEdge';
+import PerformanceEdge from './edges/PerformanceEdge';
 import { NODE_REGISTRY } from '../config/nodeRegistry';
 import { EXECUTABLE_NODE_TYPES } from '../config/executableNodeTypes';
 import type { CreativeDeskState, FarmAnimalProductId, FarmCanvasState, FarmCropId, FarmDecorObjectType, FarmEventLogItem, FarmTool, NodeType, NodeMeta } from '../types/canvas';
@@ -1691,13 +1716,47 @@ function WorkflowDoctorNodeMarker({ nodeId }: { nodeId: string }) {
 }
 
 function withNodeSerialBadge(Component: ComponentType<any>): ComponentType<any> {
-  const WrappedNode = (props: any) => (
-    <>
-      <Component {...props} />
-      <NodeSerialBadge data={props?.data} />
-      <WorkflowDoctorNodeMarker nodeId={String(props?.id || '')} />
-    </>
-  );
+  const WrappedNode = (props: any) => {
+    const performanceRenderingEnabled = useCanvasPerformanceRenderingEnabled();
+    const pinned = isPerformancePinnedNode(props);
+    const anchorRef = useRef<HTMLSpanElement | null>(null);
+    const [temperature, setTemperature] = useState<CanvasNodeRenderMode>(() => (
+      performanceRenderingEnabled && !pinned ? 'cold' : 'hot'
+    ));
+
+    useEffect(() => {
+      if (!performanceRenderingEnabled || pinned) {
+        setTemperature('hot');
+        return undefined;
+      }
+      const nodeElement = anchorRef.current?.closest<HTMLElement>('.react-flow__node');
+      if (!nodeElement) return undefined;
+      const syncTemperature = () => {
+        setTemperature(nodeElement.dataset.t8ViewportTemperature === 'hot' ? 'hot' : 'cold');
+      };
+      const onTemperature = (event: Event) => {
+        const next = (event as CustomEvent<{ temperature?: unknown }>).detail?.temperature;
+        setTemperature(next === 'hot' ? 'hot' : 'cold');
+      };
+      syncTemperature();
+      nodeElement.addEventListener(CANVAS_NODE_TEMPERATURE_EVENT, onTemperature);
+      return () => nodeElement.removeEventListener(CANVAS_NODE_TEMPERATURE_EVENT, onTemperature);
+    }, [performanceRenderingEnabled, pinned, props?.id]);
+
+    const renderMode: CanvasNodeRenderMode = performanceRenderingEnabled && !pinned ? temperature : 'hot';
+    return (
+      <CanvasNodeRenderModeProvider mode={renderMode}>
+        <Component {...props} />
+        {/* Keep the visible node card as the first element child. Every visual
+            theme intentionally skins that stable surface with
+            `.react-flow__node > div:first-child`; placing the performance
+            observer anchor before it silently disabled light-mode styling. */}
+        <span ref={anchorRef} className="t8-node-temperature-anchor" aria-hidden="true" />
+        <NodeSerialBadge data={props?.data} />
+        <WorkflowDoctorNodeMarker nodeId={String(props?.id || '')} />
+      </CanvasNodeRenderModeProvider>
+    );
+  };
   WrappedNode.displayName = `NodeSerialBadge(${Component.displayName || Component.name || 'Node'})`;
   return WrappedNode;
 }
@@ -3119,6 +3178,10 @@ const edgeTypes = {
   default: DeletableEdge,
   deletable: DeletableEdge,
 };
+const performanceEdgeTypes = {
+  default: PerformanceEdge,
+  deletable: PerformanceEdge,
+};
 
 export interface AddNodeOptions {
   atScreen?: { x: number; y: number };
@@ -3580,6 +3643,7 @@ function PlacementShelf({
   onMoveNode: (item: PlacementShelfItem, point: { x: number; y: number }) => void;
   onRemove: (id: string) => void;
 }) {
+  const { t } = useTranslation('canvas');
   const [drag, setDrag] = useState<{ item: PlacementShelfItem; x: number; y: number } | null>(null);
 
   useEffect(() => {
@@ -3644,10 +3708,10 @@ function PlacementShelf({
             type="button"
             className={isPixel ? 'px-btn px-btn--sm px-btn--ghost !py-1' : 'rounded-md px-2 py-1 text-xs font-bold hover:bg-black/10'}
             onClick={onToggle}
-            title={open ? '收起放置栏，只显示最近 5 个' : '展开放置栏，显示最近 20 个'}
+            title={open ? t('controls.shelfCollapseLimited', { count: 5 }) : t('controls.shelfExpandLimited', { count: 20 })}
           >
             <LucideIcons.Inbox size={13} className="mr-1 inline-block" />
-            放置栏 {visible.length}/{displayLimit}
+            {t('controls.shelfLabel', { visible: visible.length, limit: displayLimit })}
           </button>
           <div className="flex items-center gap-1">
             {items.length > 0 && (
@@ -3659,8 +3723,8 @@ function PlacementShelf({
                   event.stopPropagation();
                   onClear();
                 }}
-                aria-label="清空放置栏"
-                title="清空放置栏"
+                aria-label={t('controls.shelfClear')}
+                title={t('controls.shelfClear')}
               >
                 <LucideIcons.Trash2 size={13} />
               </button>
@@ -3674,8 +3738,8 @@ function PlacementShelf({
                 event.stopPropagation();
                 onHide();
               }}
-              aria-label="隐藏放置栏"
-              title="隐藏放置栏"
+              aria-label={t('controls.shelfHide')}
+              title={t('controls.shelfHide')}
             >
               <LucideIcons.EyeOff size={13} />
             </button>
@@ -3683,7 +3747,7 @@ function PlacementShelf({
               type="button"
               className="t8-mini-icon-button"
               onClick={onToggle}
-              title={open ? '收起' : '展开'}
+              title={open ? t('controls.shelfClose') : t('controls.shelfOpen')}
             >
               {open ? <LucideIcons.ChevronDown size={14} /> : <LucideIcons.ChevronUp size={14} />}
             </button>
@@ -3692,7 +3756,7 @@ function PlacementShelf({
         <div className="t8-placement-shelf__grid grid grid-cols-5 gap-2">
           {visible.length === 0 && (
             <div className="t8-placement-shelf__empty col-span-5 px-2 py-1 text-[10px] opacity-70">
-              暂无素材
+              {t('controls.shelfEmpty')}
             </div>
           )}
           {visible.map((item) => {
@@ -3710,7 +3774,7 @@ function PlacementShelf({
                 key={item.id}
                 className="nodrag nopan group relative h-14 w-14 cursor-grab overflow-hidden rounded-md"
                 style={itemStyle}
-                title={`${item.source} · ${item.title}\n拖到画布位置会移动原节点，不会复制。`}
+                title={t('controls.shelfMoveHint', { source: item.source, title: item.title })}
                 data-drag-source={item.url ? true : undefined}
                 data-drag-kind={item.url ? item.kind : undefined}
                 data-drag-url={item.url || undefined}
@@ -3731,7 +3795,7 @@ function PlacementShelf({
                   <div className="flex h-full w-full flex-col items-center justify-center gap-0.5 bg-black/65 px-1 text-center">
                     <Icon size={22} className="text-white/90" />
                     {item.kind === 'node' && (
-                      <span className="max-w-full truncate text-[9px] font-bold text-white/80">节点</span>
+                      <span className="max-w-full truncate text-[9px] font-bold text-white/80">{t('controls.shelfNode')}</span>
                     )}
                   </div>
                 )}
@@ -3747,7 +3811,7 @@ function PlacementShelf({
                     event.stopPropagation();
                     onRemove(item.id);
                   }}
-                  title="从放置栏移除映射"
+                  title={t('controls.shelfRemove')}
                 >
                   <LucideIcons.X size={10} />
                 </button>
@@ -3942,7 +4006,16 @@ function requireVersionedCanvasPatchDocument(value: unknown, canvasId: string): 
 }
 
 function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, persistenceRuntime, themeStyleOverride }: CanvasInnerProps) {
+  const { t } = useTranslation(['canvas', 'common']);
   const { activeId, canvases, refreshCanvasMetadata, setActive } = useCanvasStore();
+  const performanceFixtureSize = useMemo(
+    () => (typeof window === 'undefined' ? null : readCanvasPerformanceFixtureSize(window.location.search)),
+    [],
+  );
+  const performanceFixtureCanvasId = performanceFixtureSize == null
+    ? null
+    : `__t8-performance-fixture-${performanceFixtureSize}__`;
+  const renderedCanvasId = performanceFixtureCanvasId || activeId;
   const { theme, style, templateId, customTemplates } = useThemeStore();
   const shortcuts = useShortcutStore((s) => s.shortcuts);
   const shortcutText = useCallback((actionId: string) => formatShortcutList(shortcuts[actionId]), [shortcuts]);
@@ -4517,6 +4590,7 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, persistenceRuntime, th
   const [modelHelpOpen, setModelHelpOpen] = useState(false);
   const [modelHelpTab, setModelHelpTab] = useState<ModelUsageHelpTabId>('budget-house');
   const [radialSettingsOpen, setRadialSettingsOpen] = useState(false);
+  const [controlToolsOpen, setControlToolsOpen] = useState(false);
   const altDragCloneRef = useRef<{
     placeholderIds: Map<string, string>; // origId -> placeholderId
   } | null>(null);
@@ -5053,6 +5127,33 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, persistenceRuntime, th
 
   // 加载画布数据
   useEffect(() => {
+    if (performanceFixtureSize != null && performanceFixtureCanvasId) {
+      markCanvasPerformance('canvas-hydration-start');
+      setCanvasLoadFailure(null);
+      cancelScheduledHistoryCapture();
+      setActiveProjectId(null);
+      setActiveCanvasRevision(0);
+      setCanvasPatchConflictMessage('');
+      patchPreviewBaselinesRef.current.clear();
+      const fixture = buildCanvasPerformanceFixture(performanceFixtureSize);
+      nextNodeSerialIdRef.current = performanceFixtureSize + 1;
+      replaceHydratedCanvasGraph(fixture.nodes as Node[], fixture.edges as Edge[]);
+      setCreativeDesk(createDefaultCreativeDeskState());
+      setFarmCanvas(createFarmState());
+      setFarmCanvasEditing(false);
+      setCreativeDeskEditing(false);
+      setCreativeDeskActiveItemId(null);
+      setPlacementShelfItems([]);
+      setPlacementShelfOpen(false);
+      setInitialCanvasViewport({
+        canvasId: performanceFixtureCanvasId,
+        viewport: { x: 64, y: 64, zoom: 0.72 },
+      });
+      histReset();
+      setLoadedCanvasId(performanceFixtureCanvasId);
+      setLoaded(true);
+      return;
+    }
     if (!activeId) {
       setCanvasLoadFailure(null);
       cancelScheduledHistoryCapture();
@@ -5080,6 +5181,7 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, persistenceRuntime, th
       return;
     }
     const requestedCanvasId = activeId;
+    markCanvasPerformance('canvas-hydration-start');
     setCanvasLoadFailure(null);
     cancelScheduledHistoryCapture();
     setActiveProjectId(null);
@@ -5230,7 +5332,41 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, persistenceRuntime, th
     return () => {
       cancelled = true;
     };
-  }, [activeId, cancelScheduledHistoryCapture, canvasLoadAttempt, histReset, replaceHydratedCanvasGraph, setCanvasRevision]);
+  }, [
+    activeId,
+    cancelScheduledHistoryCapture,
+    canvasLoadAttempt,
+    histReset,
+    performanceFixtureCanvasId,
+    performanceFixtureSize,
+    replaceHydratedCanvasGraph,
+    setCanvasRevision,
+  ]);
+
+  useEffect(() => {
+    if (!loaded || !loadedCanvasId || loadedCanvasId !== renderedCanvasId) return undefined;
+    let idleHandle: number | null = null;
+    let secondFrame = 0;
+    const firstFrame = window.requestAnimationFrame(() => {
+      markCanvasPerformance('canvas-first-frame');
+      secondFrame = window.requestAnimationFrame(() => {
+        const finish = () => markCanvasPerformance('canvas-interactive');
+        if ('requestIdleCallback' in window) {
+          idleHandle = (window as Window & { requestIdleCallback: (callback: () => void, options?: { timeout: number }) => number })
+            .requestIdleCallback(finish, { timeout: 500 });
+        } else idleHandle = globalThis.setTimeout(finish, 0) as unknown as number;
+      });
+    });
+    return () => {
+      window.cancelAnimationFrame(firstFrame);
+      if (secondFrame) window.cancelAnimationFrame(secondFrame);
+      if (idleHandle != null) {
+        if ('cancelIdleCallback' in window) {
+          (window as Window & { cancelIdleCallback: (handle: number) => void }).cancelIdleCallback(idleHandle);
+        } else globalThis.clearTimeout(idleHandle);
+      }
+    };
+  }, [loaded, loadedCanvasId, renderedCanvasId]);
 
   useEffect(() => {
     return () => {
@@ -12525,6 +12661,9 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, persistenceRuntime, th
       const t = n.type as string;
       if (!t || SKIP_TYPES.has(t)) continue;
       const d = (n.data as any) || {};
+      // URL-only performance fixtures exercise the real node tree without
+      // materializing generated outputs or mutating the diagnostic graph.
+      if (d.__performanceFixture === true) continue;
       const directorOutputItems = t === 'director-storyboard' && Array.isArray(d.directorOutputItems)
         ? d.directorOutputItems
         : [];
@@ -13391,6 +13530,7 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, persistenceRuntime, th
       return true;
     };
     const onClipboardKeyCapture = (e: KeyboardEvent) => {
+      if (document.querySelector('[data-canvas-floating-ui="image-detail-viewer"]')) return;
       if (isEditingEvent(e)) return;
       if (matchesAnyShortcut(shortcuts['canvas.copy'], e)) {
         clipboardHandledEvents.add(e);
@@ -13409,6 +13549,7 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, persistenceRuntime, th
       }
     };
     const onKey = (e: KeyboardEvent) => {
+      if (document.querySelector('[data-canvas-floating-ui="image-detail-viewer"]')) return;
       if (clipboardHandledEvents.has(e)) return;
       // 当焦点在表单元素中时不拦截
       const isEditing = isEditingEvent(e);
@@ -13454,6 +13595,7 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, persistenceRuntime, th
           document.querySelector(
             [
               '[data-canvas-floating-ui="image-compare-modal"]',
+              '[data-canvas-floating-ui="image-detail-viewer"]',
               '[data-canvas-floating-ui="portrait-master-editor"]',
               '[data-canvas-floating-ui="send-materials-modal"]',
               '[data-canvas-floating-ui="picker-menu"]',
@@ -13476,6 +13618,7 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, persistenceRuntime, th
           document.querySelector(
             [
               '[data-canvas-floating-ui="image-compare-modal"]',
+              '[data-canvas-floating-ui="image-detail-viewer"]',
               '[data-canvas-floating-ui="portrait-master-editor"]',
               '[data-canvas-floating-ui="send-materials-modal"]',
               '[data-canvas-floating-ui="picker-menu"]',
@@ -13554,13 +13697,41 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, persistenceRuntime, th
     };
   }, []);
 
+  const requestedPerformanceMode = useCanvasPerformanceStore((state) => state.mode);
+  const canvasShellRef = useRef<HTMLDivElement | null>(null);
+  const heavyMediaCount = useMemo(() => estimateCanvasHeavyMediaCount(nodes), [nodes]);
+  const performanceDecision = useMemo(() => {
+    const nav = typeof navigator === 'undefined'
+      ? undefined
+      : navigator as Navigator & { deviceMemory?: number };
+    const prefersReducedMotion = typeof window !== 'undefined'
+      && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
+    return resolveCanvasPerformanceDecision(requestedPerformanceMode, {
+      nodeCount: nodes.length,
+      edgeCount: edges.length,
+      heavyMediaCount,
+      hardwareConcurrency: nav?.hardwareConcurrency,
+      deviceMemoryGb: nav?.deviceMemory,
+      prefersReducedMotion,
+    });
+  }, [edges.length, heavyMediaCount, nodes.length, requestedPerformanceMode]);
+
+  useEffect(() => {
+    if (performanceDecision.effective !== 'performance') return undefined;
+    const shell = canvasShellRef.current;
+    if (!shell) return undefined;
+    return installCanvasNodeVisibilityObserver(shell);
+  }, [loadedCanvasId, performanceDecision.effective]);
+
   const isDark = theme === 'dark';
   const isPixel = style === 'pixel';
   const isDecorativeEdgeVisual = isSlamdunk || isSoccer || isDragonBall || isTetris || isFarmStory || isGardenDefense;
   const heavyEdgeMotion = isDecorativeEdgeVisual && edges.length >= EDGE_MOTION_HEAVY_EDGE_COUNT;
   const edgeMotionReduced = isDecorativeEdgeVisual && (viewportMoving || nodeDragging);
   const edgeMotionMode = isDecorativeEdgeVisual ? (edgeMotionReduced ? 'reduced' : 'scoped') : undefined;
-  const heavyCanvasSurface = nodes.length >= 96 || edges.length >= EDGE_MOTION_HEAVY_EDGE_COUNT;
+  const heavyCanvasSurface = performanceDecision.effective === 'performance'
+    || nodes.length >= 96
+    || edges.length >= EDGE_MOTION_HEAVY_EDGE_COUNT;
   const farmStoryToolbarHint = useMemo(
     () => (isFarmStory ? buildFarmToolbarConsoleHint(farmCanvas, farmStoryPanelOpen) : undefined),
     [farmCanvas, farmStoryPanelOpen, isFarmStory],
@@ -13650,9 +13821,26 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, persistenceRuntime, th
         : isGardenDefense
           ? nodes.map(withGardenDefenseNodeVisualState)
           : nodes;
-      return runReplayRuntime ? [...themedNodes, ...runReplayRuntime.nodes] : themedNodes;
+      const collapsedMemberIds = new Set<string>();
+      themedNodes.forEach((node) => {
+        if (node.type !== 'groupBox' || (node.data as any)?.performanceCollapsed !== true) return;
+        const memberIds = Array.isArray((node.data as any)?.memberIds) ? (node.data as any).memberIds : [];
+        memberIds.forEach((memberId: unknown) => {
+          if (typeof memberId === 'string' && memberId) collapsedMemberIds.add(memberId);
+        });
+      });
+      const proxiedNodes = themedNodes.map((node) => {
+        const pinned = isPerformancePinnedNode(node);
+        const className = [
+          typeof node.className === 'string' ? node.className : '',
+          performanceDecision.effective === 'performance' && pinned ? 't8-performance-pinned' : '',
+          collapsedMemberIds.has(node.id) && !pinned ? 't8-group-proxy-member' : '',
+        ].filter(Boolean).join(' ');
+        return className === node.className ? node : { ...node, className };
+      });
+      return runReplayRuntime ? [...proxiedNodes, ...runReplayRuntime.nodes] : proxiedNodes;
     },
-    [isFarmStory, isGardenDefense, nodes, runReplayRuntime],
+    [isFarmStory, isGardenDefense, nodes, performanceDecision.effective, runReplayRuntime],
   );
   const renderedEdges = useMemo(
     () => runReplayRuntime ? [...edges, ...runReplayRuntime.edges] : edges,
@@ -13670,7 +13858,10 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, persistenceRuntime, th
   const bgColor = themeTokens.canvasBg;
 
   const memoNodeTypes = useMemo(() => nodeTypes, []);
-  const memoEdgeTypes = useMemo(() => edgeTypes, []);
+  const memoEdgeTypes = useMemo(
+    () => performanceDecision.effective === 'performance' ? performanceEdgeTypes : edgeTypes,
+    [performanceDecision.effective],
+  );
   const memoConnectionLineComponent = useMemo(
     () => (isFarmStory ? FarmStoryConnectionLine : undefined),
     [isFarmStory],
@@ -13723,7 +13914,7 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, persistenceRuntime, th
     },
   ), [edges, getViewport, nodes, viewportMoving]);
 
-  if (!activeId) {
+  if (!renderedCanvasId) {
     return (
       <div
         className="t8-canvas-shell flex-1 flex items-center justify-center"
@@ -13732,14 +13923,14 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, persistenceRuntime, th
         style={{ background: bgColor, color: themeTokens.textMuted }}
       >
         <div className="text-center">
-          <div className="text-2xl mb-2 font-bold tracking-wide">🐧 贞贞的无限画布（企鹅共创版）</div>
-          <p>请先在左侧创建或选择一个画布</p>
+          <div className="text-2xl mb-2 font-bold tracking-wide">{t('canvas:state.noCanvasTitle')}</div>
+          <p>{t('canvas:state.noCanvas')}</p>
         </div>
       </div>
     );
   }
-  if (!loaded || loadedCanvasId !== activeId) {
-    const loadFailure = canvasLoadFailure?.canvasId === activeId ? canvasLoadFailure : null;
+  if (!loaded || loadedCanvasId !== renderedCanvasId) {
+    const loadFailure = canvasLoadFailure?.canvasId === renderedCanvasId ? canvasLoadFailure : null;
     return (
       <div
         className="t8-canvas-shell flex-1 flex items-center justify-center px-6"
@@ -13752,22 +13943,22 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, persistenceRuntime, th
         {loadFailure ? (
           <div role="alert" className="max-w-lg rounded-2xl border border-red-500/40 bg-[var(--bg-secondary)]/95 p-6 text-center shadow-2xl">
             <LucideIcons.AlertTriangle className="mx-auto mb-3 text-red-500" size={30} aria-hidden="true" />
-            <h2 className="text-base font-bold text-[var(--text-primary)]">画布暂时无法加载</h2>
+            <h2 className="text-base font-bold text-[var(--text-primary)]">{t('canvas:state.loadFailed')}</h2>
             <p className="mt-2 break-words text-sm leading-6 text-[var(--text-secondary)]">{loadFailure.message}</p>
-            <p className="mt-3 text-xs leading-5 text-[var(--text-secondary)]">加载成功前画布保持只读，不会创建空白内容或发送保存请求。</p>
+            <p className="mt-3 text-xs leading-5 text-[var(--text-secondary)]">{t('canvas:state.readOnlyUntilLoaded')}</p>
             <button
               type="button"
               className="mx-auto mt-5 flex h-10 items-center gap-2 rounded-lg bg-[var(--accent-primary)] px-5 text-sm font-bold text-white"
               onClick={() => setCanvasLoadAttempt((attempt) => attempt + 1)}
             >
               <LucideIcons.RefreshCw size={16} aria-hidden="true" />
-              重试加载
+              {t('canvas:state.retryLoad')}
             </button>
           </div>
         ) : (
           <div role="status" className="flex items-center gap-3 rounded-xl border border-[var(--border-primary)] bg-[var(--bg-secondary)]/90 px-5 py-4 text-sm">
             <LucideIcons.LoaderCircle className="animate-spin text-[var(--accent-primary)]" size={20} aria-hidden="true" />
-            正在读取权威画布…
+            {t('canvas:state.loadingAuthoritative')}
           </div>
         )}
       </div>
@@ -13783,104 +13974,124 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, persistenceRuntime, th
             className="t8-control-rail-creator-slot"
             data-canvas-floating-ui="creator-agent-launcher-slot"
           />
-          <button
-            type="button"
-            className={`t8-control-rail-help t8-control-rail-doctor t8-mini-icon-button${workflowDoctorEnabled ? ' is-active' : ''}`}
-            data-canvas-floating-ui="workflow-doctor-toggle"
-            data-workflow-doctor-enabled={workflowDoctorEnabled ? 'true' : 'false'}
-            aria-label={workflowDoctorEnabled ? '关闭工作流医生' : '开启工作流医生'}
-            title={workflowDoctorEnabled
-              ? '工作流医生：已开启（点击关闭运行前诊断）'
-              : '工作流医生：已关闭（点击开启运行前诊断）'}
-            aria-pressed={workflowDoctorEnabled}
-            onClick={(event) => {
-              event.stopPropagation();
-              toggleWorkflowDoctor();
-            }}
-          >
-            <LucideIcons.Stethoscope size={16} />
-          </button>
-          <button
-            type="button"
-            className={`t8-control-rail-help t8-mini-icon-button${modelHelpOpen ? ' is-active' : ''}`}
-            data-canvas-floating-ui="model-help-toggle"
-            aria-label="模型注意事项"
-            title="模型注意事项"
-            aria-expanded={modelHelpOpen}
-            onClick={(event) => {
-              event.stopPropagation();
-              setModelHelpOpen((value) => {
-                const next = !value;
-                if (next) {
-                  setRadialSettingsOpen(false);
-                  setCreativeDeskEditing(false);
-                  setFarmCanvasEditing(false);
-                }
-                return next;
-              });
-            }}
-          >
-            <LucideIcons.CircleHelp size={16} />
-          </button>
-          <button
-            type="button"
-            className={`t8-control-rail-help t8-control-rail-placement-shelf t8-mini-icon-button${!placementShelfHidden ? ' is-active' : ''}`}
-            data-canvas-floating-ui="placement-shelf-toggle"
-            aria-label={placementShelfHidden ? '展开放置栏' : '折叠放置栏'}
-            title={placementShelfHidden ? '展开放置栏' : '折叠放置栏'}
-            aria-expanded={!placementShelfHidden}
-            aria-pressed={!placementShelfHidden}
-            onClick={(event) => {
-              event.stopPropagation();
-              setPlacementShelfHidden((value) => !value);
-            }}
-          >
-            <LucideIcons.Archive size={16} />
-          </button>
-          <button
-            type="button"
-            className={`t8-control-rail-help t8-control-rail-creative-desk t8-mini-icon-button${creativeDeskEditing ? ' is-active' : ''}`}
-            data-canvas-floating-ui="creative-desk-toggle"
-            aria-label="创作台背景"
-            title="创作台背景"
-            aria-expanded={creativeDeskEditing}
-            onClick={(event) => {
-              event.stopPropagation();
-              setCreativeDeskEditing((value) => {
-                const next = !value;
-                if (next) {
-                  setRadialSettingsOpen(false);
-                  setModelHelpOpen(false);
-                  setFarmCanvasEditing(false);
-                }
-                return next;
-              });
-            }}
-          >
-            <LucideIcons.Images size={16} />
-          </button>
-          <button
-            type="button"
-            className={`t8-control-rail-help t8-control-rail-radial t8-mini-icon-button${radialSettingsOpen ? ' is-active' : ''}`}
-            data-canvas-floating-ui="radial-settings-toggle"
-            aria-label="中键圆盘设置"
-            title="中键圆盘设置"
-            aria-expanded={radialSettingsOpen}
-            onClick={(event) => {
-              event.stopPropagation();
-              setRadialSettingsOpen((value) => {
-                const next = !value;
-                if (next) {
-                  setModelHelpOpen(false);
-                  setCreativeDeskEditing(false);
-                  setFarmCanvasEditing(false);
-                }
-                return next;
-              });
-            }}
-          >
-            <LucideIcons.Settings2 size={16} />
-          </button>
+          <div className="t8-control-tools" data-canvas-floating-ui="control-tools">
+            <button
+              type="button"
+              className={`t8-control-rail-help t8-control-tools-toggle t8-mini-icon-button${controlToolsOpen ? ' is-active' : ''}`}
+              data-canvas-floating-ui="control-tools-toggle"
+              aria-label={controlToolsOpen ? t('canvas:controls.toolsClose') : t('canvas:controls.toolsOpen')}
+              title={controlToolsOpen ? t('canvas:controls.toolsClose') : t('canvas:controls.toolsOpen')}
+              aria-expanded={controlToolsOpen}
+              onClick={(event) => {
+                event.stopPropagation();
+                setControlToolsOpen((value) => !value);
+              }}
+            >
+              <LucideIcons.Wrench size={16} />
+            </button>
+            {controlToolsOpen && (
+              <div
+                className="t8-control-tools-menu"
+                data-canvas-floating-ui="control-tools-menu"
+                role="menu"
+                aria-label={t('canvas:controls.tools')}
+                onClick={(event) => event.stopPropagation()}
+              >
+                <button
+                  type="button"
+                  className={workflowDoctorEnabled ? 'is-active' : ''}
+                  data-canvas-floating-ui="workflow-doctor-toggle"
+                  data-workflow-doctor-enabled={workflowDoctorEnabled ? 'true' : 'false'}
+                  role="menuitemcheckbox"
+                  aria-checked={workflowDoctorEnabled}
+                  onClick={() => {
+                    toggleWorkflowDoctor();
+                    setControlToolsOpen(false);
+                  }}
+                >
+                  <LucideIcons.Stethoscope size={16} />
+                  <span>{workflowDoctorEnabled ? t('canvas:controls.doctorOn') : t('canvas:controls.doctorOff')}</span>
+                </button>
+                <button
+                  type="button"
+                  className={modelHelpOpen ? 'is-active' : ''}
+                  data-canvas-floating-ui="model-help-toggle"
+                  role="menuitem"
+                  onClick={() => {
+                    setModelHelpOpen((value) => {
+                      const next = !value;
+                      if (next) {
+                        setRadialSettingsOpen(false);
+                        setCreativeDeskEditing(false);
+                        setFarmCanvasEditing(false);
+                      }
+                      return next;
+                    });
+                    setControlToolsOpen(false);
+                  }}
+                >
+                  <LucideIcons.CircleHelp size={16} />
+                  <span>{t('canvas:controls.modelNotes')}</span>
+                </button>
+                <button
+                  type="button"
+                  className={!placementShelfHidden ? 'is-active' : ''}
+                  data-canvas-floating-ui="placement-shelf-toggle"
+                  role="menuitemcheckbox"
+                  aria-checked={!placementShelfHidden}
+                  onClick={() => {
+                    setPlacementShelfHidden((value) => !value);
+                    setControlToolsOpen(false);
+                  }}
+                >
+                  <LucideIcons.Archive size={16} />
+                  <span>{placementShelfHidden ? t('canvas:controls.shelfExpand') : t('canvas:controls.shelfCollapse')}</span>
+                </button>
+                <button
+                  type="button"
+                  className={creativeDeskEditing ? 'is-active' : ''}
+                  data-canvas-floating-ui="creative-desk-toggle"
+                  role="menuitem"
+                  onClick={() => {
+                    setCreativeDeskEditing((value) => {
+                      const next = !value;
+                      if (next) {
+                        setRadialSettingsOpen(false);
+                        setModelHelpOpen(false);
+                        setFarmCanvasEditing(false);
+                      }
+                      return next;
+                    });
+                    setControlToolsOpen(false);
+                  }}
+                >
+                  <LucideIcons.Images size={16} />
+                  <span>{t('canvas:controls.creativeDesk')}</span>
+                </button>
+                <button
+                  type="button"
+                  className={radialSettingsOpen ? 'is-active' : ''}
+                  data-canvas-floating-ui="radial-settings-toggle"
+                  role="menuitem"
+                  onClick={() => {
+                    setRadialSettingsOpen((value) => {
+                      const next = !value;
+                      if (next) {
+                        setModelHelpOpen(false);
+                        setCreativeDeskEditing(false);
+                        setFarmCanvasEditing(false);
+                      }
+                      return next;
+                    });
+                    setControlToolsOpen(false);
+                  }}
+                >
+                  <LucideIcons.Settings2 size={16} />
+                  <span>{t('canvas:controls.radialSettings')}</span>
+                </button>
+              </div>
+            )}
+          </div>
           <ThemeMusicToggle template={currentTemplate} />
           <Controls
             fitViewOptions={CANVAS_OVERVIEW_FIT_OPTIONS}
@@ -13921,18 +14132,18 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, persistenceRuntime, th
           data-canvas-floating-ui="model-help-panel"
           role="dialog"
           aria-modal="false"
-          aria-label="模型注意事项"
+          aria-label={t('canvas:controls.modelNotes')}
         >
           <div className="t8-model-help-panel__header">
             <div>
               <div className="t8-model-help-panel__eyebrow">MODEL NOTES</div>
-              <h2>模型注意事项</h2>
+              <h2>{t('canvas:controls.modelNotes')}</h2>
             </div>
             <button
               type="button"
               className="t8-model-help-panel__close t8-mini-icon-button"
-              aria-label="关闭说明"
-              title="关闭说明"
+              aria-label={t('canvas:controls.closeHelp')}
+              title={t('canvas:controls.closeHelp')}
               onClick={(event) => {
                 event.stopPropagation();
                 setModelHelpOpen(false);
@@ -13941,7 +14152,7 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, persistenceRuntime, th
               <LucideIcons.X size={16} />
             </button>
           </div>
-          <div className="t8-model-help-panel__tabs" role="tablist" aria-label="模型平台">
+          <div className="t8-model-help-panel__tabs" role="tablist" aria-label={t('canvas:controls.modelPlatform')}>
             {MODEL_USAGE_HELP_TABS.map((tab, tabIndex) => {
               const active = tab.id === modelHelpTab;
               return (
@@ -14011,6 +14222,7 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, persistenceRuntime, th
 
   return (
     <div
+      ref={canvasShellRef}
       className={`t8-canvas-shell flex-1 relative${connectionPanModeActive ? ' connection-pan-mode-active' : ''}${edgeMotionReduced ? ' t8-edge-motion-reduced' : ''}${viewportMoving ? ' t8-viewport-moving' : ''}${nodeDragging ? ' t8-node-dragging' : ''}`}
       data-theme-visual={visualStyle}
       data-theme-mode={theme}
@@ -14020,10 +14232,15 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, persistenceRuntime, th
       data-canvas-zoom-readability={canvasZoomReadability}
       data-canvas-node-count={nodes.length}
       data-canvas-edge-count={edges.length}
+      data-canvas-performance={performanceDecision.effective}
+      data-canvas-performance-requested={performanceDecision.requested}
+      data-canvas-performance-reason={performanceDecision.reason}
+      data-canvas-performance-fixture={performanceFixtureSize || undefined}
       style={{ background: bgColor }}
       onContextMenuCapture={onCanvasContextMenuCapture}
       onMouseMove={handleCanvasPointerMove}
     >
+      <CanvasPerformanceControl decision={performanceDecision} />
       {backgroundSaveFailure && (
         <div
           role="alert"
@@ -14039,16 +14256,16 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, persistenceRuntime, th
           <div className="min-w-0 flex-1">
             <p className="text-sm font-bold">
               {backgroundSaveFailure.kind === 'persist-failed'
-                ? '后台节点结果未能保存'
-                : '后台节点结果已保存，当前界面同步失败'}
+                ? t('canvas:backgroundSave.persistFailed')
+                : t('canvas:backgroundSave.syncFailed')}
             </p>
             <p className="mt-1 break-words text-xs leading-5 opacity-85">
-              画布 {backgroundSaveFailure.canvasId} · 节点 {backgroundSaveFailure.nodeId}：{backgroundSaveFailure.message}
+              {t('canvas:backgroundSave.identity', backgroundSaveFailure)}
             </p>
             <p className="mt-1 text-xs leading-5 opacity-75">
               {backgroundSaveFailure.kind === 'persist-failed'
-                ? '结果没有被标记为已保存；请保留当前任务信息并稍后重新运行。'
-                : '服务端结果已持久化；请重新打开该画布以同步最新结果，无需重新生成。'}
+                ? t('canvas:backgroundSave.persistDetail')
+                : t('canvas:backgroundSave.syncDetail')}
             </p>
           </div>
           <button
@@ -14058,10 +14275,10 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, persistenceRuntime, th
                 ? 'border-2 border-[var(--px-ink)] bg-[var(--px-surface)]'
                 : 'rounded-md border border-[var(--border-primary)] bg-[var(--bg-tertiary)]'
             }`}
-            aria-label="关闭后台保存失败提示"
+            aria-label={t('canvas:backgroundSave.close')}
             onClick={() => setBackgroundSaveFailure(null)}
           >
-            关闭
+            {t('common:actions.close')}
           </button>
         </div>
       )}
@@ -14100,8 +14317,8 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, persistenceRuntime, th
         <button
           type="button"
           className={`t8-toolbar-button relative flex h-8 w-8 items-center justify-center rounded-md transition-colors${projectWorkbenchOpen ? ' bg-[var(--accent-primary)] text-white' : ''}`}
-          aria-label="项目工作台"
-          title="项目工作台：子流程、运行、资产、诊断与协作"
+          aria-label={t('canvas:controls.projectWorkbench')}
+          title={t('canvas:controls.projectWorkbenchDetail')}
           aria-pressed={projectWorkbenchOpen}
           onClick={(event) => {
             event.stopPropagation();
@@ -14146,7 +14363,7 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, persistenceRuntime, th
           <Suspense fallback={null}>
             <GardenDefenseExperience
               visualStyle={visualStyle}
-              canvasId={activeId}
+              canvasId={renderedCanvasId}
               viewportMoving={viewportMoving}
               nodeDragging={nodeDragging}
             />
@@ -14193,10 +14410,10 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, persistenceRuntime, th
         onCancel={handleCancelRunPreflight}
       />
       <ProjectWorkbench
-        open={projectWorkbenchOpen && loaded && loadedCanvasId === activeId && activeProjectId != null}
-        canvasId={activeId}
+        open={projectWorkbenchOpen && loaded && loadedCanvasId === renderedCanvasId && activeProjectId != null}
+        canvasId={renderedCanvasId}
         projectId={activeProjectId || 'project-local'}
-        canvasRevision={activeId ? activeCanvasRevision : 0}
+        canvasRevision={activeCanvasRevision}
         patchConflictMessage={canvasPatchConflictMessage}
         nodes={nodes}
         edges={edges}
@@ -14219,12 +14436,12 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, persistenceRuntime, th
         onRetryRunAttempt={handleRetryProjectRunAttempt}
         onDoctorHighlightsChange={handleDoctorHighlightsChange}
       />
-      {loaded && loadedCanvasId === activeId && activeId && activeProjectId && (
+      {loaded && loadedCanvasId === renderedCanvasId && activeProjectId && (
         <CreatorAgentPanel
           projectId={activeProjectId}
-          canvasId={activeId}
+          canvasId={renderedCanvasId}
           canvasRevision={activeCanvasRevision}
-          canvasTitle={canvases.find((canvas) => canvas.id === activeId)?.name || '当前画布'}
+          canvasTitle={canvases.find((canvas) => canvas.id === renderedCanvasId)?.name || '当前画布'}
           nodeCount={nodes.length}
           edgeCount={edges.length}
           nodeTypeCounts={nodes.reduce<Record<string, number>>((counts, node) => {
@@ -14392,7 +14609,9 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, persistenceRuntime, th
         className="hidden"
         onChange={handleImportFile}
       />
+      <NodeDomLanguageBoundary />
       <WorkflowDoctorHighlightContext.Provider value={workflowDoctorHighlightMap}>
+        <CanvasPerformanceRenderProvider enabled={performanceDecision.effective === 'performance'}>
         <ReactFlow
           nodes={renderedNodes}
           key={loadedCanvasId || 'canvas-loading'}
@@ -14678,6 +14897,7 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, persistenceRuntime, th
           onStopRun={handleCancelRun}
         />
         </ReactFlow>
+        </CanvasPerformanceRenderProvider>
       {creativeDeskEditing && (
         <CreativeDeskLayer
           creativeDesk={creativeDesk}
@@ -15072,7 +15292,7 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, persistenceRuntime, th
         const viewKey = buildSubflowInspectorViewportKey({
           rootInstanceNodeId: subflowInspector.instanceNodeId,
           pathNodeIds: subflowInspector.pathNodeIds,
-          projectId: definition.projectId || activeId || 'local',
+          projectId: definition.projectId || renderedCanvasId,
           definitionId: definition.id,
           definitionVersion: definition.version,
           editing: Boolean(editActive),
@@ -15234,7 +15454,7 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, persistenceRuntime, th
         sourceLabel={sendModal?.sourceLabel || '素材'}
         defaultMode={sendModal?.defaultMode || 'auto'}
         canvases={canvases}
-        activeCanvasId={activeId}
+        activeCanvasId={renderedCanvasId}
         onClose={() => setSendModal(null)}
         onSendToCanvas={handleSendMaterialsToCanvas}
         onLoadVideoEditTargets={loadVideoEditTargets}
@@ -15257,7 +15477,7 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, persistenceRuntime, th
         const mergeCandidate = getMaterialSetMergeCandidate(ids);
         const creativeSelectionSummary = collectCanvasSelectionSummary(
           nodes.map((node) => ({ ...node, selected: ids.includes(node.id) })),
-          { canvasId: activeId || undefined },
+          { canvasId: renderedCanvasId },
         );
         const canCreateSelectionImage =
           creativeSelectionSummary.texts.length > 0 || creativeSelectionSummary.images.length > 0;
@@ -15269,8 +15489,8 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, persistenceRuntime, th
           ? normalizeMaterialSetItems((materialSetNode?.data as any)?.materialSetItems, materialSetKind)
           : [];
         const downloadableCount = getDownloadableItemsFromNodes(ids).length;
-        const sendableCount = collectSendableMaterialsFromNodes(selNodes, activeId).length;
-        const nodeFragmentPreview = buildSendNodeFragment(selNodes, edges, activeId);
+        const sendableCount = collectSendableMaterialsFromNodes(selNodes, renderedCanvasId).length;
+        const nodeFragmentPreview = buildSendNodeFragment(selNodes, edges, renderedCanvasId);
         const sendNodeCount = nodeFragmentPreview.nodes.length;
         const sendEdgeCount = nodeFragmentPreview.edges.length;
         const canSendSelection = sendNodeCount > 0 || sendableCount > 0;

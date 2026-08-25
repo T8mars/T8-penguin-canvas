@@ -1,5 +1,6 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 import MonoformStudio, { MONOFORM_SOURCE_URL } from './MonoformStudio.jsx';
 import studioCss from './monoform-studio.css?inline';
 
@@ -44,6 +45,7 @@ interface PrevisStudioEditorProps {
 }
 
 const PrevisStudioEditor = forwardRef<PrevisStudioEditorHandle, PrevisStudioEditorProps>((props, forwardedRef) => {
+  const { t } = useTranslation('nodes');
   const hostRef = useRef<HTMLDivElement | null>(null);
   const studioRef = useRef<PrevisStudioEditorHandle | null>(null);
   const [shadowRoot, setShadowRoot] = useState<ShadowRoot | null>(null);
@@ -86,16 +88,16 @@ const PrevisStudioEditor = forwardRef<PrevisStudioEditorHandle, PrevisStudioEdit
   useImperativeHandle(forwardedRef, () => ({
     getProject: () => studioRef.current?.getProject() || null,
     exportImage: async () => {
-      if (!studioRef.current) throw new Error('白模预演工作台尚未就绪。');
+      if (!studioRef.current) throw new Error(t('previs.notReady'));
       return studioRef.current.exportImage();
     },
     exportVideo: async () => {
-      if (!studioRef.current) throw new Error('白模预演工作台尚未就绪。');
+      if (!studioRef.current) throw new Error(t('previs.notReady'));
       return studioRef.current.exportVideo();
     },
     cancelExport: () => studioRef.current?.cancelExport(),
     saveProject: () => studioRef.current?.saveProject(),
-  }), []);
+  }), [t]);
 
   return (
     <div
@@ -106,7 +108,7 @@ const PrevisStudioEditor = forwardRef<PrevisStudioEditorHandle, PrevisStudioEdit
       onPointerDown={(event) => event.stopPropagation()}
       onWheel={(event) => event.stopPropagation()}
       onKeyDown={(event) => event.stopPropagation()}
-      aria-label="白模预演完整工作台"
+      aria-label={t('previs.fullWorkbenchAria')}
     >
       {shadowRoot && createPortal(
         <>

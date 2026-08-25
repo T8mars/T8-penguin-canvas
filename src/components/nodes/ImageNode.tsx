@@ -1,6 +1,8 @@
 import { memo, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Handle, Position, useReactFlow, type NodeProps } from '@xyflow/react';
 import { AlertCircle, Image as ImageIcon, Plus, Sparkles, Square, X } from 'lucide-react';
+import { useCanvasNodeRenderMode } from '../CanvasNodeRenderMode';
 import { useUpstreamMaterials, type Material } from './useUpstreamMaterials';
 import { useOrderedMaterials } from './useOrderedMaterials';
 import MaterialPreviewSection from './MaterialPreviewSection';
@@ -209,6 +211,8 @@ const comfyImageSourceIndex = (source: string) => {
 };
 
 const ImageNode = ({ id, data, selected }: NodeProps) => {
+  const { t: translate } = useTranslation(['nodes', 'common']);
+  const canvasRenderMode = useCanvasNodeRenderMode();
   const update = useUpdateNodeData(id);
   const hasAutoOutput = useHasAutoOutput(id);
   const { getEdges, getNodes } = useReactFlow();
@@ -2164,6 +2168,22 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
     onDrop: handleDrop,
   });
 
+  if (canvasRenderMode === 'cold') {
+    return (
+      <div className="t8-node-cold-shell w-[320px]" data-t8-node-cold-shell="image" style={{ minHeight: 112 }}>
+        <Handle type="target" position={Position.Left} className="!border-0 !bg-amber-400" />
+        <Handle type="source" position={Position.Right} className="!border-0 !bg-amber-400" />
+        <div className="t8-node-cold-shell__header">
+          <ImageIcon size={16} className="shrink-0 text-amber-300" />
+          <div className="t8-node-cold-shell__copy">
+            <strong>{translate('nodes:image.title')}</strong>
+            <small>{apiModel || modelDef.label || 'Image'} · {translate('common:performance.offscreenPreview')}</small>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       className={`relative rounded-xl border-2 transition-all w-[320px] ${
@@ -2188,14 +2208,14 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
           <ImageIcon size={13} />
         </div>
         <div className="flex-1">
-          <div className="text-sm font-semibold text-white">图像</div>
+          <div className="text-sm font-semibold text-white">{translate('nodes:image.title')}</div>
           <div className="text-[10px] text-white/40">
             {isExternalSelected && providerSelection.provider
-              ? `${providerSelection.provider.label || providerSelection.provider.id} · ${externalProviderModel || '未选模型'}`
+              ? `${providerSelection.provider.label || providerSelection.provider.id} · ${externalProviderModel || translate('nodes:generation.unselectedModel')}`
               : isZhenzhenBudgetPlatformSelected
-                ? `贞贞的平价AI小屋 · ${isZhenzhenBudgetMjSelected ? mjNzOperation : apiModel}`
+                ? `${translate('nodes:generation.budgetHouse')} · ${isZhenzhenBudgetMjSelected ? mjNzOperation : apiModel}`
               : isSeedreamNz
-                ? `贞贞的平价AI小屋 · ${seedreamNzUiModel}`
+                ? `${translate('nodes:generation.budgetHouse')} · ${seedreamNzUiModel}`
                 : `${modelDef.label} · ${modelDef.description}`}
           </div>
         </div>
@@ -2210,19 +2230,19 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
               onClick={() => update({ advancedProviderOpen: !d?.advancedProviderOpen })}
               className="w-full flex items-center justify-between text-[10px] font-semibold text-white/70 hover:text-white"
             >
-              <span>高级来源</span>
+              <span>{translate('nodes:generation.advancedSource')}</span>
               <span>
                 {isExternalSelected && providerSelection.provider
                   ? providerSelection.provider.label
                   : isZhenzhenBudgetPlatformSelected
-                    ? '贞贞的平价AI小屋'
-                    : '默认贞贞工坊'}
+                    ? translate('nodes:generation.budgetHouse')
+                    : translate('nodes:generation.defaultWorkshop')}
               </span>
             </button>
             {d?.advancedProviderOpen && (
               <div className="space-y-2">
                 <div>
-                  <label className="text-[10px] text-white/50 block mb-1">平台</label>
+                  <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.platform')}</label>
                   <select
                     value={isExternalSelected
                       ? providerSelection.providerId
@@ -2283,8 +2303,8 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
                     style={{ background: '#18181b', color: '#ffffff' }}
                     className="w-full rounded border border-white/10 px-2 py-1 text-xs outline-none focus:border-white/30"
                   >
-                    <option value="zhenzhen" style={{ background: '#18181b', color: '#ffffff' }}>贞贞工坊（默认）</option>
-                    <option value="builtin:seedance-nz" style={{ background: '#18181b', color: '#ffffff' }}>贞贞的平价AI小屋</option>
+                    <option value="zhenzhen" style={{ background: '#18181b', color: '#ffffff' }}>{translate('nodes:generation.workshopDefault')}</option>
+                    <option value="builtin:seedance-nz" style={{ background: '#18181b', color: '#ffffff' }}>{translate('nodes:generation.budgetHouse')}</option>
                     {imageAdvancedProviders.map((provider) => (
                       <option key={provider.id} value={provider.id} style={{ background: '#18181b', color: '#ffffff' }}>
                         {provider.label || provider.id}
@@ -2294,7 +2314,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
                 </div>
                 {isExternalSelected && providerSelection.provider && (
                   <div>
-                    <label className="text-[10px] text-white/50 block mb-1">外部模型</label>
+                    <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.externalModel')}</label>
                     <select
                       value={externalProviderModel}
                       onChange={(e) => {
@@ -2327,7 +2347,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
                 {isJimengCliImageSelected && (
                   <div className="space-y-2 rounded border border-lime-300/15 bg-lime-400/[0.05] p-2">
                     <label className="block space-y-1">
-                      <span className="text-[10px] text-white/50">生成数量</span>
+                      <span className="text-[10px] text-white/50">{translate('nodes:generation.generationCount')}</span>
                       <input
                         type="number"
                         min={1}
@@ -2353,7 +2373,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
                     {jimengCliCustomSizeEnabled && (
                       <div className="grid grid-cols-2 gap-2">
                         <label className="space-y-1">
-                          <span className="text-[10px] text-white/45">宽度</span>
+                          <span className="text-[10px] text-white/45">{translate('nodes:generation.width')}</span>
                           <input
                             type="number"
                             min={512}
@@ -2366,7 +2386,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
                           />
                         </label>
                         <label className="space-y-1">
-                          <span className="text-[10px] text-white/45">高度</span>
+                          <span className="text-[10px] text-white/45">{translate('nodes:generation.height')}</span>
                           <input
                             type="number"
                             min={512}
@@ -2379,7 +2399,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
                           />
                         </label>
                         <label className="col-span-2 space-y-1">
-                          <span className="text-[10px] text-white/45">分辨率级别</span>
+                          <span className="text-[10px] text-white/45">{translate('nodes:generation.resolutionLevel')}</span>
                           <select
                             value={jimengImageResolutions.includes(jimengImageResolution) ? jimengImageResolution : (isJimengCliSeedream5Pro ? '1.5k' : '2k')}
                             onChange={(e) => patchProviderParams({ resolutionType: e.target.value })}
@@ -2731,7 +2751,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
                 )}
                 {savedExternalMissing && (
                   <div className="text-[10px] text-amber-200 bg-amber-500/10 border border-amber-500/20 rounded px-2 py-1">
-                    当前画布记录的扩展平台未启用或不存在，已临时回到默认来源。
+                    {translate('nodes:generation.missingProvider')}
                   </div>
                 )}
               </div>
@@ -2740,7 +2760,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
 
         {/* 模型 TAB 切换(对应主项目 gpt-image-2-web Tab 0/1/2) */}
         {!isExternalSelected && <div>
-          <label className="text-[10px] text-white/50 block mb-1">模型</label>
+          <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.model')}</label>
           <div
             className={`flex flex-wrap gap-0.5 p-0.5 rounded ${isPixel ? '' : 'bg-white/5'}`}
             style={isPixel ? { background: 'var(--px-muted)', border: '1.5px solid var(--px-ink)' } : undefined}
@@ -2781,7 +2801,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
         {isSeedream && !isExternalSelected && (
           <div className="rounded border border-cyan-400/25 bg-cyan-500/5 p-2 space-y-2">
             <div>
-              <label className="text-[10px] text-white/50 block mb-1">API 来源</label>
+              <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.apiSource')}</label>
               <select
                 value={seedreamApiSource}
                 onChange={(e) => update({ seedreamApiSource: e.target.value })}
@@ -2795,7 +2815,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
             {isSeedreamNz && (
               <div className="space-y-2">
                 <div>
-                  <label className="text-[10px] text-white/50 block mb-1">模型地区</label>
+                  <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.modelRegion')}</label>
                   <select
                     value={seedreamNzModelFamily}
                     onChange={(e) => update({ seedreamNzModelFamily: e.target.value })}
@@ -2808,7 +2828,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
                 </div>
                 <div className="text-[10px] leading-4 text-cyan-100/75">
                   实际模型：{seedreamNzUiModel}（{seedreamNzModelRegion}，按参考图自动切换）
-                  {!zhenzhenSd2ApiKey && <div className="mt-1 text-amber-300">尚未配置“贞贞的平价AI小屋 API Key”</div>}
+                  {!zhenzhenSd2ApiKey && <div className="mt-1 text-amber-300">{translate('nodes:generation.missingBudgetKey')}</div>}
                 </div>
               </div>
             )}
@@ -2818,7 +2838,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
         {/* 子模型选择(对齐主项目 Tab 内的 model 下拉) - MJ 模式隐藏(用下面专属版本选择) */}
         {!isExternalSelected && !isMj && !isSeedreamNz && (
           <div>
-            <label className="text-[10px] text-white/50 block mb-1">具体模型</label>
+            <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.specificModel')}</label>
             <select
               value={apiModel}
               onChange={(e) => switchApiModel(e.target.value)}
@@ -2856,7 +2876,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
                     ? 'Grok Image 1.5 编辑：必须提供参考图，仅使用第 1 张。'
                     : 'Grok Image 1.5 文生图：只使用 Prompt，不发送参考图。'}
             </div>
-            {!zhenzhenSd2ApiKey && <div className="text-amber-300">尚未配置“贞贞的平价AI小屋 API Key”</div>}
+            {!zhenzhenSd2ApiKey && <div className="text-amber-300">{translate('nodes:generation.missingBudgetKey')}</div>}
           </div>
         )}
 
@@ -2869,7 +2889,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
                 : '文生图模式：只发送 Prompt，不发送已连接的参考图。'}
             </div>
             <div>提示词 5–2000 字符；单次可请求 1–6 张图。</div>
-            {!zhenzhenSd2ApiKey && <div className="text-amber-300">尚未配置“贞贞的平价AI小屋 API Key”</div>}
+            {!zhenzhenSd2ApiKey && <div className="text-amber-300">{translate('nodes:generation.missingBudgetKey')}</div>}
           </div>
         )}
 
@@ -2881,7 +2901,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
                 ? '图像编辑模式：必须按顺序提供 1–9 张参考图；提示词最多 2048 字符。'
                 : '文生图模式：只发送 Prompt，不发送已连接的参考图；提示词最多 5000 字符。'}
             </div>
-            {!zhenzhenSd2ApiKey && <div className="text-amber-300">尚未配置“贞贞的平价AI小屋 API Key”</div>}
+            {!zhenzhenSd2ApiKey && <div className="text-amber-300">{translate('nodes:generation.missingBudgetKey')}</div>}
           </div>
         )}
 
@@ -2891,13 +2911,13 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
             <div>必须且只能输入 1 张图；提示词可留空，最多 2000 字符。</div>
             <div>国内 Seedream 与海外 Dola 共用同一参数；国内模型保持默认。</div>
             <div>完成后按官方顺序保存底图与全部图层，不排序、不去重、不截断，不会只取第一张。</div>
-            {!zhenzhenSd2ApiKey && <div className="text-amber-300">尚未配置“贞贞的平价AI小屋 API Key”</div>}
+            {!zhenzhenSd2ApiKey && <div className="text-amber-300">{translate('nodes:generation.missingBudgetKey')}</div>}
           </div>
         )}
 
         {isZhenzhenNb2Lite && !isExternalSelected && (
           <div>
-            <label className="text-[10px] text-white/50 block mb-1">生成张数</label>
+            <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.outputCount')}</label>
             <select
               value={zhenzhenNbImageCount}
               onChange={(e) => update({ apimartImageCount: Number(e.target.value) })}
@@ -2913,7 +2933,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
 
         {(isZhenzhenGrokImageV2 || isZhenzhenGrokImageV2Edit) && !isExternalSelected && (
           <div>
-            <label className="text-[10px] text-white/50 block mb-1">生成张数</label>
+            <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.outputCount')}</label>
             <select
               value={grokV2ImageCount}
               onChange={(e) => update({ grokV2ImageCount: Number(e.target.value) })}
@@ -2977,7 +2997,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
         {(!isFal && !isMj && !isComfyExternal && !isQwenImageTab && !isSeedreamLayerTab && !isWanImageTab) && (
           <div className={`grid gap-2 ${isSeedream || (!isGrokImage && effectiveSizes.length) ? 'grid-cols-2' : 'grid-cols-1'}`}>
             {effectiveAspectRatios.length > 0 && <div>
-              <label className="text-[10px] text-white/50 block mb-1">比例</label>
+              <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.aspectRatio')}</label>
               <select
                 value={effectiveAspectRatio}
                 onChange={(e) => update({ aspectRatio: e.target.value })}
@@ -2991,7 +3011,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
             </div>}
             {!isGrokImage && !isSeedreamNz && effectiveSizes.length > 0 && (
               <div>
-                <label className="text-[10px] text-white/50 block mb-1">尺寸</label>
+                <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.size')}</label>
                 <select
                   value={effectiveSizeLevel}
                   onChange={(e) => update({ sizeLevel: e.target.value })}
@@ -3007,7 +3027,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
             )}
             {isSeedreamNz && (
               <div>
-                <label className="text-[10px] text-white/50 block mb-1">分辨率</label>
+                <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.resolution')}</label>
                 <select
                   value={seedreamNzResolution}
                   onChange={(e) => update({ seedreamNzResolution: e.target.value })}
@@ -3036,7 +3056,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
             )}
             {isSeedream && !isSeedreamNz && sizeLevel === 'custom' && (
               <div className="col-span-2">
-                <label className="text-[10px] text-white/50 block mb-1">自定义尺寸</label>
+                <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.customSize')}</label>
                 <input
                   value={seedreamCustomSize}
                   onChange={(e) => update({ seedreamCustomSize: e.target.value })}
@@ -3079,7 +3099,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
               </select>
             </div>
             <div>
-              <label className="text-[10px] text-white/50 block mb-1">输出格式</label>
+              <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.outputFormat')}</label>
               <select
                 value={seedreamOutputFormat}
                 onChange={(e) => update({ seedreamOutputFormat: e.target.value })}
@@ -3105,11 +3125,11 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
                 >
                   <option value="auto" style={{ background: '#18181b', color: '#ffffff' }}>自动推荐</option>
                   <option value="ratio" style={{ background: '#18181b', color: '#ffffff' }}>比例 + 分辨率</option>
-                  <option value="custom_size" style={{ background: '#18181b', color: '#ffffff' }}>自定义尺寸</option>
+                  <option value="custom_size" style={{ background: '#18181b', color: '#ffffff' }}>{translate('nodes:generation.customSize')}</option>
                 </select>
               </div>
               <div>
-                <label className="text-[10px] text-white/50 block mb-1">生成张数</label>
+                <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.outputCount')}</label>
                 <select
                   value={qwenImageCount}
                   onChange={(e) => update({ qwenImageCount: Number(e.target.value) })}
@@ -3125,7 +3145,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
             {qwenSizingMode === 'ratio' && (
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="text-[10px] text-white/50 block mb-1">比例</label>
+                  <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.aspectRatio')}</label>
                   <select
                     value={effectiveAspectRatio}
                     onChange={(e) => update({ aspectRatio: e.target.value })}
@@ -3138,7 +3158,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
                   </select>
                 </div>
                 <div>
-                  <label className="text-[10px] text-white/50 block mb-1">分辨率</label>
+                  <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.resolution')}</label>
                   <select
                     value={qwenResolution}
                     onChange={(e) => update({ qwenResolution: e.target.value })}
@@ -3166,7 +3186,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
             )}
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="text-[10px] text-white/50 block mb-1">Seed（-1 随机）</label>
+                <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.seedRandom')}</label>
                 <input
                   type="number"
                   min={-1}
@@ -3188,7 +3208,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
               </label>
             </div>
             <div>
-              <label className="text-[10px] text-white/50 block mb-1">反向提示词（可选）</label>
+              <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.negativePromptOptional')}</label>
               <textarea
                 value={qwenNegativePrompt}
                 onChange={(e) => update({ qwenNegativePrompt: e.target.value })}
@@ -3256,7 +3276,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
               </select>
             </div>
             <div>
-              <label className="text-[10px] text-white/50 block mb-1">内容审查</label>
+              <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.contentReview')}</label>
               <select
                 value={gptImageModeration}
                 onChange={(e) => update({ gptImageModeration: e.target.value })}
@@ -3271,7 +3291,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
         )}
         {isSeedreamNz && !isExternalSelected && (
           <div>
-            <label className="text-[10px] text-white/50 block mb-1">具体模型</label>
+            <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.specificModel')}</label>
             <div className="w-full rounded border border-white/10 bg-black/20 px-2 py-1 text-xs text-white/80">
               {seedreamNzUiModel}
             </div>
@@ -3473,7 +3493,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="text-[10px] text-white/50 block mb-1">Seed (0=不传)</label>
+                <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.seedOmit')}</label>
                 <input
                   type="number" min={0}
                   value={nbSeed}
@@ -3492,12 +3512,12 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
               </label>
             </div>
             <div>
-              <label className="text-[10px] text-white/50 block mb-1">System Prompt (可选)</label>
+              <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.systemPromptOptional')}</label>
               <PromptTextarea
                 title="图像扩展模型 System Prompt"
                 value={nbSysPrompt}
                 onValueChange={(value) => update({ nbSysPrompt: value })}
-                placeholder="可选系统指令"
+                placeholder={translate('nodes:generation.optionalSystemInstruction')}
                 rows={2}
                 promptTemplateKind="image"
                 style={{ background: '#18181b', color: '#ffffff' }}
@@ -3537,7 +3557,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
                 </select>
               </div>
               <div>
-                <label className="text-[10px] text-white/50 block mb-1">比例</label>
+                <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.aspectRatio')}</label>
                 <select
                   value={mjAr}
                   onChange={(e) => update({ mjAr: e.target.value })}
@@ -3643,7 +3663,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="text-[10px] text-white/50 block mb-1" title="轮询最大次数">maxPoll</label>
+                <label className="text-[10px] text-white/50 block mb-1" title={translate('nodes:generation.pollingMax')}>maxPoll</label>
                 <input
                   type="number" min={10} max={3600}
                   value={mjMaxPoll}
@@ -3653,7 +3673,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
                 />
               </div>
               <div>
-                <label className="text-[10px] text-white/50 block mb-1" title="轮询间隔(s)">pollInt(s)</label>
+                <label className="text-[10px] text-white/50 block mb-1" title={translate('nodes:generation.pollingInterval')}>pollInt(s)</label>
                 <input
                   type="number" min={1} max={30}
                   value={mjPollInt}
@@ -3772,14 +3792,14 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
 
         {/* 本地 prompt(优先取上游) */}
         {!isComfyExternal && <div>
-          <label className="text-[10px] text-white/50 block mb-1">本地 Prompt(可选,优先取上游 text)</label>
+          <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.localPrompt')}</label>
           <MentionPromptInput
-            title="图像 Prompt"
+            title={translate('nodes:image.promptTitle')}
             value={localPrompt}
             mentions={promptMentions}
             materials={mentionMaterials}
             onChange={(value, mentions) => update({ prompt: value, promptMentions: mentions })}
-            placeholder="备用:无上游连接时使用此提示词"
+            placeholder={translate('nodes:generation.promptFallback')}
             isDark={isDark}
             isPixel={isPixel}
             promptTemplateKind="image"
@@ -3797,9 +3817,9 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
             checked={imageOnlyOutput}
             disabled={status === 'generating'}
             onChange={(event) => update({ imageOnlyOutput: event.currentTarget.checked })}
-            aria-label="仅输出图片结果"
+            aria-label={translate('nodes:image.imageOnlyAria')}
           />
-          <span>仅输出图片结果（不输出 Prompt）</span>
+          <span>{translate('nodes:image.imageOnly')}</span>
         </label>
 
         <ReuseResultToggle
@@ -3815,14 +3835,14 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
             onClick={handleStop}
             className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded bg-red-500/20 hover:bg-red-500/30 text-red-200 text-xs font-medium transition-colors"
           >
-            <Square size={11} /> 停止({d?.progress || '生成中'})
+            <Square size={11} /> {translate('nodes:generation.stopWithStatus', { status: d?.progress || translate('nodes:generation.generating') })}
           </button>
         ) : (
           <button
             onClick={() => requestCanvasNodeRun(id)}
             className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-xs font-medium transition-colors"
           >
-            <Sparkles size={12} /> 生成
+            <Sparkles size={12} /> {translate('nodes:generation.generate')}
           </button>
         )}
 
@@ -3846,7 +3866,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
         <div className="border-t border-white/10 p-2">
           <SmartImage
             src={imageUrl}
-            alt="生成结果"
+            alt={translate('nodes:image.resultAlt')}
             className="w-full rounded object-cover"
             thumbSize={720}
             data-drag-source
@@ -3854,7 +3874,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
             data-drag-url={imageUrl}
             data-drag-preview={imageUrl}
             data-drag-node-id={id}
-            data-resource-title={imageUrl.split('/').pop() || '生成图像'}
+            data-resource-title={imageUrl.split('/').pop() || translate('nodes:image.generatedImage')}
             data-prompt-template-kind="image"
             data-prompt-template-category="image-reference-edit"
             data-prompt-template-prompt={d?.lastPrompt || localPrompt || String(providerParams.prompt ?? providerParams.positive ?? '')}
@@ -3862,7 +3882,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
             onMouseDown={(e) =>
               beginMaterialDrag(e, { kind: 'image', url: imageUrl, sourceNodeId: id, previewUrl: imageUrl })
             }
-            title="Ctrl+拖拽可送到其他节点"
+            title={translate('nodes:generation.ctrlDrag')}
           />
         </div>
       )}

@@ -23,6 +23,7 @@ import { logBus } from '../../stores/logs';
 import { taskCompletionSound } from '../../stores/taskCompletionSound';
 import { useUpstreamMaterials } from './useUpstreamMaterials';
 import { useUpdateNodeData } from './useUpdateNodeData';
+import InspirationVisible from '../../i18n/InspirationVisible';
 
 const MODELS: ReadonlyArray<{ value: MinimaxH3ContextIrModel; label: string; mode: string }> = [
   { value: 'minmax-h3-context-ir-text', label: 'Text · 纯文本增强', mode: 'text' },
@@ -228,14 +229,14 @@ function MinimaxH3OfficialPromptEnhancerNode({ id, data, selected }: NodeProps) 
   useRunTrigger(id, runEnhancer, 'minimax-h3-official-prompt-enhancer', { lifecycleAware: true });
 
   return (
-    <div className="relative w-[390px]">
+    <InspirationVisible>
+      <div className="t8-inspiration-node-shell relative w-[390px]" data-inspiration-node="minimax-h3-official-prompt-enhancer">
       <Handle type="target" position={Position.Left} className="!z-10 !border-0 !bg-emerald-300" />
       <Handle type="source" position={Position.Right} className="!z-10 !border-0 !bg-emerald-300" />
       <div
-        className={`overflow-hidden rounded-2xl border-2 transition-all ${selected ? 'border-emerald-400 shadow-2xl shadow-emerald-500/20' : 'border-white/15 hover:border-white/30'}`}
-        style={{ background: 'rgba(17,20,22,.97)' }}
+        className={`t8-node t8-inspiration-node overflow-hidden rounded-2xl border-2 transition-all ${selected ? 'border-emerald-400 shadow-2xl shadow-emerald-500/20' : 'border-white/15 hover:border-white/30'}`}
       >
-        <div className="flex items-center gap-2.5 border-b border-white/10 px-3 py-2.5">
+        <div className="t8-node-header t8-inspiration-node__header flex items-center gap-2.5 border-b border-white/10 px-3 py-2.5">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/20 text-emerald-200 ring-1 ring-emerald-400/30">
             <Sparkles size={17} />
           </div>
@@ -341,7 +342,8 @@ function MinimaxH3OfficialPromptEnhancerNode({ id, data, selected }: NodeProps) 
           )}
         </div>
       </div>
-    </div>
+      </div>
+    </InspirationVisible>
   );
 }
 

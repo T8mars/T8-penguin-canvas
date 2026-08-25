@@ -1,0 +1,24 @@
+name: Quality gates
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contracts:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run feature-sync:check
+      - run: npm run i18n:check
+      - run: npm run type-check
+      - run: npx tsx --test tests/i18n.test.ts tests/canvasPerformance.test.ts tests/outputView.test.ts

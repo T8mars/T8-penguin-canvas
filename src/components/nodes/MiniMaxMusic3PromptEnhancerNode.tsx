@@ -65,6 +65,7 @@ import type { RunNodeLifecycleReporter } from '../../types/project';
 import { SEEDANCE_NZ_LLM_MODELS } from '../../config/llm';
 import { useUpstreamMaterials } from './useUpstreamMaterials';
 import { useUpdateNodeData } from './useUpdateNodeData';
+import InspirationVisible from '../../i18n/InspirationVisible';
 
 interface StageCacheReceipt {
   schema: 't8-music3-stage-cache-receipt-v1';
@@ -395,7 +396,8 @@ function MiniMaxMusic3PromptEnhancerNode({ id, data, selected }: NodeProps) {
   const semanticPrivacyWarning = semanticMode === 'llm-profile';
 
   return (
-    <div className="relative w-[440px]">
+    <InspirationVisible>
+      <div className="t8-inspiration-node-shell relative w-[440px]" data-inspiration-node="minimax-music3-prompt-enhancer">
       <Handle id="music-idea" type="target" position={Position.Left} style={{ top: '34%' }} className="!h-3 !w-3 !border-2 !border-[#111117] !bg-fuchsia-300" />
       <Handle id="lyrics" type="target" position={Position.Left} style={{ top: '48%' }} className="!h-3 !w-3 !border-2 !border-[#111117] !bg-amber-300" />
       <PortLabel side="left" top="34%">创作意图</PortLabel><PortLabel side="left" top="48%">歌词</PortLabel>
@@ -404,8 +406,8 @@ function MiniMaxMusic3PromptEnhancerNode({ id, data, selected }: NodeProps) {
       <Handle id="payload" type="source" position={Position.Right} style={{ top: '56%' }} className="!h-3 !w-3 !border-2 !border-[#111117] !bg-sky-300" />
       <Handle id="report" type="source" position={Position.Right} style={{ top: '69%' }} className="!h-3 !w-3 !border-2 !border-[#111117] !bg-emerald-300" />
       <PortLabel side="right" top="30%">歌词</PortLabel><PortLabel side="right" top="43%">Caption</PortLabel><PortLabel side="right" top="56%">Payload</PortLabel><PortLabel side="right" top="69%">报告</PortLabel>
-      <div className={`overflow-hidden rounded-2xl border-2 bg-[#111117]/95 transition ${selected ? 'border-fuchsia-400 shadow-2xl shadow-fuchsia-500/20' : 'border-white/15 hover:border-white/30'}`}>
-        <div className="flex items-center gap-2.5 border-b border-white/10 px-3 py-2.5">
+      <div className={`t8-node t8-inspiration-node overflow-hidden rounded-2xl border-2 transition ${selected ? 'border-fuchsia-400 shadow-2xl shadow-fuchsia-500/20' : 'border-white/15 hover:border-white/30'}`}>
+        <div className="t8-node-header t8-inspiration-node__header flex items-center gap-2.5 border-b border-white/10 px-3 py-2.5">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-fuchsia-500/20 text-fuchsia-200 ring-1 ring-fuchsia-400/30"><Music2 size={18} /></div>
           <div className="min-w-0 flex-1"><div className="truncate text-sm font-bold text-white">MiniMax Music 提示词增强器</div><div className="truncate text-[10px] text-white/40">Music 3 纯文本歌曲策划 · {providerLabel}</div></div>
           {running ? <Loader2 size={17} className="animate-spin text-fuchsia-300" /> : status === 'success' ? <CheckCircle2 size={17} className="text-emerald-400" /> : null}
@@ -454,7 +456,8 @@ function MiniMaxMusic3PromptEnhancerNode({ id, data, selected }: NodeProps) {
           )}
         </div>
       </div>
-    </div>
+      </div>
+    </InspirationVisible>
   );
 }
 

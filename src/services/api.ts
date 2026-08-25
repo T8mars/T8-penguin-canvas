@@ -101,15 +101,52 @@ import {
 
 const BASE = '/api';
 
+export interface ApiErrorEnvelope {
+  code: string;
+  messageKey: string | null;
+  params: Record<string, string | number | boolean>;
+  error: string;
+}
+
+const API_MESSAGE_KEY_RE = /^[a-z][a-z0-9]*(?:\.[a-zA-Z0-9_-]+)+$/;
+
+export function parseApiErrorEnvelope(data: unknown, status = 500): ApiErrorEnvelope {
+  const payload = data && typeof data === 'object' && !Array.isArray(data)
+    ? data as Record<string, unknown>
+    : {};
+  const rawParams = payload.params && typeof payload.params === 'object' && !Array.isArray(payload.params)
+    ? payload.params as Record<string, unknown>
+    : {};
+  const params: Record<string, string | number | boolean> = {};
+  Object.entries(rawParams).forEach(([key, value]) => {
+    if (typeof value === 'string' || typeof value === 'boolean' || (typeof value === 'number' && Number.isFinite(value))) {
+      params[key] = value;
+    }
+  });
+  const messageKey = String(payload.messageKey || '').trim();
+  return {
+    code: String(payload.code || payload.errorCode || `http_${status}`).trim().slice(0, 120) || `http_${status}`,
+    messageKey: API_MESSAGE_KEY_RE.test(messageKey) ? messageKey : null,
+    params: { status, ...params },
+    error: String(payload.error || payload.message || `HTTP ${status}`),
+  };
+}
+
 export class ApiRequestError extends Error {
   status: number;
   data: unknown;
+  code: string;
+  messageKey: string | null;
+  params: Record<string, string | number | boolean>;
 
-  constructor(message: string, status: number, data: unknown) {
-    super(message);
+  constructor(message: string, status: number, data: unknown, envelope = parseApiErrorEnvelope(data, status)) {
+    super(message || envelope.error);
     this.name = 'ApiRequestError';
     this.status = status;
     this.data = data;
+    this.code = envelope.code;
+    this.messageKey = envelope.messageKey;
+    this.params = envelope.params;
   }
 }
 
@@ -156,7 +193,7 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
     try {
       const data = await res.json();
       responseData = data;
-      errMsg = data.error || data.message || errMsg;
+      errMsg = parseApiErrorEnvelope(data, res.status).error;
     } catch {
       /* ignore */
     }
@@ -3354,7 +3391,14 @@ export interface AddRHToolPayload {
 }
 
 export type OkData<T> = { success: true; data: T };
-export type ErrData = { success: false; error: string; data?: any };
+export type ErrData = {
+  success: false;
+  error: string;
+  code?: string;
+  messageKey?: string | null;
+  params?: Record<string, string | number | boolean>;
+  data?: any;
+};
 export type Result<T> = OkData<T> | ErrData;
 
 async function safeRequest<T>(url: string, init?: RequestInit): Promise<Result<T>> {
@@ -3364,11 +3408,26 @@ async function safeRequest<T>(url: string, init?: RequestInit): Promise<Result<T
       ...init,
     });
     const json = await res.json().catch(() => ({}));
-    if (!res.ok) return { success: false, error: json.error || `HTTP ${res.status}`, data: json.data };
-    if (json && typeof json === 'object' && 'success' in json) return json as Result<T>;
+    if (!res.ok) {
+      const envelope = parseApiErrorEnvelope(json, res.status);
+      return { success: false, ...envelope, data: json.data };
+    }
+    if (json && typeof json === 'object' && 'success' in json) {
+      if (json.success === false) {
+        const envelope = parseApiErrorEnvelope(json, res.status || 400);
+        return { ...json, ...envelope, success: false } as ErrData;
+      }
+      return json as Result<T>;
+    }
     return { success: true, data: json as T };
   } catch (e: any) {
-    return { success: false, error: e?.message || '网络错误' };
+    return {
+      success: false,
+      error: e?.message || 'Network error',
+      code: 'network_error',
+      messageKey: 'errors.api.network',
+      params: {},
+    };
   }
 }
 

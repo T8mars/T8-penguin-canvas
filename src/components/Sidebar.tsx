@@ -1,4 +1,5 @@
-import { memo, useCallback, useMemo, useState, type UIEvent } from 'react';
+import { memo, useCallback, useEffect, useMemo, useState, type UIEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import * as Icons from 'lucide-react';
 import {
   Check,
@@ -21,6 +22,9 @@ import { useThemeStore } from '../stores/theme';
 import { useCanvasStore } from '../stores/canvas';
 import { listCanvasPage } from '../services/api';
 import { resolveThemeTemplate } from '../theme/defaultTemplates';
+import { useUiLocaleStore } from '../stores/locale';
+import { getNodeSearchText, localizeNodeMeta, NODE_GROUP_COPY } from '../i18n/nodeCatalog';
+import { markCanvasPerformance } from '../utils/canvasPerformanceProbe';
 const COLOR_HEX: Record<string, string> = {
   sky: '#7dd3fc',
   amber: '#fcd34d',
@@ -431,6 +435,7 @@ const CanvasCatalogRow = memo(function CanvasCatalogRow({
   onConfirmDelete,
   onCancelDelete,
 }: CanvasCatalogRowProps) {
+  const { t } = useTranslation('shell');
   return (
     <div
       onClick={() => !isEditing && onSelect(canvas.id)}
@@ -467,18 +472,18 @@ const CanvasCatalogRow = memo(function CanvasCatalogRow({
         <div className="flex items-center gap-1.5">
           <div className="flex-1 min-w-0">
             <div className="t8-sidebar-canvas-title flex min-w-0 items-center gap-1">
-              <span className="truncate font-medium">{canvas.name}</span>
+              <span className="truncate font-medium" data-user-content>{canvas.name}</span>
               {hasCompletionNotice && (
                 <span
                   className="t8-sidebar-canvas-update-dot"
                   role="img"
-                  aria-label="这个画布有新生成完成，切换后自动清除"
-                  title="这个画布有新生成完成，切换后自动清除"
+                  aria-label={t('catalog.completionNotice')}
+                  title={t('catalog.completionNotice')}
                 />
               )}
             </div>
             <div className={`text-[10px] ${isDark ? 'text-white/30' : 'text-zinc-400'}`}>
-              {canvas.nodeCount} 个节点
+              {t('catalog.nodeCount', { count: canvas.nodeCount })}
             </div>
           </div>
           <div className="opacity-0 group-hover:opacity-100 flex items-center gap-0.5 transition-opacity">
@@ -490,7 +495,7 @@ const CanvasCatalogRow = memo(function CanvasCatalogRow({
                     onConfirmDelete(canvas.id);
                   }}
                   className="p-0.5 rounded hover:bg-red-500/20 text-red-400"
-                  title="确认删除"
+                  title={t('catalog.confirmDelete')}
                 >
                   <Check size={11} />
                 </button>
@@ -500,7 +505,7 @@ const CanvasCatalogRow = memo(function CanvasCatalogRow({
                     onCancelDelete();
                   }}
                   className={`p-0.5 rounded ${isDark ? 'hover:bg-white/10' : 'hover:bg-black/10'}`}
-                  title="取消删除"
+                  title={t('catalog.cancelDelete')}
                 >
                   <X size={11} />
                 </button>
@@ -513,7 +518,7 @@ const CanvasCatalogRow = memo(function CanvasCatalogRow({
                     onStartEdit(canvas.id, canvas.name);
                   }}
                   className={`p-0.5 rounded ${isDark ? 'hover:bg-white/10' : 'hover:bg-black/10'}`}
-                  title="重命名"
+                  title={t('catalog.rename')}
                 >
                   <Edit2 size={10} />
                 </button>
@@ -525,7 +530,7 @@ const CanvasCatalogRow = memo(function CanvasCatalogRow({
                   className={`p-0.5 rounded ${
                     isDark ? 'hover:bg-red-500/20 text-red-400' : 'hover:bg-red-100 text-red-600'
                   }`}
-                  title="删除"
+                  title={t('catalog.delete')}
                 >
                   <Trash2 size={10} />
                 </button>
@@ -539,6 +544,9 @@ const CanvasCatalogRow = memo(function CanvasCatalogRow({
 });
 
 export default function Sidebar({ onAddNode }: SidebarProps) {
+  const { t } = useTranslation('shell');
+  const uiLocale = useUiLocaleStore((state) => state.locale);
+  useEffect(() => markCanvasPerformance('canvas-catalog-interactive'), []);
   const { theme, style, templateId, customTemplates } = useThemeStore();
   const currentTemplate = useMemo(
     () => resolveThemeTemplate(templateId, customTemplates),
@@ -592,9 +600,9 @@ export default function Sidebar({ onAddNode }: SidebarProps) {
   );
 
   const handleCreateCanvas = useCallback(async () => {
-    const name = `画布 ${displayedCanvasTotal + 1}`;
+    const name = t('catalog.defaultName', { index: displayedCanvasTotal + 1 });
     await createCanvas(name);
-  }, [createCanvas, displayedCanvasTotal]);
+  }, [createCanvas, displayedCanvasTotal, t]);
 
   const startEdit = useCallback((id: string, name: string) => {
     setEditingId(id);
@@ -648,11 +656,11 @@ export default function Sidebar({ onAddNode }: SidebarProps) {
       setCanvasSearchResults([]);
       setCanvasSearchCursor(null);
       setCanvasSearchHasMore(false);
-      setCanvasSearchError(error?.message || '搜索画布失败');
+      setCanvasSearchError(error?.message || t('catalog.searchFailed'));
     } finally {
       setCanvasSearchLoading(false);
     }
-  }, [canvasSearchDraft]);
+  }, [canvasSearchDraft, t]);
 
   const handleLoadMoreCanvasSearch = useCallback(async () => {
     if (!canvasSearchQuery || !canvasSearchCursor || !canvasSearchHasMore || canvasSearchLoading) return;
@@ -668,11 +676,11 @@ export default function Sidebar({ onAddNode }: SidebarProps) {
       setCanvasSearchHasMore(page.hasMore);
       setCanvasSearchUnavailable(page.searchUnavailable);
     } catch (error: any) {
-      setCanvasSearchError(error?.message || '继续搜索画布失败');
+      setCanvasSearchError(error?.message || t('catalog.searchMoreFailed'));
     } finally {
       setCanvasSearchLoading(false);
     }
-  }, [canvasSearchCursor, canvasSearchHasMore, canvasSearchLoading, canvasSearchQuery]);
+  }, [canvasSearchCursor, canvasSearchHasMore, canvasSearchLoading, canvasSearchQuery, t]);
 
   const clearCanvasSearch = useCallback(() => {
     setCanvasSearchDraft('');
@@ -694,6 +702,7 @@ export default function Sidebar({ onAddNode }: SidebarProps) {
   const toggle = (key: string) => setCollapsed((s) => ({ ...s, [key]: !s[key] }));
 
   const renderNode = (n: NodeMeta) => {
+    const displayNode = localizeNodeMeta(n, uiLocale);
     const themedIcon = visualStyle === 'op'
       ? OP_ICON_BY_TYPE[n.type] || n.icon
       : visualStyle === 'naruto'
@@ -719,7 +728,7 @@ export default function Sidebar({ onAddNode }: SidebarProps) {
       <button
         key={n.type}
         onClick={() => onAddNode(n.type)}
-        title={n.description}
+        title={displayNode.description}
         className={`t8-sidebar-node w-full text-left flex items-center gap-2 px-2 py-1.5 transition-colors text-xs ${
           isPixel
             ? 'px-row'
@@ -750,7 +759,7 @@ export default function Sidebar({ onAddNode }: SidebarProps) {
         >
           <Icon size={13} />
         </span>
-        <span className="flex-1 min-w-0 truncate">{n.label}</span>
+        <span className="flex-1 min-w-0 truncate">{displayNode.label}</span>
       </button>
     );
   };
@@ -761,9 +770,7 @@ export default function Sidebar({ onAddNode }: SidebarProps) {
     const k = keyword.toLowerCase();
     return nodes.filter(
       (n) =>
-        n.label.toLowerCase().includes(k) ||
-        n.type.toLowerCase().includes(k) ||
-        n.description.toLowerCase().includes(k)
+        getNodeSearchText(n, uiLocale).includes(k)
     );
   };
 
@@ -800,7 +807,7 @@ export default function Sidebar({ onAddNode }: SidebarProps) {
           >
             {canvasPanelOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
             <FolderOpen size={12} />
-            <span>画布</span>
+            <span>{t('catalog.canvas')}</span>
             <span className="opacity-60 ml-1 normal-case">{displayedCanvasTotal}</span>
           </button>
           <button
@@ -814,7 +821,7 @@ export default function Sidebar({ onAddNode }: SidebarProps) {
                       : 'hover:bg-black/10 text-zinc-700'
                   }`
             }
-            title="新建画布"
+            title={t('catalog.create')}
           >
             <Plus size={13} />
           </button>
@@ -834,13 +841,13 @@ export default function Sidebar({ onAddNode }: SidebarProps) {
               <input
                 value={canvasSearchDraft}
                 onChange={(event) => setCanvasSearchDraft(event.target.value)}
-                placeholder="搜索全部画布，回车确认"
-                aria-label="搜索全部画布"
+                placeholder={t('catalog.searchPlaceholder')}
+                aria-label={t('catalog.searchAria')}
                 className="min-w-0 flex-1 bg-transparent text-[10px] outline-none"
               />
               {canvasSearchLoading && <Loader2 size={10} className="shrink-0 animate-spin" />}
               {(canvasSearchDraft || canvasSearchQuery) && !canvasSearchLoading && (
-                <button type="button" onClick={clearCanvasSearch} title="清除画布搜索">
+                <button type="button" onClick={clearCanvasSearch} title={t('catalog.clearSearch')}>
                   <X size={10} />
                 </button>
               )}
@@ -849,7 +856,7 @@ export default function Sidebar({ onAddNode }: SidebarProps) {
                 disabled={canvasSearchLoading}
                 className="shrink-0 rounded px-1 py-0.5 text-[9px] hover:bg-white/10"
               >
-                搜索
+                {t('catalog.search')}
               </button>
             </form>
             {canvasLoading && (
@@ -858,7 +865,7 @@ export default function Sidebar({ onAddNode }: SidebarProps) {
                   isPixel ? '' : isDark ? 'text-white/40' : 'text-zinc-500'
                 }`}
               >
-                <Loader2 size={12} className="animate-spin" /> 加载中...
+                <Loader2 size={12} className="animate-spin" /> {t('catalog.loading')}
               </div>
             )}
             {canvasCatalogPartial && canvasRecovery?.status === 'running' && (
@@ -866,12 +873,12 @@ export default function Sidebar({ onAddNode }: SidebarProps) {
                 className={`px-2 pb-1 text-[10px] ${isPixel ? '' : isDark ? 'text-amber-300/70' : 'text-amber-700'}`}
                 role="status"
               >
-                正在后台修复画布目录 {canvasRecovery.scanned}/{canvasRecovery.total || '?'}
+                {t('catalog.repairing', { scanned: canvasRecovery.scanned, total: canvasRecovery.total || '?' })}
               </div>
             )}
             {canvasSearchUnavailable && canvasSearchQuery && (
               <div className={`px-2 pb-1 text-[10px] ${isDark ? 'text-amber-300/70' : 'text-amber-700'}`}>
-                目录索引正在修复，当前搜索结果可能不完整；修复完成后可重新搜索。
+                {t('catalog.repairNotice')}
               </div>
             )}
             {canvasSearchError && (
@@ -887,7 +894,7 @@ export default function Sidebar({ onAddNode }: SidebarProps) {
                   isPixel ? '' : isDark ? 'text-white/40' : 'text-zinc-500'
                 }`}
               >
-                <p>还没有画布</p>
+                <p>{t('catalog.empty')}</p>
                 <button
                   onClick={handleCreateCanvas}
                   className={
@@ -896,7 +903,7 @@ export default function Sidebar({ onAddNode }: SidebarProps) {
                       : 'mt-1.5 px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 text-[10px] hover:bg-emerald-500/30'
                   }
                 >
-                  + 新建第一个画布
+                  {t('catalog.createFirst')}
                 </button>
               </div>
             )}
@@ -904,7 +911,7 @@ export default function Sidebar({ onAddNode }: SidebarProps) {
               <div className={`px-2 py-2 text-center text-[10px] ${
                 isDark ? 'text-white/40' : 'text-zinc-500'
               }`}>
-                没有匹配的画布
+                {t('catalog.noMatches')}
               </div>
             )}
             {displayedCanvases.length > 0 && (
@@ -961,7 +968,7 @@ export default function Sidebar({ onAddNode }: SidebarProps) {
                 }`}
               >
                 {canvasLoadingMore ? <Loader2 size={10} className="animate-spin" /> : <ChevronDown size={10} />}
-                {canvasLoadingMore ? '加载中...' : `加载更多（已载入 ${canvases.length}）`}
+                {canvasLoadingMore ? t('catalog.loading') : t('catalog.loadMore', { count: canvases.length })}
               </button>
             )}
             {canvasSearchQuery && canvasSearchHasMore && (
@@ -974,7 +981,7 @@ export default function Sidebar({ onAddNode }: SidebarProps) {
                 }`}
               >
                 {canvasSearchLoading ? <Loader2 size={10} className="animate-spin" /> : <ChevronDown size={10} />}
-                {canvasSearchLoading ? '搜索中...' : `加载更多结果（已载入 ${canvasSearchResults.length}）`}
+                {canvasSearchLoading ? t('catalog.searching') : t('catalog.loadMoreResults', { count: canvasSearchResults.length })}
               </button>
             )}
           </div>
@@ -999,7 +1006,7 @@ export default function Sidebar({ onAddNode }: SidebarProps) {
             type="text"
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
-            placeholder="搜索节点..."
+            placeholder={t('catalog.nodeSearch')}
             className={`flex-1 bg-transparent outline-none text-xs ${
               isPixel
                 ? ''
@@ -1030,7 +1037,7 @@ export default function Sidebar({ onAddNode }: SidebarProps) {
                 }`}
               >
                 {isCollapsed ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
-                <span className="flex-1 text-left">{group.label}</span>
+                <span className="flex-1 text-left">{NODE_GROUP_COPY[key]?.[uiLocale] || group.label}</span>
                 <span className="opacity-60">{visible.length}</span>
               </button>
               {!isCollapsed && <div className="space-y-0.5 mt-0.5">{visible.map(renderNode)}</div>}

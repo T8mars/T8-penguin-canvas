@@ -58,14 +58,15 @@ test('workflow doctor preference fails open for creation when browser storage is
   assert.doesNotThrow(() => writeWorkflowDoctorEnabled(true, unavailable));
 });
 
-test('canvas exposes a theme-aware toolbar toggle above the existing placement shelf control', () => {
+test('canvas exposes Workflow Doctor as a theme-aware item before placement shelf in the consolidated tools menu', () => {
   const doctorIndex = canvas.indexOf('data-canvas-floating-ui="workflow-doctor-toggle"');
   const shelfIndex = canvas.indexOf('data-canvas-floating-ui="placement-shelf-toggle"');
   assert.notEqual(doctorIndex, -1);
   assert.ok(doctorIndex < shelfIndex);
-  assert.match(canvas, /className=\{`t8-control-rail-help t8-control-rail-doctor t8-mini-icon-button/);
-  assert.match(canvas, /aria-pressed=\{workflowDoctorEnabled\}/);
-  assert.match(canvas, /工作流医生：已关闭/);
+  assert.match(canvas, /data-canvas-floating-ui="control-tools-menu"/);
+  assert.match(canvas, /className=\{workflowDoctorEnabled \? 'is-active' : ''\}/);
+  assert.match(canvas, /aria-checked=\{workflowDoctorEnabled\}/);
+  assert.match(canvas, /t\('canvas:controls\.doctorOff'\)/);
   assert.match(canvas, /<LucideIcons\.Stethoscope size=\{16\} \/>/);
   assert.match(styles, /\.t8-control-rail-doctor\.is-active/);
   assert.match(styles, /background: var\(--t8-flow-controls-button-hover-bg\) !important/);

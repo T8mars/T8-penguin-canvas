@@ -33,6 +33,8 @@ interface T8UpdaterStatus {
   currentVersion: string;
   availableVersion?: string | null;
   message?: string | null;
+  messageKey?: string | null;
+  messageParams?: Record<string, string | number | boolean | null> | null;
   progress?: T8UpdaterProgress | null;
   downloaded?: boolean;
   error?: string | null;
@@ -42,6 +44,9 @@ interface T8UpdaterStatus {
 
 interface T8UpdaterResult {
   success: boolean;
+  code?: string;
+  messageKey?: string;
+  params?: Record<string, unknown>;
   message?: string;
   info?: unknown;
   status?: T8UpdaterStatus;
@@ -51,6 +56,9 @@ interface T8DragFileOutStatus {
   requestId?: string;
   success: boolean;
   message?: string;
+  code?: string;
+  messageKey?: string;
+  params?: Record<string, unknown>;
   file?: string;
 }
 
@@ -315,8 +323,18 @@ interface Window {
       backendPort: number;
       userData: string;
       version: string;
+      locale?: 'zh-CN' | 'en-US';
       updater?: T8UpdaterStatus;
     }>;
+    locale?: {
+      get: () => Promise<{ locale: 'zh-CN' | 'en-US' }>;
+      set: (locale: 'zh-CN' | 'en-US') => Promise<{
+        success: boolean;
+        locale: 'zh-CN' | 'en-US';
+        code?: string;
+        messageKey?: string;
+      }>;
+    };
     openExternal: (url: string) => Promise<{ success: boolean; message?: string }>;
     openPath: (targetPath: string) => Promise<{ success: boolean; message?: string; path?: string }>;
     pickMediaFiles?: (options?: { directory?: boolean; multiple?: boolean; kinds?: Array<'image' | 'video' | 'audio' | 'model3d'> }) => Promise<T8PickMediaFilesResult>;

@@ -2,6 +2,7 @@ import {
   lazy, memo, Suspense, useEffect, useMemo, useRef, useState, type CSSProperties,
 } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 import {
   Handle, Position, useNodeConnections, useNodesData, useReactFlow, useUpdateNodeInternals, type NodeProps,
 } from '@xyflow/react';
@@ -43,11 +44,11 @@ function normalizeProject(value: any): Record<string, any> | null {
   return value;
 }
 
-async function persistPrevisOutput(blob: Blob, filename: string): Promise<string> {
+async function persistPrevisOutput(blob: Blob, filename: string, archiveError: string): Promise<string> {
   const uploadedUrl = await uploadFileBlob(blob, filename);
   const archived = await copyFileToOutput(uploadedUrl, filename, 'previs');
   if (!archived.url.startsWith('/files/output/previs/')) {
-    throw new Error('白模预演输出没有进入受控 output 目录。');
+    throw new Error(archiveError);
   }
   return archived.url;
 }
@@ -79,6 +80,7 @@ function projectSummary(project: Record<string, any> | null) {
 }
 
 const PrevisStudioNode = ({ id, data, selected }: NodeProps) => {
+  const { t } = useTranslation('nodes');
   const d = (data || {}) as any;
   const update = useUpdateNodeData(id);
   const rf = useReactFlow();
@@ -100,7 +102,7 @@ const PrevisStudioNode = ({ id, data, selected }: NodeProps) => {
   );
   const [editorOpen, setEditorOpen] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState(d.error || '打开工作台摆放人物、场景与镜头');
+  const [message, setMessage] = useState('');
   const [size, setSize] = useState(() => d?.size && Number(d.size.w) > 0
     ? { w: Number(d.size.w), h: Number(d.size.h) }
     : { w: 500, h: 460 });
@@ -113,8 +115,8 @@ const PrevisStudioNode = ({ id, data, selected }: NodeProps) => {
     if (!cancelTargets.includes(executionNodeId)) return;
     cancelledDuringRunRef.current = true;
     editorRef.current?.cancelExport();
-    setMessage('白模预演导出已停止');
-  }, [cancelSeq, cancelTargets, executionNodeId]);
+    setMessage(t('previs.stopped'));
+  }, [cancelSeq, cancelTargets, executionNodeId, t]);
 
   useEffect(() => {
     if (!upstreamModelUrl || d.previsUpstreamModelUrl === upstreamModelUrl) return;
@@ -157,11 +159,11 @@ const PrevisStudioNode = ({ id, data, selected }: NodeProps) => {
       };
       const timer = window.setTimeout(() => {
         readyWaitersRef.current.delete(finish);
-        reject(new Error('白模预演工作台加载超时，请关闭后重试。'));
+        reject(new Error(t('previs.loadTimeout')));
       }, 15_000);
       readyWaitersRef.current.add(finish);
     });
-    if (!editorRef.current) throw new Error('白模预演工作台尚未就绪。');
+    if (!editorRef.current) throw new Error(t('previs.notReady'));
     return editorRef.current;
   };
 
@@ -173,12 +175,13 @@ const PrevisStudioNode = ({ id, data, selected }: NodeProps) => {
       previsProjectRevision: currentRevision + 1,
       previsSource: { repository: SOURCE_URL, commit: SOURCE_COMMIT, author: 'GuiYi-Xi' },
       error: '',
+      errorKey: '',
     });
   };
 
   const requestRun = (kind: PrevisRunKind) => {
     const requestId = createCanvasNodeRunRequestId(id, `previs-${kind}`);
-    update({ previsRunKind: kind, previsRunRequestId: requestId, error: '' });
+    update({ previsRunKind: kind, previsRunRequestId: requestId, error: '', errorKey: '' });
     window.requestAnimationFrame(() => {
       if (requestCanvasNodeRun(id, { requestId })) return;
       const liveData = rf.getNode(id)?.data as Record<string, unknown> | undefined;
@@ -187,7 +190,8 @@ const PrevisStudioNode = ({ id, data, selected }: NodeProps) => {
         previsRunRequestId: '',
         status: 'error',
         taskStatus: 'failed',
-        error: '无法提交白模预演运行请求，请重试。',
+        error: '',
+        errorKey: 'previs.requestFailed',
       });
     });
   };
@@ -198,13 +202,13 @@ const PrevisStudioNode = ({ id, data, selected }: NodeProps) => {
     const persistedRequestId = String(liveData?.previsRunRequestId || '').trim();
     const kind = String(persistedRequestId ? liveData?.previsRunKind || 'image' : 'image') as PrevisRunKind;
     if (persistedRequestId && contextRequestId !== persistedRequestId) {
-      throw new Error('白模预演运行请求已过期或被修改，已停止输出。');
+      throw new Error(t('previs.staleRun'));
     }
-    if (kind !== 'image' && kind !== 'video') throw new Error('白模预演运行类型无效。');
+    if (kind !== 'image' && kind !== 'video') throw new Error(t('previs.invalidRunKind'));
     setBusy(true);
     cancelledDuringRunRef.current = false;
-    setMessage(kind === 'video' ? '正在渲染并编码 H.264 MP4…' : '正在渲染当前摄像机画面…');
-    update({ status: 'running', taskStatus: 'running', error: '' });
+    setMessage(kind === 'video' ? t('previs.renderingVideo') : t('previs.renderingImage'));
+    update({ status: 'running', taskStatus: 'running', error: '', errorKey: '' });
     try {
       const editor = await ensureEditorReady();
       const projectSnapshot = editor.getProject();
@@ -212,7 +216,7 @@ const PrevisStudioNode = ({ id, data, selected }: NodeProps) => {
       const revision = Number((rf.getNode(id)?.data as any)?.previsProjectRevision || 0) + 1;
       const assertRunActive = () => {
         if (!cancelledDuringRunRef.current) return;
-        const error = new Error('白模预演导出已停止');
+        const error = new Error(t('previs.stopped'));
         (error as Error & { code?: string }).code = 'PREVIS_EXPORT_CANCELLED';
         throw error;
       };
@@ -220,7 +224,7 @@ const PrevisStudioNode = ({ id, data, selected }: NodeProps) => {
         const result = await editor.exportVideo();
         assertRunActive();
         const filename = `previs-${id}-${Date.now()}.mp4`;
-        const url = await persistPrevisOutput(result.blob, filename);
+        const url = await persistPrevisOutput(result.blob, filename, t('previs.archiveFailed'));
         assertRunActive();
         const outputText = `白模预演参考动画，${result.durationSeconds.toFixed(2)} 秒，${result.aspectRatio}，${result.fps} FPS。`;
         const metadata = {
@@ -233,7 +237,7 @@ const PrevisStudioNode = ({ id, data, selected }: NodeProps) => {
         const nodeBeforeWrite = rf.getNode(id)?.data as Record<string, unknown> | undefined;
         const clearLegacyImage = hasUnsafeLegacyOutput(nodeBeforeWrite, ['imageUrl', 'imageUrls', 'urls', 'directImageUrl', 'directImageUrls']);
         update({
-          status: 'success', taskStatus: 'completed', error: '',
+          status: 'success', taskStatus: 'completed', error: '', errorKey: '',
           videoUrl: url, videoUrls: [url], directVideoUrl: url, directVideoUrls: [url],
           ...(clearLegacyImage ? { imageUrl: '', imageUrls: [], urls: [], directImageUrl: '', directImageUrls: [] } : {}),
           outputText,
@@ -247,12 +251,12 @@ const PrevisStudioNode = ({ id, data, selected }: NodeProps) => {
             { kind: 'text', text: outputText, filename: `${filename}.txt`, mimeType: 'text/plain', metadata: { role: 'shot_description' } },
           ],
         });
-        setMessage(`动画已落盘 · ${result.width}×${result.height} · ${result.frameCount} 帧`);
+        setMessage(t('previs.animationSaved', { width: result.width, height: result.height, count: result.frameCount }));
       } else {
         const result = await editor.exportImage();
         assertRunActive();
         const filename = `previs-${id}-frame-${result.frame}-${Date.now()}.png`;
-        const url = await persistPrevisOutput(result.blob, filename);
+        const url = await persistPrevisOutput(result.blob, filename, t('previs.archiveFailed'));
         assertRunActive();
         const outputText = `白模预演构图参考，第 ${result.frame} 帧，${result.aspectRatio}。`;
         const metadata = {
@@ -265,7 +269,7 @@ const PrevisStudioNode = ({ id, data, selected }: NodeProps) => {
         const nodeBeforeWrite = rf.getNode(id)?.data as Record<string, unknown> | undefined;
         const clearLegacyVideo = hasUnsafeLegacyOutput(nodeBeforeWrite, ['videoUrl', 'videoUrls', 'directVideoUrl', 'directVideoUrls']);
         update({
-          status: 'success', taskStatus: 'completed', error: '',
+          status: 'success', taskStatus: 'completed', error: '', errorKey: '',
           imageUrl: url, imageUrls: [url], urls: [url], directImageUrl: url, directImageUrls: [url],
           ...(clearLegacyVideo ? { videoUrl: '', videoUrls: [], directVideoUrl: '', directVideoUrls: [] } : {}),
           outputText,
@@ -279,15 +283,15 @@ const PrevisStudioNode = ({ id, data, selected }: NodeProps) => {
             { kind: 'text', text: outputText, filename: `${filename}.txt`, mimeType: 'text/plain', metadata: { role: 'shot_description' } },
           ],
         });
-        setMessage(`当前帧已落盘 · ${result.width}×${result.height}`);
+        setMessage(t('previs.frameSaved', { width: result.width, height: result.height }));
       }
     } catch (error) {
-      const text = error instanceof Error ? error.message : '白模预演导出失败';
+      const text = error instanceof Error ? error.message : t('previs.exportFailed');
       const cancelled = cancelledDuringRunRef.current
         || (error as Error & { code?: string } | null)?.code === 'PREVIS_EXPORT_CANCELLED';
       update(cancelled
-        ? { status: 'stopped', taskStatus: 'cancelled', error: '' }
-        : { status: 'error', taskStatus: 'failed', error: text });
+        ? { status: 'stopped', taskStatus: 'cancelled', error: '', errorKey: '' }
+        : { status: 'error', taskStatus: 'failed', error: text, errorKey: '' });
       setMessage(text);
       throw error;
     } finally {
@@ -312,6 +316,7 @@ const PrevisStudioNode = ({ id, data, selected }: NodeProps) => {
   };
 
   const accent = '#d6a84f';
+  const persistedError = d.errorKey ? t(String(d.errorKey)) : d.error;
   const bg = isPixel ? 'var(--px-surface)' : isDark ? '#171716' : '#f6f2e8';
   const surface = isPixel ? 'var(--px-muted)' : isDark ? '#242422' : '#ebe3d2';
   const text = isPixel ? 'var(--px-ink)' : isDark ? '#ece9e0' : '#2b2417';
@@ -320,66 +325,66 @@ const PrevisStudioNode = ({ id, data, selected }: NodeProps) => {
 
   return (
     <div className="relative flex flex-col" style={{ width: size.w, height: size.h, minWidth: 430, minHeight: 410, background: bg, color: text, border: `2px solid ${selected ? accent : border}`, borderRadius: isPixel ? 8 : 14, boxShadow: isPixel ? '4px 4px 0 var(--px-ink)' : '0 18px 44px rgba(0,0,0,.28)', overflow: 'visible' }}>
-      <Handle id="model3d" type="target" position={Position.Left} style={{ ...handleStyle, top: '52%', left: -7, background: PORT_COLOR.model3d }} title="GLB / GLTF 模型" />
-      <Handle id="image" type="source" position={Position.Right} style={{ ...handleStyle, top: '39%', right: -7, background: PORT_COLOR.image }} title="预演静帧" />
-      <Handle id="video" type="source" position={Position.Right} style={{ ...handleStyle, top: '54%', right: -7, background: PORT_COLOR.video }} title="预演动画" />
-      <Handle id="text" type="source" position={Position.Right} style={{ ...handleStyle, top: '69%', right: -7, background: PORT_COLOR.text }} title="镜头说明" />
-      <Handle id="metadata" type="source" position={Position.Right} style={{ ...handleStyle, top: '84%', right: -7, background: PORT_COLOR.metadata }} title="预演工程元数据" />
+      <Handle id="model3d" type="target" position={Position.Left} style={{ ...handleStyle, top: '52%', left: -7, background: PORT_COLOR.model3d }} title={t('previs.handles.model')} />
+      <Handle id="image" type="source" position={Position.Right} style={{ ...handleStyle, top: '39%', right: -7, background: PORT_COLOR.image }} title={t('previs.handles.image')} />
+      <Handle id="video" type="source" position={Position.Right} style={{ ...handleStyle, top: '54%', right: -7, background: PORT_COLOR.video }} title={t('previs.handles.video')} />
+      <Handle id="text" type="source" position={Position.Right} style={{ ...handleStyle, top: '69%', right: -7, background: PORT_COLOR.text }} title={t('previs.handles.text')} />
+      <Handle id="metadata" type="source" position={Position.Right} style={{ ...handleStyle, top: '84%', right: -7, background: PORT_COLOR.metadata }} title={t('previs.handles.metadata')} />
       <ResizableCorners selected={selected} minWidth={430} minHeight={410} maxWidth={900} maxHeight={900} accent={accent} keepAspectRatio={false} onResize={onResize} onResizeEnd={onResize} />
 
       <header className="flex h-16 shrink-0 items-center gap-3 border-b px-3" style={{ borderColor: border, background: surface }}>
         <div className="flex h-10 w-10 items-center justify-center rounded-lg" style={{ background: accent, color: '#2b2417' }}><Box size={21} /></div>
         <div className="min-w-0 flex-1">
-          <div className="truncate text-[16px] font-black">白模预演</div>
-          <div className="truncate text-[10px]" style={{ color: sub }}>人物摆姿 · 场景粗模 · 相机与关键帧动画</div>
+          <div className="truncate text-[16px] font-black">{t('previs.title')}</div>
+          <div className="truncate text-[10px]" style={{ color: sub }}>{t('previs.subtitle')}</div>
         </div>
         {d.status === 'success' && <CheckCircle2 size={17} className="text-emerald-400" />}
       </header>
 
       <div className="relative min-h-[190px] flex-1 overflow-hidden" style={{ background: isDark ? '#555653' : '#c7c4bd' }}>
         {d.imageUrl ? (
-          <SmartImage src={d.imageUrl} alt="白模预演当前输出" thumbSize={960} className="h-full w-full object-cover" draggable={false} />
+          <SmartImage src={d.imageUrl} alt={t('previs.outputAlt')} thumbSize={960} className="h-full w-full object-cover" draggable={false} />
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3" style={{ color: isDark ? '#e7e3d9' : '#423d35' }}>
             <div className="relative flex h-24 w-36 items-center justify-center rounded-lg border" style={{ borderColor: 'rgba(255,255,255,.34)', background: 'rgba(0,0,0,.16)' }}>
               <Camera size={40} strokeWidth={1.3} />
               <span className="absolute inset-3 border border-dashed border-amber-300/50" />
             </div>
-            <span className="text-[11px] font-semibold">打开工作台创建第一张预演画面</span>
+            <span className="text-[11px] font-semibold">{t('previs.emptyPreview')}</span>
           </div>
         )}
         <div className="absolute bottom-2 left-2 right-2 grid grid-cols-4 gap-1 rounded-lg border px-2 py-1.5 text-center text-[9px] backdrop-blur" style={{ borderColor: 'rgba(255,255,255,.16)', background: 'rgba(20,20,18,.72)', color: '#d8d3c8' }}>
-          <span>{summary.objectCount} 对象</span><span>{summary.personCount} 人物</span><span>{summary.animatedTracks + summary.cameraKeys} 关键轨</span><span>{summary.aspectRatio}</span>
+          <span>{t('previs.objects', { count: summary.objectCount })}</span><span>{t('previs.people', { count: summary.personCount })}</span><span>{t('previs.tracks', { count: summary.animatedTracks + summary.cameraKeys })}</span><span>{summary.aspectRatio}</span>
         </div>
       </div>
 
       <div className="shrink-0 space-y-2 border-t p-3" style={{ borderColor: border, background: bg }}>
         <div className="grid grid-cols-3 gap-2">
-          <button className="nodrag inline-flex h-10 items-center justify-center gap-1 rounded-md border text-[11px] font-bold" style={{ borderColor: border, background: surface }} onClick={() => setEditorOpen(true)}><ExternalLink size={14} />完整工作台</button>
-          <button className="nodrag inline-flex h-10 items-center justify-center gap-1 rounded-md border text-[11px] font-bold" style={{ borderColor: border, background: surface }} onClick={() => requestRun('image')} disabled={busy}>{busy ? <Loader2 size={14} className="animate-spin" /> : <FileImage size={14} />}当前帧</button>
-          <button className="nodrag inline-flex h-10 items-center justify-center gap-1 rounded-md border text-[11px] font-bold" style={{ borderColor: border, background: surface }} onClick={() => requestRun('video')} disabled={busy}>{busy ? <Loader2 size={14} className="animate-spin" /> : <Film size={14} />}预演动画</button>
+          <button className="nodrag inline-flex h-10 items-center justify-center gap-1 rounded-md border text-[11px] font-bold" style={{ borderColor: border, background: surface }} onClick={() => setEditorOpen(true)}><ExternalLink size={14} />{t('previs.fullWorkbench')}</button>
+          <button className="nodrag inline-flex h-10 items-center justify-center gap-1 rounded-md border text-[11px] font-bold" style={{ borderColor: border, background: surface }} onClick={() => requestRun('image')} disabled={busy}>{busy ? <Loader2 size={14} className="animate-spin" /> : <FileImage size={14} />}{t('previs.currentFrame')}</button>
+          <button className="nodrag inline-flex h-10 items-center justify-center gap-1 rounded-md border text-[11px] font-bold" style={{ borderColor: border, background: surface }} onClick={() => requestRun('video')} disabled={busy}>{busy ? <Loader2 size={14} className="animate-spin" /> : <Film size={14} />}{t('previs.animation')}</button>
         </div>
-        <button className="nodrag flex h-8 w-full items-center justify-center gap-1 rounded-md border text-[10px]" style={{ borderColor: 'rgba(214,168,79,.3)', background: 'rgba(214,168,79,.08)', color: sub }} onClick={openSource} title={`固定参考提交 ${SOURCE_COMMIT}`}>
-          <Github size={12} /><span>出处：GuiYi-Xi/monoform-previs-studio</span><Heart size={11} /><strong>感谢原作者</strong>
+        <button className="nodrag flex h-8 w-full items-center justify-center gap-1 rounded-md border text-[10px]" style={{ borderColor: 'rgba(214,168,79,.3)', background: 'rgba(214,168,79,.08)', color: sub }} onClick={openSource} title={t('previs.sourceCommit', { commit: SOURCE_COMMIT })}>
+          <Github size={12} /><span>{t('previs.source')}</span><Heart size={11} /><strong>{t('previs.thanks')}</strong>
         </button>
-        <div className="flex items-center justify-between gap-2 text-[10px]" style={{ color: d.error ? '#fb7185' : sub }}>
-          <span className="truncate" title={d.error || message}>{d.error || message}</span>
-          <span className="shrink-0">5 秒 · 24 FPS</span>
+        <div className="flex items-center justify-between gap-2 text-[10px]" style={{ color: persistedError ? '#fb7185' : sub }}>
+          <span className="truncate" title={persistedError || message || t('previs.openHint')}>{persistedError || message || t('previs.openHint')}</span>
+          <span className="shrink-0">{t('previs.fixedDuration')}</span>
         </div>
       </div>
 
       {editorOpen && createPortal(
-        <Suspense fallback={<div className="fixed inset-0 z-[10050] flex items-center justify-center bg-[#181817] text-[#ece9e0]"><Loader2 className="mr-2 animate-spin" />正在加载白模预演工作台…</div>}>
+        <Suspense fallback={<div className="fixed inset-0 z-[10050] flex items-center justify-center bg-[#181817] text-[#ece9e0]"><Loader2 className="mr-2 animate-spin" />{t('previs.loading')}</div>}>
           <LazyPrevisStudioEditor
             ref={editorRef}
             initialProject={project}
             storageKey={`t8-previs-studio-project:${id}`}
-            projectTitle={String(d.title || '未命名白模镜头')}
+            projectTitle={String(d.title || t('previs.unnamedShot'))}
             onProjectChange={writeProject}
             onImportAsset={(file) => uploadFileBlob(file, `previs-model-${id}-${Date.now()}-${file.name}`)}
             onRequestRun={requestRun}
             onReady={onEditorReady}
-            onClose={() => { if (!busy) setEditorOpen(false); else setMessage('导出完成后再关闭工作台。'); }}
+            onClose={() => { if (!busy) setEditorOpen(false); else setMessage(t('previs.closeAfterExport')); }}
           />
         </Suspense>,
         document.body,

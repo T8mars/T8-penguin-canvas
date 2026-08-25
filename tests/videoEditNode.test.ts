@@ -1590,7 +1590,7 @@ test('video edit compose requests use timeline render plan as the export source'
   assert.match(node, /if \(!timelineComposeClips\.length \|\| running \|\| busy === 'upload'\) return/);
   assert.match(service, /interface VideoComposeOptions/);
   assert.match(service, /renderPlan\?: VideoEditTimelineRenderPlan/);
-  assert.match(service, /postVideoOp<VideoJobStatus>\('compose', \{ clips, settings, async: true, \.\.\.options \}\)/);
+  assert.match(service, /postVideoOp<VideoJobStatus>\('compose', \{ clips, settings, async: true, \.\.\.options \}, requestOptions\)/);
   assert.match(backend, /resolveVideoEditClipPayload/);
   assert.match(backend, /resolveVideoEditRenderPlanPayload/);
   assert.match(backend, /buildSubtitleDrawtextFilters/);

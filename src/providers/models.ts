@@ -704,6 +704,35 @@ export const FLUX3_VIDEO_MODELS = [
 export const FLUX3_VIDEO_RATIOS = ['auto', '21:9', '2:1', '16:9', '4:3', '1:1', '3:4', '9:16'] as const;
 export const FLUX3_VIDEO_DURATIONS = Array.from({ length: 16 }, (_, index) => index + 5);
 export const FLUX3_VIDEO_RESOLUTIONS = ['hd', 'fhd'] as const;
+export const WAN30_I2V_MODELS = [
+  'wan-3.0-i2v',
+  'wan-3.0-global-i2v',
+  'wan-3.0-prime-i2v',
+  'wan-3.0-global-prime-i2v',
+] as const;
+export const WAN30_R2V_MODELS = [
+  'wan-3.0-r2v',
+  'wan-3.0-global-r2v',
+  'wan-3.0-prime-r2v',
+  'wan-3.0-global-prime-r2v',
+] as const;
+export const WAN30_VIDEO_MODELS = [
+  'wan-3.0-global-i2v',
+  'wan-3.0-global-r2v',
+  'wan-3.0-i2v',
+  'wan-3.0-r2v',
+  'wan-3.0-prime-i2v',
+  'wan-3.0-prime-r2v',
+  'wan-3.0-global-prime-i2v',
+  'wan-3.0-global-prime-r2v',
+] as const;
+export const WAN30_THINKING_MODELS = [
+  'wan-3.0-global-i2v',
+  'wan-3.0-global-r2v',
+] as const;
+export const WAN30_VIDEO_RATIOS = ['adaptive', '16:9', '4:3', '1:1', '3:4', '9:16'] as const;
+export const WAN30_VIDEO_DURATIONS = [-1, ...Array.from({ length: 29 }, (_, index) => index + 2)];
+export const WAN30_VIDEO_RESOLUTIONS = ['480P', '720P', '1080P'] as const;
 const SEEDANCE25_RATIOS = ['adaptive', '16:9', '4:3', '1:1', '3:4', '9:16', '21:9'];
 const SEEDANCE25_DURATIONS = [-1, ...Array.from({ length: 27 }, (_, index) => index + 4)];
 const SEEDANCE25_RESOLUTIONS = ['480p', '720p', '1080p', '2k', '4k', 'native1080p'];
@@ -814,9 +843,31 @@ export const VIDEO_MODELS: VideoModelDef[] = [
     kind: 'wan',
     provider: 'zhenzhen',
     builtinSource: 'seedance-nz',
-    description: 'Wan 2.7 Spicy · 宽审核图生视频',
+    description: 'Wan 2.7 Spicy / Wan 3.0 · 图生与多模态参考视频',
     apiModelOptions: [
       { value: 'wan-2.7-spicy-i2v', label: 'wan-2.7-spicy-i2v（图生视频）' },
+      ...WAN30_VIDEO_MODELS.map((value) => {
+        const mode = value.endsWith('-r2v') ? 'r2v' : 'i2v';
+        return {
+          value,
+          label: `${value}${mode === 'i2v' ? '（首尾帧图生视频）' : '（多模态参考生视频）'}`,
+          description: mode === 'i2v'
+            ? 'Wan 3.0 I2V：第 1 张为首帧，第 2 张可选为尾帧；提示词可选。'
+            : 'Wan 3.0 R2V：提示词必填，最多 10 图、5 视频、5 音频，并可附加文件或网页 URL。',
+          ratios: [...WAN30_VIDEO_RATIOS],
+          defaultRatio: 'adaptive',
+          durations: WAN30_VIDEO_DURATIONS,
+          defaultDuration: 2,
+          resolutions: [...WAN30_VIDEO_RESOLUTIONS],
+          defaultResolution: '480P',
+          supportImages: true,
+          supportVideos: mode === 'r2v',
+          supportAudios: mode === 'r2v',
+          maxRefImages: mode === 'i2v' ? 2 : 10,
+          maxRefVideos: mode === 'r2v' ? 5 : 0,
+          maxRefAudios: mode === 'r2v' ? 5 : 0,
+        };
+      }),
     ],
     ratios: ['16:9'],
     defaultRatio: '16:9',

@@ -18,8 +18,13 @@ for (const [label, file] of [
     assert.match(source, /onSeeked=\{\(event\) => rememberVideoFrameTime/);
     assert.match(source, /data-video-current-frame/);
     assert.match(source, /type:\s*'video-frame-extract'/);
-    assert.match(source, /label:\s*'当前帧截图'/);
-    assert.match(source, /图片已保存并输出/);
+    if (label === 'output node') {
+      assert.match(source, /label:\s*t\('nodes:output\.currentFrameSnapshot'\)/);
+      assert.match(source, /t\('nodes:output\.logs\.frameCaptured'/);
+    } else {
+      assert.match(source, /label:\s*'当前帧截图'/);
+      assert.match(source, /图片已保存并输出/);
+    }
   });
 }
 

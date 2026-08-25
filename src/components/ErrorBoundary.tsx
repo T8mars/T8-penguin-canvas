@@ -1,4 +1,5 @@
 import { Component, type ReactNode } from 'react';
+import { withTranslation, type WithTranslation } from 'react-i18next';
 
 /**
  * ErrorBoundary - 防御性错误边界
@@ -8,7 +9,7 @@ import { Component, type ReactNode } from 'react';
  *   2. 避免单个节点（如 OutputNode 在多源连接下）抛错把整页拖白屏
  *   3. 给用户一个可视的错误反馈 + 重置按钮，仍可继续操作其他画布
  */
-interface Props {
+interface Props extends WithTranslation {
   children: ReactNode;
   fallbackTitle?: string;
 }
@@ -46,7 +47,8 @@ class ErrorBoundary extends Component<Props, State> {
 
   render() {
     if (!this.state.hasError) return this.props.children;
-    const title = this.props.fallbackTitle || '画布渲染出错了';
+    const { t } = this.props;
+    const title = this.props.fallbackTitle || t('render.title');
     return (
       <div
         style={{
@@ -64,7 +66,7 @@ class ErrorBoundary extends Component<Props, State> {
       >
         <div style={{ fontSize: 18, fontWeight: 600 }}>🐧 {title}</div>
         <div style={{ fontSize: 13, opacity: 0.8, maxWidth: 720, textAlign: 'center' }}>
-          {this.state.error?.message || '未知错误'}
+          {this.state.error?.message || t('render.unknown')}
         </div>
         {this.state.info && (
           <pre
@@ -94,7 +96,7 @@ class ErrorBoundary extends Component<Props, State> {
               cursor: 'pointer',
             }}
           >
-            重试渲染
+            {t('render.retry')}
           </button>
           <button
             onClick={this.reload}
@@ -107,15 +109,15 @@ class ErrorBoundary extends Component<Props, State> {
               cursor: 'pointer',
             }}
           >
-            刷新页面
+            {t('render.reload')}
           </button>
         </div>
         <div style={{ fontSize: 11, opacity: 0.5, marginTop: 8 }}>
-          如果反复出现，请截图浏览器 F12 控制台报错反馈给开发者
+          {t('render.report')}
         </div>
       </div>
     );
   }
 }
 
-export default ErrorBoundary;
+export default withTranslation(['errors', 'common'])(ErrorBoundary);

@@ -4301,7 +4301,7 @@ router.post('/video/wan/submit', async (req, res) => {
     proxyRouteError('proxy/video/wan/submit 错误', error, [apiKey]);
     return res.status(status >= 400 && status < 600 ? status : 500).json({
       success: false,
-      error: proxyPublicError(error, 'Wan 2.7 Spicy 请求失败', [apiKey]),
+      error: proxyPublicError(error, 'Wan 视频请求失败', [apiKey]),
       ...seedanceNzTrace(error),
     });
   }
@@ -4348,7 +4348,7 @@ router.get('/video/wan/status/:tid', async (req, res) => {
     if (sendTaskResultQueryRecovery(res, error, { taskId: req.params.tid })) return;
     return res.status(status >= 400 && status < 600 ? status : 500).json({
       success: false,
-      error: proxyPublicError(error, 'Wan 2.7 Spicy 查询失败', [apiKey]),
+      error: proxyPublicError(error, 'Wan 视频查询失败', [apiKey]),
       ...seedanceNzTrace(error),
     });
   }

@@ -1,4 +1,5 @@
 import { memo, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Handle, Position, useNodeConnections, useNodesData, useReactFlow, useUpdateNodeInternals, type NodeProps,
 } from '@xyflow/react';
@@ -48,6 +49,7 @@ function outputPrefix(state: FaceExpression3DState, suffix = '') {
 }
 
 const FaceExpression3DNode = ({ id, data, selected }: NodeProps) => {
+  const { t } = useTranslation('nodes');
   const d = (data || {}) as any;
   const update = useUpdateNodeData(id);
   const rf = useReactFlow();
@@ -73,7 +75,7 @@ const FaceExpression3DNode = ({ id, data, selected }: NodeProps) => {
   const [editorOpen, setEditorOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [photoBusy, setPhotoBusy] = useState(false);
-  const [message, setMessage] = useState(d.error || '拖动预览旋转，点击编辑进入完整工作台');
+  const [message, setMessage] = useState('');
   const [photoMessage, setPhotoMessage] = useState('');
   const [batchProgress, setBatchProgress] = useState<{ completed: number; total: number } | null>(null);
   const [size, setSize] = useState(() => d?.size && Number(d.size.w) > 0 ? { w: Number(d.size.w), h: Number(d.size.h) } : { w: 520, h: 520 });
@@ -104,23 +106,23 @@ const FaceExpression3DNode = ({ id, data, selected }: NodeProps) => {
   };
 
   const runSingle = async (viewport = viewportRef.current) => {
-    if (!viewport) throw new Error('3D 表情预览尚未就绪，请稍后重试。');
-    if (busy) throw new Error('3D 表情已有渲染任务正在运行，请先停止后再试。');
+    if (!viewport) throw new Error(t('faceExpression3d.previewNotReady'));
+    if (busy) throw new Error(t('faceExpression3d.busy'));
     const token = ++cancelRef.current;
     setBusy(true);
-    setMessage('正在按目标像素渲染...');
+    setMessage(t('faceExpression3d.rendering'));
     update({ status: 'running', taskStatus: 'running', error: '' });
     try {
       await viewport.setState(stateRef.current);
       const dataUrl = await viewport.exportImage(stateRef.current.output);
-      if (token !== cancelRef.current) throw new Error('已停止生成');
+      if (token !== cancelRef.current) throw Object.assign(new Error(t('faceExpression3d.stopped')), { code: 'FACE_EXPRESSION_CANCELLED' });
       const url = await uploadDataUrl(dataUrl, outputPrefix(stateRef.current));
-      if (token !== cancelRef.current) throw new Error('已停止生成');
+      if (token !== cancelRef.current) throw Object.assign(new Error(t('faceExpression3d.stopped')), { code: 'FACE_EXPRESSION_CANCELLED' });
       writeOutputs([url], stateRef.current);
-      setMessage(`已生成 ${stateRef.current.output.width}×${stateRef.current.output.height}`);
+      setMessage(t('faceExpression3d.generated', { width: stateRef.current.output.width, height: stateRef.current.output.height }));
     } catch (error) {
-      const text = error instanceof Error ? error.message : '3D 表情图片生成失败';
-      if (text !== '已停止生成') update({ status: 'error', taskStatus: 'failed', error: text });
+      const text = error instanceof Error ? error.message : t('faceExpression3d.generationFailed');
+      if ((error as Error & { code?: string } | null)?.code !== 'FACE_EXPRESSION_CANCELLED') update({ status: 'error', taskStatus: 'failed', error: text });
       setMessage(text);
       throw error;
     } finally {
@@ -129,36 +131,36 @@ const FaceExpression3DNode = ({ id, data, selected }: NodeProps) => {
   };
 
   const runBatch = async (viewport = viewportRef.current) => {
-    if (!viewport) throw new Error('3D 表情预览尚未就绪，请稍后重试。');
-    if (busy) throw new Error('3D 表情已有渲染任务正在运行，请先停止后再试。');
+    if (!viewport) throw new Error(t('faceExpression3d.previewNotReady'));
+    if (busy) throw new Error(t('faceExpression3d.busy'));
     const baseState = stateRef.current;
     const plan = buildFaceBatchPlan(baseState);
-    if (!plan.length) throw new Error('当前没有可执行的 3D 表情批量计划。');
+    if (!plan.length) throw new Error(t('faceExpression3d.emptyBatch'));
     const token = ++cancelRef.current;
     const urls: string[] = [];
     setBusy(true);
     setBatchProgress({ completed: 0, total: plan.length });
-    setMessage(`批量渲染 0/${plan.length}`);
+    setMessage(t('faceExpression3d.batchRendering', { completed: 0, total: plan.length }));
     update({ status: 'running', taskStatus: 'running', error: '' });
     try {
       for (const item of plan) {
-        if (token !== cancelRef.current) throw new Error('已停止生成');
+        if (token !== cancelRef.current) throw Object.assign(new Error(t('faceExpression3d.stopped')), { code: 'FACE_EXPRESSION_CANCELLED' });
         const itemState = applyFaceCameraPreset(applyFacePreset(baseState, item.expressionPresetId, 'replace'), item.cameraPresetId);
         await viewport.setState(itemState);
         const dataUrl = await viewport.exportImage(itemState.output);
-        if (token !== cancelRef.current) throw new Error('已停止生成');
+        if (token !== cancelRef.current) throw Object.assign(new Error(t('faceExpression3d.stopped')), { code: 'FACE_EXPRESSION_CANCELLED' });
         urls.push(await uploadDataUrl(dataUrl, outputPrefix(itemState, item.fileLabel)));
         setBatchProgress({ completed: urls.length, total: plan.length });
-        setMessage(`批量渲染 ${urls.length}/${plan.length}`);
+        setMessage(t('faceExpression3d.batchRendering', { completed: urls.length, total: plan.length }));
       }
       await viewport.setState(baseState);
       writeOutputs(urls, baseState, { faceExpressionBatch: plan });
-      setMessage(`批量完成，共 ${urls.length} 张`);
+      setMessage(t('faceExpression3d.batchDone', { count: urls.length }));
     } catch (error) {
       await viewport.setState(baseState).catch(() => undefined);
-      const text = error instanceof Error ? error.message : '批量导出失败';
-      if (urls.length) writeOutputs(urls, baseState, { warning: `${text}，已保留 ${urls.length} 张` });
-      else if (text !== '已停止生成') update({ status: 'error', taskStatus: 'failed', error: text });
+      const text = error instanceof Error ? error.message : t('faceExpression3d.batchFailed');
+      if (urls.length) writeOutputs(urls, baseState, { warning: t('faceExpression3d.retained', { message: text, count: urls.length }) });
+      else if ((error as Error & { code?: string } | null)?.code !== 'FACE_EXPRESSION_CANCELLED') update({ status: 'error', taskStatus: 'failed', error: text });
       setMessage(text);
       throw error;
     } finally {
@@ -171,21 +173,21 @@ const FaceExpression3DNode = ({ id, data, selected }: NodeProps) => {
     cancelRef.current += 1;
     setBusy(false);
     setBatchProgress(null);
-    setMessage('已停止；下次运行会创建全新的渲染任务');
+    setMessage(t('faceExpression3d.stoppedFresh'));
     update({ status: 'idle', taskStatus: 'cancelled', error: '' });
   };
 
   const analyzeFile = async (file: File) => {
     setPhotoBusy(true);
-    setPhotoMessage('正在上传并分析 478 点人脸...');
+    setPhotoMessage(t('faceExpression3d.analyzingFace'));
     try {
       const url = await uploadFileBlob(file, `face-reference-${Date.now()}-${file.name}`);
       const result = await analyzeFacePhoto(url);
       const next = applyPhotoCalibration(stateRef.current, result.calibration, result.blendshapes);
       changeState(next);
-      setPhotoMessage(`已检测 ${result.landmarkCount} 个关键点并校准；${result.warnings.join('；') || '可继续微调'}`);
+      setPhotoMessage(t('faceExpression3d.calibrated', { count: result.landmarkCount, warnings: result.warnings.join('; ') || t('faceExpression3d.fineTune') }));
     } catch (error) {
-      setPhotoMessage(error instanceof Error ? error.message : '人物脸部图片分析失败');
+      setPhotoMessage(error instanceof Error ? error.message : t('faceExpression3d.faceAnalysisFailed'));
     } finally {
       setPhotoBusy(false);
     }
@@ -198,13 +200,13 @@ const FaceExpression3DNode = ({ id, data, selected }: NodeProps) => {
       return;
     }
     setPhotoBusy(true);
-    setPhotoMessage('正在分析上游人物图片...');
+    setPhotoMessage(t('faceExpression3d.analyzingUpstream'));
     try {
       const result = await analyzeFacePhoto(image);
       changeState(applyPhotoCalibration(stateRef.current, result.calibration, result.blendshapes));
-      setPhotoMessage(`已从上游校准 ${result.landmarkCount} 个关键点`);
+      setPhotoMessage(t('faceExpression3d.upstreamCalibrated', { count: result.landmarkCount }));
     } catch (error) {
-      setPhotoMessage(error instanceof Error ? error.message : '上游图片分析失败');
+      setPhotoMessage(error instanceof Error ? error.message : t('faceExpression3d.upstreamAnalysisFailed'));
     } finally { setPhotoBusy(false); }
   };
 
@@ -212,7 +214,7 @@ const FaceExpression3DNode = ({ id, data, selected }: NodeProps) => {
     if (!upstreamMetadata) return;
     const next = normalizeFaceExpressionState({ ...stateRef.current, ...upstreamMetadata, model: { ...stateRef.current.model, ...(upstreamMetadata.model || {}) } });
     changeState(next);
-    setMessage('已应用上游表情元数据');
+    setMessage(t('faceExpression3d.metadataApplied'));
   };
 
   const requestFaceExpressionRun = (
@@ -240,7 +242,7 @@ const FaceExpression3DNode = ({ id, data, selected }: NodeProps) => {
         faceExpressionRunRequestId: '',
         status: 'error',
         taskStatus: 'failed',
-        error: '无法提交画布运行请求，请重试。',
+        error: t('faceExpression3d.requestFailed'),
       });
     });
   };
@@ -253,23 +255,23 @@ const FaceExpression3DNode = ({ id, data, selected }: NodeProps) => {
     const requestedTarget = String(persistedRequestId ? liveData?.faceExpressionRunTarget || 'node' : 'node') as FaceExpressionRunTarget;
     try {
       if (persistedRequestId && contextRequestId !== persistedRequestId) {
-        throw new Error('3D 表情运行请求已过期或被修改，已停止输出。');
+        throw new Error(t('faceExpression3d.staleRun'));
       }
       if (requestedMode !== 'single' && requestedMode !== 'batch') {
-        throw new Error('3D 表情运行模式无效，已停止输出。');
+        throw new Error(t('faceExpression3d.invalidMode'));
       }
       if (requestedTarget !== 'node' && requestedTarget !== 'editor') {
-        throw new Error('3D 表情运行目标无效，已停止输出。');
+        throw new Error(t('faceExpression3d.invalidTarget'));
       }
       let targetViewport = viewportRef.current;
       if (persistedRequestId && requestedTarget === 'editor') {
         const pending = pendingEditorViewportRef.current;
         if (!pending || pending.requestId !== contextRequestId) {
-          throw new Error('完整编辑器已关闭或导出目标已过期，请重新提交。');
+          throw new Error(t('faceExpression3d.editorExpired'));
         }
         targetViewport = pending.viewport;
       }
-      if (!targetViewport) throw new Error('3D 表情预览尚未就绪，请稍后重试。');
+      if (!targetViewport) throw new Error(t('faceExpression3d.previewNotReady'));
       if (requestedMode === 'batch') await runBatch(targetViewport);
       else await runSingle(targetViewport);
     } finally {
@@ -301,16 +303,16 @@ const FaceExpression3DNode = ({ id, data, selected }: NodeProps) => {
 
   return (
     <div className="relative flex flex-col" style={{ width: size.w, height: size.h, minWidth: 420, minHeight: 430, background: bg, color: text, border: `2px solid ${selected ? accent : border}`, borderRadius: isPixel ? 8 : 10, boxShadow: isPixel ? '4px 4px 0 var(--px-ink)' : '0 14px 34px rgba(0,0,0,.22)', overflow: 'visible' }}>
-      <Handle id="model3d" type="target" position={Position.Left} style={{ ...handleStyle, top: '35%', left: -7, background: PORT_COLOR.model3d }} title="3D 模型" />
-      <Handle id="image" type="target" position={Position.Left} style={{ ...handleStyle, top: '52%', left: -7, background: PORT_COLOR.image }} title="脸部图片" />
-      <Handle id="metadata" type="target" position={Position.Left} style={{ ...handleStyle, top: '69%', left: -7, background: PORT_COLOR.metadata }} title="表情元数据" />
-      <Handle id="image" type="source" position={Position.Right} style={{ ...handleStyle, top: '45%', right: -7, background: PORT_COLOR.image }} title="图片" />
-      <Handle id="metadata" type="source" position={Position.Right} style={{ ...handleStyle, top: '62%', right: -7, background: PORT_COLOR.metadata }} title="表情元数据" />
+      <Handle id="model3d" type="target" position={Position.Left} style={{ ...handleStyle, top: '35%', left: -7, background: PORT_COLOR.model3d }} title={t('faceExpression3d.modelInput')} />
+      <Handle id="image" type="target" position={Position.Left} style={{ ...handleStyle, top: '52%', left: -7, background: PORT_COLOR.image }} title={t('faceExpression3d.faceImageInput')} />
+      <Handle id="metadata" type="target" position={Position.Left} style={{ ...handleStyle, top: '69%', left: -7, background: PORT_COLOR.metadata }} title={t('faceExpression3d.metadata')} />
+      <Handle id="image" type="source" position={Position.Right} style={{ ...handleStyle, top: '45%', right: -7, background: PORT_COLOR.image }} title={t('faceExpression3d.imageOutput')} />
+      <Handle id="metadata" type="source" position={Position.Right} style={{ ...handleStyle, top: '62%', right: -7, background: PORT_COLOR.metadata }} title={t('faceExpression3d.metadata')} />
       <ResizableCorners selected={selected} minWidth={420} minHeight={430} maxWidth={900} maxHeight={900} accent={accent} keepAspectRatio={false} onResize={onResize} onResizeEnd={onResize} />
 
       <header className="flex h-14 shrink-0 items-center gap-2 border-b px-3" style={{ borderColor: border, background: surface }}>
         <div className="flex h-9 w-9 items-center justify-center rounded-md bg-cyan-400 text-[#071018]"><ScanFace size={19} /></div>
-        <div className="min-w-0 flex-1"><div className="truncate text-[15px] font-black">3D表情编辑</div><div className="truncate text-[10px]" style={{ color: sub }}>{state.model.source === 'upstream' ? '自定义 GLB/GLTF · 语义 morph 映射' : 'ICT 中性人类白模 · 52 表情通道'}</div></div>
+        <div className="min-w-0 flex-1"><div className="truncate text-[15px] font-black">{t('faceExpression3d.title')}</div><div className="truncate text-[10px]" style={{ color: sub }}>{state.model.source === 'upstream' ? t('faceExpression3d.upstreamModel') : t('faceExpression3d.builtinModel')}</div></div>
         {d.status === 'success' && <CheckCircle2 size={16} className="text-emerald-400" />}
       </header>
 
@@ -320,16 +322,16 @@ const FaceExpression3DNode = ({ id, data, selected }: NodeProps) => {
 
       <div className="shrink-0 space-y-2 border-t p-3" style={{ borderColor: border, background: bg }}>
         <div className="grid grid-cols-3 gap-2 text-[10px]">
-          <button className="nodrag inline-flex h-9 items-center justify-center gap-1 rounded-md border font-bold" style={{ borderColor: border, background: surface }} onClick={() => setEditorOpen(true)}><ExternalLink size={13} />完整编辑</button>
-          <button className="nodrag inline-flex h-9 items-center justify-center gap-1 rounded-md border font-bold" style={{ borderColor: border, background: surface }} onClick={() => void analyzeUpstream()} disabled={photoBusy}>{photoBusy ? <Loader2 size={13} className="animate-spin" /> : <ImagePlus size={13} />}脸部校准</button>
-          <button className="nodrag inline-flex h-9 items-center justify-center gap-1 rounded-md border font-bold disabled:opacity-40" style={{ borderColor: border, background: surface }} onClick={applyUpstreamMetadata} disabled={!upstreamMetadata}><Sparkles size={13} />应用参数</button>
+          <button className="nodrag inline-flex h-9 items-center justify-center gap-1 rounded-md border font-bold" style={{ borderColor: border, background: surface }} onClick={() => setEditorOpen(true)}><ExternalLink size={13} />{t('faceExpression3d.fullEdit')}</button>
+          <button className="nodrag inline-flex h-9 items-center justify-center gap-1 rounded-md border font-bold" style={{ borderColor: border, background: surface }} onClick={() => void analyzeUpstream()} disabled={photoBusy}>{photoBusy ? <Loader2 size={13} className="animate-spin" /> : <ImagePlus size={13} />}{t('faceExpression3d.calibrateFace')}</button>
+          <button className="nodrag inline-flex h-9 items-center justify-center gap-1 rounded-md border font-bold disabled:opacity-40" style={{ borderColor: border, background: surface }} onClick={applyUpstreamMetadata} disabled={!upstreamMetadata}><Sparkles size={13} />{t('faceExpression3d.applyParameters')}</button>
         </div>
         <div className="flex items-center gap-2">
-          <button className="nodrag inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-md border-2 border-cyan-400 bg-cyan-400/15 text-[12px] font-black" onClick={() => requestFaceExpressionRun('single')} disabled={busy}>{busy ? <Loader2 size={15} className="animate-spin" /> : <Camera size={15} />}生成图片</button>
-          <button className="nodrag inline-flex h-10 w-24 items-center justify-center gap-1 rounded-md border text-[11px] font-bold" style={{ borderColor: border, background: surface }} onClick={() => requestFaceExpressionRun('batch')} disabled={busy}><Layers3 size={14} />批量</button>
-          {busy && <button className="nodrag inline-flex h-10 w-10 items-center justify-center rounded-md border border-rose-400/60 text-rose-400" onClick={stop} title="停止"><X size={15} /></button>}
+          <button className="nodrag inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-md border-2 border-cyan-400 bg-cyan-400/15 text-[12px] font-black" onClick={() => requestFaceExpressionRun('single')} disabled={busy}>{busy ? <Loader2 size={15} className="animate-spin" /> : <Camera size={15} />}{t('faceExpression3d.generateImage')}</button>
+          <button className="nodrag inline-flex h-10 w-24 items-center justify-center gap-1 rounded-md border text-[11px] font-bold" style={{ borderColor: border, background: surface }} onClick={() => requestFaceExpressionRun('batch')} disabled={busy}><Layers3 size={14} />{t('faceExpression3d.batch')}</button>
+          {busy && <button className="nodrag inline-flex h-10 w-10 items-center justify-center rounded-md border border-rose-400/60 text-rose-400" onClick={stop} title={t('faceExpression3d.stop')}><X size={15} /></button>}
         </div>
-        <div className="flex items-center justify-between gap-2 text-[10px]" style={{ color: d.error ? '#fb7185' : sub }}><span className="truncate" title={d.error || photoMessage || message}>{d.error || photoMessage || message}</span><strong className="shrink-0" style={{ color: text }}>{state.output.width}×{state.output.height}</strong></div>
+        <div className="flex items-center justify-between gap-2 text-[10px]" style={{ color: d.error ? '#fb7185' : sub }}><span className="truncate" title={d.error || photoMessage || message || t('faceExpression3d.hint')}>{d.error || photoMessage || message || t('faceExpression3d.hint')}</span><strong className="shrink-0" style={{ color: text }}>{state.output.width}×{state.output.height}</strong></div>
       </div>
 
       <input ref={photoInputRef} className="hidden" type="file" accept="image/*" onChange={(event) => { const file = event.target.files?.[0]; event.currentTarget.value = ''; if (file) void analyzeFile(file); }} />

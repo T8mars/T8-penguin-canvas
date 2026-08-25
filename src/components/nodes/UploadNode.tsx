@@ -78,6 +78,7 @@ import {
   type SecondaryProviderActionEnvelope,
 } from '../../utils/secondaryProviderAction';
 import type { RunNodeLifecycleReporter } from '../../types/project';
+import NodeVisible from '../../i18n/NodeVisible';
 
 type UploadProduceMeta =
   | ImageEditProduceMeta
@@ -1028,7 +1029,8 @@ const UploadNode = ({ id, data, selected, type }: NodeProps) => {
   useRunTrigger(id, runNode, undefined, { lifecycleAware: true });
 
   return (
-    <div
+    <NodeVisible>
+      <div
       data-upload-node-id={id}
       data-rh-duck-mode={rhDuckMode ? 'true' : undefined}
       data-yyh-portrait-hidden-upload={yyhPortraitUploadMode ? 'true' : undefined}
@@ -1582,7 +1584,8 @@ const UploadNode = ({ id, data, selected, type }: NodeProps) => {
           onProduce={handleProduce}
         />
       )}
-    </div>
+      </div>
+    </NodeVisible>
   );
 };
 

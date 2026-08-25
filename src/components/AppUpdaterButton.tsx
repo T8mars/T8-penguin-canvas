@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AlertTriangle, CheckCircle2, Download, Loader2, RefreshCw, RotateCcw, X } from 'lucide-react';
+import type { TFunction } from 'i18next';
+import { useTranslation } from 'react-i18next';
 
 interface AppUpdaterButtonProps {
   isPixel: boolean;
@@ -10,7 +12,9 @@ const fallbackStatus: T8UpdaterStatus = {
   status: 'idle',
   currentVersion: '',
   availableVersion: null,
-  message: '检查更新',
+  messageKey: 'updater.labels.check',
+  messageParams: {},
+  message: null,
   progress: null,
   downloaded: false,
   error: null,
@@ -20,25 +24,24 @@ const fallbackStatus: T8UpdaterStatus = {
 
 type T8DesktopInfo = Awaited<ReturnType<NonNullable<Window['t8pc']>['getInfo']>>;
 
-const UPDATE_DISABLED_MESSAGE = '开发模式不会检查 GitHub Release 更新';
-const UPDATER_BRIDGE_MISSING_MESSAGE =
-  '当前桌面包缺少自动更新桥接，无法在应用内检查更新。请下载完整安装包覆盖安装，安装后此入口会恢复检查、下载和打开安装向导。';
-
 function isElectronUserAgent(): boolean {
   if (typeof navigator === 'undefined') return false;
   return /\bElectron\//i.test(navigator.userAgent);
 }
 
-function bridgeUnavailableStatus(info?: Partial<T8DesktopInfo> | null): T8UpdaterStatus {
+function bridgeUnavailableStatus(t: TFunction<'electron'>, info?: Partial<T8DesktopInfo> | null): T8UpdaterStatus {
   const packaged = info?.packaged ?? isElectronUserAgent();
   const isPackagedDesktop = packaged !== false;
+  const messageKey = isPackagedDesktop ? 'updater.bridgeMissing' : 'updater.disabled';
   return {
     ...fallbackStatus,
     status: isPackagedDesktop ? 'error' : 'disabled',
     currentVersion: info?.version || fallbackStatus.currentVersion,
     packaged: Boolean(packaged),
-    message: isPackagedDesktop ? UPDATER_BRIDGE_MISSING_MESSAGE : UPDATE_DISABLED_MESSAGE,
-    error: isPackagedDesktop ? '自动更新桥接不可用' : null,
+    messageKey,
+    messageParams: {},
+    message: t(messageKey),
+    error: null,
     updatedAt: new Date().toISOString(),
   };
 }
@@ -51,27 +54,27 @@ function statusTone(status: T8UpdaterStatusCode): 'idle' | 'busy' | 'good' | 'wa
   return 'idle';
 }
 
-function statusLabel(status: T8UpdaterStatus): string {
-  if (status.status === 'checking') return '检查中';
-  if (status.status === 'available') return '可更新';
+function statusLabel(status: T8UpdaterStatus, t: TFunction<'electron'>): string {
+  if (status.status === 'checking') return t('updater.labels.checking');
+  if (status.status === 'available') return t('updater.labels.available');
   if (status.status === 'downloading') {
     const percent = status.progress?.percent ?? 0;
     return `${Math.max(0, Math.min(100, percent)).toFixed(0)}%`;
   }
-  if (status.status === 'downloaded') return '安装';
-  if (status.status === 'installing') return '向导';
-  if (status.status === 'not-available') return '更新';
-  if (status.status === 'error') return '失败';
-  if (status.status === 'disabled') return '桌面版';
-  return '更新';
+  if (status.status === 'downloaded') return t('updater.labels.downloaded');
+  if (status.status === 'installing') return t('updater.labels.installing');
+  if (status.status === 'not-available') return t('updater.labels.update');
+  if (status.status === 'error') return t('updater.labels.failed');
+  if (status.status === 'disabled') return t('updater.labels.desktop');
+  return t('updater.labels.update');
 }
 
-function primaryLabel(status: T8UpdaterStatus): string {
-  if (status.status === 'available') return '下载';
-  if (status.status === 'downloaded' || status.downloaded) return '打开安装向导';
-  if (status.status === 'checking') return '检查中';
-  if (status.status === 'downloading') return '下载中';
-  return '检查';
+function primaryLabel(status: T8UpdaterStatus, t: TFunction<'electron'>): string {
+  if (status.status === 'available') return t('updater.labels.download');
+  if (status.status === 'downloaded' || status.downloaded) return t('updater.labels.openInstaller');
+  if (status.status === 'checking') return t('updater.labels.checking');
+  if (status.status === 'downloading') return t('updater.labels.downloading');
+  return t('updater.labels.check');
 }
 
 function PrimaryIcon({ status, size }: { status: T8UpdaterStatusCode; size: number }) {
@@ -86,6 +89,7 @@ function PrimaryIcon({ status, size }: { status: T8UpdaterStatusCode; size: numb
 }
 
 export default function AppUpdaterButton({ isPixel, isDark }: AppUpdaterButtonProps) {
+  const { t } = useTranslation('electron');
   const rootRef = useRef<HTMLDivElement | null>(null);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -118,22 +122,22 @@ export default function AppUpdaterButton({ isPixel, isDark }: AppUpdaterButtonPr
     let mounted = true;
     const getInfo = window.t8pc?.getInfo;
     if (!getInfo) {
-      setStatus(bridgeUnavailableStatus());
+      setStatus(bridgeUnavailableStatus(t));
       return () => {
         mounted = false;
       };
     }
     getInfo()
       .then((info) => {
-        if (mounted) setStatus(bridgeUnavailableStatus(info));
+        if (mounted) setStatus(bridgeUnavailableStatus(t, info));
       })
       .catch(() => {
-        if (mounted) setStatus(bridgeUnavailableStatus());
+        if (mounted) setStatus(bridgeUnavailableStatus(t));
       });
     return () => {
       mounted = false;
     };
-  }, [desktopShellDetected, hasUpdater]);
+  }, [desktopShellDetected, hasUpdater, t]);
 
   useEffect(() => {
     if (!open) return;
@@ -150,10 +154,11 @@ export default function AppUpdaterButton({ isPixel, isDark }: AppUpdaterButtonPr
   const tone = statusTone(status.status);
   const progressPercent = Math.max(0, Math.min(100, status.progress?.percent ?? 0));
   const nextVersion = status.availableVersion ? `v${status.availableVersion}` : null;
-  const detailText =
-    status.error === '自动更新桥接不可用'
-      ? status.message || status.error
-      : status.error || status.message || '等待检查更新';
+  const localizedStatusMessage = status.messageKey
+    ? t(status.messageKey as any, status.messageParams || {})
+    : status.message;
+  const detailText = localizedStatusMessage || t('updater.idle');
+  const technicalError = status.error && status.error !== detailText ? status.error : null;
   const updaterUnavailable = desktopShellDetected && !hasUpdater;
   const disabled =
     updaterUnavailable ||
@@ -200,7 +205,7 @@ export default function AppUpdaterButton({ isPixel, isDark }: AppUpdaterButtonPr
     const api = window.t8pc?.updater;
     if (!api) {
       setStatus((prev) => {
-        const next = bridgeUnavailableStatus({
+        const next = bridgeUnavailableStatus(t, {
           packaged: prev.packaged ?? true,
           version: prev.currentVersion,
         });
@@ -240,10 +245,10 @@ export default function AppUpdaterButton({ isPixel, isDark }: AppUpdaterButtonPr
         type="button"
         onClick={() => setOpen((v) => !v)}
         className={buttonClass}
-        title={status.message || '自动更新'}
+        title={detailText || t('updater.automatic')}
       >
         <PrimaryIcon status={status.status} size={isPixel ? 12 : 14} />
-        <span className="text-[11px]">{statusLabel(status)}</span>
+        <span className="text-[11px]">{statusLabel(status, t)}</span>
       </button>
 
       {open && (
@@ -261,16 +266,16 @@ export default function AppUpdaterButton({ isPixel, isDark }: AppUpdaterButtonPr
         >
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <div className={`text-[12px] font-bold ${isPixel ? 'px-title' : ''}`}>桌面更新</div>
+              <div className={`text-[12px] font-bold ${isPixel ? 'px-title' : ''}`}>{t('updater.panelTitle')}</div>
               <div className={isPixel ? 'mt-1 text-[10px]' : `mt-1 text-[11px] ${isDark ? 'text-white/60' : 'text-zinc-500'}`}>
-                当前 v{status.currentVersion || '...'}{nextVersion ? ` / ${nextVersion}` : ''}
+                {t('updater.currentVersion', { version: status.currentVersion || '...' })}{nextVersion ? ` / ${nextVersion}` : ''}
               </div>
             </div>
             <button
               type="button"
               onClick={() => setOpen(false)}
               className={isPixel ? 'px-btn px-btn--icon px-btn--ghost' : `rounded-md p-1 ${isDark ? 'hover:bg-white/10' : 'hover:bg-black/5'}`}
-              title="关闭"
+              title={t('updater.close')}
             >
               <X size={14} />
             </button>
@@ -279,6 +284,11 @@ export default function AppUpdaterButton({ isPixel, isDark }: AppUpdaterButtonPr
           <div className={isPixel ? 'mt-3 text-[11px]' : `mt-3 text-[12px] leading-relaxed ${isDark ? 'text-white/75' : 'text-zinc-700'}`}>
             {detailText}
           </div>
+          {technicalError && (
+            <div className={isPixel ? 'mt-2 break-words text-[9px] opacity-60' : `mt-2 break-words text-[10px] ${isDark ? 'text-white/45' : 'text-zinc-400'}`}>
+              {technicalError}
+            </div>
+          )}
 
           {status.status === 'downloading' && (
             <div className={isPixel ? 'mt-3 h-2 overflow-hidden rounded-full bg-black/20' : `mt-3 h-2 overflow-hidden rounded-full ${isDark ? 'bg-white/10' : 'bg-zinc-100'}`}>
@@ -304,7 +314,7 @@ export default function AppUpdaterButton({ isPixel, isDark }: AppUpdaterButtonPr
                     }`
               }
             >
-              检查
+              {t('updater.labels.check')}
             </button>
             <button
               type="button"
@@ -321,7 +331,7 @@ export default function AppUpdaterButton({ isPixel, isDark }: AppUpdaterButtonPr
               }
             >
               <PrimaryIcon status={status.status} size={12} />
-              {primaryLabel(status)}
+              {primaryLabel(status, t)}
             </button>
           </div>
         </div>

@@ -27,21 +27,22 @@ test('script master is registered as a passive professional workbench node', () 
 
 test('script master workbench exposes the frozen information architecture and multi-track promise', () => {
   const node = read('src/components/nodes/ScriptMasterNode.tsx');
-  for (const text of ['全局设置', '原始剧本', '素材与引用轨', '镜头检查器', '多轨时间线', '当前编译提示词']) {
-    assert.match(node, new RegExp(text));
+  const resources = read('src/i18n/resources.ts');
+  for (const key of ['globalSettings', 'sourceScript', 'assetsAndReferences', 'shotInspector', 'multitrackTimeline', 'currentCompiledPrompt']) {
+    assert.match(node, new RegExp(`smT\\('${key}'\\)`));
   }
+  assert.match(resources, /globalSettings: '全局设置'/);
+  assert.match(resources, /globalSettings: 'Global settings'/);
   assert.match(node, /patchScriptMasterProjectSettings/);
   assert.match(node, /每个参考图\/音频都有独立稳定别名与轨道/);
-  assert.match(node, /分析剧本/);
-  assert.match(node, /LLM 候选审阅/);
-  assert.match(node, /候选与采纳分离/);
-  assert.match(node, /打开工作台不会自动分析或生成/);
-  assert.match(node, /Provider 调用 0/);
+  for (const key of ['analyzeScript', 'candidateReview', 'candidateSafetyNote', 'readyNoAutoGenerate', 'deterministicCompile']) {
+    assert.match(node, new RegExp(`smT\\('${key}'`));
+  }
   assert.match(node, /accept="image\/\*,video\/\*"/);
   assert.match(node, /accept="audio\/\*"/);
-  for (const text of ['选择', '修剪', '切刀', '平移', '框选', '平均分配', 'Shift/Ctrl 多选']) {
-    assert.match(node, new RegExp(text));
-  }
+  assert.match(node, /timelineToolDisplayLabel/);
+  assert.match(node, /smT\('distributeEvenly'\)/);
+  assert.match(node, /smT\('timelineHelp'\)/);
   assert.match(node, /applyVideoEditTimelineControllerCommand/);
   assert.match(node, /moveScriptMasterTimelineItems/);
   assert.match(node, /trimScriptMasterTimelineItem/);
@@ -82,11 +83,14 @@ test('script master workbench keeps desktop typography readable without crowding
 
 test('script master downstream writes require an exact CanvasPatch preview and explicit confirmation', () => {
   const node = read('src/components/nodes/ScriptMasterNode.tsx');
+  const resources = read('src/i18n/resources.ts');
   const canvas = read('src/components/Canvas.tsx');
   const bridge = read('src/utils/scriptMasterCanvasBridge.ts');
   assert.match(node, /previewScriptMasterCanvasPatch/);
-  assert.match(node, /确认写入画布/);
-  assert.match(node, /不会自动启动任何生成任务/);
+  assert.match(node, /smT\('confirmWriteCanvas'\)/);
+  assert.match(node, /smT\('downstreamPreviewNote'\)/);
+  assert.match(resources, /confirmWriteCanvas: '确认写入画布'/);
+  assert.match(resources, /confirmWriteCanvas: 'Confirm write to canvas'/);
   assert.match(node, /recordScriptMasterDownstreamApply/);
   assert.match(canvas, /SCRIPT_MASTER_CANVAS_PATCH_REQUEST_EVENT/);
   assert.match(canvas, /handlePreviewCanvasPatch\(detail\.draft\)/);

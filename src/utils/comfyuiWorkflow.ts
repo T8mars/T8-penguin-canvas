@@ -53,14 +53,21 @@ export interface ComfyWorkflowAnalysis {
   audioInputCount: number;
   outputCount: number;
   outputNodes: ComfyDetectedOutputNode[];
-  warnings: string[];
+  warnings: ComfyWorkflowLocalizedMessage[];
+}
+
+export interface ComfyWorkflowLocalizedMessage {
+  key: string;
+  params?: Record<string, string | number>;
 }
 
 export interface ComfyWorkflowImportChecklistItem {
   id: string;
   level: 'ok' | 'warn' | 'info';
-  label: string;
-  detail: string;
+  labelKey: string;
+  detailKey: string;
+  labelParams?: Record<string, string | number>;
+  detailParams?: Record<string, string | number>;
 }
 
 export interface CanonicalizeComfyFieldsOptions {
@@ -78,54 +85,16 @@ export interface ComfyFieldExcludeRulesBackup {
   rules: ComfyFieldExcludeRule[];
 }
 
-export const COMFY_FIELD_SOURCE_OPTIONS: Array<{ value: ComfyFieldSource; label: string; hint?: string }> = [
-  { value: 'prompt', label: '正向 Prompt' },
-  { value: 'negative', label: '负向 Prompt' },
-  { value: 'image1', label: '上游图片 1' },
-  { value: 'image2', label: '上游图片 2' },
-  { value: 'image3', label: '上游图片 3' },
-  { value: 'image4', label: '上游图片 4' },
-  { value: 'image5', label: '上游图片 5' },
-  { value: 'image6', label: '上游图片 6' },
-  { value: 'video1', label: '上游视频 1' },
-  { value: 'video2', label: '上游视频 2' },
-  { value: 'video3', label: '上游视频 3' },
-  { value: 'audio1', label: '上游音频 1' },
-  { value: 'audio2', label: '上游音频 2' },
-  { value: 'audio3', label: '上游音频 3' },
-  { value: 'width', label: '宽度' },
-  { value: 'height', label: '高度' },
-  { value: 'batch_size', label: '批量数' },
-  { value: 'seed', label: 'Seed' },
-  { value: 'steps', label: 'Steps' },
-  { value: 'cfg', label: 'CFG' },
-  { value: 'sampler_name', label: 'Sampler' },
-  { value: 'scheduler', label: 'Scheduler' },
-  { value: 'denoise', label: 'Denoise' },
-  { value: 'model_name', label: '模型名' },
-  { value: 'ckpt_name', label: 'Checkpoint' },
-  { value: 'clip_name', label: 'CLIP' },
-  { value: 'vae_name', label: 'VAE' },
-  { value: 'lora_name', label: 'LoRA' },
-  { value: 'unet_name', label: 'UNet' },
-  { value: 'control_net_name', label: 'ControlNet' },
-  { value: 'clip_vision_name', label: 'CLIP Vision' },
-  { value: 'style_model_name', label: 'Style Model' },
-  { value: 'upscale_model', label: '放大模型' },
-  { value: 'strength_model', label: 'LoRA 模型强度' },
-  { value: 'strength_clip', label: 'LoRA CLIP 强度' },
-  { value: 'start_at_step', label: '起始步数' },
-  { value: 'end_at_step', label: '结束步数' },
-  { value: 'guidance', label: 'Guidance' },
-  { value: 'shift', label: 'Shift' },
-  { value: 'fps', label: 'FPS' },
-  { value: 'frame_rate', label: '帧率' },
-  { value: 'num_frames', label: '帧数' },
-  { value: 'duration', label: '时长' },
-  { value: 'strength', label: '强度' },
-  { value: 'weight', label: '权重' },
-  { value: 'fixed', label: '固定值' },
-];
+export const COMFY_FIELD_SOURCE_OPTIONS: Array<{ value: ComfyFieldSource; labelKey: string }> = [
+  'prompt', 'negative',
+  'image1', 'image2', 'image3', 'image4', 'image5', 'image6',
+  'video1', 'video2', 'video3', 'audio1', 'audio2', 'audio3',
+  'width', 'height', 'batch_size', 'seed', 'steps', 'cfg', 'sampler_name', 'scheduler',
+  'denoise', 'model_name', 'ckpt_name', 'clip_name', 'vae_name', 'lora_name', 'unet_name',
+  'control_net_name', 'clip_vision_name', 'style_model_name', 'upscale_model', 'strength_model',
+  'strength_clip', 'start_at_step', 'end_at_step', 'guidance', 'shift', 'fps', 'frame_rate',
+  'num_frames', 'duration', 'strength', 'weight', 'fixed',
+].map((value) => ({ value, labelKey: `comfy.sources.${value}` }));
 
 export const BASIC_COMFY_TEXT_TO_IMAGE_SAMPLE_ID = 't8-basic-text-to-image-sample';
 
@@ -133,7 +102,7 @@ export function createBasicComfyTextToImageWorkflow(): Record<string, any> {
   return {
     '1': {
       class_type: 'CheckpointLoaderSimple',
-      inputs: { ckpt_name: '请改成你的模型.safetensors' },
+      inputs: { ckpt_name: 'replace-with-your-model.safetensors' },
       _meta: { title: 'Checkpoint' },
     },
     '2': {
@@ -540,12 +509,12 @@ export function analyzeComfyWorkflow(workflow: unknown): ComfyWorkflowAnalysis {
   let audioInputCount = 0;
   let outputCount = 0;
   const outputNodes: ComfyDetectedOutputNode[] = [];
-  const warnings: string[] = [];
+  const warnings: ComfyWorkflowLocalizedMessage[] = [];
   const entries = entriesOfWorkflow(workflow);
   const clipTextRoles = buildClipTextRoleMap(entries);
 
   if (!entries.length) {
-    warnings.push('未识别到 API Workflow 节点；请确认导入的是 ComfyUI API 格式，而不是普通前端 workflow。');
+    warnings.push({ key: 'comfy.warnings.invalidApiWorkflow' });
     return { fields, imageInputCount, videoInputCount, audioInputCount, outputCount, outputNodes, warnings };
   }
 
@@ -636,15 +605,15 @@ export function analyzeComfyWorkflow(workflow: unknown): ComfyWorkflowAnalysis {
     }
 
     if (!lowClass && inputKeys.length > 0) {
-      warnings.push(`#${nodeId} 缺少 class_type，可能不是标准 API Workflow 节点。`);
+      warnings.push({ key: 'comfy.warnings.missingClassType', params: { nodeId } });
     }
   }
 
   if (!fields.some((field) => field.source === 'prompt')) {
-    warnings.push('未自动找到正向 Prompt 字段；可以在映射表中手动添加或切到高级 fields JSON。');
+    warnings.push({ key: 'comfy.warnings.missingPromptField' });
   }
   if (imageInputCount > 0 && !fields.some((field) => /^image\d+$/.test(String(field.source || '')))) {
-    warnings.push('检测到图像输入节点，但没有生成图片映射。');
+    warnings.push({ key: 'comfy.warnings.missingImageMapping' });
   }
 
   return { fields, imageInputCount, videoInputCount, audioInputCount, outputCount, outputNodes, warnings };
@@ -665,42 +634,39 @@ export function buildComfyWorkflowImportChecklist(
   items.push({
     id: 'api-format',
     level: hasWorkflowObject && fields.length ? 'ok' : 'warn',
-    label: hasWorkflowObject && fields.length ? 'API Workflow 已识别' : '还没有识别到 API Workflow',
-    detail: hasWorkflowObject
-      ? '节点需要包含 class_type 和 inputs；如果字段为 0，通常导入的是普通前端 workflow。'
-      : '请从 ComfyUI 右上角设置开启 dev mode，再导出 API Workflow JSON。',
+    labelKey: hasWorkflowObject && fields.length ? 'comfy.checklist.apiFormatReady' : 'comfy.checklist.apiFormatMissing',
+    detailKey: hasWorkflowObject ? 'comfy.checklist.apiFormatObjectDetail' : 'comfy.checklist.apiFormatExportDetail',
   });
   items.push({
     id: 'prompt',
     level: hasPrompt ? 'ok' : 'warn',
-    label: hasPrompt ? '正向 Prompt 可编辑' : '未找到正向 Prompt',
-    detail: hasPrompt ? '运行时会把节点提示词写入该字段。' : '可在参数映射里手动把 CLIPTextEncode.text 设置为正向 Prompt。',
+    labelKey: hasPrompt ? 'comfy.checklist.promptReady' : 'comfy.checklist.promptMissing',
+    detailKey: hasPrompt ? 'comfy.checklist.promptReadyDetail' : 'comfy.checklist.promptMissingDetail',
   });
   items.push({
     id: 'negative',
     level: hasNegative ? 'ok' : 'info',
-    label: hasNegative ? '负向 Prompt 已识别' : '未识别负向 Prompt',
-    detail: hasNegative ? '采样器连接可帮助区分正向/负向。' : '没有负向也可以运行；需要时手动映射另一个 CLIPTextEncode.text。',
+    labelKey: hasNegative ? 'comfy.checklist.negativeReady' : 'comfy.checklist.negativeMissing',
+    detailKey: hasNegative ? 'comfy.checklist.negativeReadyDetail' : 'comfy.checklist.negativeMissingDetail',
   });
   items.push({
     id: 'size',
     level: hasSize ? 'ok' : 'info',
-    label: hasSize ? '尺寸字段可编辑' : '尺寸可能固定在 workflow 内',
-    detail: hasSize ? '宽高会跟随节点尺寸/参数写入。' : '如果 workflow 用固定 latent 或外部尺寸节点，请确认输出比例符合预期。',
+    labelKey: hasSize ? 'comfy.checklist.sizeReady' : 'comfy.checklist.sizeMissing',
+    detailKey: hasSize ? 'comfy.checklist.sizeReadyDetail' : 'comfy.checklist.sizeMissingDetail',
   });
   items.push({
     id: 'model',
     level: hasModelField ? 'info' : 'ok',
-    label: hasModelField ? '模型字段建议检查' : '未暴露模型字段',
-    detail: hasModelField
-      ? 'Checkpoint、LoRA、VAE、CLIP 名必须和本机 ComfyUI 模型文件名一致。'
-      : '模型名会按 workflow 内固定值运行。',
+    labelKey: hasModelField ? 'comfy.checklist.modelCheck' : 'comfy.checklist.modelFixed',
+    detailKey: hasModelField ? 'comfy.checklist.modelCheckDetail' : 'comfy.checklist.modelFixedDetail',
   });
   items.push({
     id: 'output',
     level: analysis.outputCount > 0 ? 'ok' : 'warn',
-    label: analysis.outputCount > 0 ? `输出节点 ${analysis.outputCount} 个` : '未找到输出节点',
-    detail: analysis.outputCount > 0 ? 'SaveImage / PreviewImage 等输出会被 T8 自动归一化。' : '请确认 workflow 最后有 SaveImage、PreviewImage、SaveVideo 或 SaveAudio。',
+    labelKey: analysis.outputCount > 0 ? 'comfy.checklist.outputReady' : 'comfy.checklist.outputMissing',
+    labelParams: analysis.outputCount > 0 ? { count: analysis.outputCount } : undefined,
+    detailKey: analysis.outputCount > 0 ? 'comfy.checklist.outputReadyDetail' : 'comfy.checklist.outputMissingDetail',
   });
 
   return items;

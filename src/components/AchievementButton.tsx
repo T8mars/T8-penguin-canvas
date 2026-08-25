@@ -1,5 +1,6 @@
 import { Medal, Trophy } from 'lucide-react';
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAchievementStore } from '../stores/achievements';
 import { useThemeStore } from '../stores/theme';
 import { resolveThemeTemplate } from '../theme/defaultTemplates';
@@ -11,6 +12,7 @@ interface AchievementButtonProps {
 }
 
 export default function AchievementButton({ isPixel, isDark }: AchievementButtonProps) {
+  const { t } = useTranslation('shell');
   const profile = useAchievementStore((state) => state.profile);
   const definitions = useAchievementStore((state) => state.definitions);
   const summary = useAchievementStore((state) => state.summary);
@@ -27,7 +29,9 @@ export default function AchievementButton({ isPixel, isDark }: AchievementButton
     (item: any) => item.theme === currentTheme,
   ).length;
   const currentTime = formatAchievementSeconds(stats.activeSeconds || 0);
-  const label = profile?.preferences?.showTopBadge === false ? '成就' : `${currentThemeUnlocked}枚`;
+  const label = profile?.preferences?.showTopBadge === false
+    ? t('achievement.label')
+    : t('achievement.badge', { count: currentThemeUnlocked });
 
   return (
     <button
@@ -42,10 +46,10 @@ export default function AchievementButton({ isPixel, isDark }: AchievementButton
                 : 'bg-yellow-50 border-yellow-300 text-yellow-800 hover:bg-yellow-100'
             }`
       }
-      title={`主题成就 · ${currentTime} · ${unlockedCount}/${totalCount}`}
+      title={t('achievement.title', { time: currentTime, unlocked: unlockedCount, total: totalCount })}
     >
       <Trophy size={14} />
-      <span className="text-[11px]">成就</span>
+      <span className="text-[11px]">{t('achievement.label')}</span>
       <span className="t8-achievement-button__badge">
         <Medal size={11} />
         {label}

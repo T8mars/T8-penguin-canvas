@@ -1,0 +1,114 @@
+{
+  "schema": "t8-workflow-fragment",
+  "version": 1,
+  "title": "Wan 3.0 国内 I2V（贞贞的平价AI小屋）",
+  "nodes": [
+    {
+      "id": "wan-3.0-i2v-first-frame",
+      "type": "upload",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "data": {
+        "label": "上传首帧图（必填）",
+        "uploadType": "image",
+        "lockedUploadType": "image"
+      }
+    },
+    {
+      "id": "wan-3.0-i2v-last-frame",
+      "type": "upload",
+      "position": {
+        "x": 0,
+        "y": 220
+      },
+      "data": {
+        "label": "上传尾帧图（可选）",
+        "uploadType": "image",
+        "lockedUploadType": "image"
+      }
+    },
+    {
+      "id": "wan-3.0-i2v",
+      "type": "video",
+      "position": {
+        "x": 460,
+        "y": 40
+      },
+      "data": {
+        "label": "Wan 3.0 国内 I2V（贞贞的平价AI小屋）",
+        "mainId": "wan-2.7-spicy",
+        "model": "wan-3.0-i2v",
+        "videoBuiltinSource": "seedance-nz",
+        "ratio": "adaptive",
+        "duration": 2,
+        "resolution": "480P",
+        "generateAudio": true,
+        "wan30EnableThinking": false,
+        "wan30FileUrl": "",
+        "wan30LinkUrl": "",
+        "wan30Seed": 0,
+        "prompt": "从首帧自然运动到尾帧，主体身份、构图与材质保持稳定",
+        "reuseResult": false
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "wan-3.0-i2v-first-frame-edge",
+      "source": "wan-3.0-i2v-first-frame",
+      "target": "wan-3.0-i2v"
+    },
+    {
+      "id": "wan-3.0-i2v-last-frame-edge",
+      "source": "wan-3.0-i2v-last-frame",
+      "target": "wan-3.0-i2v"
+    }
+  ],
+  "nodeCount": 3,
+  "edgeCount": 2,
+  "nodeTypes": [
+    "upload",
+    "upload",
+    "video"
+  ],
+  "topologyPreview": {
+    "nodes": [
+      {
+        "id": "wan-3.0-i2v-first-frame",
+        "type": "upload",
+        "label": "上传首帧图（必填）",
+        "x": 50,
+        "y": 50
+      },
+      {
+        "id": "wan-3.0-i2v-last-frame",
+        "type": "upload",
+        "label": "上传尾帧图（可选）",
+        "x": 50,
+        "y": 270
+      },
+      {
+        "id": "wan-3.0-i2v",
+        "type": "video",
+        "label": "Wan 3.0 国内 I2V（贞贞的平价AI小屋）",
+        "x": 510,
+        "y": 90
+      }
+    ],
+    "edges": [
+      {
+        "id": "wan-3.0-i2v-first-frame-edge",
+        "source": "wan-3.0-i2v-first-frame",
+        "target": "wan-3.0-i2v"
+      },
+      {
+        "id": "wan-3.0-i2v-last-frame-edge",
+        "source": "wan-3.0-i2v-last-frame",
+        "target": "wan-3.0-i2v"
+      }
+    ]
+  },
+  "savedAt": "2026-08-25T00:00:00.000Z"
+}

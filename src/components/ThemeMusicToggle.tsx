@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Disc3, VolumeX } from 'lucide-react';
 import type { ThemeMusic, ThemeMusicPreset, ThemeMusicSource, ThemeTemplate } from '../theme/types';
 import { rhHiddenThemeMusicUrl } from '../theme/defaultTemplates';
@@ -9,6 +10,7 @@ import {
 import { useHiddenFeatureStore } from '../stores/hiddenFeatures';
 import { useDragonBallRadarStore } from '../stores/dragonBallRadar';
 import { useSaintSeiyaSanctuaryStore } from '../stores/saintSeiyaSanctuary';
+import { localizeThemeMusicTitle } from '../i18n/themeCatalog';
 
 interface ThemeMusicToggleProps {
   template: ThemeTemplate;
@@ -462,6 +464,7 @@ function scheduleMidiNote(ctx: AudioContext, master: GainNode, note: MidiSchedul
 }
 
 export default function ThemeMusicToggle({ template }: ThemeMusicToggleProps) {
+  const { t, i18n } = useTranslation('canvas');
   const [enabled, setEnabled] = useState(false);
   const rhDuckUploadIds = useHiddenFeatureStore((s) => s.rhDuckUploadIds);
   const yyhPortraitIds = useHiddenFeatureStore((s) => s.yyhPortraitIds);
@@ -547,6 +550,7 @@ export default function ThemeMusicToggle({ template }: ThemeMusicToggleProps) {
   ]);
 
   const title = music?.title || 'Theme Music';
+  const localizedTitle = localizeThemeMusicTitle(template, title, i18n.resolvedLanguage || i18n.language);
   const volume = clampVolume(music?.volume);
   const musicKey = `${template.id}|${rhHiddenMusicActive ? 'rh-hidden' : yyhHiddenMusicActive ? 'yyh-hidden' : shenronHiddenMusicActive ? 'shenron-hidden' : hadesHiddenMusicActive ? 'hades-hidden' : 'normal'}|${music?.preset || ''}|${music?.source || ''}|${music?.url || ''}|${volume}`;
 
@@ -758,8 +762,8 @@ export default function ThemeMusicToggle({ template }: ThemeMusicToggleProps) {
       type="button"
       className={`t8-theme-music-toggle nodrag nopan ${enabled ? 'is-playing' : ''}`}
       onClick={toggle}
-      title={enabled ? `关闭主题音乐：${title}` : `播放主题音乐：${title}`}
-      aria-label={enabled ? `关闭主题音乐：${title}` : `播放主题音乐：${title}`}
+      title={enabled ? t('controls.themeMusicStop', { title: localizedTitle }) : t('controls.themeMusicPlay', { title: localizedTitle })}
+      aria-label={enabled ? t('controls.themeMusicStop', { title: localizedTitle }) : t('controls.themeMusicPlay', { title: localizedTitle })}
       aria-pressed={enabled}
     >
       {enabled ? <Disc3 size={18} /> : <VolumeX size={18} />}

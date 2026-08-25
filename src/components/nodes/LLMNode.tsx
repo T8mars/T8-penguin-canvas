@@ -1,4 +1,5 @@
 import { memo, useCallback, useMemo, useRef, useState, useLayoutEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Handle, Position, useReactFlow, type Node, type NodeProps } from '@xyflow/react';
 import {
   AlertCircle,
@@ -67,6 +68,7 @@ import {
 } from '../../config/llm';
 import SmartTranslateButton from '../SmartTranslateButton';
 import type { SmartTranslationRecord } from '../../utils/smartTranslation';
+import { useCanvasNodeRenderMode } from '../CanvasNodeRenderMode';
 
 /**
  * LLM / Vision 节点 —— 完全对齐 gpt-image-2-web Chat (index.html L1600 / L8128~L8400)
@@ -180,6 +182,8 @@ function splitAssistantReplyForScatter(input: string): string[] {
 }
 
 const LLMNode = ({ id, data, selected }: NodeProps) => {
+  const { t } = useTranslation('nodes');
+  const canvasRenderMode = useCanvasNodeRenderMode();
   const update = useUpdateNodeData(id);
   const { getEdges, getNodes, getNode, addNodes } = useReactFlow();
   const [error, setError] = useState<string | null>(null);
@@ -780,6 +784,26 @@ const LLMNode = ({ id, data, selected }: NodeProps) => {
     }
   });
 
+  if (canvasRenderMode === 'cold') {
+    return (
+      <div
+        className="t8-node-cold-shell"
+        data-t8-node-cold-shell="llm"
+        style={{ width: hasChat ? 580 : 320, minHeight: 168 }}
+      >
+        <Handle type="target" position={Position.Left} className="!border-0 !bg-sky-300" />
+        <Handle type="source" position={Position.Right} className="!border-0 !bg-sky-300" />
+        <div className="t8-node-cold-shell__header">
+          <Brain size={16} className="shrink-0 text-emerald-300" />
+          <div className="t8-node-cold-shell__copy">
+            <strong>{t('llm.title')}</strong>
+            <small>{t('llm.offscreen', { model: model || 'LLM', count: history.length })}</small>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="relative flex items-start gap-0" {...dropProps}>
       {/* 输入 Handle — 固定在整体左侧 */}
@@ -815,22 +839,22 @@ const LLMNode = ({ id, data, selected }: NodeProps) => {
           <Brain size={13} />
         </div>
         <div className="flex-1 min-w-0">
-          <div className="text-sm font-semibold text-white truncate">LLM / Vision</div>
+          <div className="text-sm font-semibold text-white truncate">{t('llm.title')}</div>
           <div className="text-[10px] text-white/40 truncate">
             {isExternalSelected && providerSelection.provider
-              ? `${providerSelection.provider.label || providerSelection.provider.id} · ${externalProviderModel || '未选模型'}`
+              ? `${providerSelection.provider.label || providerSelection.provider.id} · ${externalProviderModel || t('llm.model')}`
               : isSeedanceNzSelected
-                ? `贞贞的平价AI小屋 · ${seedanceNzModel}`
-                : '贞贞的AI工坊 · 独立 LLM Key · 多模态 · 流式'}
+                ? `${t('llm.budgetSource')} · ${seedanceNzModel}`
+                : t('llm.defaultSource')}
           </div>
         </div>
         {history.length > 0 && (
           <button
             onClick={handleClear}
-            title="清空会话 / 新建"
+            title={t('llm.clearSession')}
             className="text-[10px] text-white/50 hover:text-rose-300 flex items-center gap-1"
           >
-            <Plus size={11} /> 新会话
+            <Plus size={11} /> {t('llm.newSession')}
           </button>
         )}
       </div>
@@ -842,19 +866,19 @@ const LLMNode = ({ id, data, selected }: NodeProps) => {
               onClick={() => update({ advancedProviderOpen: !d?.advancedProviderOpen })}
               className="w-full flex items-center justify-between text-[10px] font-semibold text-white/70 hover:text-white"
             >
-              <span>高级来源</span>
+              <span>{t('llm.advancedSource')}</span>
               <span>
                 {isExternalSelected && providerSelection.provider
                   ? providerSelection.provider.label
                   : isSeedanceNzSelected
-                    ? '贞贞的平价AI小屋'
-                    : '贞贞的AI工坊-独立LLM Key(默认)'}
+                    ? t('llm.budgetSource')
+                    : t('llm.defaultSource')}
               </span>
             </button>
             {d?.advancedProviderOpen && (
               <div className="space-y-2">
                 <div>
-                  <label className="text-[10px] text-white/50 block mb-1">平台</label>
+                  <label className="text-[10px] text-white/50 block mb-1">{t('llm.platform')}</label>
                   <select
                     value={isExternalSelected
                       ? providerSelection.providerId
@@ -894,10 +918,10 @@ const LLMNode = ({ id, data, selected }: NodeProps) => {
                     className="w-full rounded border border-white/10 px-2 py-1 text-xs outline-none focus:border-white/30"
                   >
                     <option value="zhenzhen" style={{ background: '#18181b', color: '#ffffff' }}>
-                      贞贞的AI工坊-独立LLM Key(默认)
+                      {t('llm.defaultSource')}
                     </option>
                     <option value="seedance-nz" style={{ background: '#18181b', color: '#ffffff' }}>
-                      贞贞的平价AI小屋
+                      {t('llm.budgetSource')}
                     </option>
                     {llmAdvancedProviders.map((provider) => (
                       <option key={provider.id} value={provider.id} style={{ background: '#18181b', color: '#ffffff' }}>
@@ -908,7 +932,7 @@ const LLMNode = ({ id, data, selected }: NodeProps) => {
                 </div>
                 {isExternalSelected && providerSelection.provider && (
                   <div>
-                    <label className="text-[10px] text-white/50 block mb-1">外部模型</label>
+                    <label className="text-[10px] text-white/50 block mb-1">{t('llm.externalModel')}</label>
                     <select
                       value={externalProviderModel}
                       onChange={(e) => update({ providerModel: e.target.value })}
@@ -923,7 +947,7 @@ const LLMNode = ({ id, data, selected }: NodeProps) => {
                 )}
                 {isSeedanceNzSelected && (
                   <div>
-                    <label className="text-[10px] text-white/50 block mb-1">平价小屋模型</label>
+                    <label className="text-[10px] text-white/50 block mb-1">{t('llm.budgetModel')}</label>
                     <select
                       value={seedanceNzModel}
                       onChange={(e) => update({ providerModel: e.target.value })}
@@ -937,13 +961,13 @@ const LLMNode = ({ id, data, selected }: NodeProps) => {
                       ))}
                     </select>
                     <div className="mt-1 text-[9px] leading-snug text-white/40">
-                      使用“贞贞的平价AI小屋 API Key”，接口为 api.seedance.nz。
+                      {t('llm.budgetHelp')}
                     </div>
                   </div>
                 )}
                 {savedExternalMissing && (
                   <div className="text-[10px] text-amber-200 bg-amber-500/10 border border-amber-500/20 rounded px-2 py-1">
-                    当前画布记录的扩展平台未启用或不存在，已临时回到默认来源。
+                    {t('llm.missingProvider')}
                   </div>
                 )}
               </div>
@@ -952,7 +976,7 @@ const LLMNode = ({ id, data, selected }: NodeProps) => {
 
         {/* 模型 */}
         {!isExternalSelected && !isSeedanceNzSelected && <div>
-          <label className="text-[10px] text-white/50 block mb-1">模型</label>
+          <label className="text-[10px] text-white/50 block mb-1">{t('llm.model')}</label>
           <select
             value={modelSelection.presetValue}
             onChange={(e) => {
@@ -972,7 +996,7 @@ const LLMNode = ({ id, data, selected }: NodeProps) => {
               </option>
             ))}
             <option value={CUSTOM_LLM_MODEL_VALUE} className="bg-zinc-900">
-              Custom / 自定义
+              {t('llm.customModel')}
             </option>
           </select>
           {modelSelection.isCustom && (
@@ -980,7 +1004,7 @@ const LLMNode = ({ id, data, selected }: NodeProps) => {
               type="text"
               value={modelSelection.customModelInput}
               maxLength={200}
-              placeholder="填写贞贞工坊支持的模型名称"
+              placeholder={t('llm.customPlaceholder')}
               onChange={(e) => update({
                 useCustomModel: true,
                 customModel: e.target.value,
@@ -1018,7 +1042,7 @@ const LLMNode = ({ id, data, selected }: NodeProps) => {
             />
           </div>
           <div className="flex flex-col">
-            <label className="text-[9px] text-white/40 block mb-0.5">流式</label>
+            <label className="text-[9px] text-white/40 block mb-0.5">{t('llm.stream')}</label>
             <label
               className={`flex items-center justify-center gap-1 rounded px-1.5 py-1 text-[10px] cursor-pointer ${
                 useStream && !isImgOut && !isExternalSelected
@@ -1041,18 +1065,18 @@ const LLMNode = ({ id, data, selected }: NodeProps) => {
         {/* 系统提示词 + 预设 */}
         <div>
           <div className="flex items-center justify-between mb-1">
-            <label className="text-[10px] text-white/50">系统提示词</label>
+            <label className="text-[10px] text-white/50">{t('llm.systemPrompt')}</label>
             <div className="flex items-center gap-1">
               <select
                 value=""
                 onChange={(e) => {
                   if (e.target.value) update({ system: presetMap[e.target.value] || '' });
                 }}
-                title="加载预设"
+                title={t('llm.loadPreset')}
                 className="rounded bg-white/5 border border-white/10 px-1 py-0.5 text-[10px] text-white/70 outline-none"
               >
                 <option value="" className="bg-zinc-900">
-                  — 预设 —
+                  {t('llm.presetPlaceholder')}
                 </option>
                 {Object.keys(presetMap).map((name) => (
                   <option key={name} value={name} className="bg-zinc-900">
@@ -1062,7 +1086,7 @@ const LLMNode = ({ id, data, selected }: NodeProps) => {
               </select>
               <button
                 onClick={handleSavePreset}
-                title="保存当前为预设"
+                title={t('llm.savePreset')}
                 className="text-emerald-300 hover:text-emerald-200"
               >
                 <Save size={11} />
@@ -1070,10 +1094,10 @@ const LLMNode = ({ id, data, selected }: NodeProps) => {
               {Object.keys(presetMap).length > 0 && (
                 <button
                   onClick={() => {
-                    const name = window.prompt('删除预设(输入名字):', '');
+                    const name = window.prompt(t('llm.deletePresetPrompt'), '');
                     if (name && presetMap[name]) handleDeletePreset(name);
                   }}
-                  title="删除预设"
+                  title={t('llm.deletePreset')}
                   className="text-rose-300 hover:text-rose-200"
                 >
                   <Trash2 size={11} />
@@ -1083,10 +1107,10 @@ const LLMNode = ({ id, data, selected }: NodeProps) => {
           </div>
           <PromptTextarea
             ref={sysRef}
-            title="LLM 系统提示词"
+            title={t('llm.systemPromptTitle')}
             value={systemPrompt}
             onValueChange={(value) => update({ system: value })}
-            placeholder="设定AI角色和行为..."
+            placeholder={t('llm.systemPlaceholder')}
             className="w-full h-36 resize-none rounded bg-white/5 border border-white/10 px-2 py-1 text-[11px] text-white outline-none focus:border-white/30 placeholder:text-white/30 overflow-y-auto"
             isDark={isDark}
             isPixel={isPixel}
@@ -1096,15 +1120,15 @@ const LLMNode = ({ id, data, selected }: NodeProps) => {
 
         {/* 用户输入 */}
         <div>
-          <label className="text-[10px] text-white/50 block mb-1">用户输入(优先取上游)</label>
+          <label className="text-[10px] text-white/50 block mb-1">{t('llm.userInput')}</label>
           <MentionPromptInput
             editorRef={userRef}
-            title="LLM 用户输入"
+            title={t('llm.userInputTitle')}
             value={localPrompt}
             mentions={userPromptMentions}
             materials={orderedImages}
             onChange={(value, mentions) => update({ userPrompt: value, userPromptMentions: mentions })}
-            placeholder="备用:无上游连接时使用"
+            placeholder={t('llm.userInputPlaceholder')}
             isDark={isDark}
             isPixel={isPixel}
             promptTemplateKind="image"
@@ -1125,7 +1149,7 @@ const LLMNode = ({ id, data, selected }: NodeProps) => {
         {orderedVideos.length > 0 && (
           <div className="rounded border border-sky-400/20 bg-sky-500/[0.06] p-2 space-y-1.5">
             <div className="flex items-center justify-between gap-2">
-              <label className="text-[10px] text-sky-200/80">视频传入</label>
+              <label className="text-[10px] text-sky-200/80">{t('llm.videoInput')}</label>
               <select
                 value={llmVideoMode}
                 onChange={(e) => {
@@ -1133,10 +1157,10 @@ const LLMNode = ({ id, data, selected }: NodeProps) => {
                   update({ llmVideoMode: value === 'url' ? 'url' : value === 'native-base64' ? 'native-base64' : 'frames' });
                 }}
                 className="rounded bg-white/5 border border-white/10 px-1.5 py-0.5 text-[10px] text-white outline-none"
-                title="LLM 视频传入方式"
+                title={t('llm.videoInputTitle')}
               >
-                <option value="frames" className="bg-zinc-900">关键帧优先</option>
-                <option value="native-base64" className="bg-zinc-900">原视频 Base64</option>
+                <option value="frames" className="bg-zinc-900">{t('llm.frames')}</option>
+                <option value="native-base64" className="bg-zinc-900">{t('llm.nativeVideo')}</option>
                 <option value="url" className="bg-zinc-900">URL</option>
               </select>
             </div>
@@ -1144,7 +1168,7 @@ const LLMNode = ({ id, data, selected }: NodeProps) => {
               <div className="space-y-1.5">
                 <div className="grid grid-cols-2 gap-1.5">
                   <div>
-                    <label className="text-[9px] text-white/40 block mb-0.5">关键帧数量</label>
+                    <label className="text-[9px] text-white/40 block mb-0.5">{t('llm.frameCount')}</label>
                     <input
                       type="number"
                       min={1}
@@ -1156,7 +1180,7 @@ const LLMNode = ({ id, data, selected }: NodeProps) => {
                     />
                   </div>
                   <div>
-                    <label className="text-[9px] text-white/40 block mb-0.5">关键帧边长</label>
+                    <label className="text-[9px] text-white/40 block mb-0.5">{t('llm.frameEdge')}</label>
                     <input
                       type="number"
                       min={256}
@@ -1172,14 +1196,14 @@ const LLMNode = ({ id, data, selected }: NodeProps) => {
                   </div>
                 </div>
                 <div className="text-[10px] text-white/45 leading-snug">
-                  按整段视频均匀抽取关键帧发送给 LLM；长视频可调到 24/48/60 张。有视频时会自动使用非流式。
+                  {t('llm.framesHelp')}
                 </div>
               </div>
             ) : llmVideoMode === 'native-base64' ? (
               <div className="space-y-1.5">
                 <div className="grid grid-cols-3 gap-1.5">
                   <div>
-                    <label className="text-[9px] text-white/40 block mb-0.5">边长</label>
+                    <label className="text-[9px] text-white/40 block mb-0.5">{t('llm.edge')}</label>
                     <input
                       type="number"
                       min={256}
@@ -1194,7 +1218,7 @@ const LLMNode = ({ id, data, selected }: NodeProps) => {
                     />
                   </div>
                   <div>
-                    <label className="text-[9px] text-white/40 block mb-0.5">上限MB</label>
+                    <label className="text-[9px] text-white/40 block mb-0.5">{t('llm.maxMb')}</label>
                     <input
                       type="number"
                       min={2}
@@ -1219,12 +1243,12 @@ const LLMNode = ({ id, data, selected }: NodeProps) => {
                   </div>
                 </div>
                 <div className="text-[10px] text-white/45 leading-snug">
-                  以原生 video_url Base64 发送，不会抽关键帧；若所选模型网关不支持原生视频，可切回关键帧模式。
+                  {t('llm.nativeHelp')}
                 </div>
               </div>
             ) : (
               <div className="text-[10px] text-white/45 leading-snug">
-                本地视频会转为后端绝对 URL；外网 URL 保持原样。
+                {t('llm.urlHelp')}
               </div>
             )}
           </div>
@@ -1245,7 +1269,7 @@ const LLMNode = ({ id, data, selected }: NodeProps) => {
           isDark={isDark}
           isPixel={isPixel}
           groups={['text', 'image', 'video']}
-          title="上游素材 + 本地图片/视频"
+          title={t('llm.materials')}
           imageUploadAction={{
             onClick: () => fileInputRef.current?.click(),
             title: '上传本地图片(多模态)',
@@ -1272,11 +1296,11 @@ const LLMNode = ({ id, data, selected }: NodeProps) => {
           >
             {status === 'generating' ? (
               <>
-                <Loader2 size={12} className="animate-spin" /> 思考中...
+                <Loader2 size={12} className="animate-spin" /> {t('llm.thinking')}
               </>
             ) : (
               <>
-                <Send size={12} /> 发送
+                <Send size={12} /> {t('llm.send')}
               </>
             )}
           </button>
@@ -1284,7 +1308,7 @@ const LLMNode = ({ id, data, selected }: NodeProps) => {
             <button
               onClick={handleStop}
               className="px-2 py-1.5 rounded bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 text-xs"
-              title="中止"
+              title={t('llm.abort')}
             >
               <Square size={11} />
             </button>
@@ -1332,29 +1356,29 @@ const LLMNode = ({ id, data, selected }: NodeProps) => {
         ) : (
           /* 正常展示模式 */
           <>
-        {history.map((t, i) => (
+        {history.map((turn, i) => (
           <div key={i} className="text-[11px]">
-            <div className={`text-[9px] mb-0.5 ${t.role === 'user' ? 'text-sky-300/60' : 'text-emerald-300/60'}`}>
-              {t.role === 'user' ? '🧑 用户' : '🤖 助手'}
-              {t.role === 'assistant' && <span className="text-white/30 ml-1">(双击编辑)</span>}
+            <div className={`text-[9px] mb-0.5 ${turn.role === 'user' ? 'text-sky-300/60' : 'text-emerald-300/60'}`}>
+              {turn.role === 'user' ? t('llm.user') : t('llm.assistant')}
+              {turn.role === 'assistant' && <span className="text-white/30 ml-1">{t('llm.editHint')}</span>}
             </div>
             <div
               onDoubleClick={() => handleDoubleClickMsg(i)}
               className={`llm-chat-message relative whitespace-pre-wrap text-white/80 bg-white/[0.03] rounded p-1.5 ${
-                t.role === 'assistant' ? 'cursor-pointer hover:bg-white/[0.06] transition-colors pr-20' : ''
+                turn.role === 'assistant' ? 'cursor-pointer hover:bg-white/[0.06] transition-colors pr-20' : ''
               }`}
             >
-              {t.role === 'assistant' && t.text.trim() && (
+              {turn.role === 'assistant' && turn.text.trim() && (
                 <>
                   <button
                     type="button"
                     className="llm-chat-action-button llm-chat-action-button--single t8-mini-icon-button nodrag nopan"
-                    title="完整生成一个文本节点"
-                    aria-label="完整生成一个助手回复文本节点"
+                    title={t('llm.scatterSingle')}
+                    aria-label={t('llm.scatterSingleAria')}
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      scatterAssistantText(t.text, 'single');
+                      scatterAssistantText(turn.text, 'single');
                     }}
                     onDoubleClick={(e) => {
                       e.preventDefault();
@@ -1366,12 +1390,12 @@ const LLMNode = ({ id, data, selected }: NodeProps) => {
                   <button
                     type="button"
                     className="llm-chat-action-button llm-chat-action-button--smart t8-mini-icon-button nodrag nopan"
-                    title="智能打散为多个文本节点"
-                    aria-label="智能打散助手回复为多个文本节点"
+                    title={t('llm.scatterSmart')}
+                    aria-label={t('llm.scatterSmartAria')}
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      scatterAssistantText(t.text, 'smart');
+                      scatterAssistantText(turn.text, 'smart');
                     }}
                     onDoubleClick={(e) => {
                       e.preventDefault();
@@ -1383,8 +1407,8 @@ const LLMNode = ({ id, data, selected }: NodeProps) => {
                   <button
                     type="button"
                     className="llm-chat-action-button llm-chat-action-button--delete t8-mini-icon-button nodrag nopan"
-                    title="删除这条 LLM 结果"
-                    aria-label="删除这条 LLM 结果"
+                    title={t('llm.deleteResult')}
+                    aria-label={t('llm.deleteResult')}
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
@@ -1399,11 +1423,11 @@ const LLMNode = ({ id, data, selected }: NodeProps) => {
                   </button>
                 </>
               )}
-              {t.text || '[空]'}
+              {turn.text || '[空]'}
             </div>
-            {t.images && t.images.length > 0 && (
+            {turn.images && turn.images.length > 0 && (
               <div className="flex gap-1 flex-wrap mt-1">
-                {t.images.map((u, j) => (
+                {turn.images.map((u, j) => (
                   <SmartImage
                     key={j}
                     src={u}
@@ -1416,18 +1440,18 @@ const LLMNode = ({ id, data, selected }: NodeProps) => {
                     data-resource-title={u.split('/').pop() || '助手图像'}
                     data-prompt-template-kind="image"
                     data-prompt-template-category="image-reference-edit"
-                    data-prompt-template-prompt={t.text || localPrompt}
+                    data-prompt-template-prompt={turn.text || localPrompt}
                     onMouseDown={(e) => beginMaterialDrag(e, { kind: 'image', url: u, sourceNodeId: id, previewUrl: u })}
                     className="w-12 h-12 object-cover rounded border border-white/10 cursor-grab"
-                    title="按住 Ctrl 拖拽到其他节点"
+                    title={t('llm.dragMaterial')}
                     thumbSize={160}
                   />
                 ))}
               </div>
             )}
-            {t.videos && t.videos.length > 0 && (
+            {turn.videos && turn.videos.length > 0 && (
               <div className="flex gap-1 flex-wrap mt-1">
-                {t.videos.map((u, j) => (
+                {turn.videos.map((u, j) => (
                   <LazyVideo
                     key={j}
                     src={u}
@@ -1441,10 +1465,10 @@ const LLMNode = ({ id, data, selected }: NodeProps) => {
                     data-resource-title={u.split('/').pop() || '助手视频'}
                     data-prompt-template-kind="video"
                     data-prompt-template-category="video-image-to-video"
-                    data-prompt-template-prompt={t.text || localPrompt}
+                    data-prompt-template-prompt={turn.text || localPrompt}
                     onMouseDown={(e) => beginMaterialDrag(e, { kind: 'video', url: u, sourceNodeId: id, previewUrl: u })}
                     className="w-20 h-12 object-cover rounded border border-white/10 cursor-grab"
-                    title="按住 Ctrl 拖拽到其他节点"
+                    title={t('llm.dragMaterial')}
                   />
                 ))}
               </div>
@@ -1453,7 +1477,7 @@ const LLMNode = ({ id, data, selected }: NodeProps) => {
         ))}
         {streamingText && (
           <div className="text-[11px]">
-            <div className="text-[9px] mb-0.5 text-emerald-300/60">🤖 助手 (流式中…)</div>
+            <div className="text-[9px] mb-0.5 text-emerald-300/60">{t('llm.streamingAssistant')}</div>
             <div className="whitespace-pre-wrap text-white/80 bg-emerald-500/[0.08] rounded p-1.5 border border-emerald-500/20">
               {streamingText}
             </div>

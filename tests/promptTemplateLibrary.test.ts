@@ -103,7 +103,7 @@ test('prompt template library supports custom management, import/export, and res
   assert.match(service, /normalizePromptTemplateAttachments/);
   assert.match(service, /createPromptTemplateFromMaterial/);
 
-  assert.match(modal, /提示词模板库/);
+  assert.match(modal, /promptTemplates\.title/);
   assert.match(modal, /saveSelectedToResource/);
   assert.match(modal, /api\.addResourceSet/);
   assert.match(modal, /materialSetKind:\s*'text'/);
@@ -114,7 +114,8 @@ test('prompt template library supports custom management, import/export, and res
   assert.match(modal, /addCategory/);
   assert.match(modal, /renameCategory/);
   assert.match(modal, /deleteCategory/);
-  assert.match(modal, /中英文切换|Languages/);
+  assert.match(modal, /promptTemplates\.contentLanguageToggle/);
+  assert.match(modal, /Languages/);
   assert.match(modal, /data-prompt-template-media-preview/);
   assert.match(modal, /ImageHoverPreview/);
   assert.match(modal, /preload="metadata"/);

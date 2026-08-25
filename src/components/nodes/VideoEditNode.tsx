@@ -36,6 +36,8 @@ import { useUpdateNodeData } from './useUpdateNodeData';
 import { useUpstreamMaterials } from './useUpstreamMaterials';
 import { useRunTrigger } from '../../hooks/useRunTrigger';
 import ImageEditModal, { type ImageEditProduceMeta } from './ImageEditModal';
+import LocalizedVisibleTree from '../../i18n/LocalizedVisibleTree';
+import { VIDEO_EDIT_VISIBLE_CATALOG } from '../../i18n/workbenchVisibleCatalog';
 import {
   appendVideoEditClips,
   applyVideoEditImportCleanup,
@@ -304,6 +306,14 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
   return <label className="text-[10px] font-semibold" style={{ color: 'var(--t8-text-muted)' }}>{children}</label>;
 }
 
+function VideoEditVisible({ children }: { children: React.ReactNode }) {
+  return (
+    <LocalizedVisibleTree area="videoEdit" catalog={VIDEO_EDIT_VISIBLE_CATALOG}>
+      {children}
+    </LocalizedVisibleTree>
+  );
+}
+
 const VIDEO_EDIT_PIP_PRESETS = [
   { id: 'fullscreen', label: '全屏', x: 0, y: 0, scale: 1, opacity: 1 },
   { id: 'top-left', label: '左上小窗', x: 4, y: 6, scale: 0.34, opacity: 1 },
@@ -340,6 +350,7 @@ function VideoEditPreviewTransitionBadge({ transition }: { transition: VideoEdit
   if (!transition) return null;
   const progress = Math.max(0, Math.min(100, Math.round(transition.progress * 100)));
   return (
+    <VideoEditVisible>
     <div
       data-video-edit-preview-transition="true"
       data-video-edit-preview-transition-edge={transition.edge}
@@ -356,6 +367,7 @@ function VideoEditPreviewTransitionBadge({ transition }: { transition: VideoEdit
         <span className="block h-full rounded-full bg-cyan-300" style={{ width: `${progress}%` }} />
       </div>
     </div>
+    </VideoEditVisible>
   );
 }
 
@@ -364,12 +376,15 @@ function FilmstripPreview({ clip, onSeek }: { clip: VideoEditClip; onSeek: (seco
   const times = Array.isArray(clip.filmstripTimes) ? clip.filmstripTimes : [];
   if (!urls.length) {
     return (
+      <VideoEditVisible>
       <div className="grid h-14 place-items-center rounded-lg border border-dashed text-[11px]" style={{ borderColor: 'var(--t8-border)', color: 'var(--t8-text-muted)' }}>
         暂无帧条，加载后可按画面定位入点 / 出点
       </div>
+      </VideoEditVisible>
     );
   }
   return (
+    <VideoEditVisible>
     <div className="flex gap-1 overflow-x-auto rounded-lg border p-1" style={{ borderColor: 'var(--t8-border)', background: 'var(--t8-video-edit-muted, var(--t8-surface-muted))' }}>
       {urls.map((url, index) => (
         <button
@@ -392,6 +407,7 @@ function FilmstripPreview({ clip, onSeek }: { clip: VideoEditClip; onSeek: (seco
         </button>
       ))}
     </div>
+    </VideoEditVisible>
   );
 }
 
@@ -399,12 +415,15 @@ function WaveformPreview({ peaks }: { peaks?: number[] }) {
   const data = Array.isArray(peaks) ? peaks.slice(0, 120) : [];
   if (!data.length) {
     return (
+      <VideoEditVisible>
       <div className="grid h-12 place-items-center rounded-lg border border-dashed text-[11px]" style={{ borderColor: 'var(--t8-border)', color: 'var(--t8-text-muted)' }}>
         暂无音频波形，无声片段会保持空白
       </div>
+      </VideoEditVisible>
     );
   }
   return (
+    <VideoEditVisible>
     <div className="flex h-12 items-center gap-[2px] rounded-lg border px-2 py-1" style={{ borderColor: 'var(--t8-border)', background: 'var(--t8-video-edit-muted, var(--t8-surface-muted))' }}>
       {data.map((peak, index) => (
         <span
@@ -417,6 +436,7 @@ function WaveformPreview({ peaks }: { peaks?: number[] }) {
         />
       ))}
     </div>
+    </VideoEditVisible>
   );
 }
 
@@ -6403,6 +6423,7 @@ function VideoEditNode({ id, data, selected }: NodeProps) {
   };
 
   return (
+    <VideoEditVisible>
     <>
     <div
       data-video-edit-node-theme-surface="solid"
@@ -7017,6 +7038,7 @@ function VideoEditNode({ id, data, selected }: NodeProps) {
       </div>
     </div>
     {workbenchOpen && createPortal(
+      <VideoEditVisible>
       <div className="fixed inset-0 z-[2147483000] overflow-hidden bg-black/80 p-1.5" onMouseDown={(event) => event.stopPropagation()}>
         <section
           ref={workbenchShellRef}
@@ -10859,7 +10881,8 @@ function VideoEditNode({ id, data, selected }: NodeProps) {
             </button>
           </div>
         )}
-      </div>,
+      </div>
+      </VideoEditVisible>,
       document.body,
     )}
     {imageEditSnapshotUrl && (
@@ -10873,6 +10896,7 @@ function VideoEditNode({ id, data, selected }: NodeProps) {
       />
     )}
     </>
+    </VideoEditVisible>
   );
 }
 

@@ -77,7 +77,7 @@ test('Electron bytecode compilation is pinned to the project-local locked runtim
 test('Electron does not open the renderer before the packaged backend is ready', () => {
   const main = read('../electron/main.cjs');
   assert.match(main, /const backendReady = await waitForBackend\(backendPort, backendInstanceId, 30\)/);
-  assert.match(main, /if \(!backendReady\) throw new Error\(`后端未能在端口 \$\{backendPort\} 就绪`\)/);
+  assert.match(main, /if \(!backendReady\) throw new Error\(electronT\('startup\.backendNotReady', \{ port: backendPort \}\)\)/);
   assert.match(main, /const start = await backendModule\?\.serverStartPromise/);
   assert.match(main, /start\.state !== 'listening'/);
   assert.match(main, /status\?\.service === 't8-penguin-canvas-backend'/);
@@ -95,7 +95,7 @@ test('Electron does not open the renderer before the packaged backend is ready',
   assert.match(main, /shutdownBackendForElectron\('ELECTRON_QUIT'\)/);
   assert.match(main, /electronQuitReady = true;\s+app\.quit\(\);/);
   assert.match(main, /if \(electronQuitRequested \|\| pendingMainWindow\.isDestroyed\(\)\) return;/);
-  assert.match(main, /app\.whenReady\(\)\.then\(async \(\) => \{\s+if \(!ELECTRON_SINGLE_INSTANCE_OWNER \|\| electronQuitRequested\) return;\s+createLogWindow\(\);/);
+  assert.match(main, /app\.whenReady\(\)\.then\(async \(\) => \{\s+if \(!ELECTRON_SINGLE_INSTANCE_OWNER \|\| electronQuitRequested\) return;\s+initializeElectronLocale\([\s\S]*?\);\s+createLogWindow\(\);/);
   assert.ok(main.indexOf('if (!backendReady)') < main.indexOf('createMainWindow();', main.indexOf('app.whenReady()')));
 });
 

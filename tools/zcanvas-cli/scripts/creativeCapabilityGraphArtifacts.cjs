@@ -9,6 +9,9 @@ const {
 
 const ROOT = path.resolve(__dirname, '..', '..', '..');
 const NODE_SCHEMA_SOURCE = path.join(ROOT, 'backend', 'src', 'shared', 'canvasNodeSchema.json');
+const I18N_NODE_CATALOG_SOURCE = path.join(ROOT, 'src', 'i18n', 'nodeCatalog.ts');
+const I18N_RENDERER_RESOURCES_SOURCE = path.join(ROOT, 'src', 'i18n', 'resources.ts');
+const I18N_ELECTRON_CATALOG_SOURCE = path.join(ROOT, 'electron', 'i18n-catalog.json');
 const BACKEND_TARGET = path.join(ROOT, 'backend', 'src', 'shared', 'creativeCapabilityGraph.json');
 const CLI_TARGET = path.join(ROOT, 'tools', 'zcanvas-cli', 'generated', 'creative-capability-graph.json');
 const COVERAGE_RECEIPT_SOURCE = path.join(ROOT, 'tools', 'zcanvas-cli', 'src', 'capabilityCoverage.cjs');
@@ -411,6 +414,9 @@ function buildCapabilityGraph(options = {}) {
     creativeCapabilityManifest: manifestDigest,
     canvasNodeSchema: nodeSchemaRecord.protocolDigest,
     canvasNodeSchemaFile: nodeSchemaRecord.digest,
+    i18nNodeCatalog: sha256CanonicalText(fs.readFileSync(I18N_NODE_CATALOG_SOURCE)),
+    i18nRendererResources: sha256CanonicalText(fs.readFileSync(I18N_RENDERER_RESOURCES_SOURCE)),
+    i18nElectronCatalog: sha256CanonicalText(fs.readFileSync(I18N_ELECTRON_CATALOG_SOURCE)),
     runtimeCatalogSources: String(runtimeCatalog.sourceDigest || ''),
     runtimeCatalogArtifact: runtimeArtifactDigest,
     handlerBindings: bindingDigest,
@@ -425,6 +431,9 @@ function buildCapabilityGraph(options = {}) {
     generatedFrom: {
       capabilityManifest: 'tools/zcanvas-cli/creativeCapabilityManifest.json',
       canvasNodeSchema: 'backend/src/shared/canvasNodeSchema.json',
+      i18nNodeCatalog: 'src/i18n/nodeCatalog.ts',
+      i18nRendererResources: 'src/i18n/resources.ts',
+      i18nElectronCatalog: 'electron/i18n-catalog.json',
       runtimeCatalog: runtimeCatalog.generatedFrom || [],
       handlerRegistry: 'backend/src/services/agentControlCapabilityHandlers.js',
       coverageReceiptCompiler: 'tools/zcanvas-cli/src/capabilityCoverage.cjs',
