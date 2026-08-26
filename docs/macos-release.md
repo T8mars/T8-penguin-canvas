@@ -86,6 +86,10 @@ Developer ID 正式发布另需以下两组之一的公证凭据，并需要 `CS
 
 这些命令都有版本级授权、源码 SHA、远端 Ref、平台、架构和资产漂移门，不能绕过脚本直接用 electron-builder 或 `gh release upload --clobber` 代替。
 
+# v3.0.6 火山素材任务恢复发布计划（2026-08-26）
+
+v3.0.6 必须从同一个固定源码提交和正式 `v3.0.6` Tag 生成 Windows 与 Apple Silicon 资产，并进入同一个非草稿、非预发布 Latest Release。本版安全吸收 PR #28 的火山素材导入任务持久化、按需状态恢复和旧 `volc-asset` 画布迁移，不直接引入任意 CommonJS 插件宿主、显式 `Host` 请求头或路径/响应泄露。Windows 继续使用核心目录低资源正式链；Mac 必须由真实 `macos-15` arm64 workflow 以 `release_tag=v3.0.6`、`source_ref=v3.0.6`、`publish=true`、`signing=unsigned-preview` 重建并完成 DMG/ZIP/更新清单及三资产完整回下载。真实运行证据完成前不得标记已发布。
+
 # v3.0.5 双平台启动修复发布完成（2026-08-26）
 
 v3.0.5 已从同一个固定源码提交 `d806dcddb4bf42d596e80e23f6ee3a50b5df67a2` 和正式 `v3.0.5` Tag 生成 Windows 与 Apple Silicon 资产，并进入同一个非草稿、非预发布 Latest Release：<https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.0.5>。本版补齐 `electron/i18n.cjs` 与 `electron/i18n-catalog.json`，Windows 与 macOS post-build 都通过共用的 7 项 `app.asar` 主进程启动合同。Windows 核心目录低资源正式链完成 NSIS、自动更新清单、provenance、sealed recovery、发布与校验；真实 `macos-15` arm64 workflow <https://github.com/T8mars/T8-penguin-canvas/actions/runs/32970660172> 以 `release_tag=v3.0.5`、`source_ref=v3.0.5`、`publish=true`、`signing=unsigned-preview` 完成同源绑定、私有源恢复、原生依赖、ad-hoc 签名、DMG/ZIP/清单验证、追加上传与三资产完整回下载。

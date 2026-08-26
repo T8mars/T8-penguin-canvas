@@ -132,6 +132,7 @@ import {
   normalizeCanvasNodeSerials,
   parseNodeSerialInput,
 } from '../utils/nodeSerialIds';
+import { migrateLegacyVolcengineAssetNodes } from '../utils/volcengineAssets';
 import { resolveConnectionByNodeSerialId } from '../utils/connectByNodeSerialId';
 import { cloneCanvasEntityAsNew, ensureCanvasEntityUids, isCanonicalEntityUid } from '../utils/canvasEntityIdentity';
 import { consumeCommittedCanvasNodePatches, readCommittedCanvasNodePatches } from '../utils/committedCanvasNodePatchMailbox';
@@ -5265,13 +5266,15 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, persistenceRuntime, th
           }
           return n;
         });
-        const serialInputNodes = groupBoxRepaired ? repairedNodeCandidates : ns;
+        const legacyVolcengineMigration = migrateLegacyVolcengineAssetNodes(groupBoxRepaired ? repairedNodeCandidates : ns);
+        const serialInputNodes = legacyVolcengineMigration.nodes;
         const normalized = normalizeCanvasNodeSerials(serialInputNodes, savedNextNodeSerialId);
         nextNodeSerialIdRef.current = normalized.nextNodeSerialId;
         const normalizedNodes = normalized.changed ? normalized.nodes : serialInputNodes;
         const fixedNs = ensureCanvasEntityUids(normalizedNodes, 'node');
         const fixedEs = ensureCanvasEntityUids(es, 'edge');
         const canonicalizationChanged = groupBoxRepaired
+          || legacyVolcengineMigration.changed
           || normalized.changed
           || normalized.nextNodeSerialId !== savedNextNodeSerialId
           || fixedNs !== normalizedNodes

@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { AlertCircle, AudioLines, CheckCircle2, ChevronDown, Image as ImageIcon, LibraryBig, Loader2, Plus, RefreshCw, Tags, Video } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -9,8 +9,11 @@ import { PORT_COLOR } from '../../config/portTypes';
 import * as api from '../../services/api';
 import {
   buildVolcengineAssetsNodeOutput,
+  normalizeVolcengineAssetImportJob,
+  normalizeVolcengineAssetImportJobs,
   normalizeVolcengineAssetGroups,
   normalizeVolcengineAssetItems,
+  type VolcengineAssetImportJob,
   type VolcengineAssetGroup,
   type VolcengineAssetItem,
   type VolcengineAssetKind,
@@ -55,6 +58,8 @@ const VolcengineAssetsNode = ({ id, data, selected }: NodeProps) => {
   const [importUrl, setImportUrl] = useState('');
   const [importName, setImportName] = useState('');
   const [importKind, setImportKind] = useState<'Image' | 'Video' | 'Audio'>('Image');
+  const [importJobs, setImportJobs] = useState<VolcengineAssetImportJob[]>([]);
+  const importJobAttempts = useRef(new Map<string, number>());
   const [tagDrafts, setTagDrafts] = useState<Record<string, string>>({});
 
   const selectedAssets = useMemo(() => persistedAssets(d), [d.selectedAssets]);
@@ -95,6 +100,41 @@ const VolcengineAssetsNode = ({ id, data, selected }: NodeProps) => {
     return normalized;
   }, [groupId, pageNumber, profileId, projectName, t]);
 
+  const loadImportJobs = useCallback(async (projectOverride?: string) => {
+    const response = await api.listVolcengineAssetImportJobs({
+      profileId,
+      projectName: projectOverride || projectName || resolvedProject,
+    });
+    if (!response.success) throw new Error(response.error || t('volcengineAssets.errors.jobs'));
+    const normalized = normalizeVolcengineAssetImportJobs(response.data);
+    setImportJobs(normalized);
+    return normalized;
+  }, [profileId, projectName, resolvedProject, t]);
+
+  const refreshImportJobs = useCallback(async (targets?: VolcengineAssetImportJob[]) => {
+    const pending = (targets || importJobs).filter((job) => job.status === 'submitted' || job.status === 'processing');
+    if (pending.length === 0) return importJobs;
+    const responses = await Promise.all(pending.map(async (job) => ({
+      job,
+      response: await api.refreshVolcengineAssetImportJob(job.id, { profileId, projectName: job.projectName }),
+    })));
+    const updates = new Map<string, VolcengineAssetImportJob>();
+    for (const { job, response } of responses) {
+      importJobAttempts.current.set(job.id, (importJobAttempts.current.get(job.id) || 0) + 1);
+      if (response.success) {
+        const normalized = normalizeVolcengineAssetImportJob(response.data);
+        if (normalized) updates.set(job.id, normalized);
+      }
+    }
+    const activated = [...updates.values()].some((job) => job.status === 'active');
+    setImportJobs((current) => current.map((job) => {
+      const updated = updates.get(job.id);
+      return updated || job;
+    }));
+    if (activated) await loadAssets();
+    return [...updates.values()];
+  }, [importJobs, loadAssets, profileId]);
+
   const refreshAll = useCallback(async () => {
     setBusy(true);
     setError('');
@@ -103,6 +143,7 @@ const VolcengineAssetsNode = ({ id, data, selected }: NodeProps) => {
       if (!status.configured) throw new Error(t('volcengineAssets.errors.notConfigured'));
       await loadGroups();
       await loadAssets();
+      await loadImportJobs(projectName || status.project);
       update({ volcengineAssetsStatus: 'ready', status: 'success', error: '' });
     } catch (reason: any) {
       const message = reason?.message || t('volcengineAssets.errors.refresh');
@@ -112,11 +153,23 @@ const VolcengineAssetsNode = ({ id, data, selected }: NodeProps) => {
     } finally {
       setBusy(false);
     }
-  }, [loadAssets, loadGroups, loadStatus, t, update]);
+  }, [loadAssets, loadGroups, loadImportJobs, loadStatus, projectName, t, update]);
 
   useEffect(() => {
     void loadStatus().catch((reason) => setError(reason?.message || t('volcengineAssets.errors.status')));
   }, [loadStatus, t]);
+
+  useEffect(() => {
+    const pending = importJobs.filter((job) => (
+      (job.status === 'submitted' || job.status === 'processing')
+      && (importJobAttempts.current.get(job.id) || 0) < 20
+    ));
+    if (pending.length === 0) return undefined;
+    const timer = window.setTimeout(() => {
+      void refreshImportJobs(pending).catch((reason) => setError(reason?.message || t('volcengineAssets.errors.jobs')));
+    }, 2500);
+    return () => window.clearTimeout(timer);
+  }, [importJobs, refreshImportJobs, t]);
 
   useRunTrigger(id, refreshAll, 'volcengine-assets', { lifecycleAware: true });
 
@@ -167,9 +220,14 @@ const VolcengineAssetsNode = ({ id, data, selected }: NodeProps) => {
     });
     setBusy(false);
     if (!response.success) return setError(response.error || t('volcengineAssets.errors.import'));
+    const job = normalizeVolcengineAssetImportJob(response.data);
+    if (job) {
+      importJobAttempts.current.set(job.id, 0);
+      setImportJobs((current) => [job, ...current.filter((item) => item.id !== job.id)].slice(0, 100));
+    }
     setImportUrl('');
     setImportName('');
-    await loadAssets().catch((reason) => setError(reason?.message || t('volcengineAssets.errors.assets')));
+    if (job?.status === 'active') await loadAssets().catch((reason) => setError(reason?.message || t('volcengineAssets.errors.assets')));
   }, [groupId, importKind, importName, importUrl, loadAssets, profileId, projectName, t]);
 
   const saveTags = useCallback(async (assetId: string) => {
@@ -239,6 +297,20 @@ const VolcengineAssetsNode = ({ id, data, selected }: NodeProps) => {
               <button type="button" className="t8-btn t8-btn-primary min-h-8 px-3 text-xs" onClick={() => void importAsset()} disabled={busy}>{t('volcengineAssets.import')}</button>
             </div>
             <div className="text-[10px]" style={{ color: 'var(--t8-text-muted)' }}>{t('volcengineAssets.importHint')}</div>
+            {importJobs.length > 0 && (
+              <div className="space-y-1 rounded-md border p-2" style={{ borderColor: 'var(--t8-border)', background: 'var(--t8-bg-node)' }}>
+                <div className="flex items-center justify-between text-[10px] font-bold">
+                  <span>{t('volcengineAssets.importJobs')}</span>
+                  <button type="button" className="t8-btn min-h-6 px-2 text-[9px]" onClick={() => void refreshImportJobs()}>{t('volcengineAssets.refreshJobs')}</button>
+                </div>
+                {importJobs.slice(0, 3).map((job) => (
+                  <div key={job.id} className="flex items-center gap-2 text-[10px]" style={{ color: job.status === 'failed' ? '#ef4444' : job.status === 'active' ? '#16a34a' : 'var(--t8-text-muted)' }}>
+                    <span className="min-w-0 flex-1 truncate">{job.name || job.assetId || t('volcengineAssets.unnamedImport')}</span>
+                    <span>{t(`volcengineAssets.jobStatus.${job.status}`)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 

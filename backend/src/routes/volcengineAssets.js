@@ -1,4 +1,5 @@
 const express = require('express');
+const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 const config = require('../config');
@@ -60,6 +61,99 @@ function createCatalogStore(file) {
   };
 }
 
+const IMPORT_JOB_SCHEMA = 't8-volcengine-assets-jobs-v1';
+const IMPORT_JOB_LIMIT = 100;
+const IMPORT_JOB_STATUSES = new Set(['submitted', 'processing', 'active', 'failed']);
+
+function normalizeImportJob(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  const id = cleanText(raw.id, 128);
+  const profileId = cleanText(raw.profileId, 128) || 'volcengine';
+  const projectName = cleanText(raw.projectName, 128);
+  const assetId = cleanText(raw.assetId, 256);
+  const rawStatus = cleanText(raw.status, 24).toLowerCase();
+  const status = IMPORT_JOB_STATUSES.has(rawStatus) ? rawStatus : 'processing';
+  if (!/^volcjob-[a-z0-9-]+$/i.test(id) || !projectName) return null;
+  let assetUri = '';
+  if (assetId) {
+    try {
+      assetUri = normalizeVolcengineAssetUri(`asset://${assetId}`);
+    } catch (_) {
+      return null;
+    }
+  }
+  return {
+    id,
+    profileId,
+    projectName,
+    kind: ['Image', 'Video', 'Audio'].includes(cleanText(raw.kind, 16)) ? cleanText(raw.kind, 16) : 'Image',
+    name: cleanText(raw.name, 128),
+    assetId,
+    assetUri,
+    status,
+    requestId: cleanText(raw.requestId, 160),
+    error: status === 'failed' ? cleanText(raw.error, 500) : '',
+    createdAt: cleanText(raw.createdAt, 64) || new Date().toISOString(),
+    updatedAt: cleanText(raw.updatedAt, 64) || new Date().toISOString(),
+  };
+}
+
+function createImportJobStore(file) {
+  const read = () => {
+    try {
+      const parsed = JSON.parse(fs.readFileSync(file, 'utf8'));
+      if (parsed?.schema !== IMPORT_JOB_SCHEMA || !Array.isArray(parsed.jobs)) return [];
+      return parsed.jobs.map(normalizeImportJob).filter(Boolean).slice(0, IMPORT_JOB_LIMIT);
+    } catch (_) {
+      return [];
+    }
+  };
+  const write = (jobs) => {
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    const temporary = `${file}.${process.pid}.${crypto.randomUUID()}.tmp`;
+    fs.writeFileSync(temporary, `${JSON.stringify({ schema: IMPORT_JOB_SCHEMA, jobs: jobs.slice(0, IMPORT_JOB_LIMIT) }, null, 2)}\n`, { encoding: 'utf8', mode: 0o600 });
+    fs.renameSync(temporary, file);
+  };
+  const put = (raw) => {
+    const job = normalizeImportJob(raw);
+    if (!job) throw Object.assign(new Error('火山素材导入任务无效'), { status: 400, code: 'invalid_import_job' });
+    const jobs = read().filter((item) => item.id !== job.id);
+    write([job, ...jobs]);
+    return job;
+  };
+  return {
+    create(input) {
+      const now = new Date().toISOString();
+      return put({
+        ...input,
+        id: `volcjob-${Date.now().toString(36)}-${crypto.randomBytes(8).toString('hex')}`,
+        createdAt: now,
+        updatedAt: now,
+      });
+    },
+    get(id) {
+      return read().find((item) => item.id === cleanText(id, 128)) || null;
+    },
+    list(profileId, projectName) {
+      const profile = cleanText(profileId, 128) || 'volcengine';
+      const project = cleanText(projectName, 128);
+      return read().filter((item) => item.profileId === profile && item.projectName === project);
+    },
+    put,
+  };
+}
+
+function extractAsset(payload) {
+  return payload?.Result?.Asset || payload?.Result || payload?.result?.asset || payload?.result || payload?.data?.asset || payload?.data || {};
+}
+
+function normalizeImportStatus(value) {
+  const status = cleanText(value, 32).toLowerCase();
+  if (['active', 'success', 'succeeded', 'completed', 'complete'].includes(status)) return 'active';
+  if (['failed', 'failure', 'error'].includes(status)) return 'failed';
+  return 'processing';
+}
+
 function apiError(res, error) {
   const status = Math.max(400, Math.min(599, Number(error?.status) || 500));
   return res.status(status).json({
@@ -75,6 +169,7 @@ function createVolcengineAssetsRouter(options = {}) {
   const loadSettings = options.loadSettings || (() => settingsRouter.loadSettings({ persistMigrations: false }));
   const requestAssets = options.requestAssets || requestVolcengineAssets;
   const catalog = createCatalogStore(options.catalogFile || config.VOLCENGINE_ASSETS_CATALOG_FILE);
+  const jobs = createImportJobStore(options.jobsFile || config.VOLCENGINE_ASSETS_JOBS_FILE);
   const run = (handler) => async (req, res) => {
     try {
       await handler(req, res);
@@ -140,7 +235,7 @@ function createVolcengineAssetsRouter(options = {}) {
   }));
 
   router.post('/assets/import', run(async (req, res) => {
-    const { projectName } = context(req);
+    const { settings, profileId, projectName } = context(req);
     const groupId = cleanText(req.body?.groupId, 256);
     let url;
     try {
@@ -154,13 +249,56 @@ function createVolcengineAssetsRouter(options = {}) {
     const body = { ProjectName: projectName, URL: url, AssetType: kind, GroupId: groupId };
     const name = cleanText(req.body?.name, 128);
     if (name) body.Name = name;
-    const data = await call(req, 'CreateAsset', body);
-    const created = data?.Result?.Asset || data?.Result || data?.result || data?.data || {};
+    const data = await requestAssets({ settings, profileId, action: 'CreateAsset', body });
+    const created = extractAsset(data);
     const assetId = cleanText(created?.Id || created?.AssetId || created?.assetId, 256);
+    const status = assetId ? normalizeImportStatus(created?.Status || created?.status) : 'submitted';
+    const job = jobs.create({
+      profileId,
+      projectName,
+      kind,
+      name,
+      assetId,
+      status,
+      requestId: cleanText(data?.ResponseMetadata?.RequestId || data?.requestId || data?.request_id, 160),
+      error: status === 'failed' ? cleanText(created?.Message || created?.ErrorMessage || created?.error, 500) : '',
+    });
     res.status(202).json({
       success: true,
-      data: { assetId, assetUri: assetId ? normalizeVolcengineAssetUri(`asset://${assetId}`) : '', response: data },
+      data: job,
     });
+  }));
+
+  router.get('/jobs', run(async (req, res) => {
+    const { profileId, projectName } = context(req);
+    res.json({ success: true, data: { jobs: jobs.list(profileId, projectName) } });
+  }));
+
+  router.post('/jobs/:jobId/refresh', run(async (req, res) => {
+    const { settings, profileId, projectName } = context(req);
+    const job = jobs.get(req.params.jobId);
+    if (!job || job.profileId !== profileId || job.projectName !== projectName) {
+      throw Object.assign(new Error('火山素材导入任务不存在'), { status: 404, code: 'import_job_not_found' });
+    }
+    if (!job.assetId || job.status === 'active' || job.status === 'failed') {
+      return res.json({ success: true, data: job });
+    }
+    const data = await requestAssets({
+      settings,
+      profileId,
+      action: 'GetAsset',
+      body: { ProjectName: projectName, Id: job.assetId },
+    });
+    const asset = extractAsset(data);
+    const status = normalizeImportStatus(asset?.Status || asset?.status);
+    const updated = jobs.put({
+      ...job,
+      status,
+      requestId: cleanText(data?.ResponseMetadata?.RequestId || data?.requestId || data?.request_id, 160) || job.requestId,
+      error: status === 'failed' ? cleanText(asset?.Message || asset?.ErrorMessage || asset?.error, 500) || '火山素材处理失败' : '',
+      updatedAt: new Date().toISOString(),
+    });
+    return res.json({ success: true, data: updated });
   }));
 
   router.get('/assets/tags', run(async (req, res) => {
@@ -180,5 +318,7 @@ function createVolcengineAssetsRouter(options = {}) {
 const router = createVolcengineAssetsRouter();
 module.exports = router;
 module.exports.createCatalogStore = createCatalogStore;
+module.exports.createImportJobStore = createImportJobStore;
 module.exports.createVolcengineAssetsRouter = createVolcengineAssetsRouter;
+module.exports.normalizeImportJob = normalizeImportJob;
 module.exports.normalizeTags = normalizeTags;

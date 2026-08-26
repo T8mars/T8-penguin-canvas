@@ -238,6 +238,7 @@ const config = {
   SETTINGS_FILE: path.join(DATA_ROOT, 'data', 'settings.json'),
   FEISHU_BITABLE_PRIVATE_FILE: path.join(DATA_ROOT, 'data', 'feishu_bitable.private.json'),
   VOLCENGINE_ASSETS_CATALOG_FILE: path.join(DATA_ROOT, 'data', 'volcengine_assets_catalog.json'),
+  VOLCENGINE_ASSETS_JOBS_FILE: path.join(DATA_ROOT, 'data', 'volcengine_assets_jobs.json'),
   ACHIEVEMENTS_FILE: path.join(DATA_ROOT, 'data', 'achievements.json'),
   RH_APPS_FILE: path.join(DATA_ROOT, 'data', 'rh_apps.json'),
   // v1.2.10+ RH 工具节点专用数据（与 rh_apps.json 完全分开）

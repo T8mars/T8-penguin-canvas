@@ -3573,6 +3573,20 @@ export function importVolcengineAsset(payload: { profileId?: string; projectName
   return safeRequest<any>(`${BASE}/volcengine-assets/assets/import`, { method: 'POST', body: JSON.stringify(payload) });
 }
 
+export function listVolcengineAssetImportJobs(payload: { profileId?: string; projectName?: string } = {}) {
+  const query = new URLSearchParams();
+  if (payload.profileId) query.set('profileId', payload.profileId);
+  if (payload.projectName) query.set('projectName', payload.projectName);
+  return safeRequest<any>(`${BASE}/volcengine-assets/jobs?${query.toString()}`);
+}
+
+export function refreshVolcengineAssetImportJob(jobId: string, payload: { profileId?: string; projectName?: string } = {}) {
+  return safeRequest<any>(`${BASE}/volcengine-assets/jobs/${encodeURIComponent(jobId)}/refresh`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
 export function getVolcengineAssetTags(assetIds: string[]) {
   return safeRequest<{ assets: Record<string, string[]> }>(`${BASE}/volcengine-assets/assets/tags?assetIds=${encodeURIComponent(assetIds.slice(0, 100).join(','))}`);
 }

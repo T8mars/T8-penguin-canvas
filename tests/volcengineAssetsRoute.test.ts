@@ -27,6 +27,7 @@ test('Volcengine Assets routes keep credentials server-side and forward only all
   const temp = fs.mkdtempSync(path.join(os.tmpdir(), 't8-volc-assets-route-'));
   const fixture = await startRouter({
     catalogFile: path.join(temp, 'catalog.json'),
+    jobsFile: path.join(temp, 'jobs.json'),
     loadSettings: () => ({
       advancedProviders: [{
         id: 'volcengine', protocol: 'volcengine',
@@ -74,8 +75,13 @@ test('Volcengine Assets import validates public URLs and local tags persist atom
   const calls: string[] = [];
   const options = {
     catalogFile,
+    jobsFile: path.join(temp, 'jobs.json'),
     loadSettings: () => ({ advancedProviders: [{ id: 'volcengine', protocol: 'volcengine', volcengineConfig: { project: 'demo', accessKeyId: 'AK', secretAccessKey: 'SK' } }] }),
-    requestAssets: async ({ action }: { action: string }) => { calls.push(action); return { Result: { Id: 'asset-New' } }; },
+    requestAssets: async ({ action }: { action: string }) => {
+      calls.push(action);
+      if (action === 'GetAsset') return { Result: { Asset: { Id: 'asset-New', Status: 'Active' } } };
+      return { Result: { Id: 'asset-New', Status: 'Processing' }, ResponseMetadata: { RequestId: 'request-safe' } };
+    },
   };
   const first = await startRouter(options);
   try {
@@ -92,6 +98,13 @@ test('Volcengine Assets import validates public URLs and local tags persist atom
     })).json();
     assert.equal(imported.success, true);
     assert.equal(imported.data.assetUri, 'asset://asset-New');
+    assert.equal(imported.data.status, 'processing');
+    assert.equal(Object.hasOwn(imported.data, 'response'), false);
+
+    const persistedJobText = fs.readFileSync(options.jobsFile, 'utf8');
+    assert.equal(persistedJobText.includes('https://cdn.example.com/a.png'), false);
+    assert.equal(persistedJobText.includes('secretAccessKey'), false);
+    assert.equal(persistedJobText.includes(temp), false);
 
     const tagged = await (await fetch(`${first.base}/assets/asset-New/tags`, {
       method: 'PUT', headers: { 'content-type': 'application/json' },
@@ -106,6 +119,23 @@ test('Volcengine Assets import validates public URLs and local tags persist atom
   try {
     const metadata = await (await fetch(`${second.base}/assets/tags?assetIds=asset-New`)).json();
     assert.deepEqual(metadata.data.assets, { 'asset-New': ['hero', 'night'] });
+
+    const listed = await (await fetch(`${second.base}/jobs?profileId=volcengine&projectName=demo`)).json();
+    assert.equal(listed.data.jobs.length, 1);
+    assert.equal(listed.data.jobs[0].status, 'processing');
+
+    const refreshed = await (await fetch(`${second.base}/jobs/${listed.data.jobs[0].id}/refresh`, {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ profileId: 'volcengine', projectName: 'demo' }),
+    })).json();
+    assert.equal(refreshed.data.status, 'active');
+    assert.equal(calls.at(-1), 'GetAsset');
+
+    const crossScope = await fetch(`${second.base}/jobs/${listed.data.jobs[0].id}/refresh`, {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ profileId: 'volcengine', projectName: 'another-project' }),
+    });
+    assert.equal(crossScope.status, 404);
   } finally {
     await second.close();
     fs.rmSync(temp, { recursive: true, force: true });

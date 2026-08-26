@@ -100,7 +100,7 @@ test('GitHub Actions builds current and future Mac releases on a real Apple Sili
   assert.match(workflow, /workflow_dispatch:/);
   assert.match(workflow, /release_tag:/);
   assert.match(workflow, /source_ref:/);
-  assert.match(workflow, /release_tag:[\s\S]*default: v3\.0\.5/);
+  assert.match(workflow, /release_tag:[\s\S]*default: v3\.0\.6/);
   assert.match(workflow, /runs-on: macos-15/);
   assert.match(workflow, /T8_MAC_LOCAL_PRIVATE_BUNDLE_B64/);
   assert.match(workflow, /T8_MAC_LOCAL_PRIVATE_FRONTEND_BUNDLE_B64/);
@@ -122,7 +122,7 @@ test('macOS updater language does not tell Mac users to open an NSIS wizard', ()
   assert.notEqual(catalog['en-US'].updater.installingMac, catalog['en-US'].updater.installingWindows);
 });
 
-test('macOS release process preserves v3.0.4 evidence while planning the v3.0.5 repair', () => {
+test('macOS release process preserves prior evidence while planning v3.0.6', () => {
   const processDoc = read('../docs/macos-release.md');
   const features = JSON.parse(read('../features.json'));
 
@@ -131,20 +131,20 @@ test('macOS release process preserves v3.0.4 evidence while planning the v3.0.5 
   assert.match(processDoc, /从下个版本开始的 Windows \+ Mac 同版流程/);
   assert.match(processDoc, /--clobber/);
   assert.equal(features.macDesktopRelease.platform, 'macOS 12+ / Apple Silicon arm64');
-  assert.equal(features.macDesktopRelease.currentReleasePlan.releaseTag, 'v3.0.5');
-  assert.equal(features.macDesktopRelease.currentReleasePlan.sourceRef, 'v3.0.5');
-  assert.equal(features.macDesktopRelease.status, 'release-authorized-v3.0.5-mac-arm64-pending-real-runner');
+  assert.equal(features.macDesktopRelease.currentReleasePlan.releaseTag, 'v3.0.6');
+  assert.equal(features.macDesktopRelease.currentReleasePlan.sourceRef, 'v3.0.6');
+  assert.equal(features.macDesktopRelease.status, 'release-authorized-v3.0.6-mac-arm64-pending-real-runner');
   assert.equal(features.macDesktopRelease.releaseIncluded, false);
   assert.equal(features.macDesktopRelease.previousReleaseEvidence.sourceCommit, '64d9a708dd92d38a77b710e06855ddcf6b4e652c');
   assert.equal(features.macDesktopRelease.previousReleaseEvidence.workflowConclusion, 'success');
   assert.equal(features.macDesktopRelease.previousReleaseEvidence.releaseTargetUnchanged, true);
   assert.equal(features.macDesktopRelease.previousReleaseEvidence.macArtifacts.length, 3);
   assert.equal(features.macDesktopRelease.previousReleaseEvidence.macArtifacts[0].sha256, '18ab11a8dfbf4f23a6a66f8167160a6bae1f00c758ddcd9ca796e181b890dfa5');
-  assert.equal(features.macDesktopRelease.releaseEvidence.sourceCommit, '916007dd3b05abd3e7f84e7a6ac69fc010ac42b7');
+  assert.equal(features.macDesktopRelease.releaseEvidence.sourceCommit, 'd806dcddb4bf42d596e80e23f6ee3a50b5df67a2');
   assert.equal(features.macDesktopRelease.releaseEvidence.workflowConclusion, 'success');
   assert.equal(features.macDesktopRelease.releaseEvidence.releaseTargetUnchanged, true);
   assert.equal(features.macDesktopRelease.releaseEvidence.windowsAssetsUnchanged.length, 3);
   assert.equal(features.macDesktopRelease.releaseEvidence.macArtifacts.length, 3);
-  assert.equal(features.macDesktopRelease.releaseEvidence.macArtifacts[0].sha256, '8834401dec5f5969e16687b52527459ddaeb7dc87c0386c867190605054462e5');
+  assert.equal(features.macDesktopRelease.releaseEvidence.macArtifacts[0].sha256, 'f4fe3af8bcc4777614997f4a48b67609afdfc12b5a7f70f3efbd1b0db02ee4ee');
   assert.equal(features.macDesktopRelease.processDoc, 'docs/macos-release.md');
 });

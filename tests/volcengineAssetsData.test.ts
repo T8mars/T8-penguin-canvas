@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   buildVolcengineAssetsNodeOutput,
+  migrateLegacyVolcengineAssetNodes,
+  normalizeVolcengineAssetImportJobs,
   normalizeVolcengineAssetItems,
   normalizeVolcengineAssetGroups,
 } from '../src/utils/volcengineAssets.ts';
@@ -37,4 +39,27 @@ test('Volcengine selection emits no temporary preview URLs, only active typed as
   assert.deepEqual(output.outputs.image.imageUrls, ['asset://asset-0', 'asset://asset-3', 'asset://asset-6', 'asset://asset-9', 'asset://asset-12', 'asset://asset-15']);
   assert.deepEqual(selectSourceHandleData(output, new Set(['video'])), [output.outputs.video]);
   assert.deepEqual(selectSourceHandleData(output, new Set(['audio'])), [output.outputs.audio]);
+});
+
+test('Volcengine import jobs normalize bounded safe fields and legacy PR nodes migrate to the stable core node', () => {
+  const jobs = normalizeVolcengineAssetImportJobs({ jobs: [{
+    id: 'volcjob-safe-1234', profileId: 'volcengine', projectName: 'demo', kind: 'Video',
+    assetId: 'asset-AbC', status: 'Processing', requestId: 'request-1', sourceUrl: 'https://signed.example/secret',
+  }] });
+  assert.equal(jobs.length, 1);
+  assert.equal(jobs[0].status, 'processing');
+  assert.equal(JSON.stringify(jobs).includes('signed.example'), false);
+
+  const migrated = migrateLegacyVolcengineAssetNodes([{
+    id: 'legacy-volc', type: 'volc-asset', position: { x: 10, y: 20 },
+    data: {
+      profileId: 'volcengine-profile', projectName: 'project-a', groupId: 'group-a',
+      assetId: 'asset-AbC', assetUri: 'Asset://asset-AbC', kind: 'video', tags: ['hero'],
+    },
+  }] as any);
+  assert.equal(migrated.changed, true);
+  assert.equal(migrated.nodes[0].type, 'volcengine-assets');
+  assert.equal((migrated.nodes[0].data as any).volcengineAssetsProfileId, 'volcengine-profile');
+  assert.equal((migrated.nodes[0].data as any).selectedAssets[0].assetUri, 'asset://asset-AbC');
+  assert.deepEqual((migrated.nodes[0].data as any).outputs.video.videoUrls, ['asset://asset-AbC']);
 });
