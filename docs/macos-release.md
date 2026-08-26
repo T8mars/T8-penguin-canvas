@@ -86,9 +86,11 @@ Developer ID 正式发布另需以下两组之一的公证凭据，并需要 `CS
 
 这些命令都有版本级授权、源码 SHA、远端 Ref、平台、架构和资产漂移门，不能绕过脚本直接用 electron-builder 或 `gh release upload --clobber` 代替。
 
-# v3.0.6 火山素材任务恢复发布计划（2026-08-26）
+# v3.0.6 火山素材任务恢复发布完成（2026-08-27）
 
-v3.0.6 必须从同一个固定源码提交和正式 `v3.0.6` Tag 生成 Windows 与 Apple Silicon 资产，并进入同一个非草稿、非预发布 Latest Release。本版安全吸收 PR #28 的火山素材导入任务持久化、按需状态恢复和旧 `volc-asset` 画布迁移，不直接引入任意 CommonJS 插件宿主、显式 `Host` 请求头或路径/响应泄露。Windows 继续使用核心目录低资源正式链；Mac 必须由真实 `macos-15` arm64 workflow 以 `release_tag=v3.0.6`、`source_ref=v3.0.6`、`publish=true`、`signing=unsigned-preview` 重建并完成 DMG/ZIP/更新清单及三资产完整回下载。真实运行证据完成前不得标记已发布。
+v3.0.6 已从同一个固定源码提交 `47c3d4aa10825d409deb98bcc266cf50fb437c80` 和正式 `v3.0.6` Tag 生成 Windows 与 Apple Silicon 资产，并进入同一个非草稿、非预发布 Latest Release：<https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.0.6>。本版安全吸收 PR #28 的火山素材导入任务持久化、按需状态恢复和旧 `volc-asset` 画布迁移，没有引入任意 CommonJS 插件宿主、显式 `Host` 请求头或路径/响应泄露。Windows 核心目录使用单核、BelowNormal、`ELECTRON_BUILDER_COMPRESSION_LEVEL=0` 的低资源正式链完成三资产发布与完整回下载；真实 `macos-15` arm64 workflow <https://github.com/T8mars/T8-penguin-canvas/actions/runs/32987354091> 以 `release_tag=v3.0.6`、`source_ref=v3.0.6`、`publish=true`、`signing=unsigned-preview` 完成 DMG/ZIP/更新清单、追加上传及三资产完整回下载。
+
+Windows 安装包为 1,354,460,018 bytes / SHA-256 `49fad093930a587526ae0428aa0b474327a9b466166707935e63371c97a7f3b9`，blockmap 为 1,413,092 bytes / `15f80f9ba0aff074393008bed6a89a6a56cc918813ff7252b1b06b72919d5bf3`，`latest.yml` 为 362 bytes / `5119cecd6fcc800fcc7bd79c607fa7cb83a3c65e6dc757e456705468d22aacf0`。Mac DMG 为 468,445,338 bytes / `1ad1147c427a241bf5803c57e400e0e23a5c8aff8a177dfc23a99d4a07c398df`，ZIP 为 461,298,875 bytes / `972659e23b0018e9d955aa4b56d8ccd47f459026e208a672cb33a38c72afcaab`，`latest-mac.yml` 为 536 bytes / `320268579ba6b9adf3ad13f16e195ffb021370c0eeac958e1b18e50436f8cd13`。六项 GitHub digest/size、两个自动更新清单、Release target、Tag peeled commit 与 Latest 均一致；Mac 仍是 ad-hoc 签名、未 notarize 的技术预览。
 
 # v3.0.5 双平台启动修复发布完成（2026-08-26）
 
