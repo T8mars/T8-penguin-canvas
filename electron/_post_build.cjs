@@ -18,6 +18,7 @@ const {
   exactTopLevelVersion,
   latestInstallerMetadata,
 } = require('../scripts/latest-yml.cjs');
+const { assertElectronAppAsar } = require('../scripts/electron-asar-contract.cjs');
 
 const ROOT = path.resolve(__dirname, '..');
 const PACKAGE_JSON = require(path.join(ROOT, 'package.json'));
@@ -886,6 +887,15 @@ function main() {
   if (!fs.existsSync(UNPACKED)) {
     console.error('  ❌ dist_electron/win-unpacked 不存在,先跑 npm run dist:dir');
     process.exit(1);
+  }
+
+  console.log('[0] Electron app.asar 启动依赖:');
+  try {
+    const result = assertElectronAppAsar(path.join(RES, 'app.asar'));
+    console.log(`  ✅ app.asar startup contract (${result.requiredEntries.length} required files)`);
+  } catch (error) {
+    missingCount += 1;
+    console.error(`  ❌ ${error?.message || error}`);
   }
 
   console.log('[1] 加密后端字节码:');

@@ -85,6 +85,11 @@ Developer ID 正式发布另需以下两组之一的公证凭据，并需要 `CS
 - Windows 正式入口保持：`npm run dist:release`
 
 这些命令都有版本级授权、源码 SHA、远端 Ref、平台、架构和资产漂移门，不能绕过脚本直接用 electron-builder 或 `gh release upload --clobber` 代替。
+
+# v3.0.5 双平台启动修复发布计划（2026-08-26）
+
+v3.0.5 必须从同一个固定源码提交和正式 `v3.0.5` Tag 生成 Windows 与 Apple Silicon 资产，并进入同一个非草稿、非预发布 Latest Release。本版补齐 `electron/i18n.cjs` 与 `electron/i18n-catalog.json`，Windows 与 macOS post-build 都必须先通过共用的 7 项 `app.asar` 主进程启动合同。Windows 低资源正式链完成发布后，真实 `macos-15` arm64 workflow 以 `release_tag=v3.0.5`、`source_ref=v3.0.5`、`publish=true`、`signing=unsigned-preview` 追加 DMG、ZIP 与 `latest-mac.yml`；最终必须分别完整回下载 Windows 与 Mac 三项资产并核对固定 Tag/target、GitHub digest/size、两个更新清单和 Latest。真实 workflow 与资产摘要只有成功后才回填，不得用 Windows 目录包或静态测试代替 Mac 实机结论。
+
 # v3.0.4 同源发布完成（2026-08-26）
 
 v3.0.4 已按 Windows 与 Mac 同一固定提交、同一个正式 `v3.0.4` Tag、同一个 GitHub Release 的规则完成发布。固定源码为 `916007dd3b05abd3e7f84e7a6ac69fc010ac42b7`；Windows 在核心目录通过低资源 `dist:release` 完成 NSIS、blockmap、`latest.yml` 和三资产完整回下载，Mac 由真实 `macos-15` arm64 workflow <https://github.com/T8mars/T8-penguin-canvas/actions/runs/32902049267> 完成构建、ad-hoc 签名、追加上传和三资产完整回下载。正式 Release 为 <https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.0.4>，非草稿、非预发布且为 Latest，target 与 Tag 的 peeled commit 均保持固定源码不变。

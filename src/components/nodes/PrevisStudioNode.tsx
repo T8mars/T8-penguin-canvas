@@ -1,5 +1,5 @@
 import {
-  lazy, memo, Suspense, useEffect, useMemo, useRef, useState, type CSSProperties,
+  lazy, memo, Suspense, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties,
 } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
@@ -24,7 +24,7 @@ import SmartImage from '../SmartImage';
 const LazyPrevisStudioEditor = lazy(() => import('../../features/previs-studio/PrevisStudioEditor'));
 
 const SOURCE_URL = 'https://github.com/GuiYi-Xi/monoform-previs-studio';
-const SOURCE_COMMIT = '77f4bae83eeee550a6f416757231f438155bf674';
+const SOURCE_COMMIT = 'daa54b2f6e78cc69f07102f7d32f6fabe3ac4a54';
 const handleStyle: CSSProperties = { width: 12, height: 12, border: 'none', zIndex: 20 };
 
 type PrevisRunKind = 'image' | 'video';
@@ -76,6 +76,9 @@ function projectSummary(project: Record<string, any> | null) {
     animatedTracks: tracks,
     cameraKeys,
     aspectRatio: String(project?.camera?.aspectRatio || '16:9'),
+    fps: Number(project?.settings?.fps || 24),
+    durationSeconds: Number(project?.settings?.durationSeconds || 15),
+    shotCount: Array.isArray(project?.shots) ? project!.shots.length : 1,
   };
 }
 
@@ -90,6 +93,7 @@ const PrevisStudioNode = ({ id, data, selected }: NodeProps) => {
   const isPixel = themeStyle === 'pixel';
   const project = useMemo(() => normalizeProject(d.previsProject), [d.previsProject]);
   const summary = useMemo(() => projectSummary(project), [project]);
+  const lastProjectSignatureRef = useRef(project ? JSON.stringify(project) : '');
   const editorRef = useRef<PrevisStudioEditorHandle | null>(null);
   const cancelledDuringRunRef = useRef(false);
   const readyWaitersRef = useRef(new Set<() => void>());
@@ -110,6 +114,10 @@ const PrevisStudioNode = ({ id, data, selected }: NodeProps) => {
   const executionNodeId = createCanvasNodeExecutionKey(originCanvasIdRef.current, id);
   const cancelSeq = useRunBusStore((state) => state.cancelSeq);
   const cancelTargets = useRunBusStore((state) => state.cancelTargets);
+
+  useEffect(() => {
+    lastProjectSignatureRef.current = project ? JSON.stringify(project) : '';
+  }, [project]);
 
   useEffect(() => {
     if (!cancelTargets.includes(executionNodeId)) return;
@@ -167,7 +175,10 @@ const PrevisStudioNode = ({ id, data, selected }: NodeProps) => {
     return editorRef.current;
   };
 
-  const writeProject = (nextProject: Record<string, unknown>) => {
+  const writeProject = useCallback((nextProject: Record<string, unknown>) => {
+    const signature = JSON.stringify(nextProject);
+    if (signature === lastProjectSignatureRef.current) return;
+    lastProjectSignatureRef.current = signature;
     const liveData = rf.getNode(id)?.data as Record<string, unknown> | undefined;
     const currentRevision = Number(liveData?.previsProjectRevision || 0);
     update({
@@ -177,7 +188,7 @@ const PrevisStudioNode = ({ id, data, selected }: NodeProps) => {
       error: '',
       errorKey: '',
     });
-  };
+  }, [id, rf, update]);
 
   const requestRun = (kind: PrevisRunKind) => {
     const requestId = createCanvasNodeRunRequestId(id, `previs-${kind}`);
@@ -369,7 +380,7 @@ const PrevisStudioNode = ({ id, data, selected }: NodeProps) => {
         </button>
         <div className="flex items-center justify-between gap-2 text-[10px]" style={{ color: persistedError ? '#fb7185' : sub }}>
           <span className="truncate" title={persistedError || message || t('previs.openHint')}>{persistedError || message || t('previs.openHint')}</span>
-          <span className="shrink-0">{t('previs.fixedDuration')}</span>
+          <span className="shrink-0">{t('previs.fixedDuration', { seconds: summary.durationSeconds, fps: summary.fps, shots: summary.shotCount })}</span>
         </div>
       </div>
 

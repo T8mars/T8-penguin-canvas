@@ -1,9 +1,83 @@
 {
   "$schema": "本文件为 T8-penguin-canvas 节点清单防丢失锁,任何节点删减都需要在 roadmap.md 中说明并更新本文件。",
-  "version": "3.0.4",
-  "lastUpdated": "2026-08-26-v3.0.4-released-live-verified",
+  "version": "3.0.5",
+  "lastUpdated": "2026-08-26-v3.0.5-release-authorized-pipeline-pending",
+  "electronReleaseV305": {
+    "status": "release-authorized-pipeline-pending",
+    "date": "2026-08-26",
+    "releaseIncluded": true,
+    "version": "3.0.5",
+    "tag": "v3.0.5",
+    "sourceCommit": null,
+    "releaseUrl": "https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.0.5",
+    "scope": [
+      "修复 Windows 与 macOS 公开包因 electron/i18n.cjs 和 electron/i18n-catalog.json 未进入 app.asar 而在主进程启动阶段崩溃的问题；新增静态依赖闭包与双平台 post-build 启动合同。",
+      "修复恢复已缩放上传节点后可见卡片与 ReactFlow wrapper 尺寸分裂，导致 RUN 操作栏和连线端点偏离用户可见边界的问题。",
+      "把白模预演同步到 GuiYi-Xi/monoform-previs-studio v0.6.0 固定提交，加入多镜头、动态时长/FPS、动作、参考图、灯光、相机和变换能力，同时保留 T8 节点端口、持久化和标准媒体输出合同。",
+      "完整承接 v3.0.4 及更早的火山引擎素材库、节点、Provider、默认渠道、默认模型、旧画布、历史工作流、主题、双语、MiniMax Music3 和性能能力，不迁移或删除用户数据。",
+      "Windows 与 Mac 必须从同一 v3.0.5 固定源码提交和正式 Tag 构建，进入同一 GitHub Release；Windows 采用低资源正式链，Mac 采用真实 macos-15 arm64 workflow。"
+    ],
+    "evidenceBoundary": {
+      "technicalGates": "must-pass-before-publish",
+      "affectedUserInstallF8F10AndInstalledUpgrade": "deferred-not-passed",
+      "deferralApproval": "owner-approved-post-release-v3.0.5",
+      "rule": "证据后补只适用于反馈用户安装、多端协作、F8-F10 与安装升级；测试、构建、加密、运行时、app.asar 启动合同、NSIS、provenance、sealed recovery、固定 Tag/target、Windows/Mac 完整回下载和 Latest 不可延期。"
+    }
+  },
+  "nodeActionBarDomAnchorFix": {
+    "status": "implemented-release-pending-v3.0.5",
+    "date": "2026-08-26",
+    "releaseIncluded": true,
+    "symptom": "恢复已缩放的上传节点后，RUN/STOP/关闭操作栏向右漂移，已有连线也从卡片右侧空白处开始，无法贴住用户看到的节点边界。",
+    "rootCause": "除旧操作栏只按 ReactFlow 模型坐标推算锚点外，UploadNode 恢复画布时还会把可见卡片重置为 260px，而 ReactFlow 外层保留节点 JSON 中的 364px 已保存宽度；在 1.44 倍缩放下两者形成约 150px 的幽灵边界，操作栏与连线都正确地跟随了错误外层。",
+    "implementation": [
+      "操作栏优先读取所选 ReactFlow 节点和画布根元素的真实 getBoundingClientRect，以用户实际看到的右上角作为权威锚点；模型坐标仅保留为首帧回退。",
+      "ResizeObserver、viewport、节点位置与 measured 尺寸变化会触发重新测量，并以 0.25px 阈值避免无意义状态更新。",
+      "锚点容器固定为 0×0，操作栏使用 translate(-100%, -100%) 与 viewport zoom 同步缩放，消除 auto width 与 right/bottom 组合产生的偏移。",
+      "UploadNode 直接用 NodeProps 中已恢复的 width/height 初始化内部可见卡片；新节点仍使用 260px 自动高度，旧画布和拖角尺寸不迁移、不丢失。"
+    ],
+    "verification": [
+      "nodeActionBarZoom 新增真实 DOM 矩形与非法 zoom 回归，4/4 通过；npm run type-check 通过。",
+      "生产构建通过能力目录 31 actions / 277 runtime entries / 82/82 nodes、4,224 条中英文键、2,948 模块转换。",
+      "真实用户画布中目标上传节点 JSON 为 364.3496×558；修复后在足球与 RH 白天主题下，可见卡片 364×558、ReactFlow 外层 364.34375×558，RUN 右边界与外层完全一致，连线路径起点 X 精确等于 node.x + 364.34375。",
+      "真实当前画布节点在 zoom=1 时右边差 0px、间距 8px；zoom=0.833333 时右边差 -0.0098px、间距 6.6719px；zoom=1.44 时右边差 -0.0088px、间距 11.522px，均与 8×zoom 一致，浏览器 error 日志为 0。",
+      "最终生产构建已覆盖本机安装目录，源/安装 index.html SHA-256 同为 B7A862E54C4F9DC7A709DD48A0BFC60E466E940ACAA894502F3C31E79D893D79；旧前端备份位于 .repair-backup/ui-geometry-20260826-193121，重启后 4 个 Electron 进程全部 Responding=True。"
+    ],
+    "boundaries": [
+      "Windows 在修复前曾记录一次 Application Hang 1002，但主日志没有 JavaScript/native 堆栈；当前画布仅 26 节点、约 82KB，不能把该次无响应伪报为已由本布局补丁修复。",
+      "联合相邻测试 41/42 通过；唯一失败是未修改 FAL 3D 输出测试仍匹配旧硬编码中文，而源码已使用 i18n key，与本布局补丁无关。",
+      "本轮未生成 Electron/NSIS 安装包，未提交、推送、tag 或发布。"
+    ]
+  },
+  "electronI18nAsarStartupFix": {
+    "status": "implemented-release-pending-v3.0.5",
+    "date": "2026-08-26",
+    "releaseIncluded": true,
+    "affectedPublishedVersions": [
+      "3.0.2 Windows",
+      "3.0.3 Windows/macOS",
+      "3.0.4 Windows/macOS"
+    ],
+    "platforms": ["Windows x64", "macOS arm64"],
+    "symptom": "已发布安装包启动时由 electron/main.cjs 加载 ./i18n.cjs，Windows 与 macOS 均在主进程抛出 Cannot find module 并退出。",
+    "rootCause": "electron-builder 的 build.files 使用显式白名单，但新增 Electron 国际化模块时只提交了源码引用，没有把 electron/i18n.cjs 及其 electron/i18n-catalog.json 依赖加入 app.asar。既有 post-build 只核验外置资源、原生模块和更新资产，没有核验 app.asar 的主进程启动依赖闭包。",
+    "implementation": [
+      "build.files 显式加入 electron/i18n.cjs 与 electron/i18n-catalog.json，Windows 和 Mac 共用同一清单。",
+      "新增静态 CommonJS 相对依赖闭包测试；后续入口新增本地 .cjs/.js/.json 依赖但未列入 build.files 时，测试会失败关闭。",
+      "Windows 与 macOS post-build 共用 app.asar 启动合同，必须存在 main、preload、loader、systemFetchBridge、i18n、i18n catalog 和 package.json 才能形成发布资产。"
+    ],
+    "verification": [
+      "修复前 v3.0.4 Windows 目录包实测被新合同拦截，明确缺少 electron/i18n.cjs 与 electron/i18n-catalog.json。",
+      "Git Tag 审计确认 v3.0.2、v3.0.3、v3.0.4 的 build.files 均漏掉这两个文件；v3.0.2 未发布 Mac 资产，因此已发布影响面为 v3.0.2 Windows 及 v3.0.3-v3.0.4 双平台。",
+      "Electron/国际化/macOS 打包专项 27/27 通过。",
+      "重新生成 Windows x64 目录包后，app.asar 共 10,583 个条目，7/7 启动合同文件存在。",
+      "打包后的 T8-PenguinCanvas.exe 使用隔离 userData 冷启动 15 秒保持运行，未再出现主进程模块缺失；测试完成后仅终止本次冒烟进程并清理临时目录。",
+      "Mac 真实构建只能在 macos-15 arm64 runner 执行；共享清单和 Mac post-build 闸门已修复，但尚未生成或发布新的 Mac 资产。"
+    ],
+    "releaseBoundary": "现有 v3.0.2 Windows、v3.0.3-v3.0.4 Windows/Mac 公共资产仍受影响，摘要和完整回下载只能证明传输完整，不能证明应用可启动；本修复在新版本正式打包、Mac 实机工作流及发布完成前不得标记为 released。"
+  },
   "electronReleaseV304": {
-    "status": "released-live-verified",
+    "status": "released-assets-live-startup-regression-confirmed",
     "date": "2026-08-26",
     "releaseIncluded": true,
     "version": "3.0.4",
@@ -31,12 +105,12 @@
     ],
     "verification": [
       "节点专项、相邻回归、TypeScript、4211 条中英文键、82/82 节点能力同步及 2947 模块生产构建通过。",
-      "固定源码完成 160 个后端源与 4 个本机私有文件加密、两套 Windows 运行时、Electron native rebuild、NSIS、post-build、provenance 与 sealed recovery。",
-      "Windows 发布器完整回下载三项 Windows 资产；真实 macos-15 arm64 workflow 完成 ad-hoc 签名构建、上传及三项 Mac 资产完整回下载。",
-      "同一固定 Tag/target、六项 GitHub size/SHA-256、latest.yml/latest-mac.yml、Stable Latest 与本地 recovery 清理全部通过。"
+      "固定源码完成 160 个后端源与 4 个本机私有文件加密、两套 Windows 运行时、Electron native rebuild、NSIS、当时的 post-build、provenance 与 sealed recovery；当时的 post-build 未检查 app.asar 主进程依赖闭包。",
+      "Windows 与 Mac 六项公开资产的完整回下载、size、SHA-256、更新清单、固定 Tag/target 和 Latest 仍然成立，仅证明发布资产未损坏或漂移。",
+      "2026-08-26 用户在 Windows 与 Mac 均报告启动崩溃，源码和既有 Windows app.asar 复核确认缺少 electron/i18n.cjs 与 electron/i18n-catalog.json，因此 v3.0.4 不再具备启动验收结论。"
     ],
     "evidenceBoundary": {
-      "technicalGates": "must-pass-before-publish",
+      "technicalGates": "historical-transfer-gates-passed-but-packaged-startup-gate-was-missing",
       "affectedUserInstallF8F10AndInstalledUpgrade": "deferred-not-passed",
       "deferralApproval": "owner-approved-post-release-v3.0.4",
       "rule": "证据后补只适用于反馈用户安装、多端协作、F8-F10 与安装升级；测试、构建、加密、运行时、NSIS、provenance、sealed recovery、固定 Tag/target、Windows/Mac 完整回下载和 Latest 不可延期。"
@@ -174,19 +248,19 @@
     "compatibility": "视频节点默认渠道和默认模型不变；旧 Wan、Seedance、Hailuo、Flux、Grok、FlashVSR、历史画布及已发布工作流不迁移。"
   },
   "macDesktopRelease": {
-    "status": "released-v3.0.4-mac-arm64-preview-live-verified",
+    "status": "release-authorized-v3.0.5-mac-arm64-pending-real-runner",
     "date": "2026-08-26",
-    "releaseIncluded": true,
+    "releaseIncluded": false,
     "platform": "macOS 12+ / Apple Silicon arm64",
     "currentReleasePlan": {
-      "releaseTag": "v3.0.4",
-      "sourceRef": "v3.0.4",
+      "releaseTag": "v3.0.5",
+      "sourceRef": "v3.0.5",
       "mode": "ad-hoc-signed-unnotarized-technical-preview",
-      "reason": "v3.0.4 已在 Windows 发布后由同一正式 Tag 和固定提交进入同一 Release；仓库尚未配置 Apple Developer ID，因此 Mac 明确为 ad-hoc 签名、未公证的技术预览。"
+      "reason": "v3.0.5 必须与 Windows 使用同一正式 Tag 和固定提交进入同一 Release，并由真实 macos-15 arm64 runner 验证补齐后的 app.asar 启动合同；仓库尚未配置 Apple Developer ID，因此 Mac 明确为 ad-hoc 签名、未公证的技术预览。"
     },
     "artifacts": [
-    "T8-PenguinCanvas-3.0.4-mac-arm64.dmg",
-    "T8-PenguinCanvas-3.0.4-mac-arm64.zip",
+    "T8-PenguinCanvas-3.0.5-mac-arm64.dmg",
+    "T8-PenguinCanvas-3.0.5-mac-arm64.zip",
       "latest-mac.yml"
     ],
     "implementation": [
@@ -1664,25 +1738,31 @@
     ]
   },
   "previsStudioCapability": {
-    "status": "released-v2.7.8",
-    "date": "2026-08-05",
+    "status": "released-v2.7.8-upstream-v0.6.0-release-pending-v3.0.5",
+    "date": "2026-08-26",
     "releaseIncluded": true,
+    "upstreamSyncReleaseIncluded": true,
     "source": {
       "repository": "https://github.com/GuiYi-Xi/monoform-previs-studio",
-      "commit": "77f4bae83eeee550a6f416757231f438155bf674",
+      "commit": "daa54b2f6e78cc69f07102f7d32f6fabe3ac4a54",
+      "version": "0.6.0",
+      "previousIntegratedCommit": "77f4bae83eeee550a6f416757231f438155bf674",
       "author": "GuiYi-Xi"
     },
     "highlights": [
-      "新增可执行 `previs-studio` 白模预演节点，完整移植人物、基础几何体、外部 GLB/GLTF、摄像机、姿态、骨骼、物体/镜头关键帧、时间线、撤销重做、工程导入导出、PNG 与 MP4 导出工作台；节点页和全屏工作台均显示出处并感谢原作者。",
-      "紧凑节点不常驻 WebGL，完整工作台按需拆包并通过 Shadow DOM 隔离原项目样式；工程同时保存到节点数据与节点独立 localStorage，画布关闭或应用重启后可恢复，外部模型通过 T8 受控上传落盘。",
-      "输入端口接受 `model3d`，输出端口提供标准 `image`、`video`、`text`、`metadata`；当前帧输出构图参考 PNG，动画输出 5 秒、24 FPS、H.264 MP4，可直接作为 Seedance 2.0 图像或运动/镜头视频参考。",
-      "导出接入 Canvas Run/NodeRun/Attempt 生命周期和全局 STOP；取消会中断逐帧编码并失败关闭，不会把停止后的资源误写为成功，输出附带 `t8-previs-output-v1` 尺寸、帧率、时间、用途、工程修订和固定上游提交。"
+      "在既有可执行 `previs-studio` 节点上同步 monoform-previs-studio v0.6.0 / 工程 v16：支持最多 30 个镜头、每镜独立场景/人物骨骼/摄像机/灯光/参考图/关键帧与缩略图，并保留旧工程迁移、撤销重做和节点级持久化。",
+      "时间轴由固定 5 秒升级为每镜 1–60 秒、24/25/30 FPS 与循环播放；人物支持 27 个动作预设、连续动作、动作相位、角色状态关键帧、自定义姿势、足底锁定和完整骨骼编辑，模型资源更新为含 CC0 日常动作的当前 X-Bot。",
+      "新增参考图覆盖/定位/透明度/随 PNG 与 MP4 导出、场景环境光/主光/补光/曝光、编辑视角与摄像机视角、自由相机、镜头角度校正、世界/局部坐标、吸附、落地、比例缩放与 3:4/自定义画幅。",
+      "T8 集成合同保持不变：工作台继续按需拆包并由 Shadow DOM 隔离，外部模型走受控上传，标准 `image`/`video`/`text`/`metadata` 输出仍进入 `/files/output/previs/`，动态 H.264 导出继续接入 Run/Attempt、全局 STOP 和 `t8-previs-output-v1` 元数据；中英文界面同步覆盖上游新增控件。"
     ],
     "verification": [
-      "Canvas Node Schema、节点注册、端口、初始数据与能力图已同步，73/73 节点均被解释且生成图无缺口。",
-      "白模节点专项回归 6/6 通过，覆盖注册、按需加载、完整工作台表面、PNG/MP4/停止合同、归属信息、受控 output 归档、显式权威 output 事件和固定二进制摘要。",
-      "实际 Chromium 在 1280×720 下加载 3 个场景对象、1 个人物和 2 个 WebGL 画布，左栏/主视口/右侧属性/时间线与出处/导出区重叠均为 0；真实生成并回显 1280×720 PNG 与 120 帧、5 秒、24 FPS H.264 MP4，二者均落在 `/files/output/previs/` 且运行中心没有输出证据错误。",
-      "真实全局 STOP 在动画导出过程中使节点显示已停止，受控输出链接数量未增加；TypeScript、能力目录、公开面与生产前端构建通过。该能力已随 v2.7.8 唯一正式 Electron/NSIS 自动更新流程发布，安装升级与外部设备证据继续按授权后补。"
+      "对上游固定提交 `daa54b2f6e78cc69f07102f7d32f6fabe3ac4a54` 与既有集成基线逐提交、逐文件审计：确认上游 v0.6.0 比旧基线新增 26 个提交、涉及 22 个文件，未以猜测或只读 README 的方式移植。",
+      "白模节点专项回归 9/9 通过，覆盖节点/端口/按需加载、工程 v16、多镜头、动态时长与帧率、动作与角色状态、参考图/灯光/相机/变换、动态 H.264/STOP、出处与固定二进制摘要；当前 GLB 为 3,771,868 bytes，SHA-256 `25140d499f5912441cce324943c0960d8c8ad4914b272ded973105889a2a0726`。",
+      "隔离数据根目录完成真实 UI 验收：工作台启动后默认恢复 3 个对象/1 个人物；新增镜头后镜头 01 保持 15 秒/24 FPS，镜头 02 独立设置为 1 秒/25 FPS，来回切换均恢复各自设置；复制镜头得到镜头 03 并完整保留 1 秒/25 FPS 状态。",
+      "节点级受控导出真实通过：H.264 MP4 实际落入 `/files/output/previs/` 对应隔离目录，FFprobe 为 1280×720、yuv420p、25/1 FPS、1.000000 秒、10,372 bytes；静帧 PNG 为 1280×720、213,595 bytes、SHA-256 `087997CAA33099C655EF5298FE261ECAC9E94288AC05A6A473B7CD3F3D773DA9`。",
+      "实机发现并修复完整工作台回调身份变化造成的每秒重复 PUT/自动保存：节点回传改为稳定 `useCallback` 并按序列化工程去重；修复后首次同步仅写入一次，连续 5 秒空闲无重复写入，本轮工作台、多镜头、导出和英文界面操作后的浏览器 error 日志为 0。",
+      "双语键完整性通过（中英文各 4,224 keys）；能力图机械再生与检查通过（31 actions、277 runtime entries、82/82 nodes accounted、0 public gaps）。",
+      "TypeScript 与 Vite 生产构建通过，2,948 个模块完成转换；本轮只完成核心目录开发与静态/生产构建验证，尚未打包、提交、推送或发布，上游同步不得误记为既有 v3.0.4 Release 内容。"
     ]
   },
   "smartTranslationCapability": {
@@ -1761,7 +1841,7 @@
   "versionSequencePolicy": {
     "status": "active",
     "date": "2026-07-30",
-    "currentVersion": "3.0.4",
+    "currentVersion": "3.0.5",
     "rules": [
       "版本号每一段只使用 0-9；v2.6.9 的下一正式版本固定为 v2.7.0。",
       "禁止创建、打包、推送、打 tag、发布或写入自动更新元数据为 v2.6.10。",

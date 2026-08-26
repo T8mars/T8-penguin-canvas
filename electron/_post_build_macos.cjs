@@ -7,6 +7,7 @@ const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const yaml = require('js-yaml');
+const { assertElectronAppAsar } = require('../scripts/electron-asar-contract.cjs');
 
 const ROOT = path.resolve(__dirname, '..');
 const pkg = require(path.join(ROOT, 'package.json'));
@@ -81,6 +82,9 @@ function checkBundle() {
   assertArm64MachO(EXECUTABLE, 'main executable');
   const version = run('/usr/bin/plutil', ['-extract', 'CFBundleShortVersionString', 'raw', path.join(APP, 'Contents', 'Info.plist')]).stdout.trim();
   if (version !== pkg.version) fail(`Info.plist version ${version} does not match ${pkg.version}`);
+
+  const asarContract = assertElectronAppAsar(path.join(RESOURCES, 'app.asar'));
+  console.log(`[post-build-macos] app.asar startup contract verified (${asarContract.requiredEntries.length} required files)`);
 
   assertFile(path.join(RESOURCES, 'frontend', 'index.html'));
   assertFile(path.join(RESOURCES, 'backend-enc', 'server.t8c'));

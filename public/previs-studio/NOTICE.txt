@@ -2,9 +2,11 @@ T8 白模预演 / MONOFORM PREVIS STUDIO
 
 参考项目：GuiYi-Xi/monoform-previs-studio
 项目地址：https://github.com/GuiYi-Xi/monoform-previs-studio
-固定参考提交：77f4bae83eeee550a6f416757231f438155bf674
+固定参考提交：daa54b2f6e78cc69f07102f7d32f6fabe3ac4a54（上游 v0.6.0）
 
 感谢原作者 GuiYi-Xi 分享白模预演工作台。本目录中的 X-Bot 模型与品牌图，
 以及 src/features/previs-studio 中移植并适配到 T8 无限画布的工作台代码，均固定自
 上述提交。T8 适配增加了节点端口、项目级持久化、素材落盘、Run 生命周期、
-静帧/MP4 标准输出、全局停止以及 Seedance 参考素材链路。
+静帧/MP4 标准输出、全局停止以及 Seedance 参考素材链路。当前同步还包含上游
+多镜头、动态时长/FPS、动作循环、参考图、灯光、编辑/成片相机与变换工具更新；
+动画来源和授权说明见 models/ANIMATION_SOURCES.md。

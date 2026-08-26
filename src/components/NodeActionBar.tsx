@@ -12,7 +12,7 @@
  *   - 状态联动: 当前节点正在运行时, ▶ RUN 自动切换为 ■ STOP
  *   - 智能定位: 锚定节点右上角往上偏移, 让按钮组与节点保持 8px 间距
  */
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useNodes, useViewport, useReactFlow, type Node } from '@xyflow/react';
 import { Play, Square, X } from 'lucide-react';
 import { useThemeStore } from '../stores/theme';
@@ -22,7 +22,10 @@ import { trackAchievementEvent } from '../stores/achievements';
 import { useHiddenFeatureStore, isRhDuckUploadEnabled, isYyhPortraitEnabled } from '../stores/hiddenFeatures';
 import { resolveThemeTemplate } from '../theme/defaultTemplates';
 import { getMediaItemsFromData } from '../utils/mediaCollection';
-import { resolveNodeActionBarGeometry } from '../utils/nodeActionBarGeometry';
+import {
+  resolveNodeActionBarGeometry,
+  resolveNodeActionBarGeometryFromRects,
+} from '../utils/nodeActionBarGeometry';
 import { EXECUTABLE_NODE_TYPES } from '../config/executableNodeTypes';
 
 const ACTION_COLORS: Record<string, { run: string; stop: string; close: string }> = {
@@ -73,7 +76,14 @@ const NodeActionBar = ({ onRunNode, onStopRun }: NodeActionBarProps) => {
   const toggleYyhPortrait = useHiddenFeatureStore((s) => s.toggleYyhPortrait);
   const holdTimerRef = useRef<number | null>(null);
   const suppressClickRef = useRef(false);
+  const anchorHostRef = useRef<HTMLDivElement | null>(null);
   const [holdArmed, setHoldArmed] = useState(false);
+  const [measuredGeometry, setMeasuredGeometry] = useState<{
+    nodeId: string;
+    anchorX: number;
+    anchorY: number;
+    scale: number;
+  } | null>(null);
 
   // 找选中的可执行节点 (只取第一个; 多选时仅最后选中的那个显示)
   const selectedExe = useMemo<Node | null>(() => {
@@ -136,28 +146,109 @@ const NodeActionBar = ({ onRunNode, onStopRun }: NodeActionBarProps) => {
     suppressClickRef.current = false;
   }, [selectedExe?.id, isRhVisual, isYyhVisual]);
 
-  if (!selectedExe) return null;
-
   // 节点宽高 (优先 measured.width, fallback 到 width / 320)
   const nodeW =
-    (selectedExe as any).measured?.width ||
-    (selectedExe as any).width ||
+    (selectedExe as any)?.measured?.width ||
+    (selectedExe as any)?.width ||
     320;
 
-  // ActionBar 的锚点和尺寸都使用同一 viewport zoom：节点缩小时操作栏同步缩小。
-  // 外层只负责锚点，内层以右下角为原点缩放，避免 scale 改变右对齐位置。
+  const fallbackGeometry = selectedExe
+    ? resolveNodeActionBarGeometry({
+        nodeX: selectedExe.position.x,
+        nodeY: selectedExe.position.y,
+        nodeWidth: nodeW,
+        viewportX: vx,
+        viewportY: vy,
+        zoom,
+      })
+    : null;
+
+  useLayoutEffect(() => {
+    if (!selectedExe) {
+      setMeasuredGeometry(null);
+      return;
+    }
+
+    let frame = 0;
+    let resizeObserver: ResizeObserver | null = null;
+    const findNodeElement = (flowRoot: HTMLElement) => {
+      if (typeof window.CSS?.escape === 'function') {
+        return flowRoot.querySelector<HTMLElement>(
+          `.react-flow__node[data-id="${window.CSS.escape(selectedExe.id)}"]`,
+        );
+      }
+      return (
+        Array.from(flowRoot.querySelectorAll<HTMLElement>('.react-flow__node[data-id]')).find(
+          (element) => element.dataset.id === selectedExe.id,
+        ) || null
+      );
+    };
+
+    const measure = () => {
+      const anchorHost = anchorHostRef.current;
+      const flowRoot = anchorHost?.closest<HTMLElement>('.react-flow') || null;
+      if (!flowRoot) return;
+      const nodeElement = findNodeElement(flowRoot);
+      if (!nodeElement) return;
+
+      const geometry = resolveNodeActionBarGeometryFromRects({
+        nodeRect: nodeElement.getBoundingClientRect(),
+        flowRect: flowRoot.getBoundingClientRect(),
+        zoom,
+      });
+      setMeasuredGeometry((current) => {
+        if (
+          current?.nodeId === selectedExe.id &&
+          Math.abs(current.anchorX - geometry.anchorX) < 0.25 &&
+          Math.abs(current.anchorY - geometry.anchorY) < 0.25 &&
+          Math.abs(current.scale - geometry.scale) < 0.001
+        ) {
+          return current;
+        }
+        return { nodeId: selectedExe.id, ...geometry };
+      });
+    };
+
+    measure();
+    frame = window.requestAnimationFrame(measure);
+
+    const anchorHost = anchorHostRef.current;
+    const flowRoot = anchorHost?.closest<HTMLElement>('.react-flow') || null;
+    const nodeElement = flowRoot ? findNodeElement(flowRoot) : null;
+    if (typeof ResizeObserver !== 'undefined' && flowRoot && nodeElement) {
+      resizeObserver = new ResizeObserver(measure);
+      resizeObserver.observe(flowRoot);
+      resizeObserver.observe(nodeElement);
+    }
+    window.addEventListener('resize', measure);
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      resizeObserver?.disconnect();
+      window.removeEventListener('resize', measure);
+    };
+  }, [
+    selectedExe?.id,
+    selectedExe?.position.x,
+    selectedExe?.position.y,
+    (selectedExe as any)?.measured?.width,
+    (selectedExe as any)?.measured?.height,
+    nodeW,
+    vx,
+    vy,
+    zoom,
+  ]);
+
+  if (!selectedExe || !fallbackGeometry) return null;
+
+  // The DOM rectangle is authoritative; model coordinates cover the first frame.
+  const geometry =
+    measuredGeometry?.nodeId === selectedExe.id ? measuredGeometry : fallbackGeometry;
   const {
     anchorX: rightX,
     anchorY: topY,
     scale: actionBarScale,
-  } = resolveNodeActionBarGeometry({
-    nodeX: selectedExe.position.x,
-    nodeY: selectedExe.position.y,
-    nodeWidth: nodeW,
-    viewportX: vx,
-    viewportY: vy,
-    zoom,
-  });
+  } = geometry;
 
   const selectedStatus = String(selectedData?.status || '');
   const selectedNodeBusy = selectedStatus === 'submitting' || selectedStatus === 'polling';
@@ -324,11 +415,15 @@ const NodeActionBar = ({ onRunNode, onStopRun }: NodeActionBarProps) => {
 
   return (
     <div
+      ref={anchorHostRef}
+      data-node-action-bar-anchor={selectedExe.id}
       // pointer-events: none 让外层不阻挡画布交互; 子按钮独立 enable
       style={{
         position: 'absolute',
         left: rightX,
         top: topY,
+        width: 0,
+        height: 0,
         pointerEvents: 'none',
         zIndex: 50,
       }}
@@ -344,9 +439,9 @@ const NodeActionBar = ({ onRunNode, onStopRun }: NodeActionBarProps) => {
         onMouseDown={(e) => e.stopPropagation()}
         style={{
           position: 'absolute',
-          right: 0,
-          bottom: 0,
-          transform: `scale(${actionBarScale})`,
+          left: 0,
+          top: 0,
+          transform: `translate(-100%, -100%) scale(${actionBarScale})`,
           transformOrigin: 'bottom right',
           display: 'inline-flex',
           alignItems: 'center',

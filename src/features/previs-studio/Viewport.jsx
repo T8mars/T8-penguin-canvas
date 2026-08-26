@@ -51,7 +51,6 @@ function JointSegment({ rotation = [0, 0, 0], length, startRadius, endRadius, jo
     </group>
   )
 }
-
 function AnatomicalTorso({ proportions, color, selected, onSelectJoint }) {
   const torsoProfile = useMemo(() => {
     const chest = proportions.chest
@@ -337,7 +336,7 @@ function MixamoIKHandle({ bone, jointId, selected, modelRoot, onBeginDrag, onDra
   )
 }
 
-function MixamoPersonModel({ bodyType = 'standard', pose = 'idle', poseTime, rigRoot, joints, footLock = false, color = '#e8e3d8', selected = false, selectedJoint, onSelectJoint, onRotateJoint, onRotateJoints, showBoneGizmo = false, onSurfacePointerDown, onSurfacePointerMove, onSurfacePointerUp }) {
+function MixamoPersonModel({ bodyType = 'standard', pose = 'idle', poseTime, continuousMotion = false, animationTime = 0, rigRoot, joints, footLock = false, color = '#e8e3d8', selected = false, selectedJoint, onSelectJoint, onRotateJoint, onRotateJoints, showBoneGizmo = false, onSurfacePointerDown, onSurfacePointerMove, onSurfacePointerUp }) {
   const gltf = useGLTF(BUILT_IN_MODEL_URL)
   const orbitControls = useThree(state => state.controls)
   const camera = useThree(state => state.camera)
@@ -399,7 +398,10 @@ function MixamoPersonModel({ bodyType = 'standard', pose = 'idle', poseTime, rig
       action.reset().setLoop(THREE.LoopOnce, 0)
       action.clampWhenFinished = true
       action.play()
-      const phase = THREE.MathUtils.clamp(Number.isFinite(poseTime) ? poseTime : preset.phase, 0, 1)
+      const basePhase = THREE.MathUtils.clamp(Number.isFinite(poseTime) ? poseTime : preset.phase, 0, 1)
+      const phase = continuousMotion && preset.loopable && preset.duration > 0
+        ? ((basePhase + animationTime / preset.duration) % 1 + 1) % 1
+        : basePhase
       mixer.setTime(clip.duration * phase)
     }
 
@@ -416,7 +418,7 @@ function MixamoPersonModel({ bodyType = 'standard', pose = 'idle', poseTime, rig
     }
     sampledRotations.current = nextSampled
     scene.updateMatrixWorld(true)
-  }, [bindTransforms, bones, clips, mixer, pose, poseTime, rig.joints, scene])
+  }, [animationTime, bindTransforms, bones, clips, continuousMotion, mixer, pose, poseTime, rig.joints, scene])
 
   useLayoutEffect(() => {
     const bodyColor = new THREE.Color(color)
@@ -911,20 +913,63 @@ function DepthMeshModel({ url, settings = {}, color, selected }) {
   )
 }
 
-function SceneObject({ data, selected, activeJoint, transformMode, onSelect, onUpdate, onJointSelect, preview = false }) {
+function sceneObjectIdFromIntersection(intersection) {
+  let object = intersection?.object
+  while (object && !object.userData?.sceneObjectId) object = object.parent
+  return object?.userData?.sceneObjectId || null
+}
+
+function shouldKeepCurrentSelection(event, selectedId, selected, transformMode) {
+  if (selected || !selectedId) return false
+  if (transformMode !== 'select') return true
+  if (event.altKey || event.nativeEvent?.altKey) return false
+  return event.intersections?.some(intersection => sceneObjectIdFromIntersection(intersection) === selectedId)
+}
+
+function SceneObject({ data, selected, selectedId, activeJoint, transformMode, transformSpace = 'world', snapEnabled = true, groundRequest, onSelect, onUpdate, onJointSelect, animationTime = 0, preview = false }) {
   const groupRef = useRef(null)
   const objectRotateDrag = useRef(null)
+  const scaleTransformStart = useRef(null)
+  const appliedGroundRequest = useRef(null)
   const orbitControls = useThree(state => state.controls)
+  const scaleAxisLocks = Array.isArray(data.scaleAxisLocks) ? data.scaleAxisLocks : [false, false, false]
+  const stateAnimationTime = Math.max(0, animationTime - (Number.isFinite(data.motionStartTime) ? data.motionStartTime : 0))
+  useEffect(() => {
+    if (!groundRequest || groundRequest.id !== data.id || !groupRef.current || data.locked || preview) return
+    const requestKey = `${groundRequest.id}:${groundRequest.nonce}`
+    if (appliedGroundRequest.current === requestKey) return
+    const object = groupRef.current
+    object.updateWorldMatrix(true, true)
+    const bounds = new THREE.Box3().setFromObject(object)
+    if (!Number.isFinite(bounds.min.y)) return
+    appliedGroundRequest.current = requestKey
+    object.position.y -= bounds.min.y
+    onUpdate(data.id, { position: object.position.toArray() })
+  }, [data.id, data.locked, groundRequest?.id, groundRequest?.nonce, onUpdate, preview])
   const syncTransform = useCallback(() => {
     const object = groupRef.current
     if (!object) return
+    let nextScale = object.scale.toArray()
+    if (transformMode === 'scale' && scaleTransformStart.current) {
+      const baseline = scaleTransformStart.current
+      const locks = Array.isArray(data.scaleAxisLocks) ? data.scaleAxisLocks : [false, false, false]
+      if (data.proportionalScale) {
+        const changedAxis = nextScale
+          .map((value, axis) => ({ axis, change: locks[axis] ? -1 : Math.abs(value / Math.max(0.0001, baseline[axis]) - 1) }))
+          .sort((left, right) => right.change - left.change)[0]
+        const factor = changedAxis?.change > 0.00001 ? nextScale[changedAxis.axis] / Math.max(0.0001, baseline[changedAxis.axis]) : 1
+        nextScale = baseline.map((value, axis) => locks[axis] ? value : Math.max(0.05, value * factor))
+      } else nextScale = nextScale.map((value, axis) => locks[axis] ? baseline[axis] : Math.max(0.05, value))
+      object.scale.fromArray(nextScale)
+    }
     onUpdate(data.id, {
       position: object.position.toArray(),
       rotation: [object.rotation.x, object.rotation.y, object.rotation.z],
-      scale: object.scale.toArray(),
+      scale: nextScale,
     })
-  }, [data.id, onUpdate])
+  }, [data.id, data.proportionalScale, data.scaleAxisLocks, onUpdate, transformMode])
   const beginObjectInteraction = useCallback(event => {
+    if (shouldKeepCurrentSelection(event, selectedId, selected, transformMode)) return
     event.stopPropagation()
     onSelect(data.id)
     if (data.locked) return
@@ -939,7 +984,7 @@ function SceneObject({ data, selected, activeJoint, transformMode, onSelect, onU
     }
     if (orbitControls) orbitControls.enabled = false
     document.body.style.cursor = 'grabbing'
-  }, [data.id, data.locked, onSelect, orbitControls, selected, transformMode])
+  }, [data.id, data.locked, onSelect, orbitControls, selected, selectedId, transformMode])
   const rotateObjectFromSurface = useCallback(event => {
     const drag = objectRotateDrag.current
     const object = groupRef.current
@@ -977,6 +1022,7 @@ function SceneObject({ data, selected, activeJoint, transformMode, onSelect, onU
       rotation={data.rotation}
       scale={data.scale}
       visible={data.visible !== false}
+      userData={{ sceneObjectId: data.id }}
       onPointerDown={preview ? undefined : beginObjectInteraction}
       onPointerMove={preview ? undefined : rotateObjectFromSurface}
       onPointerUp={preview ? undefined : endObjectInteraction}
@@ -987,6 +1033,8 @@ function SceneObject({ data, selected, activeJoint, transformMode, onSelect, onU
           bodyType={data.bodyType}
           pose={data.pose}
           poseTime={data.poseTime}
+          continuousMotion={data.continuousMotion}
+          animationTime={stateAnimationTime}
           rigRoot={data.rigRoot}
           joints={data.joints}
           footLock={data.footLock}
@@ -1018,35 +1066,48 @@ function SceneObject({ data, selected, activeJoint, transformMode, onSelect, onU
   return (
     <>
       {content}
-      {selected && !data.locked && !preview && transformMode !== 'select' && !(data.type === 'person' && transformMode === 'rotate') && (
+      {selected && !data.locked && !preview && transformMode !== 'select' && (
         <TransformControls
           object={groupRef}
           mode={transformMode}
-          space="world"
+          space={transformSpace}
           size={0.8}
-          translationSnap={0.1}
-          rotationSnap={Math.PI / 36}
+          showX={transformMode !== 'scale' || !scaleAxisLocks[0]}
+          showY={transformMode !== 'scale' || !scaleAxisLocks[1]}
+          showZ={transformMode !== 'scale' || !scaleAxisLocks[2]}
+          translationSnap={snapEnabled ? 0.1 : null}
+          rotationSnap={snapEnabled ? Math.PI / 36 : null}
+          scaleSnap={snapEnabled ? 0.1 : null}
+          onMouseDown={() => { if (transformMode === 'scale' && groupRef.current) scaleTransformStart.current = groupRef.current.scale.toArray() }}
           onObjectChange={syncTransform}
-          onMouseUp={syncTransform}
+          onMouseUp={() => { syncTransform(); scaleTransformStart.current = null }}
         />
       )}
     </>
   )
 }
 
-function CameraModel({ data, selected, transformMode, onSelect, onUpdate }) {
+function CameraModel({ data, selected, selectedId, transformMode, transformSpace = 'world', snapEnabled = true, onSelect, onUpdate }) {
   const groupRef = useRef(null)
-  const syncPosition = useCallback(() => {
-    if (groupRef.current) onUpdate({ position: groupRef.current.position.toArray() })
+  const syncTransform = useCallback(() => {
+    if (!groupRef.current) return
+    onUpdate({
+      position: groupRef.current.position.toArray(),
+      rotation: [groupRef.current.rotation.x, groupRef.current.rotation.y, groupRef.current.rotation.z],
+    })
   }, [onUpdate])
   useLayoutEffect(() => {
-    if (groupRef.current) {
-      groupRef.current.lookAt(...data.target)
-      groupRef.current.rotateY(Math.PI)
-    }
-  }, [data.position, data.target])
+    if (!groupRef.current) return
+    groupRef.current.position.fromArray(data.position)
+    groupRef.current.rotation.set(...data.rotation, 'XYZ')
+  }, [data.position, data.rotation])
+  const selectCamera = event => {
+    if (shouldKeepCurrentSelection(event, selectedId, selected, transformMode)) return
+    event.stopPropagation()
+    onSelect(CAMERA_ID)
+  }
   const rig = (
-    <group ref={groupRef} position={data.position} onPointerDown={event => { event.stopPropagation(); onSelect(CAMERA_ID) }}>
+    <group ref={groupRef} position={data.position} rotation={data.rotation} userData={{ sceneObjectId: CAMERA_ID }} onPointerDown={selectCamera}>
       <mesh castShadow>
         <boxGeometry args={[0.52, 0.34, 0.42]} />
         <meshStandardMaterial color={selected ? '#eabf62' : '#3d3c38'} roughness={0.48} metalness={0.35} />
@@ -1076,30 +1137,67 @@ function CameraModel({ data, selected, transformMode, onSelect, onUpdate }) {
   return (
     <>
       {rig}
-      {selected && transformMode === 'translate' && (
-        <TransformControls object={groupRef} mode="translate" size={0.8} translationSnap={0.1} onObjectChange={syncPosition} onMouseUp={syncPosition} />
+      {selected && ['translate', 'rotate'].includes(transformMode) && (
+        <TransformControls
+          object={groupRef}
+          mode={transformMode}
+          space={transformSpace}
+          size={0.8}
+          translationSnap={snapEnabled ? 0.1 : null}
+          rotationSnap={snapEnabled ? Math.PI / 36 : null}
+          onObjectChange={syncTransform}
+          onMouseUp={syncTransform}
+        />
       )}
     </>
   )
 }
 
-function StudioLights() {
+const DEFAULT_STUDIO_LIGHTING = {
+  ambientIntensity: 1.35,
+  keyIntensity: 2.8,
+  fillIntensity: 1.1,
+  keyAzimuth: 39,
+  keyElevation: 51,
+  exposure: 0.9,
+  ambientColor: '#f7f1e6',
+  keyColor: '#fff6e8',
+  fillColor: '#a9c2c6',
+}
+
+function StudioLights({ lighting = DEFAULT_STUDIO_LIGHTING }) {
+  const azimuth = THREE.MathUtils.degToRad(lighting.keyAzimuth ?? DEFAULT_STUDIO_LIGHTING.keyAzimuth)
+  const elevation = THREE.MathUtils.degToRad(lighting.keyElevation ?? DEFAULT_STUDIO_LIGHTING.keyElevation)
+  const horizontal = Math.cos(elevation) * 10
+  const height = Math.sin(elevation) * 10
+  const keyPosition = [Math.sin(azimuth) * horizontal, height, Math.cos(azimuth) * horizontal]
+  const fillPosition = [-keyPosition[0] * 0.85, Math.max(2.5, height * 0.42), -keyPosition[2] * 0.85]
   return (
     <>
-      <hemisphereLight intensity={1.35} color="#f7f1e6" groundColor="#343536" />
-      <directionalLight castShadow position={[4, 8, 5]} intensity={2.8} color="#fff6e8" shadow-mapSize={[2048, 2048]} shadow-camera-left={-10} shadow-camera-right={10} shadow-camera-top={10} shadow-camera-bottom={-10} />
-      <directionalLight position={[-5, 3, -4]} intensity={1.1} color="#a9c2c6" />
+      <hemisphereLight intensity={lighting.ambientIntensity ?? DEFAULT_STUDIO_LIGHTING.ambientIntensity} color={lighting.ambientColor || DEFAULT_STUDIO_LIGHTING.ambientColor} groundColor="#343536" />
+      <directionalLight castShadow position={keyPosition} intensity={lighting.keyIntensity ?? DEFAULT_STUDIO_LIGHTING.keyIntensity} color={lighting.keyColor || DEFAULT_STUDIO_LIGHTING.keyColor} shadow-mapSize={[2048, 2048]} shadow-camera-left={-10} shadow-camera-right={10} shadow-camera-top={10} shadow-camera-bottom={-10} />
+      <directionalLight position={fillPosition} intensity={lighting.fillIntensity ?? DEFAULT_STUDIO_LIGHTING.fillIntensity} color={lighting.fillColor || DEFAULT_STUDIO_LIGHTING.fillColor} />
     </>
   )
 }
 
-function Ground({ showGrid = true }) {
+function RendererExposure({ value = DEFAULT_STUDIO_LIGHTING.exposure }) {
+  const { gl } = useThree()
+  useEffect(() => {
+    gl.toneMappingExposure = value
+  }, [gl, value])
+  return null
+}
+
+function Ground({ showGrid = true, showSurface = true }) {
   return (
     <>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.025, 0]} receiveShadow>
-        <planeGeometry args={[60, 60]} />
-        <meshStandardMaterial color="#4b4b48" roughness={0.96} />
-      </mesh>
+      {showSurface && (
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.025, 0]} receiveShadow>
+          <planeGeometry args={[60, 60]} />
+          <meshStandardMaterial color="#4b4b48" roughness={0.96} />
+        </mesh>
+      )}
       {showGrid && <Grid position={[0, 0.002, 0]} args={[30, 30]} cellSize={0.5} cellThickness={0.5} cellColor="#777771" sectionSize={5} sectionThickness={0.8} sectionColor="#9b8c68" fadeDistance={24} fadeStrength={1} infiniteGrid />}
     </>
   )
@@ -1120,69 +1218,118 @@ function ViewFocusController({ request }) {
   return null
 }
 
-function EditorScene({ objects, selectedId, activeJoint, onSelect, onJointSelect, transformMode, onUpdateObject, cameraData, onUpdateCamera, showGrid, focusRequest }) {
+function EditorCameraReporter({ enabled, onChange }) {
+  const { camera, controls } = useThree()
+  useEffect(() => {
+    if (!enabled || !controls || !onChange) return undefined
+    let frame = 0
+    const report = () => {
+      cancelAnimationFrame(frame)
+      frame = requestAnimationFrame(() => onChange({
+        position: camera.position.toArray(),
+        rotation: [camera.rotation.x, camera.rotation.y, camera.rotation.z],
+        target: controls.target.toArray(),
+      }))
+    }
+    controls.addEventListener('change', report)
+    report()
+    return () => {
+      cancelAnimationFrame(frame)
+      controls.removeEventListener('change', report)
+    }
+  }, [camera, controls, enabled, onChange])
+  return null
+}
+
+function EditorScene({ objects, selectedId, activeJoint, onSelect, onJointSelect, transformMode, transformSpace, snapEnabled, groundRequest, onUpdateObject, cameraData, cameraAspect, onUpdateCamera, editorCameraData, onEditorCameraChange, lighting, showGrid, focusRequest, referenceVisible = false, cameraView = false, animationTime = 0 }) {
   return (
     <>
-      <color attach="background" args={['#555653']} />
+      {!referenceVisible && <color attach="background" args={['#555653']} />}
       <fog attach="fog" args={['#555653', 18, 42]} />
-      <StudioLights />
-      <Ground showGrid={showGrid} />
-      {objects.map(object => <SceneObject key={object.id} data={object} selected={selectedId === object.id} activeJoint={activeJoint} transformMode={transformMode} onSelect={onSelect} onJointSelect={onJointSelect} onUpdate={onUpdateObject} />)}
-      <CameraModel data={cameraData} selected={selectedId === CAMERA_ID} transformMode={transformMode} onSelect={onSelect} onUpdate={onUpdateCamera} />
+      <RendererExposure value={lighting?.exposure} />
+      <StudioLights lighting={lighting} />
+      <Ground showGrid={showGrid} showSurface={!referenceVisible} />
+      {objects.map(object => <SceneObject key={object.id} data={object} selected={selectedId === object.id} selectedId={selectedId} activeJoint={activeJoint} transformMode={transformMode} transformSpace={transformSpace} snapEnabled={snapEnabled} groundRequest={groundRequest} onSelect={onSelect} onJointSelect={onJointSelect} onUpdate={onUpdateObject} animationTime={animationTime} />)}
+      {!cameraView && <CameraModel data={cameraData} selected={selectedId === CAMERA_ID} selectedId={selectedId} transformMode={transformMode} transformSpace={transformSpace} snapEnabled={snapEnabled} onSelect={onSelect} onUpdate={onUpdateCamera} />}
       <ContactShadows position={[0, 0.01, 0]} opacity={0.42} scale={18} blur={2.4} far={9} />
-      <OrbitControls makeDefault target={[0, 1, 0]} minDistance={2} maxDistance={35} maxPolarAngle={Math.PI * 0.49} />
-      <ViewFocusController request={focusRequest} />
+      {cameraView ? <PreviewCameraController cameraData={cameraData} cameraAspect={cameraAspect} /> : <OrbitControls makeDefault target={editorCameraData?.target || [0, 1, 0]} minDistance={2} maxDistance={35} maxPolarAngle={Math.PI * 0.49} />}
+      <EditorCameraReporter enabled={!cameraView} onChange={onEditorCameraChange} />
+      {!cameraView && <ViewFocusController request={focusRequest} />}
     </>
   )
 }
 
-function PreviewCameraController({ cameraData }) {
+function PreviewCameraController({ cameraData, cameraAspect }) {
   const { camera, size } = useThree()
   useFrame(() => {
     camera.position.fromArray(cameraData.position)
-    camera.lookAt(...cameraData.target)
+    camera.rotation.set(...cameraData.rotation, 'XYZ')
     const fov = THREE.MathUtils.radToDeg(2 * Math.atan(24 / (2 * cameraData.focalLength)))
-    if (Math.abs(camera.fov - fov) > 0.01 || camera.aspect !== size.width / size.height) {
+    const nextAspect = Number.isFinite(cameraAspect) && cameraAspect > 0 ? cameraAspect : size.width / Math.max(1, size.height)
+    if (Math.abs(camera.fov - fov) > 0.01 || Math.abs(camera.aspect - nextAspect) > 0.0001) {
       camera.fov = fov
-      camera.aspect = size.width / size.height
+      camera.aspect = nextAspect
       camera.updateProjectionMatrix()
     }
   })
   return null
 }
 
-function PreviewScene({ objects, cameraData }) {
+function CanvasBackground({ canvas }) {
+  const texture = useMemo(() => {
+    if (!canvas) return null
+    const next = new THREE.CanvasTexture(canvas)
+    next.colorSpace = THREE.SRGBColorSpace
+    next.needsUpdate = true
+    return next
+  }, [canvas])
+  useEffect(() => () => texture?.dispose(), [texture])
+  return texture ? <primitive attach="background" object={texture} /> : <color attach="background" args={['#9b9c98']} />
+}
+
+function PreviewScene({ objects, cameraData, cameraAspect, lighting, backgroundCanvas = null, animationTime = 0 }) {
   return (
     <>
-      <color attach="background" args={['#9b9c98']} />
+      <CanvasBackground canvas={backgroundCanvas} />
       <fog attach="fog" args={['#9b9c98', 18, 38]} />
-      <StudioLights />
-      <Ground showGrid={false} />
-      {objects.map(object => <SceneObject key={object.id} data={object} preview />)}
+      <RendererExposure value={lighting?.exposure} />
+      <StudioLights lighting={lighting} />
+      <Ground showGrid={false} showSurface={!backgroundCanvas} />
+      {objects.map(object => <SceneObject key={object.id} data={object} animationTime={animationTime} preview />)}
       <ContactShadows position={[0, 0.01, 0]} opacity={0.35} scale={18} blur={2.2} far={9} />
-      <PreviewCameraController cameraData={cameraData} />
+      <PreviewCameraController cameraData={cameraData} cameraAspect={cameraAspect} />
     </>
   )
 }
 
 export function MainViewport(props) {
+  const editorCamera = props.editorCameraData || {}
+  const cameraSettings = props.cameraView
+    ? { position: props.cameraData.position, rotation: props.cameraData.rotation, fov: 42, near: 0.05, far: 200 }
+    : {
+        position: editorCamera.position || [8.5, 6.4, 9.5],
+        ...(editorCamera.rotation ? { rotation: editorCamera.rotation } : {}),
+        fov: 42,
+        near: 0.05,
+        far: 200,
+      }
   return (
-    <Canvas shadows="basic" dpr={[1, 1.75]} camera={{ position: [8.5, 6.4, 9.5], fov: 42, near: 0.05, far: 200 }} onPointerMissed={() => props.onSelect(null)} gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 0.88 }}>
+    <Canvas shadows="basic" dpr={[1, 1.75]} camera={cameraSettings} onPointerMissed={() => props.onSelect(null)} gl={{ alpha: true, antialias: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 0.88 }}>
       <EditorScene {...props} />
     </Canvas>
   )
 }
 
-export function CameraPreview({ objects, cameraData, onCanvasReady, exportMode = false }) {
+export function CameraPreview({ objects, cameraData, cameraAspect, lighting, backgroundCanvas = null, animationTime = 0, onCanvasReady, exportMode = false }) {
   return (
     <Canvas
       shadows="basic"
       dpr={exportMode ? 1 : [1, 1.5]}
-      camera={{ position: cameraData.position, fov: 40, near: 0.05, far: 200 }}
-      gl={{ antialias: true, preserveDrawingBuffer: exportMode, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 0.9 }}
+      camera={{ position: cameraData.position, fov: 40, aspect: cameraAspect, near: 0.05, far: 200 }}
+      gl={{ antialias: true, preserveDrawingBuffer: exportMode || Boolean(onCanvasReady), toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 0.9 }}
       onCreated={({ gl }) => onCanvasReady?.(gl.domElement)}
     >
-      <PreviewScene objects={objects} cameraData={cameraData} />
+      <PreviewScene objects={objects} cameraData={cameraData} cameraAspect={cameraAspect} lighting={lighting} backgroundCanvas={backgroundCanvas} animationTime={animationTime} />
     </Canvas>
   )
 }

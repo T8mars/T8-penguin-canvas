@@ -9,7 +9,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join, relative, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
@@ -17,6 +17,75 @@ import { fileURLToPath } from 'node:url';
 function read(rel: string) {
   return readFileSync(new URL(rel, import.meta.url), 'utf8');
 }
+
+const nodeRequire = createRequire(import.meta.url);
+
+test('Electron package files include every static local CommonJS startup dependency', () => {
+  const root = fileURLToPath(new URL('..', import.meta.url));
+  const packageJson = JSON.parse(read('../package.json'));
+  const packagedFiles = new Set<string>(
+    packageJson.build.files
+      .filter((entry: unknown) => typeof entry === 'string' && !String(entry).startsWith('!'))
+      .map((entry: string) => entry.replace(/\\/g, '/')),
+  );
+  const requiredEntrypoints = [
+    'electron/main.cjs',
+    'electron/preload.cjs',
+    'electron/loader.cjs',
+    'electron/systemFetchBridge.cjs',
+  ];
+  for (const entrypoint of requiredEntrypoints) {
+    assert.ok(packagedFiles.has(entrypoint), `missing Electron entrypoint from build.files: ${entrypoint}`);
+  }
+
+  const pending = [...requiredEntrypoints];
+  const visited = new Set<string>();
+  while (pending.length > 0) {
+    const sourceRelative = pending.pop()!;
+    if (visited.has(sourceRelative)) continue;
+    visited.add(sourceRelative);
+    const sourcePath = resolve(root, sourceRelative);
+    const source = readFileSync(sourcePath, 'utf8');
+    const staticRequire = /require\(\s*['"](\.\.?\/[^'"]+)['"]\s*\)/g;
+    for (const match of source.matchAll(staticRequire)) {
+      const request = match[1];
+      const unresolved = resolve(dirname(sourcePath), request);
+      const candidates = [unresolved, `${unresolved}.cjs`, `${unresolved}.js`, `${unresolved}.json`];
+      const dependencyPath = candidates.find((candidate) => existsSync(candidate));
+      if (!dependencyPath) continue;
+      const dependencyRelative = relative(root, dependencyPath).replace(/\\/g, '/');
+      assert.ok(
+        packagedFiles.has(dependencyRelative),
+        `${sourceRelative} requires ${dependencyRelative}, but package.json build.files omits it`,
+      );
+      if (/\.(?:cjs|js)$/.test(dependencyRelative)) pending.push(dependencyRelative);
+    }
+  }
+
+  assert.ok(packagedFiles.has('electron/i18n.cjs'));
+  assert.ok(packagedFiles.has('electron/i18n-catalog.json'));
+});
+
+test('Windows and macOS post-build gates enforce the shared app.asar startup contract', () => {
+  const contract = nodeRequire('../scripts/electron-asar-contract.cjs');
+  const windowsPostBuild = read('../electron/_post_build.cjs');
+  const macPostBuild = read('../electron/_post_build_macos.cjs');
+
+  assert.deepEqual(contract.missingRequiredElectronEntries([
+    '/electron/main.cjs',
+    '\\electron\\i18n.cjs',
+  ]), [
+    'electron/i18n-catalog.json',
+    'electron/preload.cjs',
+    'electron/loader.cjs',
+    'electron/systemFetchBridge.cjs',
+    'package.json',
+  ]);
+  assert.ok(contract.REQUIRED_ELECTRON_ASAR_ENTRIES.includes('electron/i18n.cjs'));
+  assert.ok(contract.REQUIRED_ELECTRON_ASAR_ENTRIES.includes('electron/i18n-catalog.json'));
+  assert.match(windowsPostBuild, /assertElectronAppAsar\(path\.join\(RES, 'app\.asar'\)\)/);
+  assert.match(macPostBuild, /assertElectronAppAsar\(path\.join\(RESOURCES, 'app\.asar'\)\)/);
+});
 
 test('encrypted Electron loader only falls back to app require for bare packages', () => {
   const loader = read('../electron/loader.cjs');
@@ -191,7 +260,7 @@ test('Electron package locks canvas Agent bytecode and shared node schema to sou
 
   assert.equal(schema.schema, 't8-canvas-node-schema-v1');
   assert.equal(schema.version, 1);
-  assert.equal(schema.types.length, 81);
+  assert.equal(schema.types.length, 82);
   for (const source of requiredSources) assert.ok(encrypt.includes(`source: '${source}'`), source);
   for (const output of requiredOutputs) {
     assert.ok(encrypt.includes(`output: '${output}'`), output);
