@@ -1,0 +1,46 @@
+{
+  "type": "volc-asset",
+  "label": "火山素材库",
+  "category": "input",
+  "description": "在画布中直接浏览、管理并引用火山方舟私域素材",
+  "icon": "LibraryBig",
+  "color": "orange",
+  "ports": {
+    "inputs": [],
+    "outputs": ["image", "video", "audio"]
+  },
+  "executable": true,
+  "generatable": false,
+  "generation": {
+    "allowedDataFields": {
+      "profileId": { "type": "string", "maxLength": 128 },
+      "projectName": { "type": "string", "maxLength": 128 },
+      "groupId": { "type": "string", "maxLength": 256 },
+      "assetId": { "type": "string", "maxLength": 256 },
+      "assetUri": { "type": "string", "pattern": "^asset://asset-[A-Za-z0-9-]+$" },
+      "selectedAssets": { "type": "array", "maxItems": 15, "items": { "type": "object" } },
+      "materialSetKind": { "type": "string", "enum": ["", "image", "video", "audio"] },
+      "materialSetItems": { "type": "array", "maxItems": 15, "items": { "type": "object" } },
+      "kind": { "type": "string", "enum": ["image", "video", "audio"] },
+      "status": { "type": "string", "enum": ["Processing", "Active", "Failed"] },
+      "tags": { "type": "array", "items": { "type": "string", "maxLength": 32 }, "maxItems": 12 },
+      "volcAssetLayoutVersion": { "type": "number", "minimum": 1, "maximum": 3 }
+    },
+    "defaults": {
+      "profileId": "volcengine",
+      "projectName": "",
+      "groupId": "",
+      "assetId": "",
+      "assetUri": "",
+      "kind": "image",
+      "status": "Processing",
+      "tags": [],
+      "error": "",
+      "selectedAssets": [],
+      "materialSetKind": "",
+      "materialSetItems": [],
+      "size": { "w": 680, "h": 510 },
+      "volcAssetLayoutVersion": 3
+    }
+  }
+}
