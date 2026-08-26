@@ -1,0 +1,35 @@
+{
+  "id": "t8.volcengine-assets",
+  "name": "火山资产库",
+  "version": "0.3.0",
+  "apiVersion": 1,
+  "host": "t8-penguin-canvas",
+  "minHostVersion": "3.0.0",
+  "trust": "core-reviewed",
+  "entry": {
+    "backend": "backend/index.cjs",
+    "frontend": "frontend/index.tsx"
+  },
+  "storage": {
+    "rootPolicy": "sibling",
+    "directoryName": "T8-PenguinCanvas-Data",
+    "subdirectories": ["plugins", "plugin-data", "staging", "cache"]
+  },
+  "permissions": [
+    "canvas.node.register",
+    "canvas.node.execute",
+    "volcengine.assets.request",
+    "storage.plugin"
+  ],
+  "nodes": [
+    {
+      "type": "volc-asset",
+      "label": "火山资产",
+      "category": "input",
+      "ports": {
+        "inputs": [],
+        "outputs": ["image", "video", "audio"]
+      }
+    }
+  ]
+}
