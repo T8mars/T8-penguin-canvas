@@ -86,9 +86,11 @@ Developer ID 正式发布另需以下两组之一的公证凭据，并需要 `CS
 
 这些命令都有版本级授权、源码 SHA、远端 Ref、平台、架构和资产漂移门，不能绕过脚本直接用 electron-builder 或 `gh release upload --clobber` 代替。
 
-# v3.0.5 双平台启动修复发布计划（2026-08-26）
+# v3.0.5 双平台启动修复发布完成（2026-08-26）
 
-v3.0.5 必须从同一个固定源码提交和正式 `v3.0.5` Tag 生成 Windows 与 Apple Silicon 资产，并进入同一个非草稿、非预发布 Latest Release。本版补齐 `electron/i18n.cjs` 与 `electron/i18n-catalog.json`，Windows 与 macOS post-build 都必须先通过共用的 7 项 `app.asar` 主进程启动合同。Windows 低资源正式链完成发布后，真实 `macos-15` arm64 workflow 以 `release_tag=v3.0.5`、`source_ref=v3.0.5`、`publish=true`、`signing=unsigned-preview` 追加 DMG、ZIP 与 `latest-mac.yml`；最终必须分别完整回下载 Windows 与 Mac 三项资产并核对固定 Tag/target、GitHub digest/size、两个更新清单和 Latest。真实 workflow 与资产摘要只有成功后才回填，不得用 Windows 目录包或静态测试代替 Mac 实机结论。
+v3.0.5 已从同一个固定源码提交 `d806dcddb4bf42d596e80e23f6ee3a50b5df67a2` 和正式 `v3.0.5` Tag 生成 Windows 与 Apple Silicon 资产，并进入同一个非草稿、非预发布 Latest Release：<https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.0.5>。本版补齐 `electron/i18n.cjs` 与 `electron/i18n-catalog.json`，Windows 与 macOS post-build 都通过共用的 7 项 `app.asar` 主进程启动合同。Windows 核心目录低资源正式链完成 NSIS、自动更新清单、provenance、sealed recovery、发布与校验；真实 `macos-15` arm64 workflow <https://github.com/T8mars/T8-penguin-canvas/actions/runs/32970660172> 以 `release_tag=v3.0.5`、`source_ref=v3.0.5`、`publish=true`、`signing=unsigned-preview` 完成同源绑定、私有源恢复、原生依赖、ad-hoc 签名、DMG/ZIP/清单验证、追加上传与三资产完整回下载。
+
+Windows 安装包为 1,354,449,298 bytes / SHA-256 `fda5e9f55a6a5533bd43665cec735345560669e699ad2be8ac2f7b30ad96d680`，blockmap 为 1,413,385 bytes / `9b9b19cdd167a0dcb9bfb3325c3be086895e31d4e947cf4aa8d7f6f6c14c6c31`，`latest.yml` 为 362 bytes / `86cb22b40108f420803d8e72527f5eaa9b122a3779edc79287786ee219ebdcb8`。Mac DMG 为 468,460,995 bytes / `f4fe3af8bcc4777614997f4a48b67609afdfc12b5a7f70f3efbd1b0db02ee4ee`，ZIP 为 461,288,346 bytes / `80570dde9f97609c7efc8d851171fc8ed9fc818a15dc8123621e7defcdce1ebc`，`latest-mac.yml` 为 536 bytes / `3490b34b579734ab127698bd8a32181c41560f9749cb0156a9f859a5bbbd8580`。六项 GitHub digest/size、固定 Tag/target、两个自动更新清单与 Latest 均一致；Mac 仍未使用 Apple Developer ID、未 notarize，维持技术预览边界。
 
 # v3.0.4 同源发布完成（2026-08-26）
 
