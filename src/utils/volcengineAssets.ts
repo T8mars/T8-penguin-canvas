@@ -52,7 +52,7 @@ function normalizeKind(value: unknown): VolcengineAssetKind {
   return 'image';
 }
 
-function normalizeStatus(value: unknown): VolcengineAssetStatus {
+export function normalizeVolcengineAssetStatus(value: unknown): VolcengineAssetStatus {
   const status = text(value, 32).toLowerCase();
   if (status === 'active' || status === 'success' || status === 'completed') return 'active';
   if (status === 'failed' || status === 'error') return 'failed';
@@ -62,6 +62,22 @@ function normalizeStatus(value: unknown): VolcengineAssetStatus {
 function normalizeTags(value: unknown): string[] {
   const items = Array.isArray(value) ? value : [];
   return [...new Set(items.map((item) => text(item, 32)).filter(Boolean))].slice(0, 12);
+}
+
+export function normalizePersistedVolcengineAssets(value: unknown): VolcengineAssetItem[] {
+  const items = Array.isArray(value) ? value : [];
+  return items.map((item: any) => {
+    const id = text(item?.id ?? item?.assetId, 256);
+    return {
+      id,
+      name: text(item?.name, 128) || id,
+      kind: normalizeKind(item?.kind),
+      status: normalizeVolcengineAssetStatus(item?.status ?? 'Active'),
+      assetUri: legacyAssetUri(item?.assetUri, id),
+      previewUrl: '',
+      tags: normalizeTags(item?.tags),
+    };
+  }).filter((item) => item.id && item.assetUri).slice(0, 15);
 }
 
 export function normalizeVolcengineAssetImportJob(value: unknown): VolcengineAssetImportJob | null {
@@ -117,7 +133,7 @@ export function migrateLegacyVolcengineAssetNodes(nodes: Node[]): { nodes: Node[
             id,
             name: text(item?.name, 128) || id,
             kind: normalizeKind(item?.kind ?? data.kind),
-            status: 'active',
+            status: normalizeVolcengineAssetStatus(item?.status ?? data.status ?? 'Active'),
             assetUri: legacyAssetUri(item?.assetUri, id),
             tags: normalizeTags(item?.tags),
           };
@@ -126,7 +142,7 @@ export function migrateLegacyVolcengineAssetNodes(nodes: Node[]): { nodes: Node[
           id: assetId,
           name: text(data.name, 128) || assetId,
           kind: normalizeKind(data.kind),
-          status: 'active',
+          status: normalizeVolcengineAssetStatus(data.status ?? 'Active'),
           assetUri: legacyAssetUri(data.assetUri, assetId),
           tags: normalizeTags(data.tags),
         }] : [];
@@ -168,7 +184,7 @@ export function normalizeVolcengineAssetItems(
       id,
       name: text(item?.Name ?? item?.name, 128) || id,
       kind: normalizeKind(item?.AssetType ?? item?.Type ?? item?.assetType ?? item?.type),
-      status: normalizeStatus(item?.Status ?? item?.status),
+      status: normalizeVolcengineAssetStatus(item?.Status ?? item?.status),
       assetUri: id ? `asset://${id}` : '',
       previewUrl: text(item?.PreviewUrl ?? item?.TosUrl ?? item?.URL ?? item?.Url ?? item?.previewUrl ?? item?.url, 4096),
       tags: normalizeTags(tagsById[id] ?? item?.Tags ?? item?.tags),
@@ -184,10 +200,12 @@ function typedOutput(kind: VolcengineAssetKind, urls: string[]) {
 
 export function buildVolcengineAssetsNodeOutput(assets: VolcengineAssetItem[]) {
   const selectedAssets = assets
-    .filter((item) => item.status === 'active' && /^asset:\/\/[A-Za-z0-9][A-Za-z0-9._:-]{2,255}$/i.test(item.assetUri))
+    .filter((item) => /^asset:\/\/[A-Za-z0-9][A-Za-z0-9._:-]{2,255}$/i.test(item.assetUri))
     .slice(0, 15)
     .map(({ id, name, kind, status, assetUri, tags }) => ({ id, name, kind, status, assetUri, tags: normalizeTags(tags) }));
-  const urls = (kind: VolcengineAssetKind) => selectedAssets.filter((item) => item.kind === kind).map((item) => item.assetUri);
+  const urls = (kind: VolcengineAssetKind) => selectedAssets
+    .filter((item) => item.status === 'active' && item.kind === kind)
+    .map((item) => item.assetUri);
   const image = typedOutput('image', urls('image'));
   const video = typedOutput('video', urls('video'));
   const audio = typedOutput('audio', urls('audio'));

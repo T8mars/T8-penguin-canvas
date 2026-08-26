@@ -86,6 +86,10 @@ Developer ID 正式发布另需以下两组之一的公证凭据，并需要 `CS
 
 这些命令都有版本级授权、源码 SHA、远端 Ref、平台、架构和资产漂移门，不能绕过脚本直接用 electron-builder 或 `gh release upload --clobber` 代替。
 
+# v3.0.7 火山 PR 状态保真发布授权（2026-08-27）
+
+v3.0.7 只修复 GitHub PR #28 旧 `volc-asset` 数据在核心迁移和重载时被错误提升为 Active 的状态保真问题，并完整继承 v3.0.6 及更早功能。Windows 必须先从固定源码提交与正式 `v3.0.7` Tag 完成低资源正式链；随后真实 `macos-15` arm64 runner 必须从同一个 Tag 构建 ad-hoc 签名技术预览 DMG、ZIP 与 `latest-mac.yml`，追加到同一个非草稿、非预发布 Release，并完整回下载三项 Mac 资产。两端固定源码、Release target、Windows 资产、Mac 资产与两个更新清单不一致时必须失败关闭。
+
 # v3.0.6 火山素材任务恢复发布完成（2026-08-27）
 
 v3.0.6 已从同一个固定源码提交 `47c3d4aa10825d409deb98bcc266cf50fb437c80` 和正式 `v3.0.6` Tag 生成 Windows 与 Apple Silicon 资产，并进入同一个非草稿、非预发布 Latest Release：<https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.0.6>。本版安全吸收 PR #28 的火山素材导入任务持久化、按需状态恢复和旧 `volc-asset` 画布迁移，没有引入任意 CommonJS 插件宿主、显式 `Host` 请求头或路径/响应泄露。Windows 核心目录使用单核、BelowNormal、`ELECTRON_BUILDER_COMPRESSION_LEVEL=0` 的低资源正式链完成三资产发布与完整回下载；真实 `macos-15` arm64 workflow <https://github.com/T8mars/T8-penguin-canvas/actions/runs/32987354091> 以 `release_tag=v3.0.6`、`source_ref=v3.0.6`、`publish=true`、`signing=unsigned-preview` 完成 DMG/ZIP/更新清单、追加上传及三资产完整回下载。

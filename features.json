@@ -1,7 +1,36 @@
 {
   "$schema": "本文件为 T8-penguin-canvas 节点清单防丢失锁,任何节点删减都需要在 roadmap.md 中说明并更新本文件。",
-  "version": "3.0.6",
-  "lastUpdated": "2026-08-27-v3.0.6-released-windows-mac-live-verified",
+  "version": "3.0.7",
+  "lastUpdated": "2026-08-27-v3.0.7-release-authorized-pending-fixed-source",
+  "electronReleaseV307": {
+    "status": "release-authorized-pending-fixed-source-build-and-publish",
+    "date": "2026-08-27",
+    "releaseIncluded": false,
+    "version": "3.0.7",
+    "tag": "v3.0.7",
+    "sourceCommit": "pending-fixed-source-commit",
+    "releaseUrl": "https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.0.7",
+    "latest": false,
+    "artifacts": [],
+    "scope": [
+      "完成 GitHub PR #28 的 12 文件逐项协议审计；PR 前端引用未提交且仓库不存在的 VolcAssetNode，因此继续由核心原生 volcengine-assets 承接，不直接合并不可构建插件。",
+      "旧 volc-asset 的 Processing / Active / Failed 状态在迁移和重载时保持为 processing / active / failed，不再把未完成或失败素材错误提升为 active。",
+      "最多 15 个选择记录保留 ID、名称、类型、标签、状态和稳定 asset:// 引用；只有 Active 素材进入 image/video/audio 具名输出。",
+      "完整承接 v3.0.6 的素材组、素材分页/详情、公开 URL 导入、标签、脱敏持久任务、短时按需恢复、AK/SK 后端边界和全部更早功能。",
+      "任意 CommonJS 插件宿主、显式 Host 请求头、绝对路径/完整响应泄露和进程级常驻轮询继续排除。"
+    ],
+    "verification": [
+      "火山素材 Provider、路由、迁移、状态保真、类型化输出和下游火山 Provider 专项 23/23 通过。",
+      "功能清单 82/82 节点与中英文键同步通过；TypeScript 和正式生产构建须在固定源码提交前完成。",
+      "Windows 与真实 macos-15 arm64 必须从同一固定源码和 v3.0.7 Tag 构建、进入同一非草稿非预发布 Latest Release，并完成六资产远端回下载。"
+    ],
+    "evidenceBoundary": {
+      "technicalGates": "must-pass-before-publish",
+      "affectedUserInstallF8F10AndInstalledUpgrade": "deferred-not-passed",
+      "deferralApproval": "owner-approved-post-release-v3.0.7",
+      "rule": "证据后补只适用于反馈用户安装、多端协作、F8-F10 与安装升级；测试、构建、加密、运行时、app.asar 启动合同、NSIS、provenance、sealed recovery、固定 Tag/target、Windows/Mac 完整回下载和 Latest 不可延期。"
+    }
+  },
   "electronReleaseV306": {
     "status": "released-live-verified",
     "date": "2026-08-27",
@@ -168,7 +197,7 @@
     }
   },
   "volcengineAssetsNode": {
-    "status": "released-v3.0.6-windows-mac-live-verified",
+    "status": "v3.0.7-status-fidelity-release-authorized",
     "date": "2026-08-27",
     "releaseIncluded": true,
     "nodeType": "volcengine-assets",
@@ -184,13 +213,15 @@
       "临时预览 URL 仅存在于组件会话，画布持久化稳定素材 ID、组、筛选、标签和选择。",
       "严格 asset:// URI 仅允许火山 Provider 使用，保留 ID 大小写，不接受本地/私网 URL 导入。",
       "公开 URL 导入创建脱敏持久任务；应用重启后可恢复并按需刷新，只有未完成任务才进入最多 20 次短时轮询。",
-      "兼容 PR #28 的 volc-asset 旧画布数据并迁移到稳定核心节点，不注册重复节点。"
+      "兼容 PR #28 的 volc-asset 旧画布数据并迁移到稳定核心节点，不注册重复节点。",
+      "旧节点选择记录的 Processing / Active / Failed 状态在迁移和重载时保持，只有 Active 素材进入类型化输出。"
     ],
     "verification": [
       "Provider 签名、Action 白名单、Host 请求头边界、URI 归一和私网 URL 拒绝专项 6/6 通过。",
       "路由转发、密钥不回显、URL 校验和标签原子持久化专项 2/2 通过。",
       "素材响应归一、Active/15 项限制、类型化输出、预览 URL 不持久化和输出句柄路由专项 9/9 通过。",
-      "v3.0.6 导入任务持久化、脱敏、恢复、跨项目隔离和旧节点迁移专项通过；同一固定源码的 Windows 与 Mac 六资产已发布并完成远端完整回下载。"
+      "v3.0.6 导入任务持久化、脱敏、恢复、跨项目隔离和旧节点迁移专项通过；同一固定源码的 Windows 与 Mac 六资产已发布并完成远端完整回下载。",
+      "v3.0.7 PR 协议复核新增旧状态保真与非 Active 输出阻断回归；火山素材及下游 Provider 专项 23/23 通过。"
     ],
     "compatibility": "默认渠道、默认模型、旧画布和既有 Volcengine 上传/生成链路不变；新节点只有用户显式添加和运行时才查询或导入素材。"
   },
@@ -301,22 +332,22 @@
     "compatibility": "视频节点默认渠道和默认模型不变；旧 Wan、Seedance、Hailuo、Flux、Grok、FlashVSR、历史画布及已发布工作流不迁移。"
   },
   "macDesktopRelease": {
-    "status": "released-v3.0.6-mac-arm64-live-verified",
+    "status": "release-authorized-v3.0.7-mac-arm64-pending-real-runner",
     "date": "2026-08-27",
-    "releaseIncluded": true,
+    "releaseIncluded": false,
     "platform": "macOS 12+ / Apple Silicon arm64",
     "currentReleasePlan": {
-      "releaseTag": "v3.0.6",
-      "sourceRef": "v3.0.6",
-      "sourceCommit": "47c3d4aa10825d409deb98bcc266cf50fb437c80",
+      "releaseTag": "v3.0.7",
+      "sourceRef": "v3.0.7",
+      "sourceCommit": "pending-fixed-source-commit",
       "mode": "ad-hoc-signed-unnotarized-technical-preview",
-      "workflowRun": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/32987354091",
-      "result": "success-uploaded-and-full-download-verified",
-      "reason": "v3.0.6 已与 Windows 使用同一正式 Tag 和固定提交进入同一 Latest Release；真实 macos-15 arm64 runner 已验证 app.asar 启动合同、原生依赖、DMG/ZIP、更新清单、上传与远端完整回下载。仓库尚未配置 Apple Developer ID，因此 Mac 继续明确为 ad-hoc 签名、未公证的技术预览。"
+      "workflowRun": "pending",
+      "result": "pending-real-macos-15-arm64-runner",
+      "reason": "v3.0.7 必须在 Windows 固定源码发布后，由真实 macos-15 arm64 runner 从同一 v3.0.7 Tag 构建、验证并追加 DMG/ZIP/更新清单；仓库尚未配置 Apple Developer ID，因此继续明确为 ad-hoc 签名、未公证技术预览。"
     },
     "artifacts": [
-    "T8-PenguinCanvas-3.0.6-mac-arm64.dmg",
-    "T8-PenguinCanvas-3.0.6-mac-arm64.zip",
+    "T8-PenguinCanvas-3.0.7-mac-arm64.dmg",
+    "T8-PenguinCanvas-3.0.7-mac-arm64.zip",
       "latest-mac.yml"
     ],
     "implementation": [

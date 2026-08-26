@@ -22,7 +22,7 @@ test('Electron release resources carry the same versioned zcanvas CLI and Skill 
   assert.ok(cli.filter.includes('generated/**/*'));
   assert.ok(cli.filter.includes('manifest.json'));
   assert.equal(JSON.parse(fs.readFileSync(path.join(root, cli.from, 'manifest.json'), 'utf8')).creativeCapabilityGraph, 'generated/creative-capability-graph.json');
-  assert.equal(packageJson.scripts.prebuild, 'npm run feature-sync:check');
+  assert.equal(packageJson.scripts.prebuild, 'npm run feature-sync:check && npm run i18n:check');
   assert.equal(fs.existsSync(path.join(root, skill.from, 'SKILL.md')), true);
   assert.equal(fs.existsSync(path.join(root, cli.from, 'bin', 'zcanvas.cjs')), true);
   assert.equal(fs.existsSync(path.join(root, cli.from, 'manifest.json')), true);

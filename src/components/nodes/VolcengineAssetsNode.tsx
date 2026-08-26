@@ -13,6 +13,7 @@ import {
   normalizeVolcengineAssetImportJobs,
   normalizeVolcengineAssetGroups,
   normalizeVolcengineAssetItems,
+  normalizePersistedVolcengineAssets,
   type VolcengineAssetImportJob,
   type VolcengineAssetGroup,
   type VolcengineAssetItem,
@@ -20,18 +21,6 @@ import {
 } from '../../utils/volcengineAssets';
 
 const MAX_SELECTION = 15;
-
-function persistedAssets(data: any): VolcengineAssetItem[] {
-  return (Array.isArray(data?.selectedAssets) ? data.selectedAssets : []).map((item: any) => ({
-    id: String(item?.id || ''),
-    name: String(item?.name || item?.id || ''),
-    kind: ['image', 'video', 'audio'].includes(item?.kind) ? item.kind : 'image',
-    status: 'active',
-    assetUri: String(item?.assetUri || ''),
-    previewUrl: '',
-    tags: Array.isArray(item?.tags) ? item.tags : [],
-  })).filter((item: VolcengineAssetItem) => item.id && item.assetUri);
-}
 
 function iconFor(kind: VolcengineAssetKind) {
   if (kind === 'video') return <Video size={15} />;
@@ -62,7 +51,7 @@ const VolcengineAssetsNode = ({ id, data, selected }: NodeProps) => {
   const importJobAttempts = useRef(new Map<string, number>());
   const [tagDrafts, setTagDrafts] = useState<Record<string, string>>({});
 
-  const selectedAssets = useMemo(() => persistedAssets(d), [d.selectedAssets]);
+  const selectedAssets = useMemo(() => normalizePersistedVolcengineAssets(d.selectedAssets), [d.selectedAssets]);
   const selectedIds = useMemo(() => new Set(selectedAssets.map((item) => item.id)), [selectedAssets]);
 
   const loadStatus = useCallback(async () => {
@@ -185,7 +174,7 @@ const VolcengineAssetsNode = ({ id, data, selected }: NodeProps) => {
 
   const toggleAsset = useCallback((asset: VolcengineAssetItem) => {
     if (asset.status !== 'active') return;
-    const current = persistedAssets(d);
+    const current = normalizePersistedVolcengineAssets(d.selectedAssets);
     if (current.some((item) => item.id === asset.id)) {
       commitSelection(current.filter((item) => item.id !== asset.id));
       return;
@@ -235,7 +224,7 @@ const VolcengineAssetsNode = ({ id, data, selected }: NodeProps) => {
     const response = await api.saveVolcengineAssetTags(assetId, tags);
     if (!response.success) return setError(response.error || t('volcengineAssets.errors.tags'));
     setAssets((current) => current.map((item) => item.id === assetId ? { ...item, tags: response.data.tags } : item));
-    const current = persistedAssets(d).map((item) => item.id === assetId ? { ...item, tags: response.data.tags } : item);
+    const current = normalizePersistedVolcengineAssets(d.selectedAssets).map((item) => item.id === assetId ? { ...item, tags: response.data.tags } : item);
     commitSelection(current);
   }, [commitSelection, d, t, tagDrafts]);
 
