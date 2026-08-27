@@ -2469,6 +2469,7 @@
           "volcengineAssetsProjectName": { "type": "string", "maxLength": 128 },
           "volcengineAssetsGroupId": { "type": "string", "maxLength": 256 },
           "volcengineAssetsPageNumber": { "type": "integer", "minimum": 1, "maximum": 10000 },
+          "volcengineAssetsRelayTargetId": { "type": "string", "maxLength": 128 },
           "selectedAssets": { "type": "array", "maxItems": 15, "items": { "type": "object" } }
         },
         "defaults": {
@@ -2476,6 +2477,7 @@
           "volcengineAssetsProjectName": "",
           "volcengineAssetsGroupId": "",
           "volcengineAssetsPageNumber": 1,
+          "volcengineAssetsRelayTargetId": "",
           "selectedAssets": []
         }
       }

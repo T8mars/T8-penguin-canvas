@@ -100,7 +100,7 @@ test('GitHub Actions builds current and future Mac releases on a real Apple Sili
   assert.match(workflow, /workflow_dispatch:/);
   assert.match(workflow, /release_tag:/);
   assert.match(workflow, /source_ref:/);
-  assert.match(workflow, /release_tag:[\s\S]*default: v3\.0\.7/);
+  assert.match(workflow, /release_tag:[\s\S]*default: v3\.0\.8/);
   assert.match(workflow, /runs-on: macos-15/);
   assert.match(workflow, /T8_MAC_LOCAL_PRIVATE_BUNDLE_B64/);
   assert.match(workflow, /T8_MAC_LOCAL_PRIVATE_FRONTEND_BUNDLE_B64/);

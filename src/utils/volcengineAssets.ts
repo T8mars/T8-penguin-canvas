@@ -155,6 +155,7 @@ export function migrateLegacyVolcengineAssetNodes(nodes: Node[]): { nodes: Node[
         volcengineAssetsProjectName: text(data.volcengineAssetsProjectName ?? data.projectName, 128),
         volcengineAssetsGroupId: text(data.volcengineAssetsGroupId ?? data.groupId, 256),
         volcengineAssetsPageNumber: Math.max(1, Number(data.volcengineAssetsPageNumber) || 1),
+        volcengineAssetsRelayTargetId: text(data.volcengineAssetsRelayTargetId, 128),
         ...buildVolcengineAssetsNodeOutput(selectedAssets as VolcengineAssetItem[]),
       },
     } as Node;

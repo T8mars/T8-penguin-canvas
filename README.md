@@ -10,18 +10,18 @@ https://www.runninghub.cn/?inviteCode=rh-v1121
 My favorite girl Go YounJung
 # 🐧 贞贞的无限画布（企鹅共创版） · T8-penguin-canvas
 
-> AI 节点画布工作流工具 · Web + Electron 桌面端｜v3.0.7
+> AI 节点画布工作流工具 · Web + Electron 桌面端｜v3.0.8
 >
 > GitHub：<https://github.com/T8mars/T8-penguin-canvas>
 
 一个面向 AI 创作的 **节点式画布**：拖拽节点、连线编排、生成图像 / 视频 / 音频、调用 LLM、串接 RunningHub 工作流，叠加批量执行、智能对齐、打组、主题模板与终端日志。Web 浏览器和桌面端均可使用。
 
-![status](https://img.shields.io/badge/version-v3.0.7-brightgreen) ![node](https://img.shields.io/badge/node-82-blue) ![react](https://img.shields.io/badge/react-19-61dafb) ![electron](https://img.shields.io/badge/electron-33-47848f) ![license](https://img.shields.io/badge/license-MIT-yellow)
+![status](https://img.shields.io/badge/version-v3.0.8-brightgreen) ![node](https://img.shields.io/badge/node-82-blue) ![react](https://img.shields.io/badge/react-19-61dafb) ![electron](https://img.shields.io/badge/electron-33-47848f) ![license](https://img.shields.io/badge/license-MIT-yellow)
 
 ## 💻 桌面版下载
 
-- **Windows x64**：在 [v3.0.7 Release](https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.0.7) 下载 `T8-PenguinCanvas-Setup-3.0.7.exe`。
-- **macOS Apple Silicon**：同一 Release 提供 `T8-PenguinCanvas-3.0.7-mac-arm64.dmg` 技术预览，支持 M1/M2/M3/M4 等 arm64 Mac，最低 macOS 12。当前包使用 ad-hoc 完整性签名，尚无 Apple Developer ID 签名和公证；首次打开请在 Finder 中右键应用并选择“打开”。Intel Mac 暂不支持。
+- **Windows x64**：在 [v3.0.8 Release](https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.0.8) 下载 `T8-PenguinCanvas-Setup-3.0.8.exe`。
+- **macOS Apple Silicon**：同一 Release 提供 `T8-PenguinCanvas-3.0.8-mac-arm64.dmg` 技术预览，支持 M1/M2/M3/M4 等 arm64 Mac，最低 macOS 12。当前包使用 ad-hoc 完整性签名，尚无 Apple Developer ID 签名和公证；首次打开请在 Finder 中右键应用并选择“打开”。Intel Mac 暂不支持。
 
 ---
 
@@ -41,6 +41,7 @@ My favorite girl Go YounJung
 ## ✨ 功能亮点
 
 - 🎨 **82 个节点**，覆盖文本 / 图像 / 视频 / 音频 / LLM / RunningHub / ComfyUI / 3D / 工具 / 辅助 / 工具箱 / 输出预览 / 上传素材 / 素材集 / 火山引擎素材库 / 批量打标 / 随机路由 / Story 全自动制片 / 剧本大师 / MiniMax H3 / MiniMax Music3 / Seedance 2.0 提示词增强器 / MiniMax H3 官方提示词增强器 / Seedance 2.5 / FlashVSR 视频超分 / 白模预演 / MV 音乐大师
+- 🗃️ **[v3.0.8 火山素材选材与本地中转版](https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.0.8)**：最多 15 个已选素材集中在节点内一个预览栏，可逐项删除或一键清空，不再为每个素材自动铺开输出节点；本地图像、视频和音频可复用 API 设置中已启用的 COS、OSS 或 WebDAV 目标取得公网 URL，再导入火山素材库，画布不保存本机路径、中转凭据或临时地址。
 - 🗃️ **[v3.0.7 火山 PR 状态保真版](https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.0.7)**：完成 PR #28 的逐项数据协议审计；旧 `volc-asset` 迁移及重载会保留 `Processing / Active / Failed`，未完成或失败素材不再被错误提升为 Active，也不会进入图像/视频/音频输出。v3.0.6 的任务持久化、恢复、安全边界和全部既有功能保持不变。
 - 🗃️ **[v3.0.6 火山素材任务恢复版](https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.0.6)**：安全吸收 PR #28 的导入任务持久化与恢复能力，任务记录脱敏且有界，不保存来源 URL、凭据、签名预览、完整上游响应或本机路径；未完成任务只进行短时按需轮询，旧 `volc-asset` 画布自动迁移到稳定核心节点，不引入任意 CommonJS 插件宿主或重复节点。
 - 🧩 **[v3.0.5 双平台启动与画布几何修复版](https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.0.5)**：补齐 Electron 主进程国际化模块及目录依赖，新增 Windows/macOS 共用的 `app.asar` 启动合同，修复 v3.0.2–v3.0.4 部分公开包启动时报 `Cannot find module './i18n.cjs'`；同时修复已缩放上传节点恢复后 RUN 操作栏和连线端点偏离可见卡片，并把白模预演同步到 monoform-previs-studio v0.6.0 的多镜头、动态时长/FPS、动作、参考图、灯光与相机能力。

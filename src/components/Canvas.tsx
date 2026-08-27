@@ -2605,6 +2605,7 @@ const INITIAL_DATA: Record<string, Record<string, any>> = {
     volcengineAssetsResolvedProject: 'default',
     volcengineAssetsGroupId: '',
     volcengineAssetsPageNumber: 1,
+    volcengineAssetsRelayTargetId: '',
     selectedAssets: [],
     outputs: { image: { imageUrl: '', imageUrls: [] }, video: { videoUrl: '', videoUrls: [] }, audio: { audioUrl: '', audioUrls: [] } },
     imageUrl: '', imageUrls: [], videoUrl: '', videoUrls: [], audioUrl: '', audioUrls: [],
@@ -12624,7 +12625,7 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, persistenceRuntime, th
     // random-route 写入 imageUrl/prompt 等字段只是为了透传给命中的下游分支，不代表它自己生成了输出素材。
     // Story 的 outputText/videoUrls 是制片进度与最终状态快照；真实下游由导演分镜台和视频编辑节点承接，
     // 不能在新建或中途生产时把每次进度变化自动物化成独立的“输出素材”节点。
-    const SKIP_TYPES = new Set(['output', 'groupBox', 'bulkPhantom', 'upload', 'material-set', 'pick-from-set', 'loop', 'random-route', 'story', 'pose-master']);
+    const SKIP_TYPES = new Set(['output', 'groupBox', 'bulkPhantom', 'upload', 'material-set', 'pick-from-set', 'loop', 'random-route', 'story', 'pose-master', 'volcengine-assets']);
 
     const toAddNodes: Node[] = [];
     const toAddEdges: Edge[] = [];
@@ -12662,7 +12663,7 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, persistenceRuntime, th
       const totalIncoming = edges.filter((item) => item.target === edge.target).length;
       const hasOutgoing = edges.some((item) => item.source === edge.target);
       if (
-        (source?.type === 'random-route' || source?.type === 'story') &&
+        (source?.type === 'random-route' || source?.type === 'story' || source?.type === 'volcengine-assets') &&
         target?.type === 'output' &&
         target.id.startsWith('output-auto-') &&
         totalIncoming === 1 &&

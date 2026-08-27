@@ -24,6 +24,7 @@ test('package config enables GitHub release updates and local release scripts', 
 test('electron main process owns updater checks, downloads, and install IPC', () => {
   const pkg = JSON.parse(read('../package.json'));
   const main = read('../electron/main.cjs');
+  const catalog = JSON.parse(read('../electron/i18n-catalog.json'));
   const installerNsh = read('../electron/build-resources/installer.nsh');
   const nsis = pkg.build.nsis;
 
@@ -41,8 +42,10 @@ test('electron main process owns updater checks, downloads, and install IPC', ()
   assert.match(main, /ipcMain\.handle\('t8pc:updater:install'/);
   assert.match(main, /const isMac = process\.platform === 'darwin'/);
   assert.match(main, /quitAndInstall\(isMac,\s*true\)/);
-  assert.match(main, /打开安装向导/);
-  assert.match(main, /正在安装更新，应用将自动重启/);
+  assert.match(main, /'updater\.installingMac'/);
+  assert.match(main, /'updater\.installingWindows'/);
+  assert.equal(catalog['zh-CN'].updater.installingMac, '正在安装更新，应用将自动重启');
+  assert.equal(catalog['zh-CN'].updater.installingWindows, '正在打开安装向导，请按提示完成安装');
   assert.match(installerNsh, /!macro customInit/);
   assert.match(installerNsh, /SetSilent\s+normal/);
   assert.match(installerNsh, /!macro customInstall/);
@@ -66,10 +69,10 @@ test('preload and frontend expose a narrow updater surface', () => {
   assert.match(button, /status\.status === 'downloaded'/);
   assert.match(button, /desktopShellDetected/);
   assert.match(button, /isElectronUserAgent/);
-  assert.match(button, /UPDATER_BRIDGE_MISSING_MESSAGE/);
+  assert.match(button, /'updater\.bridgeMissing'/);
   assert.match(button, /if \(!desktopShellDetected\) return null/);
   assert.doesNotMatch(button, /if \(!hasUpdater\) return null/);
-  assert.match(button, /打开安装向导/);
+  assert.match(button, /t\('updater\.labels\.openInstaller'\)/);
 });
 
 test('release scripts verify installer, blockmap, latest.yml, and GitHub assets', () => {
