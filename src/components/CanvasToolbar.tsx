@@ -95,6 +95,7 @@ interface CanvasToolbarProps {
   onExportResourcePackage: () => void;
   onAlignSelection: (action: NodeAlignAction) => void;
   children?: ReactNode;
+  endControl?: ReactNode;
 }
 
 export default function CanvasToolbar({
@@ -129,6 +130,7 @@ export default function CanvasToolbar({
   onExportResourcePackage,
   onAlignSelection,
   children,
+  endControl,
 }: CanvasToolbarProps) {
   const { t } = useTranslation('canvas');
   const { theme, style } = useThemeStore();
@@ -682,6 +684,8 @@ export default function CanvasToolbar({
           <HelpCircle size={16} />
         </button>
 
+        {children}
+
         {/* 终端 */}
         <button
           className={`${baseBtn} ${
@@ -710,7 +714,11 @@ export default function CanvasToolbar({
           )}
         </button>
 
-        {children}
+        {endControl ? (
+          <div className="t8-canvas-toolbar__end-control" data-canvas-toolbar-end-control="true">
+            {endControl}
+          </div>
+        ) : null}
       </div>
 
       {/* 快捷键设置弹窗 */}

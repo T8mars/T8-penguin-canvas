@@ -60,10 +60,12 @@ function evaluateWorktreeRole({
     errors.push(`unknown worktree mode: ${normalizedMode}`);
   } else if (normalizedMode === 'core') {
     if (pathRole !== 'core') errors.push('core work must run in the canonical T8-penguin-canvas worktree');
-    if (detached || isReleaseBranch(branch)) errors.push('the core worktree must use a non-release branch');
+    if (detached) errors.push('the core worktree must use an attached branch');
   } else if (normalizedMode === 'development') {
-    if (!isDevelopmentBranch(branch)) errors.push('development requires a non-release codex/* branch');
-    if (pathRole === 'release') {
+    if (pathRole === 'core') {
+      if (detached) errors.push('development in the canonical core worktree requires an attached branch');
+    } else if (pathRole === 'release') {
+      if (!isDevelopmentBranch(branch)) errors.push('development requires a non-release codex/* branch outside the canonical core worktree');
       if (legacyF2 && allowLegacyF2) {
         if (String(head || '').toLowerCase() !== LEGACY_F2_HEAD) {
           errors.push('temporary legacy F2 exception is valid only at its frozen base HEAD; extract the work into a development worktree');
@@ -73,7 +75,9 @@ function evaluateWorktreeRole({
       } else {
         errors.push('feature development is forbidden in a release-named worktree');
       }
-    } else if (!['core', 'development'].includes(pathRole)) {
+    } else if (pathRole === 'development') {
+      if (!isDevelopmentBranch(branch)) errors.push('development worktrees require a non-release codex/* branch');
+    } else {
       errors.push('development must use the canonical T8-penguin-canvas path or T8-penguin-canvas-dev-<topic>');
     }
   } else if (normalizedMode === 'release') {

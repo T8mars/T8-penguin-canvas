@@ -9,11 +9,12 @@ echo ==================================================
 
 REM 释放端口 11422 / 18766
 echo [1/2] 检查并释放端口 11422 / 18766...
-for %%P in (11422 18766) do (
-    for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":%%P "') do (
-        echo  - 终止占用端口 %%P 的进程 PID=%%a
-        taskkill /F /PID %%a >nul 2>&1
-    )
+REM 只清理本核心目录的旧开发进程树和本地监听者，忽略远端端口、TIME_WAIT 与 PID 0。
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\stop-local-dev-processes.ps1" -ProjectRoot "%~dp0."
+if errorlevel 1 (
+    echo [启动失败] 无法安全释放本地开发端口，请关闭旧的 T8 开发窗口后重试。
+    pause
+    exit /b 1
 )
 
 REM 按健康状态启动开发服务，避免前端先于后端发起 API 轮询

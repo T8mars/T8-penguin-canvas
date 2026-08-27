@@ -80,13 +80,27 @@ test('development rejects release paths except the one explicit legacy F2 pair',
   assert.equal(copiedException.ok, false);
 });
 
-test('development accepts the canonical core and optional dedicated development paths', () => {
+test('development accepts the canonical core without forcing a branch switch and keeps dedicated development paths strict', () => {
   const core = evaluateWorktreeRole({
     root: root('T8-penguin-canvas'),
-    branch: 'codex/vibex-workbench-node',
+    branch: 'codex/release-v3.0.8-volcengine-assets-ux',
     mode: 'development',
   });
   assert.equal(core.ok, true);
+
+  const coreRole = evaluateWorktreeRole({
+    root: root('T8-penguin-canvas'),
+    branch: 'codex/release-v3.0.8-volcengine-assets-ux',
+    mode: 'core',
+  });
+  assert.equal(coreRole.ok, true);
+
+  const detachedCore = evaluateWorktreeRole({
+    root: root('T8-penguin-canvas'),
+    branch: '',
+    mode: 'development',
+  });
+  assert.equal(detachedCore.ok, false);
 
   const development = evaluateWorktreeRole({
     root: root('T8-penguin-canvas-dev-next-topic'),

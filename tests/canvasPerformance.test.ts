@@ -131,6 +131,26 @@ test('performance mode uses a lightweight but still deletable edge renderer', ()
   assert.doesNotMatch(edge, /useStore|resolveThemeTemplate|animateMotion/);
 });
 
+test('performance switch is the toolbar tail control and never floats over terminal actions', () => {
+  const canvas = readFileSync(new URL('../src/components/Canvas.tsx', import.meta.url), 'utf8');
+  const toolbar = readFileSync(new URL('../src/components/CanvasToolbar.tsx', import.meta.url), 'utf8');
+  const styles = readFileSync(new URL('../src/styles/index.css', import.meta.url), 'utf8');
+  const childrenIndex = toolbar.indexOf('{children}');
+  const terminalIndex = toolbar.indexOf('<TerminalIcon size={15} />');
+  const endControlIndex = toolbar.indexOf('{endControl}', terminalIndex);
+
+  assert.match(canvas, /endControl=\{<CanvasPerformanceControl decision=\{performanceDecision\} \/>\}/);
+  assert.equal(canvas.match(/<CanvasPerformanceControl/g)?.length, 1);
+  assert.ok(childrenIndex >= 0);
+  assert.ok(terminalIndex >= 0);
+  assert.ok(terminalIndex > childrenIndex);
+  assert.ok(endControlIndex > terminalIndex);
+  assert.match(toolbar, /data-canvas-toolbar-end-control="true"/);
+  assert.match(styles, /\.t8-canvas-performance-control\s*\{[\s\S]*?position:\s*relative;/);
+  assert.match(styles, /\.t8-canvas-performance-control__panel\s*\{[\s\S]*?position:\s*absolute;/);
+  assert.match(styles, /@media \(prefers-reduced-motion: reduce\)[\s\S]*?\.t8-canvas-performance-control::before/);
+});
+
 test('fixed 100/500/1000-node performance fixtures are deterministic and side-effect free', () => {
   for (const size of CANVAS_PERFORMANCE_FIXTURE_SIZES) {
     const first = buildCanvasPerformanceFixture(size);

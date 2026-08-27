@@ -1,7 +1,31 @@
 {
   "$schema": "本文件为 T8-penguin-canvas 节点清单防丢失锁,任何节点删减都需要在 roadmap.md 中说明并更新本文件。",
-  "version": "3.0.8",
-  "lastUpdated": "2026-08-27-v3.0.8-release-live-verified",
+  "version": "3.0.9",
+  "lastUpdated": "2026-08-27-v3.0.9-release-authorized",
+  "electronReleaseV309": {
+    "status": "authorized-pending-technical-gates",
+    "date": "2026-08-27",
+    "releaseIncluded": true,
+    "version": "3.0.9",
+    "tag": "v3.0.9",
+    "scope": [
+      "核心目录开发允许在当前 attached 分支直接运行，不因分支名带 release 强制切换目录或分支；detached HEAD 继续失败关闭。",
+      "Windows 启动器安全清理 11422/18766 的本地监听者与可识别的旧 T8 开发进程树，忽略远端连接、TIME_WAIT 和 PID 0；清理失败时不继续启动半套前后端。",
+      "画布自动/高性能控制移到顶部工具条最后一位并紧邻终端，不再作为右侧独立悬浮控件遮挡最后一个工具或画布内容。",
+      "性能弹层从触发按钮下方展开，支持点击外部与 Escape 关闭；窄屏折叠为图标，双主题使用主题变量，系统减少动态效果时关闭装饰动画。",
+      "完整承接 v3.0.8 及更早的火山素材、Provider、默认渠道/模型、旧画布、历史工作流、主题、双语、MiniMax Music3、Windows/macOS 和性能能力。"
+    ],
+    "verification": [
+      "开发启动器与 worktree 规则专项 10/10 已通过；性能控制源级专项及真实浏览器 1280/1046/900 宽度、白天/黑夜、弹层与 Escape 行为验证已通过。",
+      "Windows Electron 正式构建、app.asar 合同、NSIS、provenance、sealed recovery、远端上传与完整回下载，以及真实 macOS arm64 同源构建/上传仍须在固定发布提交后完成。"
+    ],
+    "evidenceBoundary": {
+      "technicalGates": "must-pass-before-publish",
+      "affectedUserInstallF8F10AndInstalledUpgrade": "deferred-not-passed",
+      "deferralApproval": "owner-approved-post-release-v3.0.9",
+      "rule": "证据后补只适用于反馈用户安装、多端协作、F8-F10 与安装升级；测试、构建、加密、运行时、app.asar 启动合同、NSIS、provenance、sealed recovery、固定 Tag/target、Windows/Mac 自动更新资产与完整性验证不可延期。"
+    }
+  },
   "electronReleaseV308": {
     "status": "released-live-verified",
     "date": "2026-08-27",

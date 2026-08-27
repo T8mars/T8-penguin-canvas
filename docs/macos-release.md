@@ -86,6 +86,10 @@ Developer ID 正式发布另需以下两组之一的公证凭据，并需要 `CS
 
 这些命令都有版本级授权、源码 SHA、远端 Ref、平台、架构和资产漂移门，不能绕过脚本直接用 electron-builder 或 `gh release upload --clobber` 代替。
 
+# v3.0.9 启动与性能控制体验发布授权（2026-08-27）
+
+v3.0.9 只纳入核心目录开发启动稳定性和顶部画布性能控制条整合，完整继承 v3.0.8 及更早能力。Windows 必须先从固定源码提交与正式 `v3.0.9` Tag 完成低资源正式链；随后真实 `macos-15` arm64 runner 必须从同一个 Tag 构建 ad-hoc 签名技术预览 DMG、ZIP 与 `latest-mac.yml`，追加到同一个非草稿、非预发布 Release，并完整回下载三项 Mac 资产。两端固定源码、Release target、Windows 资产、Mac 资产与两个更新清单不一致时必须失败关闭。
+
 # v3.0.8 火山素材选材与本地中转发布完成（2026-08-27）
 
 v3.0.8 已从同一个固定源码提交 `5ad4408a9eefbc4c6bf32606a86ad8167e84f528` 和正式 `v3.0.8` Tag 生成 Windows 与 Apple Silicon 资产，并进入同一个非草稿、非预发布 Latest Release：<https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.0.8>。本版完成核心火山素材节点的单一有界预览栏、逐项删除/清空、通用 auto-Output 退出与安全遗留清理，并复用现有云上传目标完成本地文件中转导入。Windows 核心目录低资源正式链完成构建、加密、双运行时、native rebuild、NSIS、7/7 `app.asar` 启动合同、provenance、sealed recovery、上传、完整回下载和恢复清理。真实 `macos-15` arm64 workflow <https://github.com/T8mars/T8-penguin-canvas/actions/runs/33050616302> 完成同源私有源恢复、ad-hoc 签名技术预览 DMG/ZIP/更新清单、追加上传及 runner 完整回下载；本机独立验证再次完整下载并核对三项 Mac 资产。

@@ -11,6 +11,7 @@ test('development launcher waits for backend before frontend and browser', () =>
   const launcherPath = path.join(__dirname, '..', 'start-dev.bat');
   const launcherBytes = fs.readFileSync(launcherPath);
   const launcher = launcherBytes.toString('utf8');
+  const cleanup = fs.readFileSync(path.join(__dirname, '..', 'scripts', 'stop-local-dev-processes.ps1'), 'utf8');
   const newlineCount = (launcher.match(/\n/g) || []).length;
   const windowsNewlineCount = (launcher.match(/\r\n/g) || []).length;
   const backendWait = launcher.indexOf('18766/api/status');
@@ -32,6 +33,14 @@ test('development launcher waits for backend before frontend and browser', () =>
   assert.match(backendCommand, /chcp 65001 >nul && npm run dev:backend/);
   assert.match(frontendCommand, /chcp 65001 >nul && npm run dev:vite/);
   assert.doesNotMatch(launcher, /timeout \/t [23] >nul/);
+  assert.doesNotMatch(launcher, /netstat\s+-ano/);
+  assert.match(launcher, /stop-local-dev-processes\.ps1/);
+  assert.match(launcher, /-ProjectRoot "%~dp0\."/);
+  assert.match(cleanup, /Get-NetTCPConnection -State Listen -LocalPort \$ports/);
+  assert.match(cleanup, /\$owner -gt 0/);
+  assert.match(cleanup, /taskkill\.exe \/F \/T \/PID \$rootId/);
+  assert.match(cleanup, /Test-ProjectDevSeed/);
+  assert.match(cleanup, /Test-LauncherShell/);
   assert.equal(
     windowsNewlineCount,
     newlineCount,

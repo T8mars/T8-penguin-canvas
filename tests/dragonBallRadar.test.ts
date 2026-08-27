@@ -59,8 +59,13 @@ test('Dragon Ball radar lives in the toolbar and uses classic star layouts', () 
   assert.ok(root, 'radar root css block should exist');
   assert.ok(panel, 'radar panel css block should exist');
   assert.match(toolbar, /children\?: ReactNode/);
+  assert.match(toolbar, /endControl\?: ReactNode/);
   assert.match(toolbar, /\{children\}/);
-  assert.match(toolbar, /<TerminalIcon size=\{15\} \/>[\s\S]*?<\/button>\s*\{children\}\s*<\/div>/);
+  const childrenIndex = toolbar.indexOf('{children}');
+  const terminalIndex = toolbar.indexOf('<TerminalIcon size={15} />');
+  const endControlIndex = toolbar.indexOf('{endControl}', terminalIndex);
+  assert.ok(childrenIndex >= 0 && terminalIndex > childrenIndex);
+  assert.ok(endControlIndex > terminalIndex, 'the toolbar tail control must stay directly after terminal');
   assert.match(canvas, /<CanvasToolbar[\s\S]*<DragonBallRadar[\s\S]*<\/CanvasToolbar>/);
   assert.match(root[1], /position:\s*relative/);
   assert.match(root[1], /height:\s*32px/);
@@ -85,6 +90,7 @@ test('Dragon Ball radar lives in the toolbar and uses classic star layouts', () 
 
 test('Dragon Ball Shenron mode can be toggled back from the topbar after unlock', () => {
   const app = read('../src/App.tsx');
+  const resources = read('../src/i18n/resources.ts');
   const store = read('../src/stores/dragonBallRadar.ts');
   const css = read('../src/styles/theme-dragonball.css');
 
@@ -94,8 +100,10 @@ test('Dragon Ball Shenron mode can be toggled back from the topbar after unlock'
   assert.match(app, /t8-dragonball-mode-switch/);
   assert.match(app, /handleDragonBallModeSwitch\(false\)/);
   assert.match(app, /handleDragonBallModeSwitch\(true\)/);
-  assert.match(app, /切回七龙珠普通模式/);
-  assert.match(app, /切换到神龙隐藏模式/);
+  assert.match(app, /t\('shell:themeModes\.dragonBallTitle'\)/);
+  assert.match(app, /t\('shell:themeModes\.shenronTitle'\)/);
+  assert.match(resources, /dragonBallTitle:\s*'切回七龙珠普通模式'/);
+  assert.match(resources, /shenronTitle:\s*'切换到神龙隐藏模式'/);
   assert.match(app, /import\.meta\.env\.DEV[\s\S]*t8DragonBalls/);
   assert.match(store, /seedDragonBallRadarForShenronTest/);
   assert.match(store, /nextSpawnAt:\s*now \+ 1_000/);

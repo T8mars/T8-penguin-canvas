@@ -744,33 +744,91 @@ html[data-theme-visual] .t8-canvas-shell::after,
 }
 
 .t8-canvas-performance-control {
-  position: absolute;
-  top: 12px;
-  right: 14px;
-  z-index: 28;
+  --t8-performance-control-accent: #2dd4bf;
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
   color: var(--text-primary, #f4f4f5);
+  isolation: isolate;
+}
+
+.t8-canvas-performance-control[data-performance-effective="performance"] {
+  --t8-performance-control-accent: #f59e0b;
+}
+
+.t8-canvas-performance-control::before {
+  position: absolute;
+  z-index: -1;
+  inset: -3px;
+  border: 1px solid color-mix(in srgb, var(--t8-performance-control-accent) 68%, transparent);
+  border-radius: 12px;
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--t8-performance-control-accent) 32%, transparent);
+  content: '';
+  pointer-events: none;
+  animation: t8-performance-control-halo 2.4s ease-out infinite;
 }
 
 .t8-canvas-performance-control__trigger {
+  position: relative;
   display: inline-flex;
-  height: 30px;
+  height: 32px;
   align-items: center;
   gap: 6px;
-  border: 1px solid var(--border, rgb(255 255 255 / 0.15));
+  border: 1px solid color-mix(in srgb, var(--t8-performance-control-accent) 45%, var(--border, rgb(255 255 255 / 0.15)));
   border-radius: 9px;
-  background: color-mix(in srgb, var(--bg-secondary, #18181b) 92%, transparent);
+  background:
+    linear-gradient(120deg, color-mix(in srgb, var(--t8-performance-control-accent) 15%, transparent), transparent 44%),
+    color-mix(in srgb, var(--bg-secondary, #18181b) 94%, transparent);
   color: inherit;
-  padding: 0 9px;
-  box-shadow: 0 8px 22px rgb(0 0 0 / 0.18);
+  padding: 0 8px;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.12),
+    0 5px 16px color-mix(in srgb, var(--t8-performance-control-accent) 18%, rgb(0 0 0 / 0.16));
   font-size: 11px;
+  font-weight: 700;
   cursor: pointer;
   backdrop-filter: blur(10px);
 }
 
+.t8-canvas-performance-control__trigger:hover,
+.t8-canvas-performance-control__trigger:focus-visible,
+.t8-canvas-performance-control[data-performance-open="true"] .t8-canvas-performance-control__trigger {
+  border-color: var(--t8-performance-control-accent);
+  outline: none;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.16),
+    0 0 0 2px color-mix(in srgb, var(--t8-performance-control-accent) 18%, transparent),
+    0 7px 20px color-mix(in srgb, var(--t8-performance-control-accent) 24%, transparent);
+}
+
+.t8-canvas-performance-control__icon {
+  display: inline-flex;
+  color: var(--t8-performance-control-accent);
+  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--t8-performance-control-accent) 58%, transparent));
+  animation: t8-performance-control-icon 2.4s ease-in-out infinite;
+}
+
+.t8-canvas-performance-control__label {
+  white-space: nowrap;
+}
+
+.t8-canvas-performance-control__signal {
+  width: 5px;
+  height: 5px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: var(--t8-performance-control-accent);
+  box-shadow: 0 0 8px var(--t8-performance-control-accent);
+  animation: t8-performance-control-signal 1.2s ease-in-out infinite alternate;
+}
+
 .t8-canvas-performance-control__panel {
   position: absolute;
-  top: 36px;
+  top: calc(100% + 9px);
   right: 0;
+  z-index: 40;
   width: min(310px, calc(100vw - 28px));
   border: 1px solid var(--border, rgb(255 255 255 / 0.15));
   border-radius: 12px;
@@ -806,6 +864,61 @@ html[data-theme-visual] .t8-canvas-shell::after,
   padding: 8px 10px;
   text-align: left;
   cursor: pointer;
+}
+
+.t8-canvas-toolbar__end-control {
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  margin-left: 3px;
+}
+
+@keyframes t8-performance-control-halo {
+  0%, 38% {
+    opacity: 0.34;
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--t8-performance-control-accent) 30%, transparent);
+  }
+  74% {
+    opacity: 0.8;
+    box-shadow: 0 0 0 4px transparent;
+  }
+  100% {
+    opacity: 0.34;
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+@keyframes t8-performance-control-icon {
+  0%, 70%, 100% { transform: scale(1) rotate(0deg); }
+  80% { transform: scale(1.12) rotate(-8deg); }
+  90% { transform: scale(1.08) rotate(7deg); }
+}
+
+@keyframes t8-performance-control-signal {
+  from { opacity: 0.5; transform: scale(0.82); }
+  to { opacity: 1; transform: scale(1.18); }
+}
+
+@media (max-width: 980px) {
+  .t8-canvas-performance-control__trigger {
+    width: 32px;
+    justify-content: center;
+    padding: 0;
+  }
+
+  .t8-canvas-performance-control__label,
+  .t8-canvas-performance-control__signal {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .t8-canvas-performance-control::before,
+  .t8-canvas-performance-control__icon,
+  .t8-canvas-performance-control__signal {
+    animation: none !important;
+  }
 }
 
 .t8-canvas-performance-control__panel [role="radio"].is-active {

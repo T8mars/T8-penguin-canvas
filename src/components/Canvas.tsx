@@ -14257,7 +14257,6 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, persistenceRuntime, th
       onContextMenuCapture={onCanvasContextMenuCapture}
       onMouseMove={handleCanvasPointerMove}
     >
-      <CanvasPerformanceControl decision={performanceDecision} />
       {backgroundSaveFailure && (
         <div
           role="alert"
@@ -14330,6 +14329,7 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, persistenceRuntime, th
         onCreateGenerationTarget={handleCreateGenerationTarget}
         onExportResourcePackage={handleExportResourcePackage}
         onAlignSelection={handleAlignSelection}
+        endControl={<CanvasPerformanceControl decision={performanceDecision} />}
       >
         <button
           type="button"
