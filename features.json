@@ -1,13 +1,26 @@
 {
   "$schema": "本文件为 T8-penguin-canvas 节点清单防丢失锁,任何节点删减都需要在 roadmap.md 中说明并更新本文件。",
   "version": "3.0.8",
-  "lastUpdated": "2026-08-27-v3.0.8-release-authorized",
+  "lastUpdated": "2026-08-27-v3.0.8-release-live-verified",
   "electronReleaseV308": {
-    "status": "authorized-pending-technical-gates",
+    "status": "released-live-verified",
     "date": "2026-08-27",
     "releaseIncluded": true,
     "version": "3.0.8",
     "tag": "v3.0.8",
+    "sourceCommit": "5ad4408a9eefbc4c6bf32606a86ad8167e84f528",
+    "releaseUrl": "https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.0.8",
+    "publishedAt": "2026-08-27T07:38:22Z",
+    "latest": true,
+    "macWorkflow": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/33050616302",
+    "artifacts": [
+      { "name": "T8-PenguinCanvas-Setup-3.0.8.exe", "size": 1354463465, "sha256": "18d50bcef887a0c1ae4459dbe91841ec19395a9b96b46148ba0acce84bb1f999" },
+      { "name": "T8-PenguinCanvas-Setup-3.0.8.exe.blockmap", "size": 1413574, "sha256": "cba423e4ee5aace84122e56228c62f93747558f481a34064491fa5055fd824f1" },
+      { "name": "latest.yml", "size": 362, "sha256": "1dcca85d8daf4e4ba29785b2346e5d8a59398e02771768709a95e9d45a07451b" },
+      { "name": "T8-PenguinCanvas-3.0.8-mac-arm64.dmg", "size": 468423467, "sha256": "ecb51699973761f40e2615e2eaa8443edf69c6bc5f5c4269faaf113af79b21a2" },
+      { "name": "T8-PenguinCanvas-3.0.8-mac-arm64.zip", "size": 461302294, "sha256": "c7fdc3912928a4e7794b2e14580ef9da6d0c594f2e29db4eea726412ee6420aa" },
+      { "name": "latest-mac.yml", "size": 536, "sha256": "b3bac7017e33bd4c0e1672a7bf6d5b7576a226167ef0d50b00d4b4a8d7beacf9" }
+    ],
     "scope": [
       "火山素材节点把最多 15 个已选素材集中在节点内一个有界横向预览栏，支持逐项删除和一键清空；预览签名 URL 仅驻留内存。",
       "火山素材节点退出通用 auto-Output 物化，避免每个素材自动创建独立输出节点；旧自动输出只在自动 ID/边、单一入边、无下游、未移动四项安全条件同时满足时清理。",
@@ -17,7 +30,9 @@
     ],
     "verification": [
       "火山素材 UI 专项 15/15、相关云上传/Provider/路由/数据/Story/随机路由回归 61/61、TypeScript、双语键、能力同步与 2,948 模块生产构建已通过。",
-      "Windows Electron 正式构建、app.asar 合同、NSIS、provenance、sealed recovery、远端上传与完整回下载，以及真实 macOS arm64 同源构建/上传仍须在固定发布提交后完成。"
+      "Windows 核心目录单核/BelowNormal/零压缩正式链完成 160 个后端源与 4 个私有文件加密、双运行时、native rebuild、NSIS、7/7 app.asar 启动合同、provenance、sealed recovery、远端上传、完整回下载、固定 target/Latest 校验与恢复清理。",
+      "真实 macos-15 arm64 workflow 33050616302 从同一 v3.0.8 Tag/固定提交完成私有源恢复、原生依赖、ad-hoc 签名、DMG/ZIP/更新清单、追加上传与 runner 完整回下载；本地独立验证再次完整下载三项 Mac 资产。",
+      "GitHub Release 非草稿、非预发布且为 Latest；六项资产 size/SHA-256、两个自动更新清单、Release target、正式 Tag peeled commit 与 workflow source 全部绑定 5ad4408a9eefbc4c6bf32606a86ad8167e84f528。"
     ],
     "evidenceBoundary": {
       "technicalGates": "must-pass-before-publish",
@@ -232,10 +247,10 @@
     }
   },
   "volcengineAssetsNode": {
-    "status": "released-v3.0.7-status-fidelity-live-verified",
+    "status": "released-v3.0.8-selection-relay-live-verified",
     "date": "2026-08-27",
     "releaseIncluded": true,
-    "workingTreeEnhancementStatus": "included-in-v3.0.8-release-candidate",
+    "workingTreeEnhancementStatus": "released-and-remotely-verified-in-v3.0.8",
     "nodeType": "volcengine-assets",
     "labels": {
       "zh": "火山引擎素材库",
@@ -251,7 +266,7 @@
       "公开 URL 导入创建脱敏持久任务；应用重启后可恢复并按需刷新，只有未完成任务才进入最多 20 次短时轮询。",
       "兼容 PR #28 的 volc-asset 旧画布数据并迁移到稳定核心节点，不注册重复节点。",
       "旧节点选择记录的 Processing / Active / Failed 状态在迁移和重载时保持，只有 Active 素材进入类型化输出。",
-      "后续工作树增强把全部已选素材集中到节点内的单一横向预览栏，支持逐个移除和一键清空；跨分页临时预览只留在内存，不持久化签名 URL。",
+      "v3.0.8 把全部已选素材集中到节点内的单一横向预览栏，支持逐个移除和一键清空；跨分页临时预览只留在内存，不持久化签名 URL。",
       "火山素材节点不再触发通用自动 Output 物化；旧版遗留、未移动、无下游且只有一个自动入边的 Output 会安全清理，直接使用 image/video/audio 端口继续连接。",
       "本地文件可经 API 设置中已启用的云端上传目标中转为公网 URL，再调用既有 CreateAsset；节点只保存目标 ID，不保存本地路径、中转地址、密钥或临时签名。"
     ],
@@ -261,7 +276,8 @@
       "素材响应归一、Active/15 项限制、类型化输出、预览 URL 不持久化和输出句柄路由专项 9/9 通过。",
       "v3.0.6 导入任务持久化、脱敏、恢复、跨项目隔离和旧节点迁移专项通过；同一固定源码的 Windows 与 Mac 六资产已发布并完成远端完整回下载。",
       "v3.0.7 PR 协议复核新增旧状态保真与非 Active 输出阻断回归；火山素材及下游 Provider 专项 23/23 通过。",
-      "后续工作树增强专项 15/15 通过：单一已选预览栏、删除/清空、autoOutput 跳过与安全遗留清理、本地受控上传 → 云端中转 → 火山导入顺序、Schema 持久字段和密钥边界均有覆盖；TypeScript 与中英文键检查通过。"
+      "v3.0.8 增强专项 15/15 通过：单一已选预览栏、删除/清空、autoOutput 跳过与安全遗留清理、本地受控上传 → 云端中转 → 火山导入顺序、Schema 持久字段和密钥边界均有覆盖；TypeScript 与中英文键检查通过。",
+      "固定源码 5ad4408a9eefbc4c6bf32606a86ad8167e84f528 已完成 Windows 与真实 macOS arm64 正式链；同一 Latest Release 的六项资产、两个更新清单、固定 Tag/target 与完整回下载均验证通过。"
     ],
     "compatibility": "默认渠道、默认模型、旧画布和既有 Volcengine 上传/生成链路不变；旧版自动 Output 只在可证明未被用户使用时清理，用户移动、继续连接或合并过的节点保留；新节点只有用户显式添加和运行时才查询或导入素材。"
   },
@@ -372,22 +388,22 @@
     "compatibility": "视频节点默认渠道和默认模型不变；旧 Wan、Seedance、Hailuo、Flux、Grok、FlashVSR、历史画布及已发布工作流不迁移。"
   },
   "macDesktopRelease": {
-    "status": "released-v3.0.7-mac-arm64-live-verified",
+    "status": "released-v3.0.8-mac-arm64-live-verified",
     "date": "2026-08-27",
     "releaseIncluded": true,
     "platform": "macOS 12+ / Apple Silicon arm64",
     "currentReleasePlan": {
-      "releaseTag": "v3.0.7",
-      "sourceRef": "v3.0.7",
-      "sourceCommit": "05b9086e57334b6b46fcf5256b87466353ab0e67",
+      "releaseTag": "v3.0.8",
+      "sourceRef": "v3.0.8",
+      "sourceCommit": "5ad4408a9eefbc4c6bf32606a86ad8167e84f528",
       "mode": "ad-hoc-signed-unnotarized-technical-preview",
-      "workflowRun": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/32993331496",
+      "workflowRun": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/33050616302",
       "result": "success-built-uploaded-and-remotely-verified",
-      "reason": "真实 macos-15 arm64 runner 已从与 Windows 相同的 v3.0.7 Tag/固定提交构建并验证 DMG、ZIP 与 latest-mac.yml，追加到同一 Latest Release，工作流与本地独立验证均完整回下载三项 Mac 资产；仓库尚未配置 Apple Developer ID，因此继续明确为 ad-hoc 签名、未公证技术预览。"
+      "reason": "真实 macos-15 arm64 runner 已从与 Windows 相同的 v3.0.8 Tag/固定提交构建并验证 DMG、ZIP 与 latest-mac.yml，追加到同一 Latest Release，工作流与本地独立验证均完整回下载三项 Mac 资产；仓库尚未配置 Apple Developer ID，因此继续明确为 ad-hoc 签名、未公证技术预览。"
     },
     "artifacts": [
-    "T8-PenguinCanvas-3.0.7-mac-arm64.dmg",
-    "T8-PenguinCanvas-3.0.7-mac-arm64.zip",
+      "T8-PenguinCanvas-3.0.8-mac-arm64.dmg",
+      "T8-PenguinCanvas-3.0.8-mac-arm64.zip",
       "latest-mac.yml"
     ],
     "implementation": [
@@ -401,7 +417,7 @@
     "boundaries": [
       "首个包只有 ad-hoc 完整性签名，未经过 Apple Developer ID 签名和 notarization，必须按技术预览明示。",
       "Mac 包不携带 Windows 专用 remove-ai-watermarks/ParseHub Python 离线运行时；普通画布、云端 Provider、私有后端及原生媒体工具不得因此缺失。",
-      "v3.0.7 技术预览已完成真实 macOS workflow、上传、runner 端完整回下载与本地独立完整回下载验证；未来 Developer ID 正式版仍须单独完成签名与 Apple notarization。"
+      "v3.0.8 技术预览已完成真实 macOS workflow、上传、runner 端完整回下载与本地独立完整回下载验证；未来 Developer ID 正式版仍须单独完成签名与 Apple notarization。"
     ],
     "attempts": [
       {
@@ -469,57 +485,15 @@
         "workflowRun": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/32993331496",
         "result": "success-built-uploaded-and-remotely-verified",
         "reason": "同一固定正式 Tag/commit 05b9086e57334b6b46fcf5256b87466353ab0e67 完成私有源恢复、发布合同、2948 模块生产构建、160 个后端源加密、7/7 app.asar 启动合同、arm64 原生依赖、ad-hoc 签名、DMG/ZIP/更新清单验证、同一 Release 追加上传、runner 三资产完整回下载和本地独立三资产完整回下载。"
+      },
+      {
+        "sourceRef": "v3.0.8",
+        "workflowRun": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/33050616302",
+        "result": "success-built-uploaded-and-remotely-verified",
+        "reason": "同一固定正式 Tag/commit 5ad4408a9eefbc4c6bf32606a86ad8167e84f528 完成私有源恢复、发布合同、2948 模块生产构建、160 个后端源加密、7/7 app.asar 启动合同、arm64 原生依赖、ad-hoc 签名、DMG/ZIP/更新清单验证、同一 Release 追加上传、runner 三资产完整回下载和本地独立三资产完整回下载。"
       }
     ],
     "previousReleaseEvidence": {
-      "sourceRef": "v3.0.6",
-      "sourceCommit": "47c3d4aa10825d409deb98bcc266cf50fb437c80",
-      "workflowRun": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/32987354091",
-      "workflowConclusion": "success",
-      "workflowCompletedAt": "2026-08-26T16:22:17Z",
-      "releaseUrl": "https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.0.6",
-      "releasePublishedAt": "2026-08-26T16:14:10Z",
-      "macAssetsUploadedAt": "2026-08-26T16:21:30Z",
-      "releaseTarget": "47c3d4aa10825d409deb98bcc266cf50fb437c80",
-      "releaseTargetUnchanged": true,
-      "windowsAssetsUnchanged": [
-        {
-          "name": "T8-PenguinCanvas-Setup-3.0.6.exe",
-          "size": 1354460018,
-          "sha256": "49fad093930a587526ae0428aa0b474327a9b466166707935e63371c97a7f3b9"
-        },
-        {
-          "name": "T8-PenguinCanvas-Setup-3.0.6.exe.blockmap",
-          "size": 1413092,
-          "sha256": "15f80f9ba0aff074393008bed6a89a6a56cc918813ff7252b1b06b72919d5bf3"
-        },
-        {
-          "name": "latest.yml",
-          "size": 362,
-          "sha256": "5119cecd6fcc800fcc7bd79c607fa7cb83a3c65e6dc757e456705468d22aacf0"
-        }
-      ],
-      "macArtifacts": [
-        {
-          "name": "T8-PenguinCanvas-3.0.6-mac-arm64.dmg",
-          "size": 468445338,
-          "sha256": "1ad1147c427a241bf5803c57e400e0e23a5c8aff8a177dfc23a99d4a07c398df"
-        },
-        {
-          "name": "T8-PenguinCanvas-3.0.6-mac-arm64.zip",
-          "size": 461298875,
-          "sha256": "972659e23b0018e9d955aa4b56d8ccd47f459026e208a672cb33a38c72afcaab"
-        },
-        {
-          "name": "latest-mac.yml",
-          "size": 536,
-          "sha256": "320268579ba6b9adf3ad13f16e195ffb021370c0eeac958e1b18e50436f8cd13"
-        }
-      ],
-      "signing": "ad-hoc-integrity-signed; no Apple Developer ID; not notarized",
-      "verification": "Windows 发布器完整回下载三项 Windows 资产；macOS runner 完整回下载三项 Mac 资产。六项 GitHub size/SHA-256、latest.yml/latest-mac.yml 清单、固定 Tag/target 与 Latest 全部一致。"
-    },
-    "releaseEvidence": {
       "sourceRef": "v3.0.7",
       "sourceCommit": "05b9086e57334b6b46fcf5256b87466353ab0e67",
       "workflowRun": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/32993331496",
@@ -562,6 +536,54 @@
           "name": "latest-mac.yml",
           "size": 536,
           "sha256": "2370e49e15d4145764c0391a732477b3d681c31ef35b369abbbf5628cafbdd9f"
+        }
+      ],
+      "signing": "ad-hoc-integrity-signed; no Apple Developer ID; not notarized",
+      "verification": "Windows 发布器完整回下载三项 Windows 资产；macOS runner 完整回下载三项 Mac 资产。六项 GitHub size/SHA-256、latest.yml/latest-mac.yml 清单、固定 Tag/target 与 Latest 全部一致。"
+    },
+    "releaseEvidence": {
+      "sourceRef": "v3.0.8",
+      "sourceCommit": "5ad4408a9eefbc4c6bf32606a86ad8167e84f528",
+      "workflowRun": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/33050616302",
+      "workflowConclusion": "success",
+      "workflowCompletedAt": "2026-08-27T07:45:41Z",
+      "releaseUrl": "https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.0.8",
+      "releasePublishedAt": "2026-08-27T07:38:22Z",
+      "macAssetsUploadedAt": "2026-08-27T07:44:37Z",
+      "releaseTarget": "5ad4408a9eefbc4c6bf32606a86ad8167e84f528",
+      "releaseTargetUnchanged": true,
+      "windowsAssetsUnchanged": [
+        {
+          "name": "T8-PenguinCanvas-Setup-3.0.8.exe",
+          "size": 1354463465,
+          "sha256": "18d50bcef887a0c1ae4459dbe91841ec19395a9b96b46148ba0acce84bb1f999"
+        },
+        {
+          "name": "T8-PenguinCanvas-Setup-3.0.8.exe.blockmap",
+          "size": 1413574,
+          "sha256": "cba423e4ee5aace84122e56228c62f93747558f481a34064491fa5055fd824f1"
+        },
+        {
+          "name": "latest.yml",
+          "size": 362,
+          "sha256": "1dcca85d8daf4e4ba29785b2346e5d8a59398e02771768709a95e9d45a07451b"
+        }
+      ],
+      "macArtifacts": [
+        {
+          "name": "T8-PenguinCanvas-3.0.8-mac-arm64.dmg",
+          "size": 468423467,
+          "sha256": "ecb51699973761f40e2615e2eaa8443edf69c6bc5f5c4269faaf113af79b21a2"
+        },
+        {
+          "name": "T8-PenguinCanvas-3.0.8-mac-arm64.zip",
+          "size": 461302294,
+          "sha256": "c7fdc3912928a4e7794b2e14580ef9da6d0c594f2e29db4eea726412ee6420aa"
+        },
+        {
+          "name": "latest-mac.yml",
+          "size": 536,
+          "sha256": "b3bac7017e33bd4c0e1672a7bf6d5b7576a226167ef0d50b00d4b4a8d7beacf9"
         }
       ],
       "signing": "ad-hoc-integrity-signed; no Apple Developer ID; not notarized",
