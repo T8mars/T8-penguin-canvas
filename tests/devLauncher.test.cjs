@@ -5,6 +5,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const http = require('node:http');
 const path = require('node:path');
+const { spawnSync } = require('node:child_process');
 const { waitForLocalService } = require('../scripts/wait-for-local-service.cjs');
 
 test('development launcher waits for backend before frontend and browser', () => {
@@ -46,6 +47,19 @@ test('development launcher waits for backend before frontend and browser', () =>
     newlineCount,
     'start-dev.bat must use CRLF consistently because cmd.exe can concatenate bare-LF commands',
   );
+});
+
+test('development cleanup script resolves its project root after parameter binding', { skip: process.platform !== 'win32' }, () => {
+  const scriptPath = path.join(__dirname, '..', 'scripts', 'stop-local-dev-processes.ps1');
+  const result = spawnSync(
+    'powershell.exe',
+    ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', scriptPath, '-PortList', '65534,65535'],
+    { encoding: 'utf8', timeout: 15_000 },
+  );
+
+  assert.equal(result.error, undefined);
+  assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
+  assert.doesNotMatch(`${result.stdout}\n${result.stderr}`, /Cannot bind argument to parameter 'Path'/i);
 });
 
 test('development backend uses the Electron ABI owner and watches source dependencies', () => {
