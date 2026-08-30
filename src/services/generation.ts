@@ -760,7 +760,7 @@ export interface GenerateLlmRequest {
   /** 流式开关;默认 false(非流式) */
   stream?: boolean;
   /** 后端受控请求配置；提示词增强器使用真实媒体上传并禁止自动重放付费请求。 */
-  requestProfile?: 'minimax-h3-prompt-enhancer' | 'minimax-music3-prompt-enhancer' | 'seedance20-prompt-enhancer' | 'mv-music-master';
+  requestProfile?: 'minimax-h3-prompt-enhancer' | 'minimax-music3-prompt-enhancer' | 'seedance20-prompt-enhancer' | 'mv-music-master' | 'localization-master';
 }
 
 export interface GenerateLlmResult {

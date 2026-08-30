@@ -1,7 +1,32 @@
 {
   "$schema": "本文件为 T8-penguin-canvas 节点清单防丢失锁,任何节点删减都需要在 roadmap.md 中说明并更新本文件。",
-  "version": "3.0.9",
-  "lastUpdated": "2026-08-27-v3.0.9-release-live-verified",
+  "version": "3.1.0",
+  "lastUpdated": "2026-08-30-v3.1.0-release-authorized",
+  "electronReleaseV310": {
+    "status": "authorized-pending-technical-gates",
+    "date": "2026-08-30",
+    "releaseIncluded": true,
+    "version": "3.1.0",
+    "tag": "v3.1.0",
+    "scope": [
+      "Creator Agent 作品化把真实 LLM、版本化作品文档、字段锁与差异、媒体接地、建议回执、工具预览/批准/执行及可验证交付收敛为同一作品生命周期。",
+      "新增多语言本地化大师核心节点，支持剧本/字幕/音视频输入、上下文翻译、术语与保护词、五语 IndexTTS 2.5 本地配音、字幕、换轨、QC 与交付清单。",
+      "视频节点 Veo TAB 新增 zhenzhen-video-g-omni-1.1-flash-lowprice，精确支持文生、单首帧、三图参考和单视频参考四种模式及四份无凭据工作流。",
+      "默认 Provider 与模型继续为贞贞的平价AI小屋 / bytedance/doubao-seed-2.1-pro；完整承接 v3.0.9 及更早节点、工作流、旧画布、双语主题、MiniMax Music3、Windows/macOS 与自动更新能力。"
+    ],
+    "verification": [
+      "Creator Agent 低资源串行回归 229/229、真实受控 Chromium、真实平价小屋 LLM、真实工具预览/批准/执行与物理媒体交付已经通过。",
+      "本地化专项与直接运行时 17/17、五语真实 IndexTTS 2.5 推理/复用、四次付费翻译加中文恒等分支、完整解码与脱敏证据已经通过。",
+      "Veo Omni 1.1 模型/请求/四份工作流专项 5/5 和相邻高级 Provider 19/19 通过；一次真实 4 秒任务成功下载 1280x720 H.264 MP4，并通过 FFprobe 与 FFmpeg 全片解码。",
+      "Windows Electron 正式构建、app.asar 合同、NSIS、provenance、sealed recovery、远端上传与完整回下载，以及真实 macOS arm64 同源构建/上传仍须在固定发布提交后完成。"
+    ],
+    "evidenceBoundary": {
+      "technicalGates": "must-pass-before-publish",
+      "affectedUserInstallF8F10AndInstalledUpgrade": "deferred-not-passed",
+      "deferralApproval": "owner-approved-post-release-v3.1.0",
+      "rule": "证据后补只适用于反馈用户安装、多端协作、F8-F10、真人听感与安装升级；测试、构建、加密、运行时、app.asar 启动合同、NSIS、provenance、sealed recovery、固定 Tag/target、Windows/Mac 自动更新资产与完整性验证不可延期。"
+    }
+  },
   "electronReleaseV309": {
     "status": "released-live-verified",
     "date": "2026-08-27",
@@ -1694,6 +1719,108 @@
       "TypeScript、public-check、能力同步（31 actions / 225 runtime / 76/76 nodes / 0 public gaps）与 2862 模块生产构建在 2026-08-08 文档刷新后重新通过。"
     ],
     "security": "API Key 只允许由一次性进程环境注入真实验收脚本；源码、工作流与脱敏报告不得保存密钥、任务 ID、签名 URL或 Provider 原始响应。"
+  },
+  "veoOmni11FlashLowprice": {
+    "status": "release-authorized-v3.1.0-live-verified",
+    "date": "2026-08-30",
+    "releaseIncluded": true,
+    "provider": "seedance-nz",
+    "platform": "贞贞的平价AI小屋",
+    "tab": "Veo",
+    "model": "zhenzhen-video-g-omni-1.1-flash-lowprice",
+    "officialDocs": "https://api.seedance.nz/docs/llms.txt",
+    "officialDocsSnapshot": {
+      "lastModified": "Sat, 29 Aug 2026 17:06:39 GMT",
+      "sha256": "be800d9ffd524f2ef66039b78e712661f2df744a7a261e7203aba59c93d00b46"
+    },
+    "referenceProject": "F:/AI-T8-video-onekey/ComfyUI/custom_nodes/ComfyUI_Seedance",
+    "contract": {
+      "endpoint": "POST /v1/videos",
+      "seconds": [4, 6, 8, 10],
+      "resolutions": ["720p", "1080p", "4k"],
+      "aspectRatios": ["16:9", "9:16"],
+      "modes": ["text", "frame", "reference_images", "reference_video"],
+      "images": "0、1 或 3 张；单图按 frame 提交，三图按 reference 提交",
+      "video": "最多 1 个参考视频；提交 metadata.video_url 时省略 seconds"
+    },
+    "workflows": [
+      "docs/workflows/zhenzhen-video-g-omni-1.1-flash-lowprice-text.json",
+      "docs/workflows/zhenzhen-video-g-omni-1.1-flash-lowprice-frame.json",
+      "docs/workflows/zhenzhen-video-g-omni-1.1-flash-lowprice-reference-images.json",
+      "docs/workflows/zhenzhen-video-g-omni-1.1-flash-lowprice-reference-video.json"
+    ],
+    "verification": [
+      "按官方 llms.txt 当前模型条目和 ComfyUI_Seedance 同名实现逐项核对，不复用相似模型猜测协议。",
+      "模型目录、Veo TAB、UI 模式、Provider Payload、付费前素材边界和 12 份 Grok/Omni 相邻工作流回归 5/5 通过；高级 Provider 相邻回归 19/19 通过。",
+      "真实 API 只提交一次 4 秒/720p/16:9 文生任务，成功下载 1,113,661-byte MP4；FFprobe 为 H.264 1280x720、4.01 秒，FFmpeg 全片解码通过。",
+      "真实输出 SHA-256 为 e30fb3ed19ff59ca2518e6e02d209219069173257164634e0d40a28c2d3fd81f；脱敏报告不保存 API Key、taskId、签名 URL 或原始响应。"
+    ],
+    "boundaries": [
+      "既有 zhenzhen-video-g-omni-flash-lowprice、默认渠道/模型、旧画布显式参数和所有历史模型保持不变。",
+      "四份工作流不包含凭据；真实验证密钥仅由一次性进程环境注入。"
+    ]
+  },
+  "localizationMaster": {
+    "status": "release-authorized-v3.1.0-live-translation-and-five-language-tts-verified",
+    "date": "2026-08-30",
+    "releaseIncluded": true,
+    "nodeType": "localization-master",
+    "exampleWorkflow": "docs/workflows/localization-master.json",
+    "defaultLlm": {
+      "provider": "seedance-nz",
+      "model": "bytedance/doubao-seed-2.1-pro",
+      "label": "贞贞的平价AI小屋"
+    },
+    "ttsRuntime": {
+      "engine": "embedded-index-tts-2.5",
+      "requiresComfyUI": false,
+      "worker": "backend/src/tools/localizationRuntime/worker.py",
+      "modelRepository": "IndexTeam/IndexTTS-2.5",
+      "modelRevision": "c39ce5ba981572cb187443877ff559dfb246ce63",
+      "modelLicense": "https://github.com/index-tts/index-tts/blob/main/LICENSE_ZH.txt",
+      "modelFingerprint": "75c94693ecbf6745d7a7dbbdbd4c685f9033888232f049130c641c9273f0c560",
+      "auxiliaryManifest": "backend/src/tools/localizationRuntime/auxiliary-models.json",
+      "auxiliaryFileCount": 11,
+      "auxiliaryFingerprint": "bf7c46442d0a1308d4a2fe93401362813af5f9eeea77931b8a97d66f220164f2",
+      "asrModel": "Systran/faster-whisper-small@536b0662742c02347bc0e980a01041f333bce120",
+      "supportedDubbingLanguages": ["ZH", "EN", "JA", "ES", "AR"]
+    },
+    "ports": {
+      "inputs": ["video|audio:source-media", "text:source-text", "audio|video:voice-references"],
+      "outputs": ["video:localized-video", "audio:dubbed-audio", "text:subtitles", "metadata:manifest"]
+    },
+    "scope": [
+      "独立核心节点完成剧本/SRT/VTT 解析、Whisper 转写、分批上下文 LLM 翻译、术语与保护词、逐句译文/发音/情绪审核、角色音色授权、IndexTTS 2.5 直接配音、字幕落盘、视频换轨和 QC/交付清单。",
+      "TTS 由画布后端托管 Python Worker 直接运行，不访问 8188、/prompt、/queue、ComfyUI Provider 或 ComfyUI WebSocket，也不启动 ComfyUI。",
+      "首次安装须显式确认模型许可证；核心模型和 5 个辅助仓库/11 个必要文件均固定 revision 与 SHA-256，推理 Worker 强制离线，禁止首次推理临时下载。",
+      "翻译默认保持贞贞的平价AI小屋 bytedance/doubao-seed-2.1-pro，同时允许工坊与全部已启用扩展 LLM；失效渠道或模型失败关闭。",
+      "Windows 复用应用托管 Python，macOS arm64 包装固定 Python 3.12 运行时；Worker 作为 Electron extraResources 独立资源进入包内。",
+      "每个目标语言拥有独立翻译、逐句审核、音色、配音、QC 与交付分支；切换或重跑一个语言不会覆盖其他语言。",
+      "IndexTTS 任务使用哈希化稳定 jobId、原子 manifest/result、物理文件 SHA-256 复核和单 Worker 串行队列；刷新或重启复用已验证结果，损坏或中断结果不自动重复推理。",
+      "逐句发音标注作为实际语音稿进入 IndexTTS，显示译文继续用于字幕；中文 ASR 仅对繁简和数字字形做语义等价归一化，不降低质量阈值。",
+      "Creator Agent 通过 localization.create/transcribe/translate/cast-voices/generate-dub/compose/verify/package 高层能力准备节点和阶段请求；付费翻译或本地推理仍由用户在节点中明确运行。"
+    ],
+    "verification": [
+      "本地化专项与直接运行时测试 17/17 通过，覆盖解析、严格翻译质量门、独立语言分支、固定五语 TTS 边界、无 ComfyUI 依赖、双平台 Worker/托管 Python合同，以及 Unicode 路径下的持久任务复用和损坏结果失败关闭。",
+      "真实贞贞平价小屋 bytedance/doubao-seed-2.1-pro 完成 EN/JA/ES/AR 四次付费上下文翻译；ZH 为确定性源文恒等零调用。五语均保留 T8、2026 与 {count} 并通过质量门，真实脱敏证据位于 artifacts/localization-master-live/translation-report.json。",
+      "先前一次同步 HTTP 524 被记录为 ambiguous 且没有自动重试；脱敏报告不保存 API Key、原始响应或签名 URL。",
+      "Creator Agent 已登记并校验八个本地化高层能力；Creator/Tool/UI 低资源串行回归 229/229 通过。",
+      "失败关闭的 IndexTTS 2.5 五语真实验收器与专项回归通过：许可证未接受时下载/推理提交为 0；接受后按 ZH/EN/JA/ES/AR 串行执行真实推理、ASR 一次快速重试、完整解码、PCM 非静音/削波、字幕、物理 hash、同任务复用与任务检查。",
+      "五语验收预检已真实通过：翻译分支齐全；清洗后的合成参考音色为 24kHz/单声道/27.68 秒 PCM WAV，整段 ffmpeg 解码成功，1,328,718 bytes，SHA-256 70e9bf74e4ba709e4650c4337e884a3de6dcc3a9865eca3fe59842fbbf5b612e，RMS -23.661 dBFS、削波率 0。脱敏预检证据位于 artifacts/localization-master-live/indextts-five-language-preflight.json，且明确记录 inferenceExecuted=false。",
+      "许可接受后已安装并全量校验固定核心模型和 11 个辅助文件；RTX 4060 Ti / Torch 2.10.0+cu130 完成五语真实推理，ASR 相似度为 ZH 1、EN 0.777778、JA 0.9375、ES 0.990476、AR 0.875，均通过 0.60 门槛。",
+      "五条 22.05kHz 单声道 PCM WAV 均完成全解码、非静音、削波、字幕与物理 hash 校验；停止 Worker 后二次请求全部复用相同 jobId/hash，脱敏证据位于 artifacts/localization-master-live/indextts-five-language-report.json。",
+      "能力同步通过 39 actions / 278 runtime entries / 83 of 83 nodes / 0 public gaps；中英文 4377 keys 与 TypeScript 通过。",
+      "真实 Chromium 在现有开发画布验证英文目录、默认平价小屋 2.1、目标语言矩阵、浅色/深色主题和运行时许可证文案；控制台 error 为 0，主题已恢复。"
+    ],
+    "evidenceBoundary": {
+      "fullModelDownload": "passed-license-accepted-core-and-11-auxiliary-files-sha256-verified",
+      "liveIndexTtsInference": "passed-five-languages-real-inference-and-restart-safe-reuse",
+      "fiveLanguageVerifier": "passed-zh-en-ja-es-ar",
+      "livePaidLlmTranslation": "passed-4-paid-calls-plus-1-source-identity-branch",
+      "electronPackage": "pending-v3.1.0-technical-gate",
+      "gitOrRelease": "authorized-pending-v3.1.0-technical-gates",
+      "rule": "核心目录真实 LLM 翻译与五语 IndexTTS 端到端技术验收已通过；只有 v3.1.0 Electron/双平台自动更新技术门禁全部收敛后才能称为已发布，真人听感盲评仍须后补。"
+    }
   },
   "mvMusicMaster": {
     "status": "released-v2.8.3",
@@ -14527,6 +14654,58 @@
       "This implementation shipped in the fixed v3.0.2 Windows release and is carried unchanged into v3.0.3 for the unified Windows and Mac release.",
       "Issue #24 must not close before real affected-canvas five-minute recovery and packaged-platform evidence; Issue #25 must not close before Provider English gold paths plus full zoom/screen-reader acceptance.",
       "The runtime English audit is opt-in only and explicitly excludes user/provider/runtime-diagnostic content."
+    ]
+  },
+  "creatorAgentWorkObjectLifecycle": {
+    "status": "release-authorized-v3.1.0-live-verified",
+    "date": "2026-08-29",
+    "releaseIncluded": true,
+    "schemas": {
+      "work": "t8-creator-work-snapshot-v1",
+      "artifactVersion": "t8-creator-work-artifact-version-v1",
+      "artifactDiff": "t8-creator-work-artifact-diff-v1",
+      "llmTurnReceipt": "t8-creator-llm-turn-receipt-v1",
+      "toolProposal": "t8-creator-tool-proposal-v1"
+    },
+    "formalLlmContract": {
+      "requiredFor": ["create", "rewrite", "continue", "review", "direct", "optimize"],
+      "qualityModeProviderCalls": {
+        "quick": 1,
+        "standard": 2,
+        "quality": 3
+      },
+      "offlineFormalWorkAllowed": false,
+      "rawProviderStructureVisibleBeforeValidation": false
+    },
+    "workFamilies": ["commerce", "image", "video", "story", "audio", "mixed"],
+    "artifactKinds": [
+      "ProductionBrief", "TaskProfile", "CreativeDirectionSet", "ProductTruth", "BrandKit",
+      "CommerceContentPlan", "CopySet", "VisualSpec", "LayoutSpec", "EditPlan", "ScriptDoc",
+      "WorldBible", "CharacterBible", "ShotList", "Storyboard", "MotionPlan", "AudioPlan",
+      "AssetNeed", "PromptPack", "CandidateReview", "EDL", "QCReport", "DeliveryManifest"
+    ],
+    "highlights": [
+      "正式作品只有在真实 LLM、严格结构、质量与回执绑定全部通过后才原子提交；输入、输出、模型、调用序号和最终 work revision/digest 可审计。",
+      "作品支持类型化 artifact 版本、字段级 diff、字段锁和依赖失效；越过允许 mutation scope 或修改锁定字段会在副作用前失败关闭。",
+      "图片/视频正式创作绑定实际媒体观察；音频通过 Whisper 转写绑定 asset revision、SHA-256 和转写摘要，不允许仅凭文件名或数量创作正式作品。",
+      "工具提议精确绑定回复、计划、artifact、work 与 Canvas revision；先安全准备并进入现有 Patch 预览，用户批准后才运行，结果阶段回写同一作品。",
+      "Creator Agent 面板展示结构化作品卡、版本/diff/锁定、质量与接地诊断、提议生命周期和双语预览动作；用户 Prompt、Provider 内容和模型 ID 不被翻译。",
+      "生产交付继续复用来源可追溯的 CandidateReview、EDL、QCReport 和 DeliveryManifest，不创建第二套会话、执行器、资产或完成状态。"
+    ],
+    "verification": [
+      "Creator Agent/Tool/UI 相关 10 个测试套件低资源串行回归合计 229/229 通过。",
+      "NODE_OPTIONS=--max-old-space-size=2048 npm run type-check 通过。",
+      "npm run i18n:check 通过：中英文 4377 keys、83 个内置节点；新增 Creator Agent 与本地化可见文案无目录缺口。",
+      "npm run feature-sync:check 通过：39 个动作、277 个运行时条目、83/83 个内置节点且零能力覆盖缺口。",
+      "NODE_OPTIONS=--max-old-space-size=2048 npm run build 通过：Vite production build 转换 2951 个模块，仅保留既有 empty react-vendor/chunk-size 警告。",
+      "真实 Chromium 受控本地 Provider 验收通过：作品 V1、9 个结构化文档、3 个与作品 digest 绑定的建议、2 次 Quick 模型调用、原始结构 JSON 不可见、停止回复保留部分正文、画布 revision 1→1、浏览器错误 0。",
+      "真实贞贞平价小屋 bytedance/doubao-seed-2.1-pro 完成初稿、仅修改结尾和进入下一阶段共 3 次付费调用；作品 revision 1→4，修改轮保留前五镜头和全部范围外字段。",
+      "真实工具预览/批准/Run/writeback 生成并物理验证 1792×1008 JPEG（442,221 bytes，SHA-256 8e450f0befdb61105f6108550aa61ca5bf71de7d5d928e1eb53850d4b89ab91e），随后完成 CandidateReview、采用回执、图像 EDL、QC 与实体交付；素材许可证未知态保持待复核。"
+    ],
+    "boundaries": [
+      "真实 LLM、真实 Canvas Patch、真实媒体 Run 和物理交付已经有脱敏证据；未执行独立真人盲评，且未知素材许可证继续阻止 release-ready 结论。",
+      "已执行普通 Vite production build 与真实 Chromium 验收；v3.1.0 Electron 构建、打包、固定 Tag 与发布仍是发布前必须通过的技术门禁。",
+      "高层工具只覆盖能力图中注册的受控入口；本地化阶段仍需用户在节点中明确运行，任意内部路由、凭据、原始 CanvasPatch 或 Worker 调用继续失败关闭。"
     ]
   }
 }

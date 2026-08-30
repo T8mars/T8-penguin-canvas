@@ -282,11 +282,14 @@ test('ImageNode makes ModelScope multi-LoRA total weight visible and bounded', (
 
 test('ImageNode lets Jimeng CLI request up to 10 images without lifting other providers past 4', () => {
   const source = fs.readFileSync(new URL('../src/components/nodes/ImageNode.tsx', import.meta.url), 'utf8');
+  const resources = fs.readFileSync(new URL('../src/i18n/resources.ts', import.meta.url), 'utf8');
 
   assert.match(source, /const isJimengCliImageSelected = isExternalSelected && providerSelection\.provider\?\.protocol === 'jimeng-cli'/);
   assert.match(source, /const externalImageCountLimit = isJimengCliImageSelected \? 10 : 4/);
   assert.match(source, /Math\.min\(externalImageCountLimit,\s*Number\(d\?\.providerParams\?\.n \|\| 1\)\)/);
-  assert.match(source, /生成数量/);
+  assert.match(source, /translate\('nodes:generation\.generationCount'\)/);
+  assert.match(resources, /generationCount:\s*'生成数量'/);
+  assert.match(resources, /generationCount:\s*'Generation count'/);
   assert.match(source, /自定义宽高（v\{JIMENG_CLI_SUPPORTED_VERSION\}）/);
   assert.match(source, /Seedream 3\.0\/3\.1 支持 1K\/2K；5\.0 Pro 支持 1\.5K\/2K\/4K/);
   assert.match(source, /图生图支持 1-10 张参考图/);
@@ -367,8 +370,10 @@ test('zhenzhen local group selection extension points are wired without making p
 test('Agnes provider settings and video node controls are exposed', () => {
   const settings = fs.readFileSync(new URL('../src/components/ApiSettings.tsx', import.meta.url), 'utf8');
   const videoNode = fs.readFileSync(new URL('../src/components/nodes/VideoNode.tsx', import.meta.url), 'utf8');
+  const resources = fs.readFileSync(new URL('../src/i18n/resources.ts', import.meta.url), 'utf8');
 
-  assert.match(settings, /agnes:\s*'Agnes AI'/);
+  assert.match(settings, /advancedProviderLabel\(provider\.protocol\)/);
+  assert.match(resources, /agnes:\s*\{\s*label:\s*'Agnes AI'/);
   assert.match(settings, /https:\/\/apihub\.agnes-ai\.com\/v1/);
   assert.match(settings, /AGNES_API_KEY_URL = 'https:\/\/platform\.agnes-ai\.com\/settings\/apiKeys'/);
   assert.match(videoNode, /providerSelection\.provider\?\.protocol === 'agnes'/);
@@ -379,10 +384,12 @@ test('Agnes provider settings and video node controls are exposed', () => {
 
 test('OpenAI compatible provider settings advertise image edit endpoint', () => {
   const settings = fs.readFileSync(new URL('../src/components/ApiSettings.tsx', import.meta.url), 'utf8');
+  const resources = fs.readFileSync(new URL('../src/i18n/resources.ts', import.meta.url), 'utf8');
 
-  assert.match(settings, /\/v1\/images\/generations/);
-  assert.match(settings, /\/v1\/images\/edits/);
-  assert.match(settings, /\/v1\/chat\/completions/);
+  assert.match(settings, /t\(`providers\.\$\{protocol\}\.description` as any\)/);
+  assert.match(resources, /\/v1\/images\/generations/);
+  assert.match(resources, /\/v1\/images\/edits/);
+  assert.match(resources, /\/v1\/chat\/completions/);
 });
 
 test('advanced provider API keys have bounded visibility toggles', () => {

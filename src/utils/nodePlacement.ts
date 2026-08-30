@@ -50,6 +50,7 @@ export const NODE_DEFAULT_SIZE: Record<string, { w: number; h: number }> = {
   'script-master': { w: 390, h: 360 },
   'minimax-music3-prompt-enhancer': { w: 440, h: 760 },
   'mv-music-master': { w: 410, h: 430 },
+  'localization-master': { w: 560, h: 720 },
   audio: { w: 320, h: 380 },
   llm: { w: 320, h: 360 },
   runninghub: { w: 360, h: 460 },

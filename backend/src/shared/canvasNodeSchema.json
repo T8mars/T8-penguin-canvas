@@ -706,6 +706,20 @@
         { "id": "manifest", "kinds": ["metadata"], "required": false, "minConnections": 0, "maxConnections": null, "preferred": false }
       ]
     },
+    "localization-master": {
+      "resolver": "static",
+      "inputs": [
+        { "id": "source-media", "kinds": ["video", "audio"], "required": false, "minConnections": 0, "maxConnections": 1 },
+        { "id": "source-text", "kinds": ["text"], "required": false, "minConnections": 0, "maxConnections": 1 },
+        { "id": "voice-references", "kinds": ["audio", "video"], "required": false, "minConnections": 0, "maxConnections": 16 }
+      ],
+      "outputs": [
+        { "id": "localized-video", "kinds": ["video"], "required": false, "minConnections": 0, "maxConnections": null, "preferred": true },
+        { "id": "dubbed-audio", "kinds": ["audio"], "required": false, "minConnections": 0, "maxConnections": null, "preferred": false },
+        { "id": "subtitles", "kinds": ["text"], "required": false, "minConnections": 0, "maxConnections": null, "preferred": false },
+        { "id": "manifest", "kinds": ["metadata"], "required": false, "minConnections": 0, "maxConnections": null, "preferred": false }
+      ]
+    },
     "runninghub": {
       "resolver": "static",
       "inputs": [
@@ -3379,6 +3393,86 @@
             { "id": "master-audio", "kinds": ["audio"], "required": false, "minConnections": 0, "maxConnections": null, "preferred": false },
             { "id": "storyboards", "kinds": ["image"], "required": false, "minConnections": 0, "maxConnections": null, "preferred": false },
             { "id": "prompt-pack", "kinds": ["text"], "required": false, "minConnections": 0, "maxConnections": null, "preferred": false },
+            { "id": "manifest", "kinds": ["metadata"], "required": false, "minConnections": 0, "maxConnections": null, "preferred": false }
+          ]
+        }
+      }
+    },
+    {
+      "type": "localization-master",
+      "label": "多语言本地化大师",
+      "category": "core",
+      "description": "通过上下文 LLM 翻译、字幕审核和画布内置 IndexTTS 2.5，直接完成五语种配音、字幕、换轨与交付；无需启动 ComfyUI",
+      "icon": "Languages",
+      "color": "teal",
+      "ports": {
+        "inputs": ["video", "audio", "text"],
+        "outputs": ["video", "audio", "text", "metadata"]
+      },
+      "executable": true,
+      "generatable": true,
+      "generation": {
+        "allowedDataFields": {
+          "mode": { "type": "string", "enum": ["subtitle-only", "dubbing-only", "full"] },
+          "sourceLanguage": { "type": "string", "enum": ["AUTO", "ZH", "EN", "JA", "ES", "AR", "KO", "FR", "DE", "IT", "PT", "RU", "TH", "VI", "ID", "TR", "HI"] },
+          "targetLanguage": { "type": "string", "enum": ["ZH", "EN", "JA", "ES", "AR", "KO", "FR", "DE", "IT", "PT", "RU", "TH", "VI", "ID", "TR", "HI"] },
+          "targetLanguages": { "type": "array", "maxItems": 16 },
+          "sourceText": { "type": "string", "maxLength": 500000 },
+          "glossaryText": { "type": "string", "maxLength": 100000 },
+          "protectedTermsText": { "type": "string", "maxLength": 100000 },
+            "llmApiSource": { "type": "string", "enum": ["seedance-nz", "zhenzhen"] },
+            "llmModel": { "type": "string", "maxLength": 300 },
+            "providerSource": { "type": "string", "maxLength": 80 },
+            "providerId": { "type": "string", "maxLength": 200 },
+            "providerModel": { "type": "string", "maxLength": 300 },
+            "providerParams": { "type": "object" },
+          "timelinePolicy": { "type": "string", "enum": ["shift", "overlay"] },
+          "timingMode": { "type": "string", "enum": ["pad", "native", "natural", "exact"] },
+          "asrEnabled": { "type": "boolean" },
+          "asrRetryCount": { "type": "integer", "minimum": 0, "maximum": 3 },
+          "asrThreshold": { "type": "number", "minimum": 0, "maximum": 1 },
+          "subtitleIncludeRole": { "type": "boolean" },
+          "postprocessPreset": { "type": "string", "enum": ["off", "voice_clarity", "warm_narration", "broadcast_clean", "soft_deesser"] },
+          "postprocessStrength": { "type": "number", "minimum": 0, "maximum": 1 },
+          "advancedOpen": { "type": "boolean" },
+          "localizationAgentRequest": { "type": "object", "maxProperties": 10 }
+        },
+        "defaults": {
+          "mode": "full",
+          "sourceLanguage": "AUTO",
+          "targetLanguage": "EN",
+          "targetLanguages": ["EN"],
+          "sourceText": "",
+          "glossaryText": "",
+          "protectedTermsText": "",
+            "llmApiSource": "seedance-nz",
+            "llmModel": "bytedance/doubao-seed-2.1-pro",
+            "providerSource": "zhenzhen",
+            "providerId": "",
+            "providerModel": "bytedance/doubao-seed-2.1-pro",
+            "providerParams": {},
+          "timelinePolicy": "shift",
+          "timingMode": "pad",
+          "asrEnabled": true,
+          "asrRetryCount": 1,
+          "asrThreshold": 0.82,
+          "subtitleIncludeRole": true,
+          "postprocessPreset": "voice_clarity",
+          "postprocessStrength": 0.8,
+          "advancedOpen": false,
+          "status": "idle"
+        },
+        "connectionPorts": {
+          "dynamic": false,
+          "inputs": [
+            { "id": "source-media", "kinds": ["video", "audio"], "required": false, "minConnections": 0, "maxConnections": 1 },
+            { "id": "source-text", "kinds": ["text"], "required": false, "minConnections": 0, "maxConnections": 1 },
+            { "id": "voice-references", "kinds": ["audio", "video"], "required": false, "minConnections": 0, "maxConnections": 16 }
+          ],
+          "outputs": [
+            { "id": "localized-video", "kinds": ["video"], "required": false, "minConnections": 0, "maxConnections": null, "preferred": true },
+            { "id": "dubbed-audio", "kinds": ["audio"], "required": false, "minConnections": 0, "maxConnections": null, "preferred": false },
+            { "id": "subtitles", "kinds": ["text"], "required": false, "minConnections": 0, "maxConnections": null, "preferred": false },
             { "id": "manifest", "kinds": ["metadata"], "required": false, "minConnections": 0, "maxConnections": null, "preferred": false }
           ]
         }

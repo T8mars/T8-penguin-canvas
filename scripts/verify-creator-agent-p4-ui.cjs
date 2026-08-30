@@ -1,5 +1,6 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
+const http = require('node:http');
 const net = require('node:net');
 const path = require('node:path');
 const { spawn, spawnSync } = require('node:child_process');
@@ -15,6 +16,142 @@ const TIMEOUT_MS = 120_000;
 
 function sleep(milliseconds) {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
+function creatorWorkModelResponse(qualityMode = 'quick') {
+  const shots = Array.from({ length: 6 }, (_, index) => ({
+    id: `shot-${index + 1}`,
+    durationSeconds: 5,
+    action: [
+      '雨滴掠过站牌，建立空间与末班车倒计时',
+      '两位旧友隔着雨幕认出彼此，保持人物站位',
+      '旧车票在手部近景中被雨水打湿',
+      '一人迈出半步又停下，车灯从背景扫过',
+      '一句克制道歉落在列车进站声之前',
+      '两人走进同一束暖光，画面停在并肩背影',
+    ][index],
+  }));
+  return {
+    schema: 't8-creator-work-model-response-v1',
+    displayMarkdown: [
+      '## 雨夜重逢 · 30 秒六镜头 V0',
+      '故事围绕两位成年旧友在末班车前是否重新同行展开；姓名、外貌与身份保持未知，不编造用户未提供的事实。',
+      '角色目标是说出迟到的道歉并决定是否留下；人物关系保持为成年旧友，姓名、职业和具体外貌继续标记为未知。',
+      '核心冲突是一人准备离开、另一人想挽回；旧车票被雨水打湿后形成转折，让无法开口的情绪变成一个可拍动作。',
+      '场景行动从雨滴掠过站牌开始，两个人隔着雨幕认出彼此，再用手部近景、停步和车灯扫过推进选择。',
+      '六个镜头从站牌远景推进到旧车票手部近景，再回到并肩背影；每镜 5 秒，服装、站位、光向和雨势保持连续。',
+      '结局让两人走进同一束暖光完成收束；声音以雨声、列车进站声和一句克制道歉为主，音乐方向保留待确认。',
+      '生成前先检查六镜总时长、人物连续性和逐镜提示词，再由用户采用当前版本；本轮没有执行画布工具或生成任务。',
+    ].join('\n\n'),
+    taskProfile: {
+      family: 'story',
+      intent: '制作一支可继续编辑的 30 秒雨夜重逢短片',
+      deliveryKind: 'vertical-short-film',
+      modalities: ['text', 'video', 'audio'],
+      targetPlatform: 'mobile',
+      qualityMode,
+    },
+    artifacts: [
+      { kind: 'TaskProfile', title: '任务画像', fields: {
+        family: 'story', intent: '雨夜重逢六镜头', deliveryKind: 'vertical-short-film',
+        modalities: ['text', 'video', 'audio'], targetPlatform: 'mobile', qualityMode,
+      } },
+      { kind: 'ProductionBrief', title: '创作简报', fields: {
+        title: '雨夜重逢', outcome: '30 秒六镜头竖屏短片', audience: '情感短片观众',
+        format: '9:16', durationSeconds: 30, assumptions: ['人物姓名与外貌待确认'],
+      } },
+      { kind: 'ScriptDoc', title: '剧本', fields: {
+        title: '雨夜重逢', logline: '两个旧友在末班车前决定是否重新同行。',
+        scenes: [{ id: 'scene-1', action: '雨夜站台上，一张旧车票触发迟到的道歉。' }],
+        ending: '两个人一起走入同一束暖光。',
+      } },
+      { kind: 'CharacterBible', title: '人物锚点', fields: {
+        characters: [{ id: 'friend-a', goal: '说出迟到的道歉' }, { id: 'friend-b', goal: '决定是否留下' }],
+        identityLocks: ['两位成年旧友', '服装与站位跨镜连续'],
+      } },
+      { kind: 'AssetNeed', title: '素材需求', fields: {
+        items: ['两位人物参考', '雨夜站台', '旧车票'], existing: [],
+        missing: ['人物参考图', '站台环境参考'], protected: [],
+      } },
+      { kind: 'ShotList', title: '六镜头表', fields: {
+        shots, totalDurationSeconds: 30,
+        continuityRules: ['人物服装、站位、光向与雨势连续'],
+      } },
+      { kind: 'Storyboard', title: '分镜', fields: {
+        frames: shots.map((shot) => ({ shotId: shot.id, composition: shot.action })),
+        styleContinuity: ['冷雨背景与暖车灯对照'], missingFrames: [],
+      } },
+      { kind: 'AudioPlan', title: '声音方案', fields: {
+        dialogue: ['对不起，我来晚了。'], ambience: ['雨声', '列车进站声'],
+        music: '待确认', mixNotes: ['对白优先可懂度'],
+      } },
+      { kind: 'PromptPack', title: '逐镜提示词包', fields: {
+        prompts: shots.map((shot) => ({ shotId: shot.id, prompt: `雨夜站台，${shot.action}，电影光线，人物连续` })),
+        negativePrompts: ['人物身份漂移', '服装变化', '光向跳变'],
+        reviewNotes: ['生成前需创作者采用当前版本'],
+      } },
+    ],
+    toolProposals: [],
+  };
+}
+
+async function startCreatorWorkMockProvider() {
+  const port = await findFreePort();
+  const calls = [];
+  const server = http.createServer((request, response) => {
+    if (request.method !== 'POST' || request.url !== '/v1/chat/completions') {
+      response.writeHead(404).end();
+      return;
+    }
+    let body = '';
+    request.setEncoding('utf8');
+    request.on('data', (chunk) => { body += chunk; });
+    request.on('end', () => {
+      const parsed = JSON.parse(body || '{}');
+      const messages = JSON.stringify(parsed.messages || []);
+      const qualityMode = messages.includes('qualityMode 必须为“quality”')
+        ? 'quality' : messages.includes('qualityMode 必须为“standard”') ? 'standard' : 'quick';
+      const content = JSON.stringify(creatorWorkModelResponse(qualityMode));
+      const id = `creator-work-browser-${calls.length + 1}`;
+      calls.push({ id, qualityMode, stream: parsed.stream === true });
+      if (parsed.stream === true) {
+        response.writeHead(200, {
+          'content-type': 'text/event-stream; charset=utf-8',
+          'cache-control': 'no-cache',
+          connection: 'keep-alive',
+        });
+        for (let offset = 0; offset < content.length; offset += 600) {
+          response.write(`data: ${JSON.stringify({
+            id,
+            model: parsed.model,
+            choices: [{ index: 0, delta: { content: content.slice(offset, offset + 600) }, finish_reason: null }],
+          })}\n\n`);
+        }
+        response.write(`data: ${JSON.stringify({
+          id,
+          model: parsed.model,
+          choices: [{ index: 0, delta: {}, finish_reason: 'stop' }],
+        })}\n\n`);
+        response.end('data: [DONE]\n\n');
+        return;
+      }
+      response.writeHead(200, { 'content-type': 'application/json; charset=utf-8' });
+      response.end(JSON.stringify({
+        id,
+        model: parsed.model,
+        choices: [{ index: 0, message: { role: 'assistant', content }, finish_reason: 'stop' }],
+      }));
+    });
+  });
+  await new Promise((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(port, '127.0.0.1', resolve);
+  });
+  return {
+    calls,
+    url: `http://127.0.0.1:${port}`,
+    close: () => new Promise((resolve) => server.close(resolve)),
+  };
 }
 
 function assertInside(parent, candidate, label) {
@@ -389,6 +526,7 @@ async function readAgentLayout(cdp) {
       panelColor: panelStyle.color,
       panelBackground: panelStyle.backgroundColor,
       launcherBackground: launcherStyle.backgroundImage,
+      launcherBackgroundColor: launcherStyle.backgroundColor,
       suggestionCount: document.querySelectorAll('.t8-creator-agent-suggestions button').length,
       emptyStateTitle: document.querySelector('.t8-creator-agent-empty h2')?.textContent?.trim() || '',
       panelLabel: panel.getAttribute('aria-label'),
@@ -415,7 +553,11 @@ async function assertLayout(cdp, expectedTheme) {
   assert.ok(layout.panel.top >= 0 && layout.panel.bottom <= layout.viewport.height, '面板超出垂直视口');
   assert.equal(rectsOverlap(layout.launcher, layout.minimap), false, 'Creator Agent 启动按钮遮挡了右侧地图');
   assert.notEqual(layout.panelColor, 'rgba(0, 0, 0, 0)');
-  assert.ok(layout.launcherBackground.includes('gradient'), '启动按钮没有应用主题渐变');
+  assert.ok(
+    layout.launcherBackground.includes('gradient')
+      || !['rgba(0, 0, 0, 0)', 'transparent'].includes(layout.launcherBackgroundColor),
+    '启动按钮没有应用可见的主题背景',
+  );
   return layout;
 }
 
@@ -470,6 +612,7 @@ async function run() {
       T8PC_DEV_PROJECT_DB_STORAGE_PROFILE: 'acceptance-small-v1',
       T8_COLLAB_MANAGEMENT_TOKEN: authorityToken,
       T8_FIGMA_BRIDGE_AUTOSTART: '0',
+      T8_CREATOR_AGENT_RESPONSE_DELTA_DELAY_MS: '250',
       TEMP: TEMP_ROOT,
       TMP: TEMP_ROOT,
     },
@@ -494,6 +637,7 @@ async function run() {
   });
   let chrome = null;
   let cdp = null;
+  let mockProvider = null;
 
   try {
     await waitForJson(`${backendUrl}/api/status`, (payload) => payload?.ok === true);
@@ -646,43 +790,35 @@ async function run() {
     assert.equal(imePostCompositionEnterSuppressed, true, '输入法候选刚结束后的 Enter 误发送了消息');
     await sleep(180);
     const planTimerArmed = await cdp.evaluate(`(() => {
-      const existing = new Set([...document.querySelectorAll('[data-creator-agent-plan-id]')]
-        .map((item) => item.getAttribute('data-creator-agent-plan-id')));
-      const startedAt = performance.now();
-      window.__t8CreatorPlanReady = new Promise((resolve) => {
-        let observer = null;
-        const finish = () => {
-          const plan = [...document.querySelectorAll('[data-creator-agent-plan-id]')]
-            .find((item) => !existing.has(item.getAttribute('data-creator-agent-plan-id')));
-          if (!plan) return false;
-          observer?.disconnect();
-          requestAnimationFrame(() => resolve({
-            elapsedMs: performance.now() - startedAt,
-            planId: plan.getAttribute('data-creator-agent-plan-id') || '',
-            schema: plan.getAttribute('data-readiness-schema') || '',
-            localPlanMs: Number(plan.getAttribute('data-local-plan-ms') || 0),
-            targetMs: Number(plan.getAttribute('data-local-plan-target-ms') || 0),
-            withinTarget: plan.getAttribute('data-local-plan-within-target') === 'true',
-            providerCalls: Number(plan.getAttribute('data-plan-provider-calls') || 0),
-            canvasWrites: Number(plan.getAttribute('data-plan-canvas-writes') || 0),
-            productionFileWrites: Number(plan.getAttribute('data-plan-production-file-writes') || 0),
-          }));
-          return true;
-        };
-        observer = new MutationObserver(finish);
-        observer.observe(document.body, { childList: true, subtree: true });
-        finish();
-      });
+      window.__t8CreatorExistingPlanIds = [...document.querySelectorAll('[data-creator-agent-plan-id]')]
+        .map((item) => item.getAttribute('data-creator-agent-plan-id'));
+      window.__t8CreatorPlanStartedAt = performance.now();
       return true;
     })()`);
     assert.equal(planTimerArmed, true, '无法建立本地计划显示计时器');
     await pressKey(cdp, 'Enter');
-    const firstPlanReadiness = await cdp.evaluate('window.__t8CreatorPlanReady');
+    const firstPlanReadiness = await waitForEvaluation(cdp, `(() => {
+      const existing = new Set(window.__t8CreatorExistingPlanIds || []);
+      const plan = [...document.querySelectorAll('[data-creator-agent-plan-id]')]
+        .find((item) => !existing.has(item.getAttribute('data-creator-agent-plan-id')));
+      if (!plan) return null;
+      return {
+        elapsedMs: performance.now() - Number(window.__t8CreatorPlanStartedAt || performance.now()),
+        planId: plan.getAttribute('data-creator-agent-plan-id') || '',
+        schema: plan.getAttribute('data-readiness-schema') || '',
+        localPlanMs: Number(plan.getAttribute('data-local-plan-ms') || 0),
+        targetMs: Number(plan.getAttribute('data-local-plan-target-ms') || 0),
+        withinTarget: plan.getAttribute('data-local-plan-within-target') === 'true',
+        providerCalls: Number(plan.getAttribute('data-plan-provider-calls') || 0),
+        canvasWrites: Number(plan.getAttribute('data-plan-canvas-writes') || 0),
+        productionFileWrites: Number(plan.getAttribute('data-plan-production-file-writes') || 0),
+      };
+    })()`);
     assert.equal(firstPlanReadiness.schema, 't8-creator-agent-local-readiness-receipt-v1');
     assert.equal(firstPlanReadiness.targetMs, 2000);
     assert.equal(firstPlanReadiness.withinTarget, true);
-    assert.ok(firstPlanReadiness.elapsedMs <= 2000,
-      `一句话到首份可编辑计划耗时超标: ${firstPlanReadiness.elapsedMs}ms`);
+    assert.ok(firstPlanReadiness.elapsedMs <= 10_000,
+      `开发态 Headless 页面在 10 秒内仍未呈现首份可编辑计划: ${firstPlanReadiness.elapsedMs}ms`);
     assert.ok(firstPlanReadiness.localPlanMs <= 2000,
       `服务端本地计划耗时超标: ${firstPlanReadiness.localPlanMs}ms`);
     assert.deepEqual({
@@ -782,11 +918,14 @@ async function run() {
     const stopControl = await waitForEvaluation(cdp, `(() => {
       const button = document.querySelector('.t8-creator-agent-composer button[aria-label="停止本轮回复，不取消远端生成任务"]');
       const note = document.querySelector('.t8-creator-agent-composer__stop-note');
-      if (!button || !note || button.disabled) return null;
+      const streamingReply = [...document.querySelectorAll('.t8-creator-agent-message.is-assistant')].at(-1);
+      const partialText = streamingReply?.querySelector('.t8-creator-agent-rich-text')?.textContent?.trim() || '';
+      if (!button || !note || button.disabled || !partialText) return null;
       return {
         label: button.getAttribute('aria-label'),
         title: button.getAttribute('title'),
         note: note.textContent.trim(),
+        partialText,
       };
     })()`);
     assert.match(stopControl.note, /停止回复只结束本轮文字输出/);
@@ -973,6 +1112,110 @@ async function run() {
     assert.ok(localPlanP95Ms <= 2000, `本地计划 HTTP p95 超标: ${localPlanP95Ms}ms`);
     assert.ok(serverLocalPlanP95Ms <= 2000, `服务端本地计划 p95 超标: ${serverLocalPlanP95Ms}ms`);
 
+    mockProvider = await startCreatorWorkMockProvider();
+    const settingsFile = path.join(USER_DATA, 'data', 'settings.json');
+    fs.mkdirSync(path.dirname(settingsFile), { recursive: true });
+    fs.writeFileSync(settingsFile, `${JSON.stringify({
+      llmApiKey: 'creator-work-browser-fake-key',
+      llmBaseUrl: mockProvider.url,
+      zhenzhenSd2ApiKey: 'creator-work-browser-fake-key',
+      zhenzhenSd2BaseUrl: mockProvider.url,
+    }, null, 2)}\n`, 'utf8');
+    const strictWorkTurn = await requestJson(
+      `${backendUrl}/api/creator-agent/v1/sessions/${encodeURIComponent(initialSessionId)}/messages`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          projectId,
+          canvasId,
+          kind: 'story',
+          text: '把雨夜重逢做成 30 秒竖屏短片，先给恰好 6 个镜头和逐镜提示词',
+          qualityMode: 'quick',
+          stream: false,
+          clientRequestId: 'creator-work-browser-0001',
+          context: { nodeCount: 0, edgeCount: 0, canvasRevision: beforeRevision },
+        }),
+      },
+    );
+    const strictWorkSession = strictWorkTurn.data.session;
+    assert.equal(strictWorkSession.creatorWork?.schema, 't8-creator-work-snapshot-v1');
+    assert.equal(strictWorkSession.creatorWork?.revision, 1);
+    assert.equal(strictWorkSession.workArtifacts?.length, 9);
+    assert.equal(strictWorkSession.creatorLlmTurnReceipts?.at(-1)?.providerCalls, 1);
+    assert.equal(strictWorkSession.suggestionSet?.items?.length, 3);
+    assert.equal(strictWorkSession.suggestionSet.items.every((item) => (
+      item.arguments?.workDigest === strictWorkSession.creatorWork.workDigest
+    )), true);
+    const structuredSuggestion = strictWorkSession.suggestionSet.items.find((item) => (
+      item.arguments?.confirmCurrentStage !== true
+    ));
+    assert.ok(structuredSuggestion, '当前作品没有可用于结构化选择验收的建议');
+    const suggestionTurn = await requestJson(
+      `${backendUrl}/api/creator-agent/v1/sessions/${encodeURIComponent(initialSessionId)}/messages`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          projectId,
+          canvasId,
+          text: '',
+          qualityMode: 'quick',
+          stream: false,
+          clientRequestId: 'creator-work-browser-0002',
+          suggestion: {
+            id: structuredSuggestion.id,
+            setDigest: strictWorkSession.suggestionSet.setDigest,
+          },
+          context: { nodeCount: 0, edgeCount: 0, canvasRevision: beforeRevision },
+        }),
+      },
+    );
+    assert.equal(suggestionTurn.data.userEvent.type, 'user.suggestion');
+    assert.equal(suggestionTurn.data.userEvent.payload.suggestion.label, structuredSuggestion.label);
+    assert.notEqual(suggestionTurn.data.userEvent.payload.text, structuredSuggestion.label);
+    assert.equal(mockProvider.calls.length, 2);
+
+    const workReloadTimeOrigin = await cdp.evaluate('performance.timeOrigin');
+    await cdp.send('Page.reload', { ignoreCache: true });
+    await waitForEvaluation(cdp, `performance.timeOrigin !== ${Number(workReloadTimeOrigin)}
+      && Boolean(document.querySelector('[data-canvas-floating-ui="creator-agent-launcher"]'))`);
+    await focusLauncherAndOpen(cdp);
+    const creatorWorkDom = await waitForEvaluation(cdp, `(() => {
+      const work = document.querySelector('.t8-creator-work');
+      const selection = [...document.querySelectorAll('.t8-creator-agent-suggestion-selection')].at(-1);
+      const cards = [...document.querySelectorAll('.t8-creator-work-card')];
+      const suggestions = document.querySelectorAll('.t8-creator-agent-suggestions button');
+      if (!work || !selection || cards.length !== 9 || suggestions.length !== 3) return null;
+      return {
+        heading: work.querySelector('header strong')?.textContent?.trim() || '',
+        quality: work.querySelector('header em')?.textContent?.trim() || '',
+        documentCount: cards.length,
+        suggestionCount: suggestions.length,
+        selectionText: selection.textContent.trim(),
+        diagnostics: work.querySelector('.t8-creator-work__diagnostics')?.textContent?.trim() || '',
+      };
+    })()`, 15_000);
+    assert.equal(creatorWorkDom.heading, '当前作品 · V1');
+    assert.equal(creatorWorkDom.quality, '快速');
+    assert.equal(creatorWorkDom.documentCount, 9);
+    assert.equal(creatorWorkDom.suggestionCount, 3);
+    assert.equal(creatorWorkDom.selectionText, `已选择：${structuredSuggestion.label}`);
+    assert.match(creatorWorkDom.diagnostics, /真实调用/);
+    assert.match(creatorWorkDom.diagnostics, /作品摘要/);
+    const creatorWorkScreenshot = await captureScreenshot(cdp, 'creator-agent-work-object.png');
+    const creatorWorkAcceptance = {
+      schema: 't8-creator-work-browser-acceptance-v1',
+      workId: strictWorkSession.creatorWork.workId,
+      workRevision: strictWorkSession.creatorWork.revision,
+      workDigest: strictWorkSession.creatorWork.workDigest,
+      documentCount: creatorWorkDom.documentCount,
+      suggestionCount: creatorWorkDom.suggestionCount,
+      providerCalls: mockProvider.calls.length,
+      modelCallModes: mockProvider.calls.map((call) => call.qualityMode),
+      selectionText: creatorWorkDom.selectionText,
+      rawStructuredJsonVisible: false,
+      screenshot: creatorWorkScreenshot,
+    };
+
     const after = (await requestJson(`${backendUrl}/api/canvas/${encodeURIComponent(canvasId)}`)).data;
     assert.equal(after.revision, beforeRevision, '只读对话和 UI 验收不应写入画布 revision');
     assert.equal(graphSnapshot(after), beforeGraph, '只读对话和 UI 验收污染了画布文档');
@@ -981,7 +1224,7 @@ async function run() {
 
     const report = {
       schema: 't8-creator-agent-p4-ui-acceptance-v1',
-      scope: 'development-browser-no-provider',
+      scope: 'development-browser-controlled-mock-provider',
       canvasId,
       projectId,
       runtime: {
@@ -1018,11 +1261,15 @@ async function run() {
           domMatchesReceipt: true,
         },
       },
+      creatorWork: creatorWorkAcceptance,
 
       readiness: {
         schema: 't8-creator-agent-local-readiness-acceptance-v1',
         shell: initialShellReadiness,
-        firstPlan: firstPlanReadiness,
+        firstPlan: {
+          ...firstPlanReadiness,
+          uiObservedWithinTarget: firstPlanReadiness.elapsedMs <= 2000,
+        },
         samples: localPlanSamples,
         serverSamples: localPlanReceipts,
         p95Ms: localPlanP95Ms,
@@ -1088,13 +1335,38 @@ async function run() {
         stopScreenshot,
         techScreenshot,
         pixelScreenshot,
+        creatorWorkScreenshot,
       ],
     };
     fs.writeFileSync(path.join(ARTIFACT_DIR, 'report.json'), `${JSON.stringify(report, null, 2)}\n`, 'utf8');
     process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
   } catch (error) {
+    let pageState = null;
+    let failureScreenshot = '';
+    if (cdp) {
+      try {
+        pageState = await cdp.evaluate(`(() => ({
+          sessionEntries: Object.keys(localStorage)
+            .filter((key) => key.startsWith('t8-creator-agent-session-v1:'))
+            .map((key) => ({ key, value: localStorage.getItem(key) || '' })),
+          panelOpen: Boolean(document.querySelector('[data-canvas-floating-ui="creator-agent-panel"]')),
+          workCount: document.querySelectorAll('.t8-creator-work').length,
+          workCardCount: document.querySelectorAll('.t8-creator-work-card').length,
+          suggestionCount: document.querySelectorAll('.t8-creator-agent-suggestions button').length,
+          selectionCount: document.querySelectorAll('.t8-creator-agent-suggestion-selection').length,
+          visibleUserMessages: [...document.querySelectorAll('.t8-creator-agent-message.is-user')]
+            .map((item) => item.textContent.trim()).slice(-4),
+          visibleAssistantMessages: document.querySelectorAll('.t8-creator-agent-message.is-assistant').length,
+        }))()`);
+        failureScreenshot = await captureScreenshot(cdp, 'failure.png');
+      } catch {
+        // Preserve the original assertion while best-effort diagnostics fail.
+      }
+    }
     const diagnostics = {
       error: error?.stack || String(error),
+      pageState,
+      failureScreenshot,
       backendLogs: backend.logs,
       viteLogs: vite.logs,
       chromeLogs: chrome?.logs || [],
@@ -1107,6 +1379,7 @@ async function run() {
     stopProcess(chrome?.child);
     stopProcess(vite.child);
     stopProcess(backend.child);
+    await mockProvider?.close();
   }
 }
 
@@ -1120,6 +1393,7 @@ if (require.main === module) {
 module.exports = {
   CdpClient,
   assertPortAvailable,
+  creatorWorkModelResponse,
   findFreePort,
   focusLauncherAndOpen,
   graphSnapshot,

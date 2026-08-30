@@ -5,13 +5,13 @@
     "capabilityManifest": "tools/zcanvas-cli/creativeCapabilityManifest.json",
     "capabilityGraph": "tools/zcanvas-cli/generated/creative-capability-graph.json"
   },
-  "sourceDigest": "16c15dab6eef440bbbee2e44ccf69dfe75bba70d6a61585ca0fb717279353b1d",
-  "capabilityGraphDigest": "a87a9ccc79ffcbbf3e4f9fb479843eba979b28188e7da4d9fa84fa4155b859d2",
+  "sourceDigest": "569f2c8be144e05120ca629b2826383a06c4d6565ab3896c2dc61807bb9f7c27",
+  "capabilityGraphDigest": "ba5648301144d2e52fbff76bb90fe1196814bf3092132b37bcb4f0eb47ce6e1e",
   "counts": {
-    "capabilities": 31,
-    "agentTools": 31,
-    "cliOperations": 31,
-    "uiActions": 31
+    "capabilities": 39,
+    "agentTools": 39,
+    "cliOperations": 39,
+    "uiActions": 39
   },
   "capabilities": [
     {
@@ -569,6 +569,786 @@
             "riskLevel": "L1",
             "approvalRequired": true,
             "boundary": "recovery-write",
+            "requiredScopes": [
+              "canvas:read",
+              "canvas:write"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "localization.create",
+      "creatorLabel": "创建多语言本地化工作台",
+      "category": "localization",
+      "approval": "L1",
+      "requiredScopes": [
+        "canvas:read",
+        "canvas:write"
+      ],
+      "supports": [
+        "plan",
+        "preview",
+        "apply",
+        "verify",
+        "rollback"
+      ],
+      "agentTool": {
+        "name": "zcanvas_localization_create",
+        "version": "0.1.0-dev",
+        "protocol": "t8-versioned-creative-tool-v1",
+        "requestSchema": "t8-versioned-creative-tool-request-v1",
+        "resultSchema": "t8-versioned-creative-tool-result-v1",
+        "defaultOperation": "plan",
+        "directOperations": [
+          "plan",
+          "preview"
+        ],
+        "requestAction": "localization.create",
+        "handler": "creative-action:localization.create",
+        "service": "agentControlCreative",
+        "method": "actionPlan",
+        "bindingOperation": "localization.create"
+      },
+      "cli": {
+        "command": "localization",
+        "subcommand": "create",
+        "operation": "localization.create"
+      },
+      "ui": {
+        "action": "localization.create",
+        "requestAction": "localization.create",
+        "operations": [
+          {
+            "operation": "plan",
+            "riskLevel": "L0",
+            "approvalRequired": false,
+            "boundary": "local-read",
+            "requiredScopes": [
+              "canvas:read"
+            ]
+          },
+          {
+            "operation": "preview",
+            "riskLevel": "L0",
+            "approvalRequired": false,
+            "boundary": "local-read",
+            "requiredScopes": [
+              "canvas:read"
+            ]
+          },
+          {
+            "operation": "apply",
+            "riskLevel": "L1",
+            "approvalRequired": true,
+            "boundary": "reversible-canvas-write",
+            "requiredScopes": [
+              "canvas:read",
+              "canvas:write"
+            ]
+          },
+          {
+            "operation": "verify",
+            "riskLevel": "L0",
+            "approvalRequired": false,
+            "boundary": "local-read",
+            "requiredScopes": [
+              "canvas:read"
+            ]
+          },
+          {
+            "operation": "rollback",
+            "riskLevel": "L1",
+            "approvalRequired": true,
+            "boundary": "recovery-write",
+            "requiredScopes": [
+              "canvas:read",
+              "canvas:write"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "localization.transcribe",
+      "creatorLabel": "准备源媒体转写",
+      "category": "localization",
+      "approval": "L1",
+      "requiredScopes": [
+        "canvas:read",
+        "canvas:write"
+      ],
+      "supports": [
+        "plan",
+        "preview",
+        "apply",
+        "run",
+        "verify",
+        "resume"
+      ],
+      "agentTool": {
+        "name": "zcanvas_localization_transcribe",
+        "version": "0.1.0-dev",
+        "protocol": "t8-versioned-creative-tool-v1",
+        "requestSchema": "t8-versioned-creative-tool-request-v1",
+        "resultSchema": "t8-versioned-creative-tool-result-v1",
+        "defaultOperation": "plan",
+        "directOperations": [
+          "plan",
+          "preview"
+        ],
+        "requestAction": "localization.transcribe",
+        "handler": "creative-action:localization.transcribe",
+        "service": "agentControlCreative",
+        "method": "actionPlan",
+        "bindingOperation": "localization.transcribe"
+      },
+      "cli": {
+        "command": "localization",
+        "subcommand": "transcribe",
+        "operation": "localization.transcribe"
+      },
+      "ui": {
+        "action": "localization.transcribe",
+        "requestAction": "localization.transcribe",
+        "operations": [
+          {
+            "operation": "plan",
+            "riskLevel": "L0",
+            "approvalRequired": false,
+            "boundary": "local-read",
+            "requiredScopes": [
+              "canvas:read"
+            ]
+          },
+          {
+            "operation": "preview",
+            "riskLevel": "L0",
+            "approvalRequired": false,
+            "boundary": "local-read",
+            "requiredScopes": [
+              "canvas:read"
+            ]
+          },
+          {
+            "operation": "apply",
+            "riskLevel": "L1",
+            "approvalRequired": true,
+            "boundary": "reversible-canvas-write",
+            "requiredScopes": [
+              "canvas:read",
+              "canvas:write"
+            ]
+          },
+          {
+            "operation": "run",
+            "riskLevel": "L2",
+            "approvalRequired": true,
+            "boundary": "provider-or-external",
+            "requiredScopes": [
+              "canvas:read",
+              "canvas:write"
+            ]
+          },
+          {
+            "operation": "verify",
+            "riskLevel": "L0",
+            "approvalRequired": false,
+            "boundary": "local-read",
+            "requiredScopes": [
+              "canvas:read"
+            ]
+          },
+          {
+            "operation": "resume",
+            "riskLevel": "L2",
+            "approvalRequired": true,
+            "boundary": "provider-or-external",
+            "requiredScopes": [
+              "canvas:read",
+              "canvas:write"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "localization.translate",
+      "creatorLabel": "准备多语言翻译",
+      "category": "localization",
+      "approval": "L1",
+      "requiredScopes": [
+        "canvas:read",
+        "canvas:write"
+      ],
+      "supports": [
+        "plan",
+        "preview",
+        "apply",
+        "run",
+        "verify",
+        "resume"
+      ],
+      "agentTool": {
+        "name": "zcanvas_localization_translate",
+        "version": "0.1.0-dev",
+        "protocol": "t8-versioned-creative-tool-v1",
+        "requestSchema": "t8-versioned-creative-tool-request-v1",
+        "resultSchema": "t8-versioned-creative-tool-result-v1",
+        "defaultOperation": "plan",
+        "directOperations": [
+          "plan",
+          "preview"
+        ],
+        "requestAction": "localization.translate",
+        "handler": "creative-action:localization.translate",
+        "service": "agentControlCreative",
+        "method": "actionPlan",
+        "bindingOperation": "localization.translate"
+      },
+      "cli": {
+        "command": "localization",
+        "subcommand": "translate",
+        "operation": "localization.translate"
+      },
+      "ui": {
+        "action": "localization.translate",
+        "requestAction": "localization.translate",
+        "operations": [
+          {
+            "operation": "plan",
+            "riskLevel": "L0",
+            "approvalRequired": false,
+            "boundary": "local-read",
+            "requiredScopes": [
+              "canvas:read"
+            ]
+          },
+          {
+            "operation": "preview",
+            "riskLevel": "L0",
+            "approvalRequired": false,
+            "boundary": "local-read",
+            "requiredScopes": [
+              "canvas:read"
+            ]
+          },
+          {
+            "operation": "apply",
+            "riskLevel": "L1",
+            "approvalRequired": true,
+            "boundary": "reversible-canvas-write",
+            "requiredScopes": [
+              "canvas:read",
+              "canvas:write"
+            ]
+          },
+          {
+            "operation": "run",
+            "riskLevel": "L2",
+            "approvalRequired": true,
+            "boundary": "provider-or-external",
+            "requiredScopes": [
+              "canvas:read",
+              "canvas:write"
+            ]
+          },
+          {
+            "operation": "verify",
+            "riskLevel": "L0",
+            "approvalRequired": false,
+            "boundary": "local-read",
+            "requiredScopes": [
+              "canvas:read"
+            ]
+          },
+          {
+            "operation": "resume",
+            "riskLevel": "L2",
+            "approvalRequired": true,
+            "boundary": "provider-or-external",
+            "requiredScopes": [
+              "canvas:read",
+              "canvas:write"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "localization.cast-voices",
+      "creatorLabel": "准备角色音色授权与分配",
+      "category": "localization",
+      "approval": "L1",
+      "requiredScopes": [
+        "canvas:read",
+        "canvas:write"
+      ],
+      "supports": [
+        "plan",
+        "preview",
+        "apply",
+        "verify",
+        "resume"
+      ],
+      "agentTool": {
+        "name": "zcanvas_localization_cast_voices",
+        "version": "0.1.0-dev",
+        "protocol": "t8-versioned-creative-tool-v1",
+        "requestSchema": "t8-versioned-creative-tool-request-v1",
+        "resultSchema": "t8-versioned-creative-tool-result-v1",
+        "defaultOperation": "plan",
+        "directOperations": [
+          "plan",
+          "preview"
+        ],
+        "requestAction": "localization.cast-voices",
+        "handler": "creative-action:localization.cast-voices",
+        "service": "agentControlCreative",
+        "method": "actionPlan",
+        "bindingOperation": "localization.cast-voices"
+      },
+      "cli": {
+        "command": "localization",
+        "subcommand": "cast-voices",
+        "operation": "localization.cast-voices"
+      },
+      "ui": {
+        "action": "localization.cast-voices",
+        "requestAction": "localization.cast-voices",
+        "operations": [
+          {
+            "operation": "plan",
+            "riskLevel": "L0",
+            "approvalRequired": false,
+            "boundary": "local-read",
+            "requiredScopes": [
+              "canvas:read"
+            ]
+          },
+          {
+            "operation": "preview",
+            "riskLevel": "L0",
+            "approvalRequired": false,
+            "boundary": "local-read",
+            "requiredScopes": [
+              "canvas:read"
+            ]
+          },
+          {
+            "operation": "apply",
+            "riskLevel": "L1",
+            "approvalRequired": true,
+            "boundary": "reversible-canvas-write",
+            "requiredScopes": [
+              "canvas:read",
+              "canvas:write"
+            ]
+          },
+          {
+            "operation": "verify",
+            "riskLevel": "L0",
+            "approvalRequired": false,
+            "boundary": "local-read",
+            "requiredScopes": [
+              "canvas:read"
+            ]
+          },
+          {
+            "operation": "resume",
+            "riskLevel": "L2",
+            "approvalRequired": true,
+            "boundary": "provider-or-external",
+            "requiredScopes": [
+              "canvas:read",
+              "canvas:write"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "localization.generate-dub",
+      "creatorLabel": "准备多语言配音",
+      "category": "localization",
+      "approval": "L1",
+      "requiredScopes": [
+        "canvas:read",
+        "canvas:write"
+      ],
+      "supports": [
+        "plan",
+        "preview",
+        "apply",
+        "run",
+        "verify",
+        "resume"
+      ],
+      "agentTool": {
+        "name": "zcanvas_localization_generate_dub",
+        "version": "0.1.0-dev",
+        "protocol": "t8-versioned-creative-tool-v1",
+        "requestSchema": "t8-versioned-creative-tool-request-v1",
+        "resultSchema": "t8-versioned-creative-tool-result-v1",
+        "defaultOperation": "plan",
+        "directOperations": [
+          "plan",
+          "preview"
+        ],
+        "requestAction": "localization.generate-dub",
+        "handler": "creative-action:localization.generate-dub",
+        "service": "agentControlCreative",
+        "method": "actionPlan",
+        "bindingOperation": "localization.generate-dub"
+      },
+      "cli": {
+        "command": "localization",
+        "subcommand": "generate-dub",
+        "operation": "localization.generate-dub"
+      },
+      "ui": {
+        "action": "localization.generate-dub",
+        "requestAction": "localization.generate-dub",
+        "operations": [
+          {
+            "operation": "plan",
+            "riskLevel": "L0",
+            "approvalRequired": false,
+            "boundary": "local-read",
+            "requiredScopes": [
+              "canvas:read"
+            ]
+          },
+          {
+            "operation": "preview",
+            "riskLevel": "L0",
+            "approvalRequired": false,
+            "boundary": "local-read",
+            "requiredScopes": [
+              "canvas:read"
+            ]
+          },
+          {
+            "operation": "apply",
+            "riskLevel": "L1",
+            "approvalRequired": true,
+            "boundary": "reversible-canvas-write",
+            "requiredScopes": [
+              "canvas:read",
+              "canvas:write"
+            ]
+          },
+          {
+            "operation": "run",
+            "riskLevel": "L2",
+            "approvalRequired": true,
+            "boundary": "provider-or-external",
+            "requiredScopes": [
+              "canvas:read",
+              "canvas:write"
+            ]
+          },
+          {
+            "operation": "verify",
+            "riskLevel": "L0",
+            "approvalRequired": false,
+            "boundary": "local-read",
+            "requiredScopes": [
+              "canvas:read"
+            ]
+          },
+          {
+            "operation": "resume",
+            "riskLevel": "L2",
+            "approvalRequired": true,
+            "boundary": "provider-or-external",
+            "requiredScopes": [
+              "canvas:read",
+              "canvas:write"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "localization.compose",
+      "creatorLabel": "准备本地化合成",
+      "category": "localization",
+      "approval": "L1",
+      "requiredScopes": [
+        "canvas:read",
+        "canvas:write"
+      ],
+      "supports": [
+        "plan",
+        "preview",
+        "apply",
+        "run",
+        "verify",
+        "resume"
+      ],
+      "agentTool": {
+        "name": "zcanvas_localization_compose",
+        "version": "0.1.0-dev",
+        "protocol": "t8-versioned-creative-tool-v1",
+        "requestSchema": "t8-versioned-creative-tool-request-v1",
+        "resultSchema": "t8-versioned-creative-tool-result-v1",
+        "defaultOperation": "plan",
+        "directOperations": [
+          "plan",
+          "preview"
+        ],
+        "requestAction": "localization.compose",
+        "handler": "creative-action:localization.compose",
+        "service": "agentControlCreative",
+        "method": "actionPlan",
+        "bindingOperation": "localization.compose"
+      },
+      "cli": {
+        "command": "localization",
+        "subcommand": "compose",
+        "operation": "localization.compose"
+      },
+      "ui": {
+        "action": "localization.compose",
+        "requestAction": "localization.compose",
+        "operations": [
+          {
+            "operation": "plan",
+            "riskLevel": "L0",
+            "approvalRequired": false,
+            "boundary": "local-read",
+            "requiredScopes": [
+              "canvas:read"
+            ]
+          },
+          {
+            "operation": "preview",
+            "riskLevel": "L0",
+            "approvalRequired": false,
+            "boundary": "local-read",
+            "requiredScopes": [
+              "canvas:read"
+            ]
+          },
+          {
+            "operation": "apply",
+            "riskLevel": "L1",
+            "approvalRequired": true,
+            "boundary": "reversible-canvas-write",
+            "requiredScopes": [
+              "canvas:read",
+              "canvas:write"
+            ]
+          },
+          {
+            "operation": "run",
+            "riskLevel": "L2",
+            "approvalRequired": true,
+            "boundary": "provider-or-external",
+            "requiredScopes": [
+              "canvas:read",
+              "canvas:write"
+            ]
+          },
+          {
+            "operation": "verify",
+            "riskLevel": "L0",
+            "approvalRequired": false,
+            "boundary": "local-read",
+            "requiredScopes": [
+              "canvas:read"
+            ]
+          },
+          {
+            "operation": "resume",
+            "riskLevel": "L2",
+            "approvalRequired": true,
+            "boundary": "provider-or-external",
+            "requiredScopes": [
+              "canvas:read",
+              "canvas:write"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "localization.verify",
+      "creatorLabel": "准备本地化质量检查",
+      "category": "localization",
+      "approval": "L1",
+      "requiredScopes": [
+        "canvas:read",
+        "canvas:write"
+      ],
+      "supports": [
+        "plan",
+        "preview",
+        "apply",
+        "verify",
+        "resume"
+      ],
+      "agentTool": {
+        "name": "zcanvas_localization_verify",
+        "version": "0.1.0-dev",
+        "protocol": "t8-versioned-creative-tool-v1",
+        "requestSchema": "t8-versioned-creative-tool-request-v1",
+        "resultSchema": "t8-versioned-creative-tool-result-v1",
+        "defaultOperation": "plan",
+        "directOperations": [
+          "plan",
+          "preview"
+        ],
+        "requestAction": "localization.verify",
+        "handler": "creative-action:localization.verify",
+        "service": "agentControlCreative",
+        "method": "actionPlan",
+        "bindingOperation": "localization.verify"
+      },
+      "cli": {
+        "command": "localization",
+        "subcommand": "verify",
+        "operation": "localization.verify"
+      },
+      "ui": {
+        "action": "localization.verify",
+        "requestAction": "localization.verify",
+        "operations": [
+          {
+            "operation": "plan",
+            "riskLevel": "L0",
+            "approvalRequired": false,
+            "boundary": "local-read",
+            "requiredScopes": [
+              "canvas:read"
+            ]
+          },
+          {
+            "operation": "preview",
+            "riskLevel": "L0",
+            "approvalRequired": false,
+            "boundary": "local-read",
+            "requiredScopes": [
+              "canvas:read"
+            ]
+          },
+          {
+            "operation": "apply",
+            "riskLevel": "L1",
+            "approvalRequired": true,
+            "boundary": "reversible-canvas-write",
+            "requiredScopes": [
+              "canvas:read",
+              "canvas:write"
+            ]
+          },
+          {
+            "operation": "verify",
+            "riskLevel": "L0",
+            "approvalRequired": false,
+            "boundary": "local-read",
+            "requiredScopes": [
+              "canvas:read"
+            ]
+          },
+          {
+            "operation": "resume",
+            "riskLevel": "L2",
+            "approvalRequired": true,
+            "boundary": "provider-or-external",
+            "requiredScopes": [
+              "canvas:read",
+              "canvas:write"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "localization.package",
+      "creatorLabel": "准备本地化交付包",
+      "category": "localization",
+      "approval": "L1",
+      "requiredScopes": [
+        "canvas:read",
+        "canvas:write"
+      ],
+      "supports": [
+        "plan",
+        "preview",
+        "apply",
+        "verify",
+        "resume"
+      ],
+      "agentTool": {
+        "name": "zcanvas_localization_package",
+        "version": "0.1.0-dev",
+        "protocol": "t8-versioned-creative-tool-v1",
+        "requestSchema": "t8-versioned-creative-tool-request-v1",
+        "resultSchema": "t8-versioned-creative-tool-result-v1",
+        "defaultOperation": "plan",
+        "directOperations": [
+          "plan",
+          "preview"
+        ],
+        "requestAction": "localization.package",
+        "handler": "creative-action:localization.package",
+        "service": "agentControlCreative",
+        "method": "actionPlan",
+        "bindingOperation": "localization.package"
+      },
+      "cli": {
+        "command": "localization",
+        "subcommand": "package",
+        "operation": "localization.package"
+      },
+      "ui": {
+        "action": "localization.package",
+        "requestAction": "localization.package",
+        "operations": [
+          {
+            "operation": "plan",
+            "riskLevel": "L0",
+            "approvalRequired": false,
+            "boundary": "local-read",
+            "requiredScopes": [
+              "canvas:read"
+            ]
+          },
+          {
+            "operation": "preview",
+            "riskLevel": "L0",
+            "approvalRequired": false,
+            "boundary": "local-read",
+            "requiredScopes": [
+              "canvas:read"
+            ]
+          },
+          {
+            "operation": "apply",
+            "riskLevel": "L1",
+            "approvalRequired": true,
+            "boundary": "reversible-canvas-write",
+            "requiredScopes": [
+              "canvas:read",
+              "canvas:write"
+            ]
+          },
+          {
+            "operation": "verify",
+            "riskLevel": "L0",
+            "approvalRequired": false,
+            "boundary": "local-read",
+            "requiredScopes": [
+              "canvas:read"
+            ]
+          },
+          {
+            "operation": "resume",
+            "riskLevel": "L2",
+            "approvalRequired": true,
+            "boundary": "provider-or-external",
             "requiredScopes": [
               "canvas:read",
               "canvas:write"

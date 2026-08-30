@@ -1073,6 +1073,39 @@ test('staged image production binds, reviews, adopts and verifies one real image
   assert.equal(state.providerPosts, 0);
 });
 
+test('natural single-output prompts form one source-backed production unit without inventing shots', () => {
+  const state = fixture();
+  const service = createAgentControlCreativeService({ database: state.database });
+  const sourceText = '电影感雨夜车站主视觉：空站台、湿地反光、远处暖色列车灯。';
+  const plan = service.createPlan({
+    kind: 'image',
+    prompt: sourceText,
+    ratio: '16:9',
+    candidates: 3,
+    stagedProduction: true,
+  }, scope);
+  const script = plan.productionDocuments.find((item) => item.kind === 'script-doc');
+  const shotList = plan.productionDocuments.find((item) => item.kind === 'shot-list');
+  const promptPack = plan.productionDocuments.find((item) => item.kind === 'prompt-pack');
+  assert.equal(script.content.scriptAnalysis.method, 'deterministic-single-output-source-map');
+  assert.equal(script.content.scriptAnalysis.singleOutputFallback, true);
+  assert.equal(script.content.scriptAnalysis.inferredFacts, 0);
+  assert.equal(script.content.shots.length, 1);
+  assert.equal(script.content.shots[0].sourceText, sourceText.normalize('NFKC'));
+  assert.equal(shotList.content.shots.length, 1);
+  assert.equal(shotList.content.derivation.singleOutputFallback, true);
+  assert.equal(promptPack.content.prompts.length, 1);
+  assert.equal(promptPack.content.prompts[0].positivePrompt, sourceText.normalize('NFKC'));
+  state.applyPatch(service.requirePlan(plan.planId, scope).patch);
+  const candidates = state.document.nodes.filter((node) => node.type === 'image');
+  assert.equal(candidates.length, 3);
+  assert.equal(candidates.every((node) => (
+    node.data.creatorProductionBinding?.promptPackItemId === promptPack.content.prompts[0].id
+    && node.data.creatorProductionBinding?.matchMethod === 'single-prompt-pack-item'
+  )), true);
+  assert.equal(state.providerPosts, 0);
+});
+
 test('generic node creation uses the authoritative schema, stays preview-first, and rejects hidden or invented fields', () => {
 
   const state = fixture([{
@@ -3137,7 +3170,9 @@ test('built-in creator catalog stays anchored to current LLM, image, video and a
     seedanceNzSource,
   ].join('\n');
   catalog.llm.forEach((item) => assert.ok(
-    llmSource.includes(`'${item.model}'`) || seedanceNzLlmModels.has(item.model),
+    llmSource.includes(`'${item.model}'`)
+      || seedanceNzLlmModels.has(item.model)
+      || seedanceNzSource.includes(`'${item.model}'`),
     item.model,
   ));
   catalog.image.forEach((item) => assert.ok(
@@ -3164,4 +3199,68 @@ test('creative plans fail closed after revision changes', () => {
     () => service.requirePlan(plan.planId, scope),
     (error) => error instanceof AgentControlCreativeError && error.code === 'CREATIVE_CANVAS_STALE',
   );
+});
+
+test('Creator localization capabilities prepare an auditable node and stage requests without running providers', () => {
+  const state = fixture();
+  const service = createAgentControlCreativeService({ database: state.database });
+  const created = service.actionPlan('localization.create', {
+    sourceLanguage: 'ZH',
+    targetLanguages: ['EN', 'JA', 'ES', 'AR', 'EN', 'INVALID'],
+    mode: 'full',
+    sourceText: '[Narrator] T8 opens a new world.',
+    instruction: 'Create independently reviewable language branches.',
+    apiKey: 'sk-must-never-be-persisted',
+  }, scope);
+  assert.equal(created.impact.providerCallsNow, 0);
+  assert.equal(created.impact.fileWritesNow, 0);
+  const createPatch = service.requirePlan(created.planId, scope).patch;
+  assert.equal(createPatch.operations.length, 1);
+  const added = createPatch.operations[0].payload.node;
+  assert.equal(added.type, 'localization-master');
+  assert.deepEqual(added.data.targetLanguages, ['EN', 'JA', 'ES', 'AR']);
+  assert.equal(added.data.providerModel, 'bytedance/doubao-seed-2.1-pro');
+  assert.equal(added.data.localizationAgentRequest.status, 'prepared');
+  assert.equal(JSON.stringify(createPatch).includes('sk-must-never-be-persisted'), false);
+  state.applyPatch(createPatch);
+
+  const translated = service.actionPlan('localization.translate', {
+    nodeId: added.id,
+    targetLanguages: ['EN', 'JA', 'ES', 'AR'],
+    instruction: 'Preserve T8, 2026, and {count}.',
+  }, scope);
+  assert.equal(translated.impact.providerCallsNow, 0);
+  const translatePatch = service.requirePlan(translated.planId, scope).patch;
+  assert.equal(translatePatch.operations.length, 1);
+  assert.equal(translatePatch.operations[0].type, 'node.patch');
+  assert.equal(translatePatch.operations[0].payload.nodeId, added.id);
+  assert.equal(
+    translatePatch.operations[0].payload.dataPatch.localizationAgentRequest.action,
+    'localization.translate',
+  );
+  assert.equal(
+    translatePatch.operations[0].payload.dataPatch.localizationAgentRequest.status,
+    'awaiting-user-run',
+  );
+  assert.equal(state.providerPosts, 0);
+});
+
+test('Creator localization stage requests fail closed for missing or wrong node types', () => {
+  const state = fixture([{
+    id: 'plain-text',
+    type: 'text',
+    position: { x: 0, y: 0 },
+    data: { text: 'not a localization workbench' },
+  }]);
+  const service = createAgentControlCreativeService({ database: state.database });
+  assert.throws(
+    () => service.actionPlan('localization.generate-dub', { nodeId: 'plain-text' }, scope),
+    (error) => error instanceof AgentControlCreativeError && error.code === 'CREATIVE_NODE_TYPE_MISMATCH',
+  );
+  assert.throws(
+    () => service.actionPlan('localization.package', { nodeId: 'missing-node' }, scope),
+    (error) => error instanceof AgentControlCreativeError && error.code === 'CREATIVE_NODE_NOT_FOUND',
+  );
+  assert.equal(state.writes, 0);
+  assert.equal(state.providerPosts, 0);
 });

@@ -5,8 +5,8 @@
 
 - Source schema: `t8-creative-capability-manifest-v1`
 - Source version: `0.1.0-dev`
-- Source SHA-256: `16c15dab6eef440bbbee2e44ccf69dfe75bba70d6a61585ca0fb717279353b1d`
-- Registered capabilities: **31**
+- Source SHA-256: `569f2c8be144e05120ca629b2826383a06c4d6565ab3896c2dc61807bb9f7c27`
+- Registered capabilities: **39**
 
 All write or generation paths shown here remain subject to the human-readable Skill rules:
 inspect → plan → preview → explicit approval → apply/run → verify.
@@ -82,6 +82,33 @@ inspect → plan → preview → explicit approval → apply/run → verify.
 - `canvas.node-add` — **新增画布节点** (L1): 依据权威节点 Schema 新增一个可编辑节点；只创建画布结构，不自动运行模型或外部任务。
   - handler: `creative-action:graph.node-add`
   - supports: `plan`, `preview`, `apply`, `verify`, `rollback`
+
+## localization
+
+- `localization.create` — **创建多语言本地化工作台** (L1): 按创作者指定的语言、模式和源文准备本地化节点；只写入可编辑工作台，不自动调用翻译或配音。
+  - handler: `creative-action:localization.create`
+  - supports: `plan`, `preview`, `apply`, `verify`, `rollback`
+- `localization.transcribe` — **准备源媒体转写** (L1): 在现有本地化工作台中准备转写阶段；模型调用仍须用户在节点上明确运行。
+  - handler: `creative-action:localization.transcribe`
+  - supports: `plan`, `preview`, `apply`, `run`, `verify`, `resume`
+- `localization.translate` — **准备多语言翻译** (L1): 保留每个语言分支的独立进度并准备严格结构翻译；真实 LLM 调用仍须用户运行。
+  - handler: `creative-action:localization.translate`
+  - supports: `plan`, `preview`, `apply`, `run`, `verify`, `resume`
+- `localization.cast-voices` — **准备角色音色授权与分配** (L1): 把工作台推进到角色音色确认阶段；参考音频和授权必须由创作者逐项确认。
+  - handler: `creative-action:localization.cast-voices`
+  - supports: `plan`, `preview`, `apply`, `verify`, `resume`
+- `localization.generate-dub` — **准备多语言配音** (L1): 在翻译已审核、音色已授权后准备 IndexTTS 配音；推理运行仍须用户明确启动。
+  - handler: `creative-action:localization.generate-dub`
+  - supports: `plan`, `preview`, `apply`, `run`, `verify`, `resume`
+- `localization.compose` — **准备本地化合成** (L1): 准备字幕、配音和源视频的受控合成，不覆盖源文件。
+  - handler: `creative-action:localization.compose`
+  - supports: `plan`, `preview`, `apply`, `run`, `verify`, `resume`
+- `localization.verify` — **准备本地化质量检查** (L1): 准备术语、占位符、时轴、配音 ASR 与交付完整性的失败关闭检查。
+  - handler: `creative-action:localization.verify`
+  - supports: `plan`, `preview`, `apply`, `verify`, `resume`
+- `localization.package` — **准备本地化交付包** (L1): 仅收集通过质量门的字幕、配音、视频和清单，准备可追溯的多语言交付。
+  - handler: `creative-action:localization.package`
+  - supports: `plan`, `preview`, `apply`, `verify`, `resume`
 
 ## delivery
 

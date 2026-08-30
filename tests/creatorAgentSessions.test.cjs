@@ -31,6 +31,9 @@ const {
   createCreatorDecisionDocument,
   currentCreatorDecision,
 } = require('../backend/src/services/creatorAgentDecisions.js');
+const {
+  createCreatorWorkProposal,
+} = require('../backend/src/services/creatorAgentWorkArtifacts.js');
 
 function stableTestString(value) {
   if (value === null || typeof value !== 'object') return JSON.stringify(value);
@@ -522,6 +525,116 @@ test('staged Story suggestions distinguish drafting from exact confirm-and-conti
     assert.equal(ready.items[0].arguments.requiresCanvasRetentionApply, true);
     assert.equal(ready.items.length, 3);
   }
+});
+
+test('accepting typed Story work rebinds a fresh confirm-and-continue suggestion with zero provider calls', (t) => {
+  const fixture = temporaryStore();
+  t.after(() => fixture.cleanup());
+  const created = fixture.store.create({
+    projectId: 'project-local',
+    canvasId: 'canvas-work-accept-stage',
+  });
+  const productionDocument = {
+    schema: 't8-creator-production-document-v1',
+    id: 'document-idea-work-accept',
+    kind: 'production-brief',
+    label: '制作需求',
+    revision: 1,
+    versionId: 'document-idea-work-accept-v1',
+    status: 'draft',
+    contentDigest: 'a'.repeat(64),
+    content: { bodyMarkdown: '# 雨夜重逢\n\n两位旧友在末班车前重新面对迟到的道歉。' },
+  };
+  const plan = {
+    planId: 'plan-work-accept-stage',
+    planDigest: 'b'.repeat(64),
+    kind: 'story',
+    ready: true,
+    brief: { recipe: 'general' },
+    productionDocuments: [productionDocument],
+  };
+  const pendingDecisionDocument = createCreatorDecisionDocument({
+    sessionId: created.id,
+    family: 'story',
+    phase: 'idea',
+  });
+  const workProposal = createCreatorWorkProposal({
+    taskFamily: 'mixed',
+    qualityMode: 'quick',
+    logicalRequestId: 'work-accept-stage-0001',
+    modelValue: {
+      displayMarkdown: '# 雨夜重逢\n\n这是一版可继续编辑的创作目标与生产约束。',
+      taskProfile: {
+        family: 'mixed',
+        intent: '制作雨夜重逢短片',
+        deliveryKind: 'short-film',
+        modalities: ['text', 'video'],
+        qualityMode: 'quick',
+      },
+      artifacts: [{
+        kind: 'TaskProfile', title: '任务画像', fields: {
+          family: 'mixed', intent: '制作雨夜重逢短片', deliveryKind: 'short-film',
+          modalities: ['text', 'video'], qualityMode: 'quick',
+        },
+      }, {
+        kind: 'ProductionBrief', title: '创作简报', fields: {
+          title: '雨夜重逢', outcome: '30 秒竖屏短片', audience: '情感短片观众',
+        },
+      }],
+    },
+  });
+  assert.ok(workProposal);
+  const responseEvidence = {
+    schema: 't8-creator-agent-response-evidence-v1',
+    mode: 'online-model',
+    status: 'completed',
+    providerCalls: 1,
+    provider: 'seedance-nz',
+    model: 'bytedance/doubao-seed-2.1-pro',
+    finishReason: 'stop',
+    requestId: 'chatcmpl-work-accept-stage',
+    errorCode: null,
+    qualityCode: 'structured-work-accepted',
+    modelDecisionDigest: null,
+    qualityMode: 'quick',
+    promptContractDigest: null,
+    calls: [{
+      index: 0, role: 'draft', status: 'completed', provider: 'seedance-nz',
+      model: 'bytedance/doubao-seed-2.1-pro', requestId: 'chatcmpl-work-accept-stage',
+      finishReason: 'stop', errorCode: null,
+    }],
+  };
+  responseEvidence.evidenceDigest = stableTestDigest(responseEvidence);
+  const planned = fixture.store.appendTurn(created.id, {
+    text: '制作一支雨夜重逢短片',
+    clientRequestId: 'work-accept-stage-0001',
+    plan,
+    assistantText: workProposal.displayMarkdown,
+    responseEvidence,
+    workProposal,
+    qualityMode: 'quick',
+    decisionTurn: { document: pendingDecisionDocument },
+  }).session;
+  const brief = planned.workArtifactVersions.find((version) => version.kind === 'ProductionBrief');
+  assert.ok(brief);
+  const accepted = fixture.store.reviseWorkArtifactVersion(created.id, {
+    artifactId: brief.artifactId,
+    baseVersionId: brief.versionId,
+    action: 'accept',
+    actor: 'canvas-ui',
+  });
+  const confirmation = accepted.session.suggestionSet.items.find(
+    (item) => item.arguments?.confirmCurrentStage === true,
+  );
+  assert.ok(confirmation);
+  assert.equal(confirmation.id, 'decision-confirm-idea-confirm');
+  assert.equal(confirmation.arguments.continueToPhase, 'script');
+  assert.equal(confirmation.arguments.workDigest, accepted.session.creatorWork.workDigest);
+  assert.equal(accepted.session.decisionDocument.status, 'ready-for-confirmation');
+  assert.equal(currentCreatorDecision(accepted.session.decisionDocument).kind, 'stage-confirmation');
+  assert.deepEqual(accepted.event.payload.sideEffects, {
+    providerCalls: 0, canvasWrites: 0, fileWrites: 0,
+  });
 });
 
 test('creator suggestions hide unavailable capabilities and deterministically backfill three safe actions', () => {

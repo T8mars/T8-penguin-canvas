@@ -20,6 +20,9 @@ const {
   CreatorAgentSessionError,
   createCreatorAgentSessionStore,
 } = require('../backend/src/services/creatorAgentSessions.js');
+const {
+  createCreatorWorkProposal,
+} = require('../backend/src/services/creatorAgentWorkArtifacts.js');
 
 function stableString(value) {
   if (value === null || typeof value !== 'object') return JSON.stringify(value);
@@ -65,11 +68,57 @@ function fixture() {
     planDigest: 'a'.repeat(64),
     impact: { patchOperationCount: 0 },
   };
+  const workProposal = createCreatorWorkProposal({
+    logicalRequestId: 'request-tool-proposals',
+    taskFamily: 'mixed',
+    qualityMode: 'standard',
+    modelValue: {
+      schema: 't8-creator-work-model-response-v1',
+      displayMarkdown: '## 角色主视觉\n\n建立可编辑的角色主视觉任务画像与创作简报，保留版本、来源和后续操作边界。',
+      taskProfile: {
+        family: 'mixed',
+        intent: '创作一张电影感角色主视觉',
+        deliveryKind: 'editable-work',
+        modalities: ['text', 'image'],
+        targetPlatform: 'canvas',
+        qualityMode: 'standard',
+      },
+      artifacts: [
+        {
+          kind: 'TaskProfile',
+          title: '任务画像',
+          fields: {
+            family: 'mixed',
+            intent: '创作一张电影感角色主视觉',
+            deliveryKind: 'editable-work',
+            modalities: ['text', 'image'],
+            targetPlatform: 'canvas',
+            qualityMode: 'standard',
+          },
+        },
+        {
+          kind: 'ProductionBrief',
+          title: '创作简报',
+          fields: {
+            title: '角色主视觉',
+            outcome: '一张可继续修改的电影感角色主视觉',
+            audience: '当前项目创作者',
+            format: '16:9',
+            style: '电影感',
+          },
+        },
+      ],
+      toolProposals: [],
+    },
+  });
+  assert.ok(workProposal);
   const turn = store.appendTurn(session.id, {
     text: '先做一版电影感角色主视觉',
     assistantText: '这是已经完成并可编辑的角色主视觉 V0，包含主体、构图、光线和下一步。',
     responseEvidence: responseEvidence(),
-
+    clientRequestId: 'request-tool-proposals',
+    qualityMode: 'standard',
+    workProposal,
     plan,
   });
   return {
@@ -78,6 +127,7 @@ function fixture() {
     sessionId: session.id,
     assistantEvent: turn.assistantEvent,
     session: turn.session,
+    plan,
     cleanup() {
       fs.rmSync(rootDir, { recursive: true, force: true });
     },
@@ -124,6 +174,9 @@ test('model tool proposal compiles against exact response/plan/canvas bindings a
     assert.equal(proposal.binding.planId, 'plan-tool-proposals-1');
     assert.equal(proposal.binding.planDigest, 'a'.repeat(64));
     assert.equal(proposal.binding.canvasRevision, 12);
+    assert.equal(proposal.binding.workId, fx.session.creatorWork.workId);
+    assert.equal(proposal.binding.workRevision, fx.session.creatorWork.revision);
+    assert.equal(proposal.binding.workDigest, fx.session.creatorWork.workDigest);
     assert.equal(proposal.tool.version, surfaces.capabilityManifestVersion);
     assert.equal(proposal.tool.creatorLabel, '生成图片');
     assert.equal(proposal.gate.riskLevel, 'L0');
@@ -140,9 +193,197 @@ test('model tool proposal compiles against exact response/plan/canvas bindings a
     assert.equal(stored.session.toolProposals.length, 1);
     assert.equal(stored.event.type, 'assistant.tool-proposal.validated');
     assert.equal(stored.event.payload.execution.providerCalls, 0);
+    assert.equal(stored.event.payload.workId, fx.session.creatorWork.workId);
+    assert.equal(stored.event.payload.workRevision, fx.session.creatorWork.revision);
+    assert.equal(stored.event.payload.workDigest, fx.session.creatorWork.workDigest);
     const repeated = fx.store.recordToolProposal(fx.sessionId, { proposal });
     assert.equal(repeated.duplicate, true);
     assert.equal(repeated.session.toolProposals.length, 1);
+  } finally {
+    fx.cleanup();
+  }
+});
+
+test('prepared proposal has zero side effects and writes authoritative lifecycle stages back to the same session', () => {
+  const fx = fixture();
+  try {
+    const proposal = compileCreatorToolProposal({
+      proposal: rawProposal({ request: request('apply') }),
+      session: fx.session,
+      assistantEvent: fx.assistantEvent,
+    });
+    fx.store.recordToolProposal(fx.sessionId, { proposal });
+    const prepared = fx.store.prepareToolProposal(fx.sessionId, {
+      proposalId: proposal.proposalId,
+      proposalDigest: proposal.proposalDigest,
+      plan: fx.plan,
+    });
+    assert.equal(prepared.duplicate, false);
+    assert.equal(prepared.event.type, 'assistant.tool-proposal.prepared');
+    assert.deepEqual(prepared.event.payload.sideEffects, {
+      canvasWrites: 0,
+      providerCalls: 0,
+      fileWrites: 0,
+    });
+    const repeated = fx.store.prepareToolProposal(fx.sessionId, {
+      proposalId: proposal.proposalId,
+      proposalDigest: proposal.proposalDigest,
+      plan: fx.plan,
+    });
+    assert.equal(repeated.duplicate, true);
+
+    const applied = fx.store.appendLifecycle(fx.sessionId, 'plan.applied', {
+      planId: fx.plan.planId,
+      planDigest: fx.plan.planDigest,
+      patchId: 'patch-tool-proposal-1',
+      previewDigest: '9'.repeat(64),
+      appliedRevision: 13,
+      duplicate: false,
+      canvasEvidence: {
+        source: 'canvas-patch-ledger',
+        status: 'applied',
+        actorId: 'creator-agent-test',
+        operationCount: 1,
+      },
+    });
+    const writeback = applied.events.find((event) => (
+      event.type === 'assistant.tool-proposal.writeback'
+      && event.payload?.proposalId === proposal.proposalId
+    ));
+    assert.ok(writeback);
+    assert.equal(writeback.payload.stage, 'applied');
+    assert.equal(writeback.payload.evidence.canvasWriteRecorded, true);
+    assert.equal(writeback.payload.evidence.providerRunLinked, false);
+    assert.equal(writeback.payload.evidence.physicalArtifactsVerified, false);
+
+    const linked = fx.store.appendLifecycle(fx.sessionId, 'run.linked', {
+      planId: fx.plan.planId,
+      planDigest: fx.plan.planDigest,
+      patchId: 'patch-tool-proposal-1',
+      runId: 'run-tool-proposal-1',
+      matchedNodeIds: ['node-tool-proposal-1'],
+    });
+    const runningWriteback = [...linked.events].reverse().find((event) => (
+      event.type === 'assistant.tool-proposal.writeback'
+      && event.payload?.proposalId === proposal.proposalId
+    ));
+    assert.equal(runningWriteback.payload.stage, 'running');
+    assert.equal(runningWriteback.payload.evidence.canvasWriteRecorded, true);
+    assert.equal(runningWriteback.payload.evidence.providerRunLinked, true);
+    assert.equal(runningWriteback.payload.evidence.physicalArtifactsVerified, false);
+
+    const verified = fx.store.appendLifecycle(fx.sessionId, 'run.artifacts-verified', {
+      runId: 'run-tool-proposal-1',
+      verification: {
+        verified: true,
+        reasons: [],
+        run: {
+          runId: 'run-tool-proposal-1',
+          status: 'succeeded',
+          canvasRevision: 13,
+          createdAt: 1,
+          finishedAt: 2,
+        },
+        nodeRuns: [{
+          nodeRunId: 'node-run-tool-proposal-1',
+          nodeId: 'node-tool-proposal-1',
+          status: 'succeeded',
+          latestAttemptId: 'attempt-tool-proposal-1',
+          latestAttemptStatus: 'succeeded',
+          outputAssetIds: ['asset-tool-proposal-1'],
+        }],
+        assets: [{
+          assetId: 'asset-tool-proposal-1',
+          nodeRunId: 'node-run-tool-proposal-1',
+          kind: 'image',
+          mimeType: 'image/png',
+          contentHash: 'a'.repeat(64),
+          availability: 'available',
+          stored: true,
+          blobPresent: true,
+          hashVerified: true,
+          magicVerified: true,
+          detectedKind: 'image',
+          detectedMimeType: 'image/png',
+          observedContentHash: 'a'.repeat(64),
+          byteSize: 68,
+          decodeEvidence: 'indexed-parser-verified',
+          associationVerified: true,
+          expectedNodeId: 'node-tool-proposal-1',
+          expectedShotIds: [],
+          observedShotIds: [],
+          expectedCanvasRevision: 13,
+        }],
+      },
+    });
+    const verifiedWriteback = [...verified.events].reverse().find((event) => (
+      event.type === 'assistant.tool-proposal.writeback'
+      && event.payload?.proposalId === proposal.proposalId
+    ));
+    assert.equal(verifiedWriteback.payload.stage, 'verified');
+    assert.equal(verifiedWriteback.payload.evidence.canvasWriteRecorded, true);
+    assert.equal(verifiedWriteback.payload.evidence.providerRunLinked, true);
+    assert.equal(verifiedWriteback.payload.evidence.physicalArtifactsVerified, true);
+
+    const snapshotPath = path.join(fx.rootDir, 'sessions', `${fx.sessionId}.json`);
+    const legacySnapshot = JSON.parse(fs.readFileSync(snapshotPath, 'utf8'));
+    const legacyWriteback = [...legacySnapshot.events].reverse().find((event) => (
+      event.type === 'assistant.tool-proposal.writeback'
+      && event.payload?.proposalId === proposal.proposalId
+      && event.payload?.stage === 'verified'
+    ));
+    legacyWriteback.payload.evidence.canvasWriteRecorded = false;
+    legacyWriteback.payload.evidence.providerRunLinked = false;
+    fs.writeFileSync(snapshotPath, `${JSON.stringify(legacySnapshot, null, 2)}\n`, 'utf8');
+
+    const repaired = fx.store.reconcileToolProposalWritebacks(fx.sessionId);
+    assert.equal(repaired.repaired, 1);
+    const repairedWriteback = [...repaired.session.events].reverse().find((event) => (
+      event.type === 'assistant.tool-proposal.writeback'
+      && event.payload?.proposalId === proposal.proposalId
+    ));
+    assert.equal(repairedWriteback.payload.stage, 'verified');
+    assert.equal(repairedWriteback.payload.evidenceEventType, 'execution.reconciled');
+    assert.equal(repairedWriteback.payload.evidence.canvasWriteRecorded, true);
+    assert.equal(repairedWriteback.payload.evidence.providerRunLinked, true);
+    assert.equal(repairedWriteback.payload.evidence.physicalArtifactsVerified, true);
+    const repeatedRepair = fx.store.reconcileToolProposalWritebacks(fx.sessionId);
+    assert.equal(repeatedRepair.repaired, 0);
+    assert.equal(repeatedRepair.session.lastSequence, repaired.session.lastSequence);
+  } finally {
+    fx.cleanup();
+  }
+});
+
+test('proposal becomes stale when the exact structured work version changes', () => {
+  const fx = fixture();
+  try {
+    const proposal = compileCreatorToolProposal({
+      proposal: rawProposal(),
+      session: fx.session,
+      assistantEvent: fx.assistantEvent,
+    });
+    fx.store.recordToolProposal(fx.sessionId, { proposal });
+    const brief = fx.session.workArtifactVersions.find((version) => (
+      version.kind === 'ProductionBrief'
+    ));
+    assert.ok(brief);
+    const revised = fx.store.reviseWorkArtifactVersion(fx.sessionId, {
+      artifactId: brief.artifactId,
+      baseVersionId: brief.versionId,
+      action: 'edit',
+      field: 'outcome',
+      value: '两张可比较、可继续修改的电影感角色主视觉',
+      actor: 'creator',
+    });
+    assert.equal(revised.duplicate, false);
+    assert.notEqual(revised.session.creatorWork.workDigest, proposal.binding.workDigest);
+    assert.throws(
+      () => assertCreatorToolProposalCurrent(proposal, revised.session),
+      (error) => error instanceof CreatorAgentToolProposalError
+        && error.code === 'CREATOR_TOOL_PROPOSAL_STALE'
+        && ['workRevision', 'workDigest'].includes(error.details?.binding),
+    );
   } finally {
     fx.cleanup();
   }

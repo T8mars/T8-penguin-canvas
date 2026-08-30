@@ -94,6 +94,33 @@ test('OpenAI compatible chat posts to chat/completions and normalizes assistant 
   assert.equal(calls[0].body.temperature, 0.25);
 });
 
+test('OpenAI compatible chat forwards bounded JSON response and reasoning controls', async () => {
+  const calls: any[] = [];
+  const provider = {
+    id: 'custom-openai',
+    protocol: 'openai-compatible',
+    baseUrl: 'https://api.example.com/v1/',
+    apiKey: 'sk-secret',
+    chatModels: ['structured-model'],
+  };
+
+  const result = await openaiCompatible.generateChat(provider, {
+    model: 'structured-model',
+    prompt: 'return JSON',
+    responseFormat: { type: 'json_object', ignored: 'must-not-forward' },
+    reasoningEffort: 'low',
+  }, {
+    fetchImpl: async (url: string, init: any) => {
+      calls.push({ url, init, body: JSON.parse(init.body) });
+      return jsonResponse({ choices: [{ message: { content: '{"ok":true}' } }] });
+    },
+  });
+
+  assert.equal(result.ok, true);
+  assert.deepEqual(calls[0].body.response_format, { type: 'json_object' });
+  assert.equal(calls[0].body.reasoning_effort, 'low');
+});
+
 test('OpenAI compatible writes inherit the lifecycle submission key without changing auth headers', async () => {
   const calls: any[] = [];
   const provider = {
@@ -169,7 +196,7 @@ test('OpenAI compatible chat consumes upstream SSE deltas without replaying or t
     chatModels: ['gpt-stream'],
   };
   const payload = [
-    'data: {"model":"gpt-stream","choices":[{"delta":{"content":"第一段"}}]}\r\n\r\n',
+    'data: {"id":"chatcmpl-stream-body-1","model":"gpt-stream","choices":[{"delta":{"content":"第一段"}}]}\r\n\r\n',
     'data: {"choices":[{"delta":{"content":"，继续"}}]}\n\n',
     'data: {"choices":[{"delta":{"content":"\\n第二行"}}]}\n\n',
     'data: {"model":"gpt-stream","choices":[{"delta":{},"finish_reason":"stop"}],"usage":{"prompt_tokens":3,"completion_tokens":4,"total_tokens":7}}\n\n',
@@ -216,7 +243,7 @@ test('OpenAI compatible chat consumes upstream SSE deltas without replaying or t
   assert.equal(result.model, 'gpt-stream');
   assert.equal(result.finishReason, 'stop');
   assert.equal(result.eventCount, 4);
-  assert.equal(result.requestId, 'req-stream-1');
+  assert.equal(result.requestId, 'chatcmpl-stream-body-1');
   assert.deepEqual(result.usage, { prompt_tokens: 3, completion_tokens: 4, total_tokens: 7 });
   assert.equal(calls.length, 1);
   assert.equal(calls[0].body.stream, true);

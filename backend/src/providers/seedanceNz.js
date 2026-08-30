@@ -158,6 +158,7 @@ const SEEDREAM_LAYER_PROMPT_MAX_LENGTH = 2000;
 const SEEDREAM_LAYER_SOURCE_MAX_BYTES = 30 * 1024 * 1024;
 const ZHENZHEN_VIDEO_G_OMNI_FLASH_MODEL = 'zhenzhen-video-g-omni-flash';
 const ZHENZHEN_VIDEO_G_OMNI_FLASH_LOWPRICE_MODEL = 'zhenzhen-video-g-omni-flash-lowprice';
+const ZHENZHEN_VIDEO_G_OMNI_11_FLASH_LOWPRICE_MODEL = 'zhenzhen-video-g-omni-1.1-flash-lowprice';
 const ZHENZHEN_VIDEO_GK_V15_MODEL = 'zhenzhen-video-gk-v15';
 const ZHENZHEN_VIDEO_V31_FAST_MODEL = 'zhenzhen-video-v31-fast';
 const ZHENZHEN_VIDEO_V31_QUALITY_MODEL = 'zhenzhen-video-v31-quality';
@@ -165,6 +166,7 @@ const ZHENZHEN_VIDEO_V31_LITE_MODEL = 'zhenzhen-video-v31-lite';
 const ZHENZHEN_APIMART_VIDEO_MODELS = new Set([
   ZHENZHEN_VIDEO_G_OMNI_FLASH_MODEL,
   ZHENZHEN_VIDEO_G_OMNI_FLASH_LOWPRICE_MODEL,
+  ZHENZHEN_VIDEO_G_OMNI_11_FLASH_LOWPRICE_MODEL,
   ZHENZHEN_VIDEO_GK_V15_MODEL,
   ZHENZHEN_VIDEO_V31_FAST_MODEL,
   ZHENZHEN_VIDEO_V31_QUALITY_MODEL,
@@ -2800,7 +2802,7 @@ async function buildApimartVideoPayload(request, apiKey, options = {}) {
     return { payload, model, taskType: refs.length || videoSources.length ? 'multi' : 't2v' };
   }
 
-  if (model === ZHENZHEN_VIDEO_G_OMNI_FLASH_LOWPRICE_MODEL) {
+  if (model === ZHENZHEN_VIDEO_G_OMNI_FLASH_LOWPRICE_MODEL || model === ZHENZHEN_VIDEO_G_OMNI_11_FLASH_LOWPRICE_MODEL) {
     if (!prompt) throw new Error(`${model} 必须填写提示词`);
     const mode = String(request.mode || 'text').trim().toLowerCase();
     if (!['text', 'frame', 'reference_images', 'reference_video'].includes(mode)) {
@@ -5471,6 +5473,7 @@ module.exports = {
   ZHENZHEN_IMAGE_NB_MODELS,
   ZHENZHEN_VIDEO_G_OMNI_FLASH_MODEL,
   ZHENZHEN_VIDEO_G_OMNI_FLASH_LOWPRICE_MODEL,
+  ZHENZHEN_VIDEO_G_OMNI_11_FLASH_LOWPRICE_MODEL,
   ZHENZHEN_VIDEO_GK_V15_MODEL,
   ZHENZHEN_VIDEO_V31_FAST_MODEL,
   ZHENZHEN_VIDEO_V31_LITE_MODEL,

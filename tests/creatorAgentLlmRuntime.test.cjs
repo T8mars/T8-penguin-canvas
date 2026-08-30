@@ -2,6 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const {
+  creatorToolProposalContract,
   createCreatorAgentLlmRuntime,
   mediaObservationQuality,
   offlineV0,
@@ -37,6 +38,38 @@ function readyReceipt(provider = 'zhenzhen', model = 'gemini-3.5-flash') {
   };
 }
 
+test('tool proposal contract exposes one exact scoped plan request without low-level execution fields', () => {
+  const contract = creatorToolProposalContract({
+    projectId: 'project-local',
+    canvasId: 'canvas-creator-agent',
+    kind: 'image',
+    logicalRequestId: 'creator-request-1',
+  });
+  assert.match(contract, /t8-creator-model-tool-proposal-v1/);
+  assert.match(contract, /zcanvas_create_image/);
+  assert.match(contract, /"operation":"plan"/);
+  assert.match(contract, /"projectId":"project-local"/);
+  assert.match(contract, /"canvasId":"canvas-creator-agent"/);
+  assert.doesNotMatch(contract, /apiKey|Authorization|Bearer|canvasPatch|"nodes"|"edges"/i);
+  assert.match(creatorToolProposalContract({ kind: 'image' }), /必须返回空数组/);
+});
+
+test('tool proposal contract routes explicit five-language localization requests to the staged workbench', () => {
+  const contract = creatorToolProposalContract({
+    projectId: 'project-local',
+    canvasId: 'canvas-creator-agent',
+    kind: 'audio',
+    prompt: '把这个作品做成中英日西阿五语完整本地化，先让我审译文再配音。',
+    logicalRequestId: 'creator-localization-1',
+  });
+  assert.match(contract, /zcanvas_localization_create/);
+  assert.match(contract, /"targetLanguages":\["ZH","EN","JA","ES","AR"\]/);
+  assert.match(contract, /"sourceLanguage":"AUTO"/);
+  assert.match(contract, /"mode":"full"/);
+  assert.match(contract, /input\.instruction/);
+  assert.doesNotMatch(contract, /apiKey|Authorization|Bearer|canvasPatch|"nodes"|"edges"/i);
+});
+
 test('offline V0 is substantive, task-specific, and honest about zero model calls', async () => {
   let calls = 0;
   const runtime = createCreatorAgentLlmRuntime({
@@ -66,9 +99,8 @@ test('offline V0 is substantive, task-specific, and honest about zero model call
   assert.match(result.text, /不编造功效、材质或认证/);
   assert.doesNotMatch(JSON.stringify(result), /apiKey|Authorization|Bearer|sk-/i);
   assert.equal(responseQuality(result.text, '帮我做一套护肤品电商商品图').ok, true);
-  assert.deepEqual(normalizeCreatorArtifactProposal(result.artifactProposal), result.artifactProposal);
-  assert.equal(result.artifactProposal.taskFamily, 'commerce');
-  assert.equal(result.artifactProposal.content.bodyMarkdown, result.text);
+  assert.equal('artifactProposal' in result, false);
+  assert.equal('workProposal' in result, false);
 });
 
 test('ready model produces a substantive online response with one provider call and bounded history', async () => {
@@ -238,8 +270,9 @@ test('ready model streams exact provider deltas and exposes truthful started evi
   });
   assert.equal(result.text, answer);
   assert.equal(result.streamed, true);
-  assert.deepEqual(emitted.map((item) => item.delta), answerParts);
-  assert.deepEqual(emitted.map((item) => item.meta.index), [0, 1, 2]);
+  assert.equal(emitted.map((item) => item.delta).join(''), answer);
+  assert.deepEqual(emitted.map((item) => item.meta.index), [0]);
+  assert.equal(emitted.every((item) => item.meta.grounded === true), true);
   assert.equal(result.evidence.mode, 'online-model');
   assert.equal(result.evidence.status, 'completed');
   assert.equal(result.evidence.providerCalls, 1);
@@ -271,14 +304,12 @@ test('streaming quality failure keeps partial text and appends an honest task-sp
   });
   assert.equal(result.evidence.mode, 'offline-fallback');
   assert.equal(result.evidence.providerCalls, 1);
-  assert.match(result.text, /^你想做什么？/);
-  assert.match(result.text, /在线模型回复未达到可用质量/);
+  assert.doesNotMatch(result.text, /^你想做什么？/);
   assert.match(result.text, /套图顺序/);
   assert.equal(result.text, emitted.join(''));
-  assert.equal(result.continuationText, emitted[1]);
-  assert.deepEqual(normalizeCreatorArtifactProposal(result.artifactProposal), result.artifactProposal);
-  assert.equal(result.artifactProposal.taskFamily, 'commerce');
-  assert.equal(result.artifactProposal.content.bodyMarkdown, emitted.join(''));
+  assert.equal(result.continuationText, emitted.join(''));
+  assert.equal('artifactProposal' in result, false);
+  assert.equal('workProposal' in result, false);
 });
 test('provider resolution keeps workshop and low-cost-house credentials independent', () => {
   const workshop = providerForDecision(

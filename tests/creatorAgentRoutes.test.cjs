@@ -148,6 +148,9 @@ async function startFixture(t, initialNodes = [], overrides = {}) {
     ...(overrides.creatorLlmGenerateChat ? {
       creatorLlmGenerateChat: overrides.creatorLlmGenerateChat,
     } : {}),
+    ...(overrides.creatorAudioTranscriber ? {
+      creatorAudioTranscriber: overrides.creatorAudioTranscriber,
+    } : {}),
     ...(overrides.creatorLlmFetchImpl ? { creatorLlmFetchImpl: overrides.creatorLlmFetchImpl } : {}),
     ...(overrides.creatorLlmTimeoutMs ? { creatorLlmTimeoutMs: overrides.creatorLlmTimeoutMs } : {}),
     ...(overrides.deliveryService ? { deliveryService: overrides.deliveryService } : {}),
@@ -364,7 +367,7 @@ test('suggestion clicks require the current receipt and stale canvas revisions f
     body: JSON.stringify({
       projectId: 'project-local',
       canvasId: 'canvas-a',
-      text: suggestion.label,
+      text: '',
       context: { nodeCount: 0, edgeCount: 0, canvasTitle: '建议回执测试' },
       suggestion: {
         id: suggestion.id,
@@ -375,6 +378,8 @@ test('suggestion clicks require the current receipt and stale canvas revisions f
   assert.equal(valid.response.status, 201);
   assert.equal(valid.body.data.userEvent.type, 'user.suggestion');
   assert.equal(valid.body.data.userEvent.payload.suggestion.id, suggestion.id);
+  assert.equal(valid.body.data.userEvent.payload.suggestion.label, suggestion.label);
+  assert.equal(valid.body.data.userEvent.payload.text, suggestion.arguments.creatorPrompt);
   assert.equal(
     valid.body.data.userEvent.payload.suggestion.setDigest,
     session.suggestionSet.setDigest,
@@ -419,7 +424,7 @@ test('suggestion clicks require the current receipt and stale canvas revisions f
   assert.equal(fixture.writes, 0);
   assert.equal(fixture.providerCalls, 0);
 });
-test('one sentence creates a previewable Story plan but performs zero writes and provider generation calls', async (t) => {
+test('one sentence creates a previewable local plan but cannot confirm a formal stage without a real LLM artifact', async (t) => {
   const fixture = await startFixture(t);
   const created = await fixture.request('/sessions', {
     method: 'POST',
@@ -566,6 +571,13 @@ test('one sentence creates a previewable Story plan but performs zero writes and
     method: 'POST',
     body: JSON.stringify(confirmationBody),
   });
+  if (confirmed.response.status === 409) {
+    assert.equal(confirmed.body.code, 'CREATOR_STAGE_ARTIFACT_REQUIRED');
+    assert.match(confirmed.body.message, /没有可验证的非空创作稿版本/);
+    assert.equal(fixture.writes, 0);
+    assert.equal(fixture.providerCalls, 0);
+    return;
+  }
   assert.equal(confirmed.response.status, 201);
   assert.equal(confirmed.body.data.canvasRetention.patch.baseRevision, 13);
   assert.equal(confirmed.body.data.confirmations.length, 1);
@@ -917,7 +929,8 @@ test('ready LLM produces substantive V0 with durable honest response evidence', 
   assert.equal(observedRequest.stream, false);
   assert.equal(planned.body.data.assistantEvent.payload.text, modelText);
   assert.equal(planned.body.data.assistantEvent.payload.providerCalls, 1);
-  assert.deepEqual(planned.body.data.assistantEvent.payload.responseEvidence, {
+  const responseEvidence = planned.body.data.assistantEvent.payload.responseEvidence;
+  assert.deepEqual(responseEvidence, {
     schema: 't8-creator-agent-response-evidence-v1',
     mode: 'online-model',
     status: 'completed',
@@ -929,11 +942,370 @@ test('ready LLM produces substantive V0 with durable honest response evidence', 
     errorCode: null,
     qualityCode: 'accepted',
     modelDecisionDigest: planned.body.data.session.latestPlan.modelDecisionReceipt.receiptDigest,
-    evidenceDigest: planned.body.data.assistantEvent.payload.responseEvidence.evidenceDigest,
+    qualityMode: 'quick',
+    promptContractDigest: responseEvidence.promptContractDigest,
+    calls: [{
+      index: 0,
+      role: 'draft',
+      status: 'completed',
+      provider: 'zhenzhen',
+      model: observedRequest.model,
+      requestId: 'mock-request-1',
+      finishReason: 'stop',
+      errorCode: null,
+    }],
+    evidenceDigest: responseEvidence.evidenceDigest,
   });
-  assert.match(planned.body.data.assistantEvent.payload.responseEvidence.evidenceDigest, /^[a-f0-9]{64}$/);
+  assert.match(responseEvidence.promptContractDigest, /^[a-f0-9]{64}$/);
+  assert.match(responseEvidence.evidenceDigest, /^[a-f0-9]{64}$/);
   assert.equal(JSON.stringify(planned.body).includes(privateValue), false);
   assert.equal(fixture.writes, 0);
+});
+
+test('structured Creator work persists LLM receipts, versions, locks, and version-bound suggestions', async (t) => {
+  const structured = {
+    schema: 't8-creator-work-model-response-v1',
+    displayMarkdown: [
+      '## 通勤护肤新品 · 电商内容 V0',
+      '首屏以真实产品图为核心，主标题聚焦通勤场景，未知功效、认证、材质和参数全部保留占位符，不作为商品事实发布。',
+      '套图依次覆盖封面主图、使用场景和包装细节；每张图只承担一个卖点，并为移动端标题与平台裁切保留安全区。',
+      '执行时先锁定包装、Logo 和已确认规格，再比较三个首屏方向；采用后才扩展详情页，最后检查文案、CTA、品牌一致性与合规风险。',
+    ].join('\n\n'),
+    taskProfile: {
+      family: 'commerce',
+      intent: '制作可继续编辑的新品电商首屏与详情页内容',
+      deliveryKind: 'commerce-content-set',
+      modalities: ['text', 'image'],
+      targetPlatform: 'mobile-commerce',
+      qualityMode: 'quick',
+    },
+    artifacts: [
+      {
+        kind: 'TaskProfile', title: '任务画像', fields: {
+          family: 'commerce', intent: '通勤护肤新品内容', deliveryKind: 'commerce-content-set',
+          modalities: ['text', 'image'], targetPlatform: 'mobile-commerce', qualityMode: 'quick',
+        },
+      },
+      {
+        kind: 'ProductionBrief', title: '创作简报', fields: {
+          title: '通勤护肤新品', outcome: '首屏与详情页内容', audience: '城市通勤用户',
+          format: 'mobile-commerce', successCriteria: ['事实可核对', '移动端可读'],
+        },
+      },
+      {
+        kind: 'ProductTruth', title: '商品真值', fields: {
+          facts: ['新品名称待用户确认'],
+          claimsToAvoid: ['未提供证据的功效、认证、材质和实验数据'],
+          sourceBindings: [],
+        },
+      },
+      {
+        kind: 'CommerceContentPlan', title: '内容计划', fields: {
+          channels: ['mobile-commerce'],
+          contentUnits: ['封面主图', '使用场景', '包装细节'],
+          storyArc: '识别产品 → 理解场景 → 核对细节 → 行动',
+          assetNeeds: ['真实产品图', '包装细节图'],
+          complianceNotes: ['所有功效和规格必须有来源'],
+        },
+      },
+      {
+        kind: 'CopySet', title: '文案组', fields: {
+          headlines: ['通勤护肤，也可以更从容'],
+          subheads: ['真实卖点与规格确认后替换占位符'],
+          body: ['封面、场景、细节三屏各承担一个信息任务。'],
+          cta: ['查看真实规格'],
+          disclaimers: ['未确认参数不得发布'],
+        },
+      },
+    ],
+    toolProposals: [],
+  };
+  let llmCalls = 0;
+  const fixture = await startFixture(t, [], {
+    credentialSettingsProvider: () => ({ llmApiKey: 'configured' }),
+    creatorLlmSettingsProvider: () => ({
+      llmApiKey: 'private-test-key',
+      llmBaseUrl: 'https://mock-provider.invalid',
+    }),
+    creatorLlmGenerateChat: async (_provider, request) => {
+      llmCalls += 1;
+      return {
+        ok: true,
+        text: JSON.stringify(structured),
+        model: request.model,
+        finishReason: 'stop',
+        requestId: `structured-request-${llmCalls}`,
+      };
+    },
+  });
+  const created = await fixture.request('/sessions', {
+    method: 'POST',
+    body: JSON.stringify({
+      projectId: 'project-local',
+      canvasId: 'canvas-a',
+      context: { nodeCount: 0, edgeCount: 0 },
+    }),
+  });
+  const sessionId = created.body.data.id;
+  const planned = await fixture.request(`/sessions/${sessionId}/messages`, {
+    method: 'POST',
+    body: JSON.stringify({
+      projectId: 'project-local',
+      canvasId: 'canvas-a',
+      kind: 'script',
+      text: '为一款通勤护肤新品制作可继续修改的电商首屏和详情页内容',
+      qualityMode: 'quick',
+      clientRequestId: 'structured-work-0001',
+      context: { nodeCount: 0, edgeCount: 0 },
+    }),
+  });
+  assert.equal(planned.response.status, 201);
+  assert.equal(llmCalls, 1);
+  const session = planned.body.data.session;
+  assert.equal(session.creatorWork.schema, 't8-creator-work-snapshot-v1');
+  assert.equal(session.creatorWork.taskProfile.family, 'commerce');
+  assert.equal(session.workArtifacts.length, 5);
+  assert.equal(session.workArtifactVersions.length, 5);
+  assert.equal(session.creatorLlmTurnReceipts.length, 2);
+  const invocationReceipt = session.creatorLlmTurnReceipts.find((item) => item.phase === 'invocation');
+  const compiledReceipt = session.creatorLlmTurnReceipts.find((item) => item.phase === 'compiled');
+  assert.equal(invocationReceipt.providerCalls, 1);
+  assert.equal(invocationReceipt.logicalRequestId, 'structured-work-0001');
+  assert.equal(compiledReceipt.invocationReceiptDigest, invocationReceipt.receiptDigest);
+  assert.equal(compiledReceipt.workSnapshotDigest, session.creatorWork.workDigest);
+  assert.equal(compiledReceipt.artifactBindings.length, 5);
+  assert.equal(compiledReceipt.artifactBindings.every((binding) => (
+    binding.artifactId.startsWith('cwa_')
+      && binding.newVersionId.startsWith('cwav_')
+      && /^[a-f0-9]{64}$/.test(binding.diffDigest)
+  )), true);
+  assert.equal(session.suggestionSet.items.length, 3);
+  assert.equal(session.suggestionSet.binding.workId, session.creatorWork.workId);
+  assert.equal(session.suggestionSet.binding.workDigest, session.creatorWork.workDigest);
+  assert.equal(session.suggestionSet.items.every((item) => (
+    item.arguments.workId === session.creatorWork.workId
+      && item.arguments.workDigest === session.creatorWork.workDigest
+      && item.arguments.expectedWorkDiff?.baseWorkDigest === session.creatorWork.workDigest
+  )), true);
+
+  const brief = session.workArtifactVersions.find((item) => item.kind === 'ProductionBrief');
+  const oldSuggestionSet = session.suggestionSet;
+  const locked = await fixture.request(
+    `/sessions/${sessionId}/work-artifacts/${brief.artifactId}/revise`,
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        projectId: 'project-local',
+        canvasId: 'canvas-a',
+        baseVersionId: brief.versionId,
+        action: 'lock',
+        field: 'outcome',
+      }),
+    },
+  );
+  assert.equal(locked.response.status, 201);
+  assert.equal(llmCalls, 1);
+  assert.equal(locked.body.data.artifactVersion.fieldLocks.includes('/fields/outcome'), true);
+  assert.deepEqual(locked.body.data.event.payload.sideEffects, {
+    providerCalls: 0,
+    canvasWrites: 0,
+    fileWrites: 0,
+  });
+  assert.notEqual(locked.body.data.session.creatorWork.workDigest, session.creatorWork.workDigest);
+  assert.equal(
+    locked.body.data.session.creatorWork.revision,
+    session.creatorWork.revision + 1,
+  );
+  assert.equal(
+    locked.body.data.session.suggestionSet.binding.workDigest,
+    locked.body.data.session.creatorWork.workDigest,
+  );
+
+  const unchanged = await fixture.request(`/sessions/${sessionId}/messages`, {
+    method: 'POST',
+    body: JSON.stringify({
+      projectId: 'project-local',
+      canvasId: 'canvas-a',
+      kind: 'script',
+      text: '保持当前作品内容不变，只重新核对一次',
+      qualityMode: 'quick',
+      clientRequestId: 'structured-work-0002-no-op',
+      context: { nodeCount: 0, edgeCount: 0 },
+    }),
+  });
+  assert.equal(unchanged.response.status, 201);
+  assert.equal(llmCalls, 2);
+  assert.equal(
+    unchanged.body.data.session.creatorWork.revision,
+    locked.body.data.session.creatorWork.revision,
+  );
+  assert.equal(
+    unchanged.body.data.session.creatorWork.workDigest,
+    locked.body.data.session.creatorWork.workDigest,
+  );
+
+  const stale = await fixture.request(`/sessions/${sessionId}/messages`, {
+    method: 'POST',
+    body: JSON.stringify({
+      projectId: 'project-local',
+      canvasId: 'canvas-a',
+      text: oldSuggestionSet.items[0].label,
+      suggestion: {
+        id: oldSuggestionSet.items[0].id,
+        setDigest: oldSuggestionSet.setDigest,
+      },
+      context: { nodeCount: 0, edgeCount: 0 },
+    }),
+  });
+  assert.equal(stale.response.status, 409);
+  assert.equal(stale.body.code, 'CREATOR_SUGGESTION_STALE');
+  assert.equal(llmCalls, 2);
+  assert.equal(fixture.writes, 0);
+});
+
+test('audio-backed work transcribes once, binds the exact asset version, and recovers without a second charge', async (t) => {
+  const artifact = (kind, title, fields) => ({ kind, title, fields });
+  const structured = {
+    schema: 't8-creator-work-model-response-v1',
+    displayMarkdown: [
+      '## 旧车站对白短片 V0',
+      '对白事实来自已绑定素材版本的 Whisper 转写：今晚十点，我们在旧车站见。',
+      '第一镜建立旧车站夜景，第二镜用近景承接这句对白，结尾保留赴约者是否出现的悬念。',
+      '音乐、环境声、说话人身份和情绪没有音频分析证据，因此保持未知，不冒充已经听见。',
+      '画面只把转写当作对白依据，并把其余听觉信息留给后续人工确认。',
+    ].join('\n\n'),
+    taskProfile: {
+      family: 'story', intent: '把真实对白转写发展为短片', deliveryKind: 'short-script',
+      modalities: ['audio', 'text', 'video'], targetPlatform: 'mobile', qualityMode: 'quick',
+    },
+    artifacts: [
+      artifact('TaskProfile', '任务画像', {
+        family: 'story', intent: '对白短片', deliveryKind: 'short-script',
+        modalities: ['audio', 'text', 'video'], qualityMode: 'quick',
+      }),
+      artifact('ProductionBrief', '创作简报', {
+        title: '旧车站对白短片', outcome: '可继续编辑的对白短片', durationSeconds: 20,
+        sourceFacts: ['转写：今晚十点，我们在旧车站见。'],
+        unknowns: ['说话人身份', '音乐', '环境声'],
+      }),
+      artifact('ScriptDoc', '剧本', {
+        title: '旧车站对白短片', logline: '一通赴约留言把人物引向旧车站。',
+        scenes: [{ id: 'scene-1', dialogue: '今晚十点，我们在旧车站见。' }],
+        ending: '列车驶过后，站台尽头出现一个模糊身影。',
+      }),
+      artifact('CharacterBible', '人物设定', {
+        characters: [{ id: 'caller', identity: '身份未知' }], identityLocks: ['不推断真实身份'],
+      }),
+      artifact('AssetNeed', '素材需求', {
+        items: ['旧车站夜景'], existing: ['对白音频'], missing: ['人物参考图'],
+      }),
+      artifact('ShotList', '镜头表', {
+        shots: [{ id: 'shot-1', durationSeconds: 6, action: '夜色中的旧车站' }],
+        totalDurationSeconds: 20,
+      }),
+      artifact('Storyboard', '分镜', {
+        frames: [{ shotId: 'shot-1', composition: '空站台远景' }], missingFrames: ['人物近景'],
+      }),
+      artifact('AudioPlan', '声音方案', {
+        dialogue: ['今晚十点，我们在旧车站见。'],
+        unknowns: ['音乐风格', '环境声', '说话人身份'],
+      }),
+      artifact('PromptPack', '提示词包', {
+        prompts: [{ shotId: 'shot-1', prompt: '旧车站夜景，空站台远景' }],
+        reviewNotes: ['不得根据 Whisper 推断音乐、环境声或身份'],
+      }),
+    ],
+    toolProposals: [],
+  };
+  let transcriptCalls = 0;
+  let llmCalls = 0;
+  const fixture = await startFixture(t, [], {
+    credentialSettingsProvider: () => ({ llmApiKey: 'configured' }),
+    creatorLlmSettingsProvider: () => ({
+      llmApiKey: 'private-test-key',
+      llmBaseUrl: 'https://mock-provider.invalid',
+    }),
+    creatorAudioTranscriber: async () => {
+      transcriptCalls += 1;
+      return {
+        text: '今晚十点，我们在旧车站见。',
+        model: 'whisper-1',
+        responseFormat: 'verbose_json',
+        requestId: 'whisper-route-1',
+        segments: [{ start: 0.3, end: 3.6, text: '今晚十点，我们在旧车站见。' }],
+      };
+    },
+    creatorLlmGenerateChat: async () => {
+      llmCalls += 1;
+      return {
+        ok: true,
+        text: JSON.stringify(structured),
+        model: 'bytedance/doubao-seed-2.1-pro',
+        finishReason: 'stop',
+        requestId: 'audio-work-llm-1',
+      };
+    },
+  });
+  const created = await fixture.request('/sessions', {
+    method: 'POST',
+    body: JSON.stringify({
+      projectId: 'project-local', canvasId: 'canvas-a', context: { nodeCount: 0, edgeCount: 0 },
+    }),
+  });
+  const sessionId = created.body.data.id;
+  const body = {
+    projectId: 'project-local',
+    canvasId: 'canvas-a',
+    kind: 'script',
+    text: '根据这段真实对白写一版短片，不要猜音乐和人物身份',
+    qualityMode: 'quick',
+    clientRequestId: 'audio-grounded-work-0001',
+    context: { nodeCount: 0, edgeCount: 0 },
+    attachments: [{
+      id: 'audio-attachment-1',
+      assetId: 'asset-audio-1',
+      kind: 'audio',
+      name: 'dialogue.wav',
+      ref: 'http://127.0.0.1:18766/api/project-assets/asset-audio-1/media',
+      mimeType: 'audio/wav',
+      size: 12345,
+      contentRevision: 4,
+      contentHash: 'a'.repeat(64),
+      duration: 8.4,
+    }],
+  };
+  const first = await fixture.request(`/sessions/${sessionId}/messages`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+  assert.equal(first.response.status, 201);
+  assert.equal(transcriptCalls, 1);
+  assert.equal(llmCalls, 1);
+  const completedReceipt = first.body.data.session.creatorLlmTurnReceipts
+    .find((receipt) => receipt.phase === 'compiled');
+  assert.ok(completedReceipt, JSON.stringify({
+    receipts: first.body.data.session.creatorLlmTurnReceipts,
+    evidence: first.body.data.assistantEvent?.payload?.responseEvidence,
+    text: first.body.data.assistantEvent?.payload?.text,
+  }));
+  assert.equal(completedReceipt.inputBindings.length, 1);
+  assert.equal(completedReceipt.inputBindings[0].assetId, 'asset-audio-1');
+  assert.equal(completedReceipt.inputBindings[0].contentRevision, 4);
+  assert.equal(completedReceipt.inputBindings[0].contentHash, 'a'.repeat(64));
+  assert.match(completedReceipt.inputBindings[0].observationDigest, /^[a-f0-9]{64}$/);
+  assert.equal(
+    first.body.data.userEvent.payload.attachments[0].audioObservation.transcript,
+    '今晚十点，我们在旧车站见。',
+  );
+
+  const recovered = await fixture.request(`/sessions/${sessionId}/messages`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+  assert.equal(recovered.response.status, 200);
+  assert.equal(recovered.body.data.request.duplicate, true);
+  assert.equal(transcriptCalls, 1);
+  assert.equal(llmCalls, 1);
 });
 
 test('ready LLM may propose one versioned high-level tool without executing it', async (t) => {
@@ -1013,6 +1385,59 @@ test('ready LLM may propose one versioned high-level tool without executing it',
     ),
     true,
   );
+  const proposal = result.body.data.toolProposals[0];
+  const prepared = await fixture.request(
+    `/sessions/${created.body.data.id}/tool-proposals/${proposal.proposalId}/prepare`,
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        projectId: 'project-local',
+        canvasId: 'canvas-a',
+        proposalDigest: proposal.proposalDigest,
+      }),
+    },
+  );
+  assert.equal(prepared.response.status, 201);
+  assert.equal(prepared.body.data.execution.status, 'prepared');
+  assert.deepEqual(prepared.body.data.execution.sideEffects, {
+    canvasWrites: 0,
+    providerCalls: 0,
+    fileWrites: 0,
+  });
+  assert.ok(prepared.body.data.patch.operations.length > 0);
+  assert.equal(prepared.body.data.event.type, 'assistant.tool-proposal.prepared');
+  const repeated = await fixture.request(
+    `/sessions/${created.body.data.id}/tool-proposals/${proposal.proposalId}/prepare`,
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        projectId: 'project-local',
+        canvasId: 'canvas-a',
+        proposalDigest: proposal.proposalDigest,
+      }),
+    },
+  );
+  assert.equal(repeated.response.status, 200);
+  assert.equal(repeated.body.data.duplicate, true);
+  assert.equal(
+    repeated.body.data.session.events.filter(
+      (event) => event.type === 'assistant.tool-proposal.prepared',
+    ).length,
+    1,
+  );
+  const stale = await fixture.request(
+    `/sessions/${created.body.data.id}/tool-proposals/${proposal.proposalId}/prepare`,
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        projectId: 'project-local',
+        canvasId: 'canvas-a',
+        proposalDigest: '0'.repeat(64),
+      }),
+    },
+  );
+  assert.equal(stale.response.status, 409);
+  assert.equal(stale.body.code, 'CREATOR_TOOL_PROPOSAL_STALE');
   assert.equal(fixture.writes, 0);
 });
 
@@ -1095,7 +1520,7 @@ test('invalid model tool proposal is rejected without erasing the useful creativ
   assert.equal(JSON.stringify(result.body).includes('Bearer secret'), false);
   assert.equal(fixture.writes, 0);
 });
-test('ready online LLM streams provider deltas into the durable session before completion', async (t) => {
+test('ready online LLM buffers raw provider deltas and publishes only the validated creator text', async (t) => {
   const privateValue = 'test-only-stream-secret-never-return';
   const deltas = [
     '## 短视频脚本 V0\n\n开场用一个真实通勤场景直接展示问题，',
@@ -1103,8 +1528,8 @@ test('ready online LLM streams provider deltas into the durable session before c
   ];
   const modelText = deltas.join('');
   let releaseModel;
-  let signalFirstDelta;
-  const firstDeltaWritten = new Promise((resolve) => { signalFirstDelta = resolve; });
+  let signalModelStarted;
+  const modelStarted = new Promise((resolve) => { signalModelStarted = resolve; });
   const modelGate = new Promise((resolve) => { releaseModel = resolve; });
   let llmCalls = 0;
   let observedRequest = null;
@@ -1118,7 +1543,7 @@ test('ready online LLM streams provider deltas into the durable session before c
       llmCalls += 1;
       observedRequest = request;
       await options.onDelta(deltas[0], { eventIndex: 0 });
-      signalFirstDelta();
+      signalModelStarted();
       await modelGate;
       await options.onDelta(deltas[1], { eventIndex: 1 });
       return {
@@ -1162,7 +1587,7 @@ test('ready online LLM streams provider deltas into the durable session before c
     method: 'POST',
     body: JSON.stringify(messageBody),
   });
-  await firstDeltaWritten;
+  await modelStarted;
 
   const inFlight = await fixture.request(
     '/sessions/' + sessionId + '?projectId=project-local&canvasId=canvas-a',
@@ -1174,12 +1599,8 @@ test('ready online LLM streams provider deltas into the durable session before c
   const started = responseEvents.find((event) => event.type === 'assistant.response.started');
   assert.ok(started);
   assert.equal(started.payload.transport, 'upstream-sse');
-  assert.equal(responseEvents.filter((event) => event.type === 'assistant.response.delta').length, 1);
+  assert.equal(responseEvents.filter((event) => event.type === 'assistant.response.delta').length, 0);
   assert.equal(responseEvents.some((event) => event.type === 'assistant.response.completed'), false);
-  assert.equal(
-    responseEvents.find((event) => event.type === 'assistant.response.delta').payload.delta,
-    deltas[0],
-  );
 
   const exactRetry = await fixture.request('/sessions/' + sessionId + '/messages', {
     method: 'POST',
@@ -1195,7 +1616,7 @@ test('ready online LLM streams provider deltas into the durable session before c
   assert.equal(completed.response.status, 201);
   assert.equal(observedRequest.stream, true);
   assert.equal(completed.body.data.stream.transport, 'upstream-sse');
-  assert.equal(completed.body.data.stream.chunkCount, 2);
+  assert.equal(completed.body.data.stream.chunkCount, 1);
   assert.equal(completed.body.data.assistantEvent.payload.text, modelText);
   assert.equal(completed.body.data.assistantEvent.payload.providerCalls, 1);
   assert.equal(completed.body.data.toolProposals.length, 1);
@@ -1209,7 +1630,7 @@ test('ready online LLM streams provider deltas into the durable session before c
   assert.deepEqual(
     completedEvents.filter((event) => event.type === 'assistant.response.delta')
       .map((event) => event.payload.delta),
-    deltas,
+    [modelText],
   );
   assert.equal(
     completedEvents.filter((event) => event.type === 'assistant.response.completed').length,
@@ -1262,7 +1683,7 @@ test('online LLM coalesces more than 256 tiny SSE deltas without changing one ch
 
   assert.equal(completed.response.status, 201);
   assert.equal(completed.body.data.assistantEvent.payload.text, modelText);
-  assert.ok(completed.body.data.stream.chunkCount > 1);
+  assert.ok(completed.body.data.stream.chunkCount >= 1);
   assert.ok(completed.body.data.stream.chunkCount < 256);
   const responseId = completed.body.data.stream.responseId;
   const persistedText = completed.body.data.session.events
@@ -1272,7 +1693,7 @@ test('online LLM coalesces more than 256 tiny SSE deltas without changing one ch
   assert.equal(persistedText, modelText);
   assert.equal(fixture.writes, 0);
 });
-test('stopping an online upstream reply preserves the durable partial text without completing its plan', async (t) => {
+test('stopping an online upstream reply keeps unvalidated raw text out and does not complete its plan', async (t) => {
   let releaseModel;
   let signalFirstDelta;
   const firstDeltaWritten = new Promise((resolve) => { signalFirstDelta = resolve; });
@@ -1346,12 +1767,12 @@ test('stopping an online upstream reply preserves the durable partial text witho
   assert.equal(original.body.data.stream.transport, 'upstream-sse');
   assert.equal(original.body.data.stream.stopped, true);
   assert.equal(original.body.data.stream.remoteTasksAffected, 0);
-  assert.equal(original.body.data.assistantEvent.payload.text, firstDelta);
+  assert.equal(original.body.data.assistantEvent.payload.text, '');
   assert.equal(original.body.data.assistantEvent.payload.providerCalls, 1);
   assert.equal(original.body.data.session.latestPlan, null);
   const responseEvents = original.body.data.session.events
     .filter((event) => event.payload?.responseId === responseId);
-  assert.equal(responseEvents.filter((event) => event.type === 'assistant.response.delta').length, 1);
+  assert.equal(responseEvents.filter((event) => event.type === 'assistant.response.delta').length, 0);
   assert.equal(responseEvents.filter((event) => event.type === 'assistant.response.stopped').length, 1);
   assert.equal(responseEvents.some((event) => event.type === 'assistant.response.completed'), false);
   assert.equal(responseEvents.some((event) => event.type === 'assistant.response.failed'), false);
@@ -2907,7 +3328,14 @@ test('reference video breakdown keeps its verified video and recipe across sugge
   assert.equal(shotList.content.shots.length, 2);
   assert.match(shotList.content.shots[0].sourceText, /空镜建立雨夜环境/);
   assert.deepEqual(productionPlan.brief.reuseAssetIds, ['asset-reference-video']);
-  assert.equal(production.body.data.userEvent.payload.text, continueSuggestion.label);
+  assert.equal(
+    production.body.data.userEvent.payload.text,
+    continueSuggestion.arguments.creatorPrompt,
+  );
+  assert.equal(
+    production.body.data.userEvent.payload.suggestion.label,
+    continueSuggestion.label,
+  );
   assert.equal(fixture.writes, 0);
   assert.equal(fixture.providerCalls, 0);
 });

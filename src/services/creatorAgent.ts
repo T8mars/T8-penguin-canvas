@@ -447,6 +447,9 @@ export interface CreatorAgentSuggestionSet {
     artifactDigest?: string;
     artifactId?: string;
     artifactVersionId?: string;
+    workId?: string;
+    workRevision?: number;
+    workDigest?: string;
     decisionDocumentId?: string;
     decisionDocumentVersionId?: string;
     decisionDocumentDigest?: string;
@@ -1311,6 +1314,9 @@ export interface CreatorAgentToolProposal {
     artifactId: string | null;
     artifactVersionId: string | null;
     artifactDigest: string | null;
+    workId: string | null;
+    workRevision: number | null;
+    workDigest: string | null;
     canvasRevision: number | null;
   };
   tool: {
@@ -1351,6 +1357,125 @@ export interface CreatorAgentToolProposal {
     fileWrites: 0;
   };
   createdAt: string;
+}
+
+export type CreatorAgentWorkQualityMode = 'quick' | 'standard' | 'quality';
+
+export interface CreatorAgentWorkArtifactDiffOperation {
+  op: 'add' | 'replace' | 'remove' | 'lock' | 'unlock';
+  path: string;
+  beforeDigest?: string;
+  afterDigest?: string;
+}
+
+export interface CreatorAgentWorkArtifactVersion {
+  schema: 't8-creator-work-artifact-version-v1';
+  artifactId: string;
+  versionId: string;
+  revision: number;
+  kind: string;
+  title: string;
+  status: 'model-draft' | 'creator-edited' | 'accepted' | 'rejected';
+  fields: Record<string, unknown>;
+  fieldLocks: string[];
+  dependencies: Array<{
+    artifactId: string;
+    versionId: string;
+    versionDigest: string;
+    kind: string;
+  }>;
+  invalidates: string[];
+  source: {
+    responseId: string | null;
+    logicalRequestId: string | null;
+    llmTurnReceiptDigest: string | null;
+    proposalDigest: string | null;
+    editor: string | null;
+  };
+  diff: {
+    schema: 't8-creator-work-artifact-diff-v1';
+    baseVersionId: string | null;
+    operations: CreatorAgentWorkArtifactDiffOperation[];
+  };
+  createdAt: string;
+  versionDigest: string;
+}
+
+export interface CreatorAgentWorkArtifactSummary {
+  artifactId: string;
+  versionId: string;
+  revision: number;
+  kind: string;
+  title: string;
+  status: CreatorAgentWorkArtifactVersion['status'];
+  fieldCount: number;
+  lockedFieldCount: number;
+  versionDigest: string;
+  updatedAt: string;
+}
+
+export interface CreatorAgentWorkSnapshot {
+  schema: 't8-creator-work-snapshot-v1';
+  workId: string;
+  revision: number;
+  taskProfile: {
+    family: 'commerce' | 'image' | 'video' | 'story' | 'audio' | 'mixed';
+    intent: string;
+    deliveryKind: string;
+    modalities: string[];
+    targetPlatform: string | null;
+    qualityMode: CreatorAgentWorkQualityMode;
+  };
+  artifactVersionIds: string[];
+  changedArtifactIds: string[];
+  invalidatedKinds: string[];
+  updatedAt: string;
+  workDigest: string;
+}
+
+export interface CreatorAgentLlmTurnReceipt {
+  schema: 't8-creator-llm-turn-receipt-v1';
+  sessionId: string;
+  responseId: string;
+  logicalRequestId: string;
+  phase?: 'invocation' | 'compiled';
+  status: string;
+  qualityMode: CreatorAgentWorkQualityMode;
+  providerCalls: number;
+  provider: string | null;
+  model: string | null;
+  modelDecisionDigest: string | null;
+  promptContractDigest: string | null;
+  mediaObservationDigest: string | null;
+  calls: Array<{
+    index: number;
+    role: string;
+    status: string;
+    provider: string | null;
+    model: string | null;
+    requestId: string | null;
+    finishReason: string | null;
+  }>;
+  workProposalDigest: string | null;
+  invocationReceiptDigest?: string | null;
+  inputBindings?: Array<{
+    assetId: string | null;
+    contentRevision: number;
+    contentHash: string | null;
+    kind: string;
+    mimeType: string | null;
+    observationDigest: string | null;
+  }>;
+  artifactBindings?: Array<{
+    artifactId: string;
+    kind: string;
+    baseVersionId: string | null;
+    newVersionId: string;
+    diffDigest: string;
+  }>;
+  workSnapshotDigest?: string | null;
+  createdAt: string;
+  receiptDigest: string;
 }
 
 export type CreatorAgentToolProposalReceipt = {
@@ -1565,6 +1690,10 @@ export interface CreatorAgentSession {
   artifactVerifications: CreatorAgentArtifactVerification[];
   creativeArtifactVersions?: CreatorAgentCreativeArtifactVersion[];
   creativeArtifacts?: CreatorAgentCreativeArtifactSummary[];
+  workArtifactVersions?: CreatorAgentWorkArtifactVersion[];
+  workArtifacts?: CreatorAgentWorkArtifactSummary[];
+  creatorWork?: CreatorAgentWorkSnapshot | null;
+  creatorLlmTurnReceipts?: CreatorAgentLlmTurnReceipt[];
   decisionDocument?: CreatorAgentDecisionDocument | null;
   decisionDocumentVersions?: CreatorAgentDecisionDocument[];
   deliveryEvidence?: CreatorAgentDeliveryEvidence[];
@@ -1744,6 +1873,7 @@ export function sendCreatorAgentMessage(sessionId: string, input: {
   context: CreatorAgentContext;
   kind?: string;
   profile?: string;
+  qualityMode?: CreatorAgentWorkQualityMode;
   ratio?: string;
   duration?: number;
   candidates?: number;
@@ -1780,6 +1910,60 @@ export function sendCreatorAgentMessage(sessionId: string, input: {
     method: 'POST',
     body: JSON.stringify({ ...input, stream: input.stream !== false }),
   });
+}
+
+export function reviseCreatorAgentWorkArtifact(
+  sessionId: string,
+  artifactId: string,
+  input: {
+    projectId: string;
+    canvasId: string;
+    baseVersionId: string;
+    action: 'edit' | 'lock' | 'unlock' | 'accept' | 'reject';
+    field?: string;
+    value?: unknown;
+  },
+) {
+  return creatorRequest<{
+    session: CreatorAgentSession;
+    artifactVersion: CreatorAgentWorkArtifactVersion;
+    event?: CreatorAgentEvent;
+    duplicate: boolean;
+  }>(`/sessions/${encodeURIComponent(sessionId)}/work-artifacts/${encodeURIComponent(artifactId)}/revise`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export function prepareCreatorAgentToolProposal(
+  sessionId: string,
+  proposalId: string,
+  input: {
+    projectId: string;
+    canvasId: string;
+    proposalDigest: string;
+  },
+) {
+  return creatorRequest<{
+    session: CreatorAgentSession;
+    proposal: CreatorAgentToolProposal;
+    event: CreatorAgentEvent;
+    plan: CreatorAgentPlan;
+    patch: CanvasPatch;
+    duplicate: boolean;
+    execution: {
+      status: 'prepared';
+      requestedOperation: string;
+      nextBoundary: 'preview' | 'preview-and-approval';
+      sideEffects: { canvasWrites: 0; providerCalls: 0; fileWrites: 0 };
+    };
+  }>(
+    `/sessions/${encodeURIComponent(sessionId)}/tool-proposals/${encodeURIComponent(proposalId)}/prepare`,
+    {
+      method: 'POST',
+      body: JSON.stringify(input),
+    },
+  );
 }
 
 export function recoverCreatorAgentMessageRequest(

@@ -1,6 +1,6 @@
 {
   "schema": "t8-creative-runtime-catalog-v1",
-  "sourceDigest": "b50ab361fe888d6ff7668ba18d25099e7d43cac6c3a28b18aedecaf7a9639574",
+  "sourceDigest": "9ef6b59cec91b32595b0215c78f801d8c231de81062f64f68e06d772fb59d9c2",
   "generatedFrom": [
     "src/providers/models.ts",
     "src/config/seedance.ts",
@@ -6118,6 +6118,47 @@
       }
     },
     {
+      "id": "video:seedance-nz:zhenzhen-video-g-omni-1.1-flash-lowprice",
+      "provider": "seedance-nz",
+      "platformLabel": "贞贞的平价AI小屋",
+      "model": "zhenzhen-video-g-omni-1.1-flash-lowprice",
+      "label": "zhenzhen-video-g-omni-1.1-flash-lowprice（平价 Omni 1.1）",
+      "family": "veo3.1",
+      "available": true,
+      "parameters": {
+        "label": "zhenzhen-video-g-omni-1.1-flash-lowprice（平价 Omni 1.1）",
+        "platformLabel": "贞贞的平价AI小屋",
+        "family": "veo3.1",
+        "available": true,
+        "nodeKind": "veo",
+        "ratios": [
+          "16:9",
+          "9:16"
+        ],
+        "defaultRatio": "16:9",
+        "durations": [
+          4,
+          6,
+          8,
+          10
+        ],
+        "defaultDuration": 6,
+        "resolutions": [
+          "720p",
+          "1080p",
+          "4k"
+        ],
+        "defaultResolution": "720p",
+        "supportsImages": true,
+        "supportsVideos": true,
+        "supportsAudios": false,
+        "maxReferenceImages": 3,
+        "maxReferenceVideos": 1,
+        "maxReferenceAudios": 0,
+        "description": "Google Veo 系列 (默认 veo-omni-10s)"
+      }
+    },
+    {
       "id": "video:seedance-nz:zhenzhen-video-g-omni-flash",
       "provider": "seedance-nz",
       "platformLabel": "贞贞的平价AI小屋",
@@ -8885,7 +8926,7 @@
   "counts": {
     "llm": 34,
     "image": 45,
-    "video": 123,
+    "video": 124,
     "audio": 17,
     "actions": 58
   }

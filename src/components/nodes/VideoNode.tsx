@@ -12,6 +12,7 @@ import {
   type VideoBuiltinSource,
   ZHENZHEN_VIDEO_G_OMNI_FLASH_MODEL,
   ZHENZHEN_VIDEO_G_OMNI_FLASH_LOWPRICE_MODEL,
+  ZHENZHEN_VIDEO_G_OMNI_11_FLASH_LOWPRICE_MODEL,
   ZHENZHEN_VIDEO_GK_V15_MODEL,
   ZHENZHEN_VIDEO_V31_FAST_MODEL,
   ZHENZHEN_VIDEO_V31_LITE_MODEL,
@@ -283,7 +284,8 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
   const wan30SupportsThinking = isWan30 && (WAN30_THINKING_MODELS as readonly string[]).includes(apiModel);
   const isApimartBudgetVideo = !isExternalSelected && isZhenzhenApimartVideoModel(apiModel);
   const isApimartOmni = apiModel === ZHENZHEN_VIDEO_G_OMNI_FLASH_MODEL;
-  const isApimartOmniLowprice = apiModel === ZHENZHEN_VIDEO_G_OMNI_FLASH_LOWPRICE_MODEL;
+  const isApimartOmniLowprice = apiModel === ZHENZHEN_VIDEO_G_OMNI_FLASH_LOWPRICE_MODEL
+    || apiModel === ZHENZHEN_VIDEO_G_OMNI_11_FLASH_LOWPRICE_MODEL;
   const isApimartGrok = apiModel === ZHENZHEN_VIDEO_GK_V15_MODEL;
   const isApimartV31Fast = apiModel === ZHENZHEN_VIDEO_V31_FAST_MODEL;
   const isApimartV31Quality = apiModel === ZHENZHEN_VIDEO_V31_QUALITY_MODEL;

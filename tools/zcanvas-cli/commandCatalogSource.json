@@ -155,6 +155,12 @@
       ]
     },
     {
+      "name": "localization",
+      "summary": "创建多语言工作台，并按转写、翻译、音色、配音、合成、质检和交付阶段准备受控计划",
+      "available": true,
+      "subcommands": []
+    },
+    {
       "name": "ask",
       "summary": "用一句自然语言或已导入素材建立持久创作会话和可编辑计划",
       "available": true,

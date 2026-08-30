@@ -1,0 +1,72 @@
+{
+  "schema": "t8-workflow-fragment",
+  "version": 1,
+  "title": "多语言本地化大师 · 画布内置 IndexTTS 2.5",
+  "nodes": [
+    {
+      "id": "localization-master",
+      "type": "localization-master",
+      "position": { "x": 0, "y": 0 },
+      "data": {
+        "label": "多语言本地化大师",
+        "mode": "full",
+        "sourceLanguage": "AUTO",
+        "targetLanguage": "EN",
+        "sourceText": "",
+        "llmApiSource": "seedance-nz",
+        "llmModel": "bytedance/doubao-seed-2.1-pro",
+        "providerSource": "zhenzhen",
+        "providerId": "",
+        "providerModel": "bytedance/doubao-seed-2.1-pro",
+        "providerParams": {},
+        "status": "idle",
+        "error": "",
+        "localizationProject": {
+          "schema": "t8-localization-project-v1",
+          "revision": 0,
+          "stage": "materials",
+          "mode": "full",
+          "sourceLanguage": "AUTO",
+          "targetLanguage": "EN",
+          "sourceMediaUrl": "",
+          "sourceMediaKind": "none",
+          "sourceText": "",
+          "units": [],
+          "glossaryText": "",
+          "protectedTermsText": "",
+          "llmApiSource": "seedance-nz",
+          "llmModel": "bytedance/doubao-seed-2.1-pro",
+          "providerSource": "zhenzhen",
+          "providerId": "",
+          "providerModel": "bytedance/doubao-seed-2.1-pro",
+          "providerParams": {},
+          "voiceProfiles": [],
+          "timelinePolicy": "shift",
+          "timingMode": "pad",
+          "asrEnabled": true,
+          "asrRetryCount": 1,
+          "asrThreshold": 0.82,
+          "subtitleTimingMode": "actual",
+          "subtitleTextMode": "asr_passed",
+          "subtitleIncludeRole": true,
+          "postprocessPreset": "voice_clarity",
+          "postprocessStrength": 0.8,
+          "modelLicenseConfirmed": false,
+          "warnings": [],
+          "updatedAt": 0
+        }
+      }
+    }
+  ],
+  "edges": [],
+  "nodeCount": 1,
+  "edgeCount": 0,
+  "nodeTypes": ["localization-master"],
+  "topologyPreview": {
+    "nodes": [
+      { "id": "localization-master", "type": "localization-master", "label": "多语言本地化大师", "x": 50, "y": 50 }
+    ],
+    "edges": []
+  },
+  "savedAt": "2026-08-28T00:00:00.000Z"
+}

@@ -48,6 +48,7 @@ export const ENGLISH_NODE_CATALOG: Record<string, EnglishNodeCopy> = {
   'minimax-h3-official-prompt-enhancer': { label: 'Official MiniMax H3 Prompt Enhancer', description: 'Enhance prompts through official asynchronous Context IR text, image, and multimodal models.' },
   'seedance20-prompt-enhancer': { label: 'Seedance 2.0 Prompt Enhancer', description: 'Enhance generation, first/last-frame, reference, edit, extend, and track prompts with multimodal understanding.' },
   'mv-music-master': { label: 'MV Music Master', description: 'Build a recoverable MV from song, lyrics, identity, style, semantic segments, storyboard images, clips, and the original audio track.' },
+  'localization-master': { label: 'Localization Master', description: 'Translate, review, dub, replace audio, and package multilingual versions through the embedded IndexTTS 2.5 runtime—no ComfyUI required.' },
   runninghub: { label: 'RunningHub', description: 'Primary RunningHub workflow node.' },
   'runninghub-wallet': { label: 'RH Wallet App', description: 'RunningHub wallet-app workflow using the shared RunningHub API key.' },
   'rh-config': { label: 'RH Configuration', description: 'Inject parameters into RunningHub workflows.' },

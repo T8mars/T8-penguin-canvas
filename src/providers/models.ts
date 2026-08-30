@@ -655,6 +655,7 @@ export interface VideoModelDef {
 // Veo 系列子模型。第一项是切到 Veo 分类时的默认具体模型。
 export const ZHENZHEN_VIDEO_G_OMNI_FLASH_MODEL = 'zhenzhen-video-g-omni-flash';
 export const ZHENZHEN_VIDEO_G_OMNI_FLASH_LOWPRICE_MODEL = 'zhenzhen-video-g-omni-flash-lowprice';
+export const ZHENZHEN_VIDEO_G_OMNI_11_FLASH_LOWPRICE_MODEL = 'zhenzhen-video-g-omni-1.1-flash-lowprice';
 export const ZHENZHEN_VIDEO_GK_V15_MODEL = 'zhenzhen-video-gk-v15';
 export const ZHENZHEN_VIDEO_V31_FAST_MODEL = 'zhenzhen-video-v31-fast';
 export const ZHENZHEN_VIDEO_V31_QUALITY_MODEL = 'zhenzhen-video-v31-quality';
@@ -662,6 +663,7 @@ export const ZHENZHEN_VIDEO_V31_LITE_MODEL = 'zhenzhen-video-v31-lite';
 export const ZHENZHEN_APIMART_VIDEO_MODELS = [
   ZHENZHEN_VIDEO_G_OMNI_FLASH_MODEL,
   ZHENZHEN_VIDEO_G_OMNI_FLASH_LOWPRICE_MODEL,
+  ZHENZHEN_VIDEO_G_OMNI_11_FLASH_LOWPRICE_MODEL,
   ZHENZHEN_VIDEO_GK_V15_MODEL,
   ZHENZHEN_VIDEO_V31_FAST_MODEL,
   ZHENZHEN_VIDEO_V31_QUALITY_MODEL,
@@ -747,6 +749,15 @@ export function isZhenzhenApimartVideoModel(apiModel: string | undefined | null)
 const VEO_MODELS = [
   { value: 'veo-omni-10s', label: 'veo-omni-10s' },
   { value: ZHENZHEN_VIDEO_G_OMNI_FLASH_MODEL, label: ZHENZHEN_VIDEO_G_OMNI_FLASH_MODEL, builtinSource: 'seedance-nz' as const },
+  {
+    value: ZHENZHEN_VIDEO_G_OMNI_11_FLASH_LOWPRICE_MODEL,
+    label: `${ZHENZHEN_VIDEO_G_OMNI_11_FLASH_LOWPRICE_MODEL}（平价 Omni 1.1）`,
+    builtinSource: 'seedance-nz' as const,
+    ratios: ['16:9', '9:16'], defaultRatio: '16:9',
+    durations: [4, 6, 8, 10], defaultDuration: 6,
+    resolutions: ['720p', '1080p', '4k'], defaultResolution: '720p',
+    supportImages: true, supportVideos: true, maxRefImages: 3, maxRefVideos: 1,
+  },
   { value: ZHENZHEN_VIDEO_V31_FAST_MODEL, label: ZHENZHEN_VIDEO_V31_FAST_MODEL, builtinSource: 'seedance-nz' as const },
   { value: ZHENZHEN_VIDEO_V31_QUALITY_MODEL, label: ZHENZHEN_VIDEO_V31_QUALITY_MODEL, builtinSource: 'seedance-nz' as const },
   { value: ZHENZHEN_VIDEO_V31_LITE_MODEL, label: ZHENZHEN_VIDEO_V31_LITE_MODEL, builtinSource: 'seedance-nz' as const },

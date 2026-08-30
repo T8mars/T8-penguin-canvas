@@ -281,6 +281,13 @@ test('creator Agent preview uses the Canvas baseline callback and never directly
   const panel = source('src/components/CreatorAgentPanel.tsx');
   const canvas = source('src/components/Canvas.tsx');
   assert.match(panel, /props\.onPreviewPatch\(prepared\.patch\)/);
+  assert.match(panel, /const toolProposalBinding = proposal\.binding\.workId/);
+  assert.match(panel, /session\.creatorWork\?\.workDigest !== proposalBinding\.workDigest/);
+  assert.match(panel, /作品版本已变化，这条操作预览已失效/);
+  assert.match(panel, /session\.creatorWork\.invalidatedKinds\.join\('、'\)/);
+  assert.match(panel, /event\.type === 'user\.suggestion'/);
+  assert.match(panel, /已选择：/);
+  assert.doesNotMatch(panel, /: suggestion\.label,\s*!isPristineSession/);
   assert.match(panel, /function creatorPatchPreviewItem\(/);
   assert.match(panel, /patchPreview\?\.preview\.changes\.map\(\(change\) => creatorPatchPreviewItem\(change, patchPreview\.patch\)\)/);
   assert.match(panel, /patchPreview\.preview\.affectedNodeIds\.length/);
@@ -388,6 +395,8 @@ test('creator Agent keeps suggestion contracts but hides technical receipts from
   assert.match(panel, /✎ 我有其他想法/);
   assert.match(panel, /setCustomIdeaDraft/);
   assert.match(panel, /void submit\(value\)/);
+  assert.match(panel, /event\.type === 'user\.suggestion'/);
+  assert.match(panel, /t8-creator-agent-suggestion-selection/);
   assert.match(service, /providerCalls: 0/);
   assert.match(service, /riskLevel: 'L0'/);
   assert.match(service, /approvalRequired: false/);
@@ -445,33 +454,35 @@ test('creator Agent confirms a completed stage, retains it on Canvas, then conti
   assert.match(panel, /\{'（已 '\}\{thinkingSeconds\} 秒）/);
 });
 
-test('creator Agent keeps model tool proposals out of chat and visibly unexecuted in task details', () => {
+test('creator Agent keeps model tool proposals approval-gated and opens the existing preview flow', () => {
   const panel = source('src/components/CreatorAgentPanel.tsx');
   const service = source('src/services/creatorAgent.ts');
   const css = source('src/styles/index.css');
-  const proposalSection = panel.match(
-    /<section className="t8-creator-agent-tool-proposals"[\s\S]*?<\/section>/,
-  );
 
   assert.match(service, /export interface CreatorAgentToolProposal/);
   assert.match(service, /dispatchAllowed: false/);
   assert.match(service, /status: 'not-started'/);
   assert.match(service, /toolProposals\?: CreatorAgentToolProposal\[\]/);
   assert.match(service, /toolProposalReceipts\?: CreatorAgentToolProposalReceipt\[\]/);
+  assert.match(service, /export function prepareCreatorAgentToolProposal/);
+  assert.match(service, /tool-proposals\/\$\{encodeURIComponent\(proposalId\)\}\/prepare/);
   assert.match(panel, /latestCompletedResponseId/);
   assert.match(panel, /proposal\.binding\.responseId === latestCompletedResponseId/);
-  assert.ok(proposalSection, 'tool proposals must have one bounded details-only section');
-  assert.match(proposalSection[0], /待确认操作/);
-  assert.match(proposalSection[0], /尚未执行/);
-  assert.match(proposalSection[0], /不会自动生成内容、改动画布或写入文件/);
-  assert.doesNotMatch(proposalSection[0], /onClick=|dispatch|invoke|apply|run/);
+  assert.match(panel, /prepareCreatorAgentToolProposal\(/);
+  assert.match(panel, /await props\.onPreviewPatch\(prepared\.patch\)/);
+  assert.match(panel, /type: 'plan\.previewed'/);
+  assert.match(panel, /onClick=\{\(\) => void prepareToolProposal\(proposal\)\}/);
+  assert.match(panel, /预览并确认/);
+  assert.match(panel, /Agent 不会自动生成内容、改动画布或写入文件/);
+  assert.doesNotMatch(panel, /proposal\.tool[^\n]*\.(dispatch|invoke|apply|run)\(/);
   assert.ok(
     panel.indexOf('t8-creator-agent-tool-proposals')
       > panel.indexOf('id="t8-creator-agent-details-content"'),
-    'tool proposals must remain inside the separate details surface',
+    'the first proposal surface remains inside the separate details panel',
   );
   assert.match(css, /\.t8-creator-agent-tool-proposals\s*\{/);
   assert.match(css, /\.t8-creator-agent-tool-proposals strong\s*\{[\s\S]*?font-size:\s*12px/);
+  assert.match(css, /\.t8-creator-agent-tool-proposals article > button/);
 });
 test('creator Agent fails closed until the shared capability contract is verified', () => {
   const panel = source('src/components/CreatorAgentPanel.tsx');
@@ -795,7 +806,7 @@ test('creator Agent can start with one persisted attachment and no typed text', 
   const panel = source('src/components/CreatorAgentPanel.tsx');
   const route = source('backend/src/routes/creatorAgent.js');
   const sessions = source('backend/src/services/creatorAgentSessions.js');
-  assert.match(panel, /if \(\(!text && messageAttachments\.length === 0\) \|\| busy \|\| uploading\) return/);
+  assert.match(panel, /if \(\(!text && messageAttachments\.length === 0 && !suggestion\) \|\| busy \|\| uploading\) return/);
   assert.match(panel, /可直接发送引用素材，或补一句你想怎么处理/);
   assert.match(panel, /aria-label=\{draft\.trim\(\) \? '发送' : '发送引用素材并分析'\}/);
   assert.match(route, /creatorAttachmentOnlyPrompt\(attachments\)/);

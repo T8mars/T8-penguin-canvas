@@ -17,20 +17,20 @@
     "coverageReceiptCompiler": "tools/zcanvas-cli/src/capabilityCoverage.cjs"
   },
   "sourceDigests": {
-    "creativeCapabilityManifest": "16c15dab6eef440bbbee2e44ccf69dfe75bba70d6a61585ca0fb717279353b1d",
-    "canvasNodeSchema": "5da58abc92f97f6b5e23749e383ff439dbba84fd2fd0af1abf0ca0c8951e3c25",
-    "canvasNodeSchemaFile": "3dc9f488658e67decedae1a14ffd95d6c100e7a239342c909e7b5197baafb349",
-    "i18nNodeCatalog": "d3724fe26ec0d0613dd29498db6679512e217e09172f484c6f7aac2339ae2df1",
-    "i18nRendererResources": "d94f9fc178b5529b6de20470e0080239ec670607a221a8b4c3fece63acde6d09",
+    "creativeCapabilityManifest": "569f2c8be144e05120ca629b2826383a06c4d6565ab3896c2dc61807bb9f7c27",
+    "canvasNodeSchema": "56cc84a3e73879b4da1a518d433f40e6bd1077fec2f659c5efc168c396958631",
+    "canvasNodeSchemaFile": "e734d7ce986e11bf382716bad259e18018620283e8024af28b55b6b99c9eef94",
+    "i18nNodeCatalog": "0479653284399372bba58f69d528e45ed9de267f9a1d7107347401ab75f60676",
+    "i18nRendererResources": "fb27f815fc0b9dc615abeb8f38528a3c803120ee92589f44f9da651f2a5fa7fb",
     "i18nElectronCatalog": "409cf6403ce3d7bd3bfc96e996e43008b57b248a53bf9fb0f38b9bcf2fbea2d7",
-    "runtimeCatalogSources": "b50ab361fe888d6ff7668ba18d25099e7d43cac6c3a28b18aedecaf7a9639574",
-    "runtimeCatalogArtifact": "328fdeab9cc87b837e3fdac429ef09b76d2011a92ff8211ccafd706920fc492e",
-    "handlerBindings": "7f689a24a0d9afd39cb2788f5ecdcbdcbc6446adc357bc36373d1ab2461cd4bd",
+    "runtimeCatalogSources": "9ef6b59cec91b32595b0215c78f801d8c231de81062f64f68e06d772fb59d9c2",
+    "runtimeCatalogArtifact": "a88c58906f4e7270ffe6e1920a642fbf16cbb36815c45a57bd4fcdf0fa5e526e",
+    "handlerBindings": "3cd8cde3c05d1642d72ce8cbfae2874d1bdf986592ae431ef7d66b043da257b5",
     "capabilityGraphCompiler": "a3716d239b91e1c4775f5996b3865ba3ab8fd652263138feef0a56de40851c24",
     "coverageReceiptCompiler": "68c02167cb5317107edd346223a5e5999168e447bacbb977ff8e9678e6753fe7",
     "canonicalTextDigestCompiler": "b0afcf28a257fbbd8f391edc117348f8f2ede1b4a039ae91bce25a8d563ac0cf"
   },
-  "aggregateDigest": "a87a9ccc79ffcbbf3e4f9fb479843eba979b28188e7da4d9fa84fa4155b859d2",
+  "aggregateDigest": "ba5648301144d2e52fbff76bb90fe1196814bf3092132b37bcb4f0eb47ce6e1e",
   "principles": {
     "oneSentenceStart": true,
     "directCanvasMutation": false,
@@ -40,39 +40,39 @@
     "requirePhysicalArtifactEvidence": true
   },
   "counts": {
-    "capabilities": 31,
-    "handlers": 31,
-    "nodes": 82,
-    "executableNodes": 63,
-    "generatableNodes": 12,
-    "referencedNodes": 73,
+    "capabilities": 39,
+    "handlers": 39,
+    "nodes": 83,
+    "executableNodes": 64,
+    "generatableNodes": 13,
+    "referencedNodes": 74,
     "unreferencedNodes": 9,
-    "directCapabilityNodes": 73,
+    "directCapabilityNodes": 74,
     "internalCompatNodes": 1,
     "semanticSupersededNodes": 8,
     "publicCapabilityGapNodes": 0,
-    "accountedNodes": 82,
+    "accountedNodes": 83,
     "unexplainedNodes": 0,
-    "fullyOperableNodes": 19,
-    "runtimeEntries": 277,
+    "fullyOperableNodes": 20,
+    "runtimeEntries": 278,
     "runtimeByKind": {
       "llm": 34,
       "image": 45,
-      "video": 123,
+      "video": 124,
       "audio": 17,
       "actions": 58
     },
     "runtimeByProvider": {
       "grok-oauth": 2,
-      "seedance-nz": 212,
+      "seedance-nz": 213,
       "zhenzhen": 56,
       "fal": 7
     },
-    "operations": 152,
+    "operations": 196,
     "operationRiskByLevel": {
-      "L0": 91,
-      "L1": 44,
-      "L2": 17,
+      "L0": 115,
+      "L1": 53,
+      "L2": 28,
       "L3": 0
     },
     "missingOperationRisk": 0,
@@ -533,6 +533,7 @@
         "minimax-h3-official-prompt-enhancer",
         "seedance20-prompt-enhancer",
         "mv-music-master",
+        "localization-master",
         "runninghub",
         "runninghub-wallet",
         "rh-tools",
@@ -636,6 +637,666 @@
         "canvas-revision",
         "canvas-patch",
         "node-schema"
+      ]
+    },
+    {
+      "id": "localization.create",
+      "creatorLabel": "创建多语言本地化工作台",
+      "category": "localization",
+      "approval": "L1",
+      "handler": "creative-action:localization.create",
+      "cli": {
+        "command": "localization",
+        "subcommand": "create"
+      },
+      "uiAction": "localization.create",
+      "nodeTypes": [
+        "localization-master"
+      ],
+      "supports": [
+        "plan",
+        "preview",
+        "apply",
+        "verify",
+        "rollback"
+      ],
+      "operations": [
+        {
+          "operation": "plan",
+          "riskLevel": "L0",
+          "approvalRequired": false,
+          "boundary": "local-read",
+          "requiredScopes": [
+            "canvas:read"
+          ]
+        },
+        {
+          "operation": "preview",
+          "riskLevel": "L0",
+          "approvalRequired": false,
+          "boundary": "local-read",
+          "requiredScopes": [
+            "canvas:read"
+          ]
+        },
+        {
+          "operation": "apply",
+          "riskLevel": "L1",
+          "approvalRequired": true,
+          "boundary": "reversible-canvas-write",
+          "requiredScopes": [
+            "canvas:read",
+            "canvas:write"
+          ]
+        },
+        {
+          "operation": "verify",
+          "riskLevel": "L0",
+          "approvalRequired": false,
+          "boundary": "local-read",
+          "requiredScopes": [
+            "canvas:read"
+          ]
+        },
+        {
+          "operation": "rollback",
+          "riskLevel": "L1",
+          "approvalRequired": true,
+          "boundary": "recovery-write",
+          "requiredScopes": [
+            "canvas:read",
+            "canvas:write"
+          ]
+        }
+      ],
+      "evidence": [
+        "canvas-revision",
+        "canvas-patch",
+        "node-schema"
+      ]
+    },
+    {
+      "id": "localization.transcribe",
+      "creatorLabel": "准备源媒体转写",
+      "category": "localization",
+      "approval": "L1",
+      "handler": "creative-action:localization.transcribe",
+      "cli": {
+        "command": "localization",
+        "subcommand": "transcribe"
+      },
+      "uiAction": "localization.transcribe",
+      "nodeTypes": [
+        "localization-master"
+      ],
+      "supports": [
+        "plan",
+        "preview",
+        "apply",
+        "run",
+        "verify",
+        "resume"
+      ],
+      "operations": [
+        {
+          "operation": "plan",
+          "riskLevel": "L0",
+          "approvalRequired": false,
+          "boundary": "local-read",
+          "requiredScopes": [
+            "canvas:read"
+          ]
+        },
+        {
+          "operation": "preview",
+          "riskLevel": "L0",
+          "approvalRequired": false,
+          "boundary": "local-read",
+          "requiredScopes": [
+            "canvas:read"
+          ]
+        },
+        {
+          "operation": "apply",
+          "riskLevel": "L1",
+          "approvalRequired": true,
+          "boundary": "reversible-canvas-write",
+          "requiredScopes": [
+            "canvas:read",
+            "canvas:write"
+          ]
+        },
+        {
+          "operation": "run",
+          "riskLevel": "L2",
+          "approvalRequired": true,
+          "boundary": "provider-or-external",
+          "requiredScopes": [
+            "canvas:read",
+            "canvas:write"
+          ]
+        },
+        {
+          "operation": "verify",
+          "riskLevel": "L0",
+          "approvalRequired": false,
+          "boundary": "local-read",
+          "requiredScopes": [
+            "canvas:read"
+          ]
+        },
+        {
+          "operation": "resume",
+          "riskLevel": "L2",
+          "approvalRequired": true,
+          "boundary": "provider-or-external",
+          "requiredScopes": [
+            "canvas:read",
+            "canvas:write"
+          ]
+        }
+      ],
+      "evidence": [
+        "canvas-revision",
+        "canvas-patch",
+        "provider-receipt"
+      ]
+    },
+    {
+      "id": "localization.translate",
+      "creatorLabel": "准备多语言翻译",
+      "category": "localization",
+      "approval": "L1",
+      "handler": "creative-action:localization.translate",
+      "cli": {
+        "command": "localization",
+        "subcommand": "translate"
+      },
+      "uiAction": "localization.translate",
+      "nodeTypes": [
+        "localization-master"
+      ],
+      "supports": [
+        "plan",
+        "preview",
+        "apply",
+        "run",
+        "verify",
+        "resume"
+      ],
+      "operations": [
+        {
+          "operation": "plan",
+          "riskLevel": "L0",
+          "approvalRequired": false,
+          "boundary": "local-read",
+          "requiredScopes": [
+            "canvas:read"
+          ]
+        },
+        {
+          "operation": "preview",
+          "riskLevel": "L0",
+          "approvalRequired": false,
+          "boundary": "local-read",
+          "requiredScopes": [
+            "canvas:read"
+          ]
+        },
+        {
+          "operation": "apply",
+          "riskLevel": "L1",
+          "approvalRequired": true,
+          "boundary": "reversible-canvas-write",
+          "requiredScopes": [
+            "canvas:read",
+            "canvas:write"
+          ]
+        },
+        {
+          "operation": "run",
+          "riskLevel": "L2",
+          "approvalRequired": true,
+          "boundary": "provider-or-external",
+          "requiredScopes": [
+            "canvas:read",
+            "canvas:write"
+          ]
+        },
+        {
+          "operation": "verify",
+          "riskLevel": "L0",
+          "approvalRequired": false,
+          "boundary": "local-read",
+          "requiredScopes": [
+            "canvas:read"
+          ]
+        },
+        {
+          "operation": "resume",
+          "riskLevel": "L2",
+          "approvalRequired": true,
+          "boundary": "provider-or-external",
+          "requiredScopes": [
+            "canvas:read",
+            "canvas:write"
+          ]
+        }
+      ],
+      "evidence": [
+        "canvas-revision",
+        "canvas-patch",
+        "provider-receipt",
+        "protected-term-gate"
+      ]
+    },
+    {
+      "id": "localization.cast-voices",
+      "creatorLabel": "准备角色音色授权与分配",
+      "category": "localization",
+      "approval": "L1",
+      "handler": "creative-action:localization.cast-voices",
+      "cli": {
+        "command": "localization",
+        "subcommand": "cast-voices"
+      },
+      "uiAction": "localization.cast-voices",
+      "nodeTypes": [
+        "localization-master"
+      ],
+      "supports": [
+        "plan",
+        "preview",
+        "apply",
+        "verify",
+        "resume"
+      ],
+      "operations": [
+        {
+          "operation": "plan",
+          "riskLevel": "L0",
+          "approvalRequired": false,
+          "boundary": "local-read",
+          "requiredScopes": [
+            "canvas:read"
+          ]
+        },
+        {
+          "operation": "preview",
+          "riskLevel": "L0",
+          "approvalRequired": false,
+          "boundary": "local-read",
+          "requiredScopes": [
+            "canvas:read"
+          ]
+        },
+        {
+          "operation": "apply",
+          "riskLevel": "L1",
+          "approvalRequired": true,
+          "boundary": "reversible-canvas-write",
+          "requiredScopes": [
+            "canvas:read",
+            "canvas:write"
+          ]
+        },
+        {
+          "operation": "verify",
+          "riskLevel": "L0",
+          "approvalRequired": false,
+          "boundary": "local-read",
+          "requiredScopes": [
+            "canvas:read"
+          ]
+        },
+        {
+          "operation": "resume",
+          "riskLevel": "L2",
+          "approvalRequired": true,
+          "boundary": "provider-or-external",
+          "requiredScopes": [
+            "canvas:read",
+            "canvas:write"
+          ]
+        }
+      ],
+      "evidence": [
+        "canvas-revision",
+        "canvas-patch",
+        "voice-consent"
+      ]
+    },
+    {
+      "id": "localization.generate-dub",
+      "creatorLabel": "准备多语言配音",
+      "category": "localization",
+      "approval": "L1",
+      "handler": "creative-action:localization.generate-dub",
+      "cli": {
+        "command": "localization",
+        "subcommand": "generate-dub"
+      },
+      "uiAction": "localization.generate-dub",
+      "nodeTypes": [
+        "localization-master"
+      ],
+      "supports": [
+        "plan",
+        "preview",
+        "apply",
+        "run",
+        "verify",
+        "resume"
+      ],
+      "operations": [
+        {
+          "operation": "plan",
+          "riskLevel": "L0",
+          "approvalRequired": false,
+          "boundary": "local-read",
+          "requiredScopes": [
+            "canvas:read"
+          ]
+        },
+        {
+          "operation": "preview",
+          "riskLevel": "L0",
+          "approvalRequired": false,
+          "boundary": "local-read",
+          "requiredScopes": [
+            "canvas:read"
+          ]
+        },
+        {
+          "operation": "apply",
+          "riskLevel": "L1",
+          "approvalRequired": true,
+          "boundary": "reversible-canvas-write",
+          "requiredScopes": [
+            "canvas:read",
+            "canvas:write"
+          ]
+        },
+        {
+          "operation": "run",
+          "riskLevel": "L2",
+          "approvalRequired": true,
+          "boundary": "provider-or-external",
+          "requiredScopes": [
+            "canvas:read",
+            "canvas:write"
+          ]
+        },
+        {
+          "operation": "verify",
+          "riskLevel": "L0",
+          "approvalRequired": false,
+          "boundary": "local-read",
+          "requiredScopes": [
+            "canvas:read"
+          ]
+        },
+        {
+          "operation": "resume",
+          "riskLevel": "L2",
+          "approvalRequired": true,
+          "boundary": "provider-or-external",
+          "requiredScopes": [
+            "canvas:read",
+            "canvas:write"
+          ]
+        }
+      ],
+      "evidence": [
+        "canvas-revision",
+        "canvas-patch",
+        "voice-consent",
+        "tts-receipt",
+        "content-hash"
+      ]
+    },
+    {
+      "id": "localization.compose",
+      "creatorLabel": "准备本地化合成",
+      "category": "localization",
+      "approval": "L1",
+      "handler": "creative-action:localization.compose",
+      "cli": {
+        "command": "localization",
+        "subcommand": "compose"
+      },
+      "uiAction": "localization.compose",
+      "nodeTypes": [
+        "localization-master"
+      ],
+      "supports": [
+        "plan",
+        "preview",
+        "apply",
+        "run",
+        "verify",
+        "resume"
+      ],
+      "operations": [
+        {
+          "operation": "plan",
+          "riskLevel": "L0",
+          "approvalRequired": false,
+          "boundary": "local-read",
+          "requiredScopes": [
+            "canvas:read"
+          ]
+        },
+        {
+          "operation": "preview",
+          "riskLevel": "L0",
+          "approvalRequired": false,
+          "boundary": "local-read",
+          "requiredScopes": [
+            "canvas:read"
+          ]
+        },
+        {
+          "operation": "apply",
+          "riskLevel": "L1",
+          "approvalRequired": true,
+          "boundary": "reversible-canvas-write",
+          "requiredScopes": [
+            "canvas:read",
+            "canvas:write"
+          ]
+        },
+        {
+          "operation": "run",
+          "riskLevel": "L2",
+          "approvalRequired": true,
+          "boundary": "provider-or-external",
+          "requiredScopes": [
+            "canvas:read",
+            "canvas:write"
+          ]
+        },
+        {
+          "operation": "verify",
+          "riskLevel": "L0",
+          "approvalRequired": false,
+          "boundary": "local-read",
+          "requiredScopes": [
+            "canvas:read"
+          ]
+        },
+        {
+          "operation": "resume",
+          "riskLevel": "L2",
+          "approvalRequired": true,
+          "boundary": "provider-or-external",
+          "requiredScopes": [
+            "canvas:read",
+            "canvas:write"
+          ]
+        }
+      ],
+      "evidence": [
+        "canvas-revision",
+        "canvas-patch",
+        "content-hash",
+        "physical-artifact"
+      ]
+    },
+    {
+      "id": "localization.verify",
+      "creatorLabel": "准备本地化质量检查",
+      "category": "localization",
+      "approval": "L1",
+      "handler": "creative-action:localization.verify",
+      "cli": {
+        "command": "localization",
+        "subcommand": "verify"
+      },
+      "uiAction": "localization.verify",
+      "nodeTypes": [
+        "localization-master"
+      ],
+      "supports": [
+        "plan",
+        "preview",
+        "apply",
+        "verify",
+        "resume"
+      ],
+      "operations": [
+        {
+          "operation": "plan",
+          "riskLevel": "L0",
+          "approvalRequired": false,
+          "boundary": "local-read",
+          "requiredScopes": [
+            "canvas:read"
+          ]
+        },
+        {
+          "operation": "preview",
+          "riskLevel": "L0",
+          "approvalRequired": false,
+          "boundary": "local-read",
+          "requiredScopes": [
+            "canvas:read"
+          ]
+        },
+        {
+          "operation": "apply",
+          "riskLevel": "L1",
+          "approvalRequired": true,
+          "boundary": "reversible-canvas-write",
+          "requiredScopes": [
+            "canvas:read",
+            "canvas:write"
+          ]
+        },
+        {
+          "operation": "verify",
+          "riskLevel": "L0",
+          "approvalRequired": false,
+          "boundary": "local-read",
+          "requiredScopes": [
+            "canvas:read"
+          ]
+        },
+        {
+          "operation": "resume",
+          "riskLevel": "L2",
+          "approvalRequired": true,
+          "boundary": "provider-or-external",
+          "requiredScopes": [
+            "canvas:read",
+            "canvas:write"
+          ]
+        }
+      ],
+      "evidence": [
+        "canvas-revision",
+        "canvas-patch",
+        "qc-report",
+        "provider-receipt",
+        "tts-receipt"
+      ]
+    },
+    {
+      "id": "localization.package",
+      "creatorLabel": "准备本地化交付包",
+      "category": "localization",
+      "approval": "L1",
+      "handler": "creative-action:localization.package",
+      "cli": {
+        "command": "localization",
+        "subcommand": "package"
+      },
+      "uiAction": "localization.package",
+      "nodeTypes": [
+        "localization-master"
+      ],
+      "supports": [
+        "plan",
+        "preview",
+        "apply",
+        "verify",
+        "resume"
+      ],
+      "operations": [
+        {
+          "operation": "plan",
+          "riskLevel": "L0",
+          "approvalRequired": false,
+          "boundary": "local-read",
+          "requiredScopes": [
+            "canvas:read"
+          ]
+        },
+        {
+          "operation": "preview",
+          "riskLevel": "L0",
+          "approvalRequired": false,
+          "boundary": "local-read",
+          "requiredScopes": [
+            "canvas:read"
+          ]
+        },
+        {
+          "operation": "apply",
+          "riskLevel": "L1",
+          "approvalRequired": true,
+          "boundary": "reversible-canvas-write",
+          "requiredScopes": [
+            "canvas:read",
+            "canvas:write"
+          ]
+        },
+        {
+          "operation": "verify",
+          "riskLevel": "L0",
+          "approvalRequired": false,
+          "boundary": "local-read",
+          "requiredScopes": [
+            "canvas:read"
+          ]
+        },
+        {
+          "operation": "resume",
+          "riskLevel": "L2",
+          "approvalRequired": true,
+          "boundary": "provider-or-external",
+          "requiredScopes": [
+            "canvas:read",
+            "canvas:write"
+          ]
+        }
+      ],
+      "evidence": [
+        "canvas-revision",
+        "canvas-patch",
+        "delivery-manifest",
+        "file-sha256",
+        "physical-artifact"
       ]
     },
     {
@@ -2689,6 +3350,62 @@
       "operation": "unlock"
     },
     {
+      "capabilityId": "localization.cast-voices",
+      "handler": "creative-action:localization.cast-voices",
+      "service": "agentControlCreative",
+      "method": "actionPlan",
+      "operation": "localization.cast-voices"
+    },
+    {
+      "capabilityId": "localization.compose",
+      "handler": "creative-action:localization.compose",
+      "service": "agentControlCreative",
+      "method": "actionPlan",
+      "operation": "localization.compose"
+    },
+    {
+      "capabilityId": "localization.create",
+      "handler": "creative-action:localization.create",
+      "service": "agentControlCreative",
+      "method": "actionPlan",
+      "operation": "localization.create"
+    },
+    {
+      "capabilityId": "localization.generate-dub",
+      "handler": "creative-action:localization.generate-dub",
+      "service": "agentControlCreative",
+      "method": "actionPlan",
+      "operation": "localization.generate-dub"
+    },
+    {
+      "capabilityId": "localization.package",
+      "handler": "creative-action:localization.package",
+      "service": "agentControlCreative",
+      "method": "actionPlan",
+      "operation": "localization.package"
+    },
+    {
+      "capabilityId": "localization.transcribe",
+      "handler": "creative-action:localization.transcribe",
+      "service": "agentControlCreative",
+      "method": "actionPlan",
+      "operation": "localization.transcribe"
+    },
+    {
+      "capabilityId": "localization.translate",
+      "handler": "creative-action:localization.translate",
+      "service": "agentControlCreative",
+      "method": "actionPlan",
+      "operation": "localization.translate"
+    },
+    {
+      "capabilityId": "localization.verify",
+      "handler": "creative-action:localization.verify",
+      "service": "agentControlCreative",
+      "method": "actionPlan",
+      "operation": "localization.verify"
+    },
+    {
       "capabilityId": "run.start",
       "handler": "run:start",
       "service": "agentControlRuns",
@@ -4175,6 +4892,79 @@
         "run": false,
         "verify": true,
         "resume": false,
+        "rollback": true,
+        "recover": true
+      }
+    },
+    {
+      "type": "localization-master",
+      "label": "多语言本地化大师",
+      "description": "通过上下文 LLM 翻译、字幕审核和画布内置 IndexTTS 2.5，直接完成五语种配音、字幕、换轨与交付；无需启动 ComfyUI",
+      "category": "core",
+      "hidden": false,
+      "executable": true,
+      "generatable": true,
+      "agentExposure": "direct-capability",
+      "coverageReason": "registered-capability-reference",
+      "accounting": {
+        "status": "direct-capability",
+        "reasonCode": "registered-capability-reference",
+        "semanticCapabilityIds": [
+          "canvas.node-add",
+          "localization.cast-voices",
+          "localization.compose",
+          "localization.create",
+          "localization.generate-dub",
+          "localization.package",
+          "localization.transcribe",
+          "localization.translate",
+          "localization.verify"
+        ],
+        "evidence": [
+          "tools/zcanvas-cli/creativeCapabilityManifest.json"
+        ]
+      },
+      "inputs": [
+        "video",
+        "audio",
+        "text"
+      ],
+      "outputs": [
+        "video",
+        "audio",
+        "text",
+        "metadata"
+      ],
+      "capabilityIds": [
+        "canvas.node-add",
+        "localization.cast-voices",
+        "localization.compose",
+        "localization.create",
+        "localization.generate-dub",
+        "localization.package",
+        "localization.transcribe",
+        "localization.translate",
+        "localization.verify"
+      ],
+      "handlerIds": [
+        "creative-action:graph.node-add",
+        "creative-action:localization.cast-voices",
+        "creative-action:localization.compose",
+        "creative-action:localization.create",
+        "creative-action:localization.generate-dub",
+        "creative-action:localization.package",
+        "creative-action:localization.transcribe",
+        "creative-action:localization.translate",
+        "creative-action:localization.verify"
+      ],
+      "coverage": {
+        "understand": true,
+        "plan": true,
+        "preview": true,
+        "apply": true,
+        "run": true,
+        "verify": true,
+        "resume": true,
         "rollback": true,
         "recover": true
       }
@@ -6611,7 +7401,7 @@
   ],
   "runtime": {
     "schema": "t8-creative-runtime-catalog-v1",
-    "sourceDigest": "b50ab361fe888d6ff7668ba18d25099e7d43cac6c3a28b18aedecaf7a9639574",
+    "sourceDigest": "9ef6b59cec91b32595b0215c78f801d8c231de81062f64f68e06d772fb59d9c2",
     "platforms": [
       {
         "id": "zhenzhen",
@@ -11494,6 +12284,26 @@
         }
       },
       {
+        "id": "video:seedance-nz:zhenzhen-video-g-omni-1.1-flash-lowprice",
+        "kind": "video",
+        "provider": "seedance-nz",
+        "platformLabel": "贞贞的平价AI小屋",
+        "model": "zhenzhen-video-g-omni-1.1-flash-lowprice",
+        "label": "zhenzhen-video-g-omni-1.1-flash-lowprice（平价 Omni 1.1）",
+        "family": "veo3.1",
+        "available": true,
+        "catalogSection": "video",
+        "compatibility": {
+          "known": true,
+          "installed": true,
+          "credentialReady": null,
+          "regionReady": true,
+          "executable": false,
+          "available": true,
+          "requiresRuntimeCheck": true
+        }
+      },
+      {
         "id": "video:seedance-nz:zhenzhen-video-g-omni-flash",
         "kind": "video",
         "provider": "seedance-nz",
@@ -12684,6 +13494,7 @@
       "video:seedance-nz:wan-3.0-prime-r2v",
       "video:seedance-nz:wan-3.0-r2v",
       "video:seedance-nz:zhenzhen-upscaler",
+      "video:seedance-nz:zhenzhen-video-g-omni-1.1-flash-lowprice",
       "video:seedance-nz:zhenzhen-video-g-omni-flash",
       "video:seedance-nz:zhenzhen-video-g-omni-flash-lowprice",
       "video:seedance-nz:zhenzhen-video-gk-v15",
@@ -12726,28 +13537,28 @@
   "coverageReceipt": {
     "schema": "t8-creative-capability-coverage-receipt-v1",
     "sourceDigests": {
-      "capabilityManifest": "16c15dab6eef440bbbee2e44ccf69dfe75bba70d6a61585ca0fb717279353b1d",
-      "nodeSchema": "5da58abc92f97f6b5e23749e383ff439dbba84fd2fd0af1abf0ca0c8951e3c25",
-      "runtimeCatalog": "b50ab361fe888d6ff7668ba18d25099e7d43cac6c3a28b18aedecaf7a9639574",
-      "handlerBindings": "7f689a24a0d9afd39cb2788f5ecdcbdcbc6446adc357bc36373d1ab2461cd4bd",
+      "capabilityManifest": "569f2c8be144e05120ca629b2826383a06c4d6565ab3896c2dc61807bb9f7c27",
+      "nodeSchema": "56cc84a3e73879b4da1a518d433f40e6bd1077fec2f659c5efc168c396958631",
+      "runtimeCatalog": "9ef6b59cec91b32595b0215c78f801d8c231de81062f64f68e06d772fb59d9c2",
+      "handlerBindings": "3cd8cde3c05d1642d72ce8cbfae2874d1bdf986592ae431ef7d66b043da257b5",
       "receiptCompiler": "68c02167cb5317107edd346223a5e5999168e447bacbb977ff8e9678e6753fe7"
     },
     "inventory": {
       "nodes": {
-        "total": 82,
-        "executable": 63,
-        "generatable": 12
+        "total": 83,
+        "executable": 64,
+        "generatable": 13
       },
       "runtime": {
         "llm": 34,
         "image": 45,
-        "video": 123,
+        "video": 124,
         "audio": 17,
         "actions": 58
       },
-      "capabilities": 31,
-      "handlers": 31,
-      "operations": 152
+      "capabilities": 39,
+      "handlers": 39,
+      "operations": 196
     },
     "gaps": {
       "unknownNodeReferences": [],
@@ -12757,6 +13568,6 @@
       "missingCompatibilityEdges": []
     },
     "complete": true,
-    "digest": "fd2b985344c298df01487fe47d7c923032a499625e1959608863508d7a79a501"
+    "digest": "63578987affd57afc8996aefd24a7f4f95b127457f49a007f056467aa5fb05d4"
   }
 }

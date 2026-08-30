@@ -148,6 +148,7 @@ async function readChatEventStream(response, options = {}) {
   let eventCount = 0;
   let finishReason = '';
   let model = '';
+  let requestId = '';
   let usage;
   let lastRaw = {};
   let stopped = false;
@@ -190,6 +191,7 @@ async function readChatEventStream(response, options = {}) {
     const choice = Array.isArray(dataRoot?.choices) ? dataRoot.choices[0] : null;
     finishReason = String(choice?.finish_reason || choice?.finishReason || finishReason || '');
     model = String(dataRoot?.model || raw?.model || model || '');
+    requestId = String(dataRoot?.id || raw?.id || requestId || '').trim().slice(0, 500);
     if (dataRoot?.usage && typeof dataRoot.usage === 'object') usage = dataRoot.usage;
     if (raw?.usage && typeof raw.usage === 'object') usage = raw.usage;
 
@@ -273,6 +275,7 @@ async function readChatEventStream(response, options = {}) {
     eventCount,
     finishReason,
     model,
+    requestId,
     usage,
     lastRaw,
     stopped,
@@ -601,6 +604,19 @@ async function generateChat(provider, input = {}, options = {}) {
   if (input.temperature != null) body.temperature = Number(input.temperature);
   if (input.maxTokens != null) body.max_tokens = Number(input.maxTokens);
   if (input.max_tokens != null) body.max_tokens = Number(input.max_tokens);
+  const requestedResponseFormat = input.response_format ?? input.responseFormat;
+  if (requestedResponseFormat && typeof requestedResponseFormat === 'object'
+    && !Array.isArray(requestedResponseFormat)
+    && ['json_object', 'text'].includes(String(requestedResponseFormat.type || '').trim())) {
+    body.response_format = { type: String(requestedResponseFormat.type).trim() };
+  } else if (['json_object', 'text'].includes(String(requestedResponseFormat || '').trim())) {
+    body.response_format = { type: String(requestedResponseFormat).trim() };
+  }
+  const reasoningEffort = String(input.reasoning_effort ?? input.reasoningEffort ?? '')
+    .trim().toLowerCase();
+  if (['low', 'medium', 'high'].includes(reasoningEffort)) {
+    body.reasoning_effort = reasoningEffort;
+  }
   if (input.stream != null) body.stream = !!input.stream;
 
   const url = providerEndpointUrl(provider, '/chat/completions', ['chatEndpoint', 'chat_endpoint']);
@@ -639,6 +655,7 @@ async function generateChat(provider, input = {}, options = {}) {
       const streamed = await readChatEventStream(res, options);
       const traceRaw = {
         ...(streamed.lastRaw && typeof streamed.lastRaw === 'object' ? streamed.lastRaw : {}),
+        ...(streamed.requestId ? { requestId: streamed.requestId } : {}),
         ...(streamed.usage ? { usage: streamed.usage } : {}),
       };
       const trace = providerTrace(res, traceRaw, { pollCount: 0 });

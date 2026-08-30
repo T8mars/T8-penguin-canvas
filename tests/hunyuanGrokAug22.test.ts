@@ -7,6 +7,7 @@ import {
   VIDEO_MODELS,
   ZHENZHEN_IMAGE_GK_V2_REGION_EDIT_MODEL,
   ZHENZHEN_IMAGE_GK_V2_SEGMENT_MODEL,
+  ZHENZHEN_VIDEO_G_OMNI_11_FLASH_LOWPRICE_MODEL,
   ZHENZHEN_VIDEO_G_OMNI_FLASH_LOWPRICE_MODEL,
 } from '../src/providers/models.ts';
 
@@ -37,6 +38,56 @@ test('Grok lowprice video exposes the four documented modes and exact top-level 
   await assert.rejects(provider.buildApimartVideoPayload({ model: ZHENZHEN_VIDEO_G_OMNI_FLASH_LOWPRICE_MODEL, mode: 'reference_images', prompt: 'test', images: [IMAGE, IMAGE] }, 'key'), /1 或 3/);
 });
 
+test('Veo tab exposes Omni 1.1 lowprice with the documented four-mode payload contract', async () => {
+  const tab = VIDEO_MODELS.find((item) => item.id === 'veo3.1');
+  const option = tab?.apiModelOptions.find((item) => item.value === ZHENZHEN_VIDEO_G_OMNI_11_FLASH_LOWPRICE_MODEL);
+  assert.ok(option);
+  assert.equal(option?.builtinSource, 'seedance-nz');
+  assert.deepEqual(option?.durations, [4, 6, 8, 10]);
+  assert.deepEqual(option?.resolutions, ['720p', '1080p', '4k']);
+  assert.deepEqual(option?.ratios, ['16:9', '9:16']);
+  assert.equal(option?.maxRefImages, 3);
+  assert.equal(option?.maxRefVideos, 1);
+
+  const text = await provider.buildApimartVideoPayload({
+    model: ZHENZHEN_VIDEO_G_OMNI_11_FLASH_LOWPRICE_MODEL,
+    mode: 'text',
+    prompt: 'test',
+    seconds: 4,
+    resolution: '720p',
+    aspect_ratio: '16:9',
+  }, 'key');
+  assert.deepEqual(text.payload, {
+    model: ZHENZHEN_VIDEO_G_OMNI_11_FLASH_LOWPRICE_MODEL,
+    prompt: 'test',
+    resolution: '720p',
+    aspect_ratio: '16:9',
+    nsfw_check: false,
+    seconds: '4',
+  });
+
+  provider.resetCachesForTests();
+  const uploaded = async () => json({ url: 'https://cdn.example.com/input' });
+  const referenceImages = await provider.buildApimartVideoPayload({
+    model: ZHENZHEN_VIDEO_G_OMNI_11_FLASH_LOWPRICE_MODEL,
+    mode: 'reference_images',
+    prompt: 'test',
+    images: [IMAGE, IMAGE, IMAGE],
+  }, 'key', { fetchImpl: uploaded, uploadIntervalMs: 0 });
+  assert.equal(referenceImages.payload.generation_type, 'reference');
+  assert.equal(referenceImages.payload.images.length, 3);
+
+  provider.resetCachesForTests();
+  const referenceVideo = await provider.buildApimartVideoPayload({
+    model: ZHENZHEN_VIDEO_G_OMNI_11_FLASH_LOWPRICE_MODEL,
+    mode: 'reference_video',
+    prompt: 'test',
+    videos: [VIDEO],
+  }, 'key', { fetchImpl: uploaded, uploadIntervalMs: 0 });
+  assert.equal('seconds' in referenceVideo.payload, false);
+  assert.equal(referenceVideo.payload.metadata.video_url, 'https://cdn.example.com/input');
+});
+
 test('Grok segment and region edit use dedicated operation contracts', async () => {
   assert.equal(ZHENZHEN_IMAGE_GK_V2_SEGMENT_MODEL, 'zhenzhen-image-gk-v2-segment');
   assert.equal(ZHENZHEN_IMAGE_GK_V2_REGION_EDIT_MODEL, 'zhenzhen-image-gk-v2-region-edit');
@@ -65,7 +116,7 @@ test('Hunyuan 3D validates both models, ordered view limits, and documented poll
   assert.deepEqual(nested.modelUrls, ['https://cdn.example.com/final.glb']);
 });
 
-test('new nodes, extensible Hunyuan tab, routes, and eight workflows are credential-free', () => {
+test('new nodes, extensible Hunyuan tab, routes, and twelve workflows are credential-free', () => {
   const schema = JSON.parse(readFileSync(join(root, 'backend/src/shared/canvasNodeSchema.json'), 'utf8'));
   assert.equal(schema.types.some((item: any) => item.type === 'model-3d' && item.label === '3D'), true);
   assert.equal(schema.types.some((item: any) => item.type === 'grok-image-tools'), true);
@@ -78,6 +129,8 @@ test('new nodes, extensible Hunyuan tab, routes, and eight workflows are credent
   const names = [
     'zhenzhen-video-g-omni-flash-lowprice-text.json', 'zhenzhen-video-g-omni-flash-lowprice-frame.json',
     'zhenzhen-video-g-omni-flash-lowprice-reference-images.json', 'zhenzhen-video-g-omni-flash-lowprice-reference-video.json',
+    'zhenzhen-video-g-omni-1.1-flash-lowprice-text.json', 'zhenzhen-video-g-omni-1.1-flash-lowprice-frame.json',
+    'zhenzhen-video-g-omni-1.1-flash-lowprice-reference-images.json', 'zhenzhen-video-g-omni-1.1-flash-lowprice-reference-video.json',
     'hunyuan3d-v3.1-text-to-3d.json', 'hunyuan3d-v3.1-image-to-3d.json',
     'zhenzhen-image-gk-v2-segment.json', 'zhenzhen-image-gk-v2-region-edit.json',
   ];
@@ -88,4 +141,11 @@ test('new nodes, extensible Hunyuan tab, routes, and eight workflows are credent
     assert.equal(workflow.nodeCount, workflow.nodes.length);
     assert.equal(workflow.edgeCount, workflow.edges.length);
   }
+  const liveVerifier = readFileSync(join(root, 'scripts/verify-veo-omni11-live.cjs'), 'utf8');
+  assert.match(liveVerifier, /SEEDANCE_NZ_LIVE_API_KEY/);
+  assert.match(liveVerifier, /zhenzhen-video-g-omni-1\.1-flash-lowprice/);
+  assert.match(liveVerifier, /ffprobe/);
+  assert.match(liveVerifier, /-f', 'null'/);
+  assert.doesNotMatch(liveVerifier, /sk-[A-Za-z0-9]{8,}/);
+  assert.doesNotMatch(liveVerifier, /zhenzhenSd2ApiKey/);
 });

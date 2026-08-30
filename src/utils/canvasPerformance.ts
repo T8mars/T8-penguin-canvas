@@ -58,7 +58,7 @@ export function resolveCanvasPerformanceDecision(
 const HEAVY_NODE_TYPES = new Set([
   'video', 'video-edit', 'audio', 'model-3d-preview', 'model-3d', 'panorama-3d',
   'drawing-board', 'browser', 'previs-studio', 'director-storyboard', 'script-master',
-  'mv-music-master', 'story', 'grok-oauth-agent',
+  'mv-music-master', 'localization-master', 'story', 'grok-oauth-agent',
 ]);
 
 export function estimateCanvasHeavyMediaCount(nodes: ReadonlyArray<{ type?: unknown; data?: unknown }>) {

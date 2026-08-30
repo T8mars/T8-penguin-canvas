@@ -121,6 +121,9 @@ output/
 thumbnails/
 userdata/
 backend/data/
+/localization-cache/
+/localization-models/
+/localization-runtime/
 **/recharge.private.json
 **/feishu_bitable.private.json
 **/fal-task-registry.private.json

@@ -17,6 +17,20 @@ const {
   normalizeCreatorArtifactVersions,
 } = require('./creatorAgentArtifacts');
 const {
+  compileCreatorWorkProposal,
+  creatorWorkMutationScope,
+  createCreatorLlmTurnReceipt,
+  latestWorkArtifactVersions,
+  normalizeCreatorLlmTurnReceipt,
+  normalizeCreatorWorkSnapshot,
+  normalizeWorkArtifactVersions,
+  reviseWorkArtifact,
+  workArtifactSummaries,
+} = require('./creatorAgentWorkArtifacts');
+const {
+  normalizeCreatorAudioObservation,
+} = require('./creatorAgentMediaGrounding');
+const {
   CreatorAgentToolProposalError,
   assertCreatorToolProposalCurrent,
   validateStoredCreatorToolProposal,
@@ -112,6 +126,21 @@ function storeCreatorDecisionDocument(session, value) {
     document,
   ]);
   return document;
+}
+
+function acceptCreatorWorkAsCurrentDecisionDefaults(session, artifactVersion) {
+  let document = normalizeCreatorDecisionDocument(session.decisionDocument);
+  const phase = normalizeCreativePhase(session.production?.currentPhase, 'idea');
+  if (!document || document.phase !== phase || document.status !== 'collecting') return document;
+  let current = currentCreatorDecision(document);
+  while (current?.kind === 'choice') {
+    const acceptedLabel = boundedText(artifactVersion?.title, 120) || '当前结构化作品';
+    document = advanceCreatorDecisionDocument(document, {
+      customValue: `创作者已接受“${acceptedLabel}”当前版本；沿用该作品中已经明确呈现的${current.topic}，不增加任何新事实。`,
+    }).document;
+    current = currentCreatorDecision(document);
+  }
+  return storeCreatorDecisionDocument(session, document);
 }
 function normalizeProductionDocumentConfirmations(value) {
   return (Array.isArray(value) ? value : []).slice(-CREATOR_PRODUCTION_DOCUMENT_CONFIRMATION_LIMIT)
@@ -251,7 +280,7 @@ function normalizeAttachments(value) {
       );
     }
     const assetId = boundedText(entry.assetId, 160);
-    return {
+    const normalized = {
       id: boundedText(entry.id, 120) || crypto.randomUUID(),
       ...(assetId ? { assetId } : {}),
       kind: creatorAttachmentKindForEntry(entry),
@@ -271,6 +300,18 @@ function normalizeAttachments(value) {
         ? { duration: Math.max(0, Math.min(86_400, Number(entry.duration))) }
         : {}),
     };
+    if (normalized.kind === 'audio' && entry.audioObservation) {
+      const audioObservation = normalizeCreatorAudioObservation(entry.audioObservation, normalized);
+      if (!audioObservation) {
+        throw new CreatorAgentSessionError(
+          'CREATOR_AUDIO_OBSERVATION_INVALID',
+          '音频观察与当前素材版本不一致，已停止继续创作',
+        );
+      }
+      normalized.audioObservation = audioObservation;
+      normalized.observationDigest = audioObservation.observationDigest;
+    }
+    return normalized;
   });
 }
 
@@ -1936,6 +1977,11 @@ function creatorSuggestionBinding(context = {}, plan = null, options = {}) {
     ...(boundedText(options.artifactVersionId, 80) ? {
       artifactVersionId: boundedText(options.artifactVersionId, 80),
     } : {}),
+    ...(boundedText(options.workId, 80) ? {
+      workId: boundedText(options.workId, 80),
+      workRevision: Math.max(1, Math.trunc(Number(options.workRevision) || 1)),
+      workDigest: boundedText(options.workDigest, 64).toLowerCase(),
+    } : {}),
     ...(decisionDocument ? {
       decisionDocumentId: decisionDocument.documentId,
       decisionDocumentVersionId: decisionDocument.versionId,
@@ -2278,6 +2324,21 @@ function creatorSuggestionSet(context = {}, plan = null, options = {}) {
       arguments: {
         ...execution.arguments,
         ...artifactArguments,
+        ...(options.workSnapshot?.workId ? {
+          workId: boundedText(options.workSnapshot.workId, 80),
+          workRevision: Math.max(1, Math.trunc(Number(options.workSnapshot.revision) || 1)),
+          workDigest: boundedText(options.workSnapshot.workDigest, 64).toLowerCase(),
+          expectedWorkDiff: {
+            schema: 't8-creator-suggestion-work-diff-v1',
+            baseWorkId: boundedText(options.workSnapshot.workId, 80),
+            baseWorkRevision: Math.max(
+              1,
+              Math.trunc(Number(options.workSnapshot.revision) || 1),
+            ),
+            baseWorkDigest: boundedText(options.workSnapshot.workDigest, 64).toLowerCase(),
+            intent: item.intent,
+          },
+        } : {}),
       },
     };
     if (item.intent !== 'reference-breakdown.continue-production'
@@ -2299,6 +2360,9 @@ function creatorSuggestionSet(context = {}, plan = null, options = {}) {
     artifactDigest: responseSource?.artifactDigest,
     artifactId: responseSource?.artifactId,
     artifactVersionId: responseSource?.artifactVersionId,
+    workId: options.workSnapshot?.workId,
+    workRevision: options.workSnapshot?.revision,
+    workDigest: options.workSnapshot?.workDigest,
     decisionDocument,
   });
   const suggestionSet = {
@@ -2362,6 +2426,9 @@ function resolveCreatorSuggestionSelection(session, input = {}) {
       artifactId: currentArtifactVersion?.artifactId || boundArtifactId,
       artifactVersionId: currentArtifactVersion?.versionId
         || storedSet.binding?.artifactVersionId,
+      workId: session.creatorWork?.workId || storedSet.binding?.workId,
+      workRevision: session.creatorWork?.revision || storedSet.binding?.workRevision,
+      workDigest: session.creatorWork?.workDigest || storedSet.binding?.workDigest,
       decisionDocument: session.decisionDocument,
     },
   );
@@ -2793,6 +2860,28 @@ function normalizeCreatorResponseEvidence(value) {
     qualityCode: boundedText(value.qualityCode, 120) || null,
     modelDecisionDigest: boundedText(value.modelDecisionDigest, 64).toLowerCase() || null,
   };
+  if (Object.prototype.hasOwnProperty.call(value, 'qualityMode')
+    || Object.prototype.hasOwnProperty.call(value, 'promptContractDigest')
+    || Object.prototype.hasOwnProperty.call(value, 'calls')) {
+    normalized.qualityMode = ['quick', 'standard', 'quality'].includes(
+      boundedText(value.qualityMode, 32).toLowerCase(),
+    ) ? boundedText(value.qualityMode, 32).toLowerCase() : 'quick';
+    normalized.promptContractDigest = boundedText(
+      value.promptContractDigest,
+      64,
+    ).toLowerCase() || null;
+    normalized.calls = (Array.isArray(value.calls) ? value.calls : []).slice(0, 8)
+      .map((call, index) => ({
+        index,
+        role: boundedText(call?.role, 40) || (index === 0 ? 'draft' : 'refine'),
+        status: boundedText(call?.status, 40) || 'completed',
+        provider: boundedText(call?.provider, 160) || null,
+        model: boundedText(call?.model, 240) || null,
+        requestId: boundedText(call?.requestId, 240) || null,
+        finishReason: boundedText(call?.finishReason, 120) || null,
+        errorCode: boundedText(call?.errorCode, 120) || null,
+      }));
+  }
   if (value.mediaGrounding && typeof value.mediaGrounding === 'object'
     && !Array.isArray(value.mediaGrounding)) {
     normalized.mediaGrounding = {
@@ -2994,6 +3083,40 @@ function createCreatorAgentSessionStore(options = {}) {
       session.creativeArtifactVersions,
     );
     session.creativeArtifacts = creatorArtifactSummaries(session.creativeArtifactVersions);
+    const rawWorkVersions = Array.isArray(session.workArtifactVersions)
+      ? session.workArtifactVersions : [];
+    session.workArtifactVersions = normalizeWorkArtifactVersions(rawWorkVersions);
+    if (rawWorkVersions.length !== session.workArtifactVersions.length) {
+      throw new CreatorAgentSessionError(
+        'CREATOR_SESSION_WORK_ARTIFACTS_CORRUPT',
+        '创作会话中的作品版本无法完整验证，已停止继续使用',
+        500,
+      );
+    }
+    session.workArtifacts = workArtifactSummaries(session.workArtifactVersions);
+    const rawWorkSnapshot = session.creatorWork;
+    session.creatorWork = rawWorkSnapshot == null
+      ? null : normalizeCreatorWorkSnapshot(rawWorkSnapshot);
+    if (rawWorkSnapshot != null && !session.creatorWork) {
+      throw new CreatorAgentSessionError(
+        'CREATOR_SESSION_WORK_SNAPSHOT_CORRUPT',
+        '创作会话中的作品快照无法验证，已停止继续使用',
+        500,
+      );
+    }
+    const rawLlmReceipts = Array.isArray(session.creatorLlmTurnReceipts)
+      ? session.creatorLlmTurnReceipts : [];
+    session.creatorLlmTurnReceipts = rawLlmReceipts
+      .slice(-240)
+      .map(normalizeCreatorLlmTurnReceipt)
+      .filter(Boolean);
+    if (rawLlmReceipts.length !== session.creatorLlmTurnReceipts.length) {
+      throw new CreatorAgentSessionError(
+        'CREATOR_SESSION_LLM_RECEIPTS_CORRUPT',
+        '创作会话中的模型调用回执无法完整验证，已停止继续使用',
+        500,
+      );
+    }
     const rawDecisionDocument = session.decisionDocument;
     session.decisionDocument = rawDecisionDocument == null
       ? null
@@ -3069,6 +3192,113 @@ function createCreatorAgentSessionStore(options = {}) {
       .slice(-CREATOR_AGENT_MAX_EVENTS);
     atomicWriteJson(locations.snapshot, session);
     return event;
+  }
+
+  function reconcileToolProposalExecutionWritebacks(session) {
+    const events = Array.isArray(session.events) ? session.events : [];
+    const preparedEvents = events.filter((event) => (
+      event?.type === 'assistant.tool-proposal.prepared'
+      && boundedText(event?.payload?.proposalId, 80)
+      && boundedText(event?.payload?.proposalDigest, 64)
+      && boundedText(event?.payload?.planId, 160)
+    ));
+    let repaired = 0;
+
+    for (const prepared of preparedEvents) {
+      const proposalId = boundedText(prepared.payload?.proposalId, 80);
+      const proposalDigest = boundedText(prepared.payload?.proposalDigest, 64).toLowerCase();
+      const planId = boundedText(prepared.payload?.planId, 160);
+      const planApplied = [...events].reverse().find((event) => (
+        event?.type === 'plan.applied'
+        && boundedText(event?.payload?.planId, 160) === planId
+      ));
+      const links = (Array.isArray(session.runLinks) ? session.runLinks : [])
+        .filter((link) => boundedText(link?.planId, 160) === planId);
+      const verifications = links
+        .map((link) => (Array.isArray(session.artifactVerifications)
+          ? session.artifactVerifications : []).find((verification) => (
+          boundedText(verification?.runId, 160) === boundedText(link?.runId, 160)
+        )))
+        .filter(Boolean)
+        .sort((left, right) => String(left?.verifiedAt || '').localeCompare(String(right?.verifiedAt || '')));
+      const verification = verifications.at(-1) || null;
+      const link = verification
+        ? links.find((item) => boundedText(item?.runId, 160) === boundedText(verification?.runId, 160))
+        : links.at(-1) || null;
+      const writebacks = events.filter((event) => (
+        event?.type === 'assistant.tool-proposal.writeback'
+        && event?.payload?.proposalId === proposalId
+        && event?.payload?.proposalDigest === proposalDigest
+        && event?.payload?.planId === planId
+      ));
+      const priorEvidence = writebacks.reduce((evidence, event) => ({
+        canvasWriteRecorded: evidence.canvasWriteRecorded
+          || event?.payload?.evidence?.canvasWriteRecorded === true,
+        providerRunLinked: evidence.providerRunLinked
+          || event?.payload?.evidence?.providerRunLinked === true,
+      }), { canvasWriteRecorded: false, providerRunLinked: false });
+      const stage = verification
+        ? verification.verified === true ? 'verified' : 'verification-failed'
+        : link
+          ? 'running'
+          : planApplied
+            ? 'applied'
+            : '';
+      if (!stage) continue;
+
+      const expectedEvidence = {
+        canvasWriteRecorded: Boolean(planApplied) || priorEvidence.canvasWriteRecorded,
+        providerRunLinked: Boolean(link) || priorEvidence.providerRunLinked,
+        physicalArtifactsVerified: stage === 'verified',
+      };
+      const runId = boundedText(verification?.runId || link?.runId, 160) || null;
+      const latestWriteback = writebacks.at(-1) || null;
+      const currentEvidence = latestWriteback?.payload?.evidence || {};
+      const alreadyCurrent = latestWriteback?.payload?.stage === stage
+        && (latestWriteback?.payload?.runId || null) === runId
+        && currentEvidence.canvasWriteRecorded === expectedEvidence.canvasWriteRecorded
+        && currentEvidence.providerRunLinked === expectedEvidence.providerRunLinked
+        && currentEvidence.physicalArtifactsVerified === expectedEvidence.physicalArtifactsVerified;
+      if (alreadyCurrent) continue;
+
+      appendEvent(session, 'assistant.tool-proposal.writeback', {
+        schema: 't8-creator-tool-proposal-execution-v1',
+        proposalId,
+        proposalDigest,
+        planId,
+        planDigest: boundedText(prepared.payload?.planDigest, 160),
+        workId: boundedText(prepared.payload?.workId, 80) || null,
+        workRevision: Number.isSafeInteger(Number(prepared.payload?.workRevision))
+          ? Number(prepared.payload.workRevision) : null,
+        workDigest: boundedText(prepared.payload?.workDigest, 64).toLowerCase() || null,
+        requestedOperation: boundedText(prepared.payload?.requestedOperation, 40),
+        capabilityId: boundedText(prepared.payload?.capabilityId, 160),
+        stage,
+        evidenceEventType: 'execution.reconciled',
+        runId,
+        evidenceDigest: boundedText(
+          verification?.verificationDigest || link?.bindingDigest || planApplied?.payload?.bindingDigest,
+          160,
+        ) || null,
+        evidence: expectedEvidence,
+        reconciliation: {
+          schema: 't8-creator-tool-proposal-writeback-reconciliation-v1',
+          reason: 'cumulative-evidence-repair',
+          previousWritebackSequence: Number.isSafeInteger(Number(latestWriteback?.sequence))
+            ? Number(latestWriteback.sequence) : null,
+        },
+      });
+      repaired += 1;
+    }
+    return repaired;
+  }
+
+  function reconcileToolProposalWritebacks(sessionId) {
+    return withSessionLock(sessionId, 'tool-proposal-writebacks', () => {
+      const session = read(sessionId);
+      const repaired = reconcileToolProposalExecutionWritebacks(session);
+      return { session: read(session.id), repaired };
+    });
   }
 
   function eventsAfter(sessionId, afterSequence = 0, limit = 200) {
@@ -3253,6 +3483,10 @@ function createCreatorAgentSessionStore(options = {}) {
         artifactVerifications: [],
         creativeArtifactVersions: [],
         creativeArtifacts: [],
+        workArtifactVersions: [],
+        workArtifacts: [],
+        creatorWork: null,
+        creatorLlmTurnReceipts: [],
         decisionDocument: null,
         decisionDocumentVersions: [],
         toolProposals: [],
@@ -3305,6 +3539,153 @@ function createCreatorAgentSessionStore(options = {}) {
     return compilation;
   }
 
+  function compileTurnWork(
+    session,
+    input,
+    responseId,
+    responseEvidence,
+  ) {
+    const providerCalls = Math.max(
+      0,
+      Math.trunc(Number(responseEvidence?.providerCalls) || 0),
+    );
+    if (providerCalls < 1 && input.workProposal == null) return null;
+    const createdAt = new Date(now()).toISOString();
+    const logicalRequestId = boundedText(input.clientRequestId, 160)
+      || `legacy_${creatorDigest({ sessionId: session.id, responseId }).slice(0, 32)}`;
+    const inputBindings = (Array.isArray(input.attachments) ? input.attachments : []).map((attachment) => ({
+      assetId: attachment?.assetId || null,
+      contentRevision: attachment?.contentRevision || 0,
+      contentHash: attachment?.contentHash || null,
+      kind: attachment?.kind || 'file',
+      mimeType: attachment?.mimeType || null,
+      observationDigest: attachment?.observationDigest
+        || responseEvidence?.mediaGrounding?.observationDigest
+        || null,
+    }));
+    const invocationReceipt = createCreatorLlmTurnReceipt({
+      sessionId: session.id,
+      responseId,
+      logicalRequestId,
+      phase: 'invocation',
+      qualityMode: responseEvidence?.qualityMode || input.qualityMode || 'quick',
+      responseEvidence,
+      workProposalDigest: input.workProposal?.proposalDigest,
+      inputBindings,
+      createdAt,
+    });
+    const normalizedInvocationReceipt = normalizeCreatorLlmTurnReceipt(invocationReceipt);
+    if (!normalizedInvocationReceipt) {
+      throw new CreatorAgentSessionError(
+        'CREATOR_LLM_TURN_RECEIPT_INVALID',
+        '本轮模型调用回执无法验证，已拒绝写入正式作品',
+        409,
+      );
+    }
+    if (!(session.creatorLlmTurnReceipts || []).some(
+      (receipt) => receipt.receiptDigest === normalizedInvocationReceipt.receiptDigest,
+    )) {
+      session.creatorLlmTurnReceipts = [
+        ...(session.creatorLlmTurnReceipts || []),
+        normalizedInvocationReceipt,
+      ].slice(-240);
+    }
+    if (input.workProposal == null) {
+      return { turnReceipt: normalizedInvocationReceipt, compilation: null };
+    }
+    const compilation = compileCreatorWorkProposal({
+      sessionId: session.id,
+      responseId,
+      logicalRequestId,
+      llmTurnReceiptDigest: normalizedInvocationReceipt.receiptDigest,
+      responseEvidence,
+      proposal: input.workProposal,
+      existingVersions: session.workArtifactVersions,
+      existingSnapshot: session.creatorWork,
+      mutationScope: creatorWorkMutationScope(input.text, session.workArtifactVersions),
+      createdAt,
+    });
+    if (compilation.status !== 'created' && compilation.status !== 'reused') {
+      const messages = {
+        'formal-work-requires-llm': '正式作品必须来自本轮真实语言模型调用',
+        'work-field-locked': '模型尝试修改已锁定字段，作品版本已拒绝写入',
+        'work-mutation-out-of-scope': '模型修改超出本轮明确范围，作品版本已拒绝写入',
+        'work-dependency-invalid': '作品依赖关系无效，已拒绝写入',
+        'work-proposal-invalid': '模型作品结构未通过校验，已拒绝写入',
+      };
+      throw new CreatorAgentSessionError(
+        String(compilation.code || 'CREATOR_WORK_COMPILATION_BLOCKED')
+          .toUpperCase().replace(/-/g, '_'),
+        messages[compilation.code] || '结构化作品未通过安全校验，已拒绝写入',
+        409,
+        {
+          blockedArtifactId: compilation.blockedArtifactId || null,
+          blockedPath: compilation.blockedPath || null,
+        },
+      );
+    }
+    if (compilation.status === 'created' || compilation.status === 'reused') {
+      session.workArtifactVersions = normalizeWorkArtifactVersions(compilation.versions);
+      session.workArtifacts = workArtifactSummaries(session.workArtifactVersions);
+      session.creatorWork = normalizeCreatorWorkSnapshot(compilation.snapshot);
+      if (!session.creatorWork) {
+        throw new CreatorAgentSessionError(
+          'CREATOR_WORK_SNAPSHOT_INVALID',
+          '结构化作品已拒绝：作品快照校验失败',
+          409,
+        );
+      }
+    }
+    const proposalKinds = new Set((Array.isArray(input.workProposal?.artifacts)
+      ? input.workProposal.artifacts : []).map((artifact) => artifact?.kind).filter(Boolean));
+    const boundVersions = (Array.isArray(compilation.createdVersions)
+      && compilation.createdVersions.length > 0)
+      ? compilation.createdVersions
+      : latestWorkArtifactVersions(compilation.versions)
+        .filter((version) => proposalKinds.has(version.kind));
+    const compiledReceipt = createCreatorLlmTurnReceipt({
+      sessionId: session.id,
+      responseId,
+      logicalRequestId,
+      phase: 'compiled',
+      qualityMode: responseEvidence?.qualityMode || input.qualityMode || 'quick',
+      responseEvidence,
+      workProposalDigest: input.workProposal?.proposalDigest,
+      invocationReceiptDigest: normalizedInvocationReceipt.receiptDigest,
+      inputBindings,
+      artifactBindings: boundVersions.map((version) => ({
+        artifactId: version.artifactId,
+        kind: version.kind,
+        baseVersionId: version.diff?.baseVersionId || null,
+        newVersionId: version.versionId,
+        diffDigest: creatorDigest(version.diff),
+      })),
+      workSnapshotDigest: session.creatorWork?.workDigest || null,
+      createdAt,
+    });
+    const normalizedCompiledReceipt = normalizeCreatorLlmTurnReceipt(compiledReceipt);
+    if (!normalizedCompiledReceipt) {
+      throw new CreatorAgentSessionError(
+        'CREATOR_LLM_TURN_RECEIPT_INVALID',
+        '作品版本与模型回执无法建立完整绑定，已拒绝写入正式作品',
+        409,
+      );
+    }
+    if (!(session.creatorLlmTurnReceipts || []).some(
+      (receipt) => receipt.receiptDigest === normalizedCompiledReceipt.receiptDigest,
+    )) {
+      session.creatorLlmTurnReceipts = [
+        ...(session.creatorLlmTurnReceipts || []),
+        normalizedCompiledReceipt,
+      ].slice(-240);
+    }
+    return {
+      turnReceipt: normalizedCompiledReceipt,
+      invocationReceipt: normalizedInvocationReceipt,
+      compilation,
+    };
+  }
+
   function applyPlanState(session, input, context) {
     if (input.decisionTurn?.document) {
       storeCreatorDecisionDocument(session, input.decisionTurn.document);
@@ -3343,6 +3724,7 @@ function createCreatorAgentSessionStore(options = {}) {
       responseText: explicitAssistantText,
       responseEvidence: input.responseEvidence,
       artifactVersion: input.artifactVersion,
+      workSnapshot: session.creatorWork,
       decisionDocument: session.decisionDocument,
       production: session.production,
       stageReadyForConfirmation: Boolean(
@@ -3384,6 +3766,7 @@ function createCreatorAgentSessionStore(options = {}) {
       ? {
           id: boundedText(input.suggestionSelection.id, 160),
           intent: boundedText(input.suggestionSelection.intent, 160),
+          label: boundedText(input.suggestionSelection.label, 240),
           setDigest: boundedText(input.suggestionSelection.setDigest, 128).toLowerCase(),
         }
       : null;
@@ -3417,6 +3800,12 @@ function createCreatorAgentSessionStore(options = {}) {
       responseDigest,
       responseEvidence,
     );
+    const workResult = compileTurnWork(
+      session,
+      input,
+      responseId,
+      responseEvidence,
+    );
     const responseProductionPhase = session.production.currentPhase;
     applyPlanState(session, {
       ...input,
@@ -3439,6 +3828,20 @@ function createCreatorAgentSessionStore(options = {}) {
       ...(artifactCompilation ? { artifactCompilation } : {}),
       ...(artifactCompilation?.artifactVersion ? {
         artifactVersion: artifactCompilation.artifactVersion,
+      } : {}),
+      ...(workResult?.turnReceipt ? {
+        creatorLlmTurnReceipt: workResult.turnReceipt,
+      } : {}),
+      ...(workResult?.invocationReceipt ? {
+        creatorLlmInvocationReceipt: workResult.invocationReceipt,
+      } : {}),
+      ...(workResult?.compilation ? {
+        workCompilation: {
+          status: workResult.compilation.status,
+          code: workResult.compilation.code,
+          snapshot: workResult.compilation.snapshot,
+          createdVersions: workResult.compilation.createdVersions || [],
+        },
       } : {}),
       ...(creatorDecisionSummary(session.decisionDocument) ? {
         decision: creatorDecisionSummary(session.decisionDocument),
@@ -3506,11 +3909,107 @@ function createCreatorAgentSessionStore(options = {}) {
         artifactId: proposal.binding.artifactId,
         artifactVersionId: proposal.binding.artifactVersionId,
         artifactDigest: proposal.binding.artifactDigest,
+        workId: proposal.binding.workId,
+        workRevision: proposal.binding.workRevision,
+        workDigest: proposal.binding.workDigest,
         canvasRevision: proposal.binding.canvasRevision,
         tool: proposal.tool,
         gate: proposal.gate,
         request: proposal.request,
         execution: proposal.execution,
+      });
+      return {
+        session: read(session.id),
+        proposal,
+        event,
+        duplicate: false,
+      };
+    });
+  }
+
+  function prepareToolProposal(sessionId, input = {}) {
+    return withSessionLock(sessionId, 'tool-proposal-prepare', () => {
+      const session = read(sessionId);
+      const proposalId = boundedText(input.proposalId, 80);
+      const proposalDigest = boundedText(input.proposalDigest, 64).toLowerCase();
+      const proposalValue = session.toolProposals.find((candidate) => (
+        candidate.proposalId === proposalId
+      ));
+      if (!proposalValue) {
+        throw new CreatorAgentSessionError(
+          'CREATOR_TOOL_PROPOSAL_NOT_FOUND',
+          '这条工具提议不存在或已经被清理，请基于当前作品重新提议',
+          404,
+        );
+      }
+      if (!/^[a-f0-9]{64}$/u.test(proposalDigest)
+        || proposalValue.proposalDigest !== proposalDigest) {
+        throw new CreatorAgentSessionError(
+          'CREATOR_TOOL_PROPOSAL_STALE',
+          '工具提议摘要已经变化，未生成预览；请刷新当前作品后重试',
+          409,
+        );
+      }
+      let proposal;
+      try {
+        proposal = assertCreatorToolProposalCurrent(proposalValue, session);
+      } catch (error) {
+        if (error instanceof CreatorAgentToolProposalError) {
+          throw new CreatorAgentSessionError(
+            error.code,
+            error.message,
+            error.status,
+            error.details || {},
+          );
+        }
+        throw error;
+      }
+      const plan = input.plan && typeof input.plan === 'object' && !Array.isArray(input.plan)
+        ? input.plan : null;
+      if (!plan
+        || boundedText(plan.planId, 160) !== proposal.binding.planId
+        || boundedText(plan.planDigest, 160) !== proposal.binding.planDigest) {
+        throw new CreatorAgentSessionError(
+          'CREATOR_TOOL_PROPOSAL_PLAN_STALE',
+          '工具提议绑定的创作计划已变化，未生成预览',
+          409,
+        );
+      }
+      const existing = session.events.find((event) => (
+        event?.type === 'assistant.tool-proposal.prepared'
+        && event?.payload?.proposalId === proposal.proposalId
+        && event?.payload?.proposalDigest === proposal.proposalDigest
+        && event?.payload?.planId === proposal.binding.planId
+        && event?.payload?.planDigest === proposal.binding.planDigest
+      ));
+      if (existing) {
+        return {
+          session,
+          proposal,
+          event: existing,
+          duplicate: true,
+        };
+      }
+      const event = appendEvent(session, 'assistant.tool-proposal.prepared', {
+        schema: 't8-creator-tool-proposal-execution-v1',
+        proposalId: proposal.proposalId,
+        proposalDigest: proposal.proposalDigest,
+        responseId: proposal.binding.responseId,
+        responseDigest: proposal.binding.responseDigest,
+        workId: proposal.binding.workId,
+        workRevision: proposal.binding.workRevision,
+        workDigest: proposal.binding.workDigest,
+        planId: proposal.binding.planId,
+        planDigest: proposal.binding.planDigest,
+        requestedOperation: proposal.tool.operation,
+        capabilityId: proposal.tool.capabilityId,
+        status: 'prepared',
+        nextBoundary: proposal.gate.approvalRequired ? 'preview-and-approval' : 'preview',
+        sideEffects: {
+          canvasWrites: 0,
+          providerCalls: 0,
+          fileWrites: 0,
+        },
       });
       return {
         session: read(session.id),
@@ -4009,6 +4508,7 @@ function createCreatorAgentSessionStore(options = {}) {
       ? {
           id: boundedText(input.suggestionSelection.id, 160),
           intent: boundedText(input.suggestionSelection.intent, 160),
+          label: boundedText(input.suggestionSelection.label, 240),
           setDigest: boundedText(input.suggestionSelection.setDigest, 128).toLowerCase(),
         }
       : null;
@@ -4215,6 +4715,12 @@ function createCreatorAgentSessionStore(options = {}) {
       responseDigest,
       responseEvidence,
     );
+    const workResult = compileTurnWork(
+      session,
+      input,
+      responseId,
+      responseEvidence,
+    );
     const responseProductionPhase = session.production.currentPhase;
     applyPlanState(session, {
       ...input,
@@ -4237,6 +4743,20 @@ function createCreatorAgentSessionStore(options = {}) {
       ...(artifactCompilation ? { artifactCompilation } : {}),
       ...(artifactCompilation?.artifactVersion ? {
         artifactVersion: artifactCompilation.artifactVersion,
+      } : {}),
+      ...(workResult?.turnReceipt ? {
+        creatorLlmTurnReceipt: workResult.turnReceipt,
+      } : {}),
+      ...(workResult?.invocationReceipt ? {
+        creatorLlmInvocationReceipt: workResult.invocationReceipt,
+      } : {}),
+      ...(workResult?.compilation ? {
+        workCompilation: {
+          status: workResult.compilation.status,
+          code: workResult.compilation.code,
+          snapshot: workResult.compilation.snapshot,
+          createdVersions: workResult.compilation.createdVersions || [],
+        },
       } : {}),
       ...(creatorDecisionSummary(session.decisionDocument) ? {
         decision: creatorDecisionSummary(session.decisionDocument),
@@ -4589,7 +5109,10 @@ function createCreatorAgentSessionStore(options = {}) {
         && (type !== 'plan.reverted'
           || Number(event?.payload?.revertedRevision) === Number(normalizedPayload.revertedRevision))
       ));
-      if (duplicate) return session;
+      if (duplicate) {
+        reconcileToolProposalExecutionWritebacks(session);
+        return read(session.id);
+      }
       session.status = 'active';
       if (type === 'plan.applied') {
         const recordedAt = new Date(now()).toISOString();
@@ -4669,7 +5192,10 @@ function createCreatorAgentSessionStore(options = {}) {
         && event?.payload?.patchId === normalizedPayload.patchId
         && event?.payload?.assetId === normalizedPayload.assetId
       ));
-      if (duplicate) return session;
+      if (duplicate) {
+        reconcileToolProposalExecutionWritebacks(session);
+        return read(session.id);
+      }
       session.status = 'active';
       session.lastFailure = null;
       clearCreatorProductionBlock(
@@ -4695,7 +5221,10 @@ function createCreatorAgentSessionStore(options = {}) {
       const duplicate = session.runLinks.some((link) => (
         link?.planId === normalizedPayload.planId && link?.runId === normalizedPayload.runId
       ));
-      if (duplicate) return session;
+      if (duplicate) {
+        reconcileToolProposalExecutionWritebacks(session);
+        return read(session.id);
+      }
       session.runLinks = [...session.runLinks, normalizedPayload].slice(-100);
       session.status = 'active';
       session.lastFailure = null;
@@ -4801,7 +5330,10 @@ function createCreatorAgentSessionStore(options = {}) {
         item?.runId === normalizedPayload.runId
         && item?.verificationDigest === normalizedPayload.verificationDigest
       ));
-      if (duplicate) return session;
+      if (duplicate) {
+        reconcileToolProposalExecutionWritebacks(session);
+        return read(session.id);
+      }
       session.artifactVerifications = [
         ...session.artifactVerifications.filter((item) => item?.runId !== normalizedPayload.runId),
         normalizedPayload,
@@ -4912,7 +5444,189 @@ function createCreatorAgentSessionStore(options = {}) {
       }
     }
     appendEvent(session, type, normalizedPayload);
+    if (['plan.applied', 'run.linked', 'run.artifacts-verified'].includes(type)) {
+      const runId = boundedText(normalizedPayload?.runId, 160);
+      const linkedPlanId = type === 'run.artifacts-verified'
+        ? boundedText(
+            (Array.isArray(session.runLinks) ? session.runLinks : [])
+              .find((link) => boundedText(link?.runId, 160) === runId)?.planId,
+            160,
+          )
+        : boundedText(normalizedPayload?.planId, 160);
+      if (linkedPlanId) {
+        const preparedEvents = (Array.isArray(session.events) ? session.events : [])
+          .filter((event) => (
+            event?.type === 'assistant.tool-proposal.prepared'
+            && boundedText(event?.payload?.planId, 160) === linkedPlanId
+          ));
+        const stage = type === 'plan.applied'
+          ? 'applied'
+          : type === 'run.linked'
+            ? 'running'
+            : normalizedPayload?.verified === true ? 'verified' : 'verification-failed';
+        for (const prepared of preparedEvents) {
+          const proposalId = boundedText(prepared.payload?.proposalId, 80);
+          const proposalDigest = boundedText(prepared.payload?.proposalDigest, 64).toLowerCase();
+          const priorWritebacks = (Array.isArray(session.events) ? session.events : [])
+            .filter((event) => (
+              event?.type === 'assistant.tool-proposal.writeback'
+              && event?.payload?.proposalId === proposalId
+              && event?.payload?.proposalDigest === proposalDigest
+              && event?.payload?.planId === linkedPlanId
+            ));
+          const priorEvidence = priorWritebacks.reduce((evidence, event) => ({
+            canvasWriteRecorded: evidence.canvasWriteRecorded
+              || event?.payload?.evidence?.canvasWriteRecorded === true,
+            providerRunLinked: evidence.providerRunLinked
+              || event?.payload?.evidence?.providerRunLinked === true,
+          }), { canvasWriteRecorded: false, providerRunLinked: false });
+          const duplicate = session.events.some((event) => (
+            event?.type === 'assistant.tool-proposal.writeback'
+            && event?.payload?.proposalId === proposalId
+            && event?.payload?.proposalDigest === proposalDigest
+            && event?.payload?.stage === stage
+            && event?.payload?.runId === (runId || null)
+          ));
+          if (duplicate) continue;
+          appendEvent(session, 'assistant.tool-proposal.writeback', {
+            schema: 't8-creator-tool-proposal-execution-v1',
+            proposalId,
+            proposalDigest,
+            planId: linkedPlanId,
+            planDigest: boundedText(prepared.payload?.planDigest, 160),
+            workId: boundedText(prepared.payload?.workId, 80) || null,
+            workRevision: Number.isSafeInteger(Number(prepared.payload?.workRevision))
+              ? Number(prepared.payload.workRevision) : null,
+            workDigest: boundedText(prepared.payload?.workDigest, 64).toLowerCase() || null,
+            requestedOperation: boundedText(prepared.payload?.requestedOperation, 40),
+            capabilityId: boundedText(prepared.payload?.capabilityId, 160),
+            stage,
+            evidenceEventType: type,
+            runId: runId || null,
+            evidenceDigest: boundedText(
+              normalizedPayload?.verificationDigest || normalizedPayload?.bindingDigest,
+              160,
+            ) || null,
+            evidence: {
+              canvasWriteRecorded: priorEvidence.canvasWriteRecorded || type === 'plan.applied',
+              providerRunLinked: priorEvidence.providerRunLinked || type === 'run.linked',
+              physicalArtifactsVerified: type === 'run.artifacts-verified'
+                && normalizedPayload?.verified === true,
+            },
+          });
+        }
+      }
+    }
     return read(session.id);
+  }
+
+  function reviseWorkArtifactVersion(sessionId, input = {}) {
+    return withSessionLock(sessionId, 'work-artifact-revise', () => {
+      const session = read(sessionId);
+      const result = reviseWorkArtifact({
+        existingVersions: session.workArtifactVersions,
+        artifactId: input.artifactId,
+        baseVersionId: input.baseVersionId,
+        action: input.action,
+        field: input.field,
+        value: input.value,
+        actor: input.actor || 'creator',
+        createdAt: new Date(now()).toISOString(),
+      });
+      if (result.status === 'blocked') {
+        const messages = {
+          'work-artifact-stale': '作品已更新，请基于最新版本继续编辑',
+          'work-field-invalid': '这个字段不属于当前作品类型',
+          'work-field-locked': '该字段已锁定；请先明确解锁后再修改',
+          'work-field-value-invalid': '字段内容无法安全保存',
+          'work-action-invalid': '不支持这个作品操作',
+        };
+        throw new CreatorAgentSessionError(
+          String(result.code || 'CREATOR_WORK_REVISION_BLOCKED').toUpperCase().replace(/-/g, '_'),
+          messages[result.code] || '当前作品修改已被安全阻止',
+          409,
+          { artifactId: boundedText(input.artifactId, 80), field: boundedText(input.field, 120) },
+        );
+      }
+      if (result.status === 'reused') {
+        return { session, artifactVersion: result.artifactVersion, duplicate: true };
+      }
+      session.workArtifactVersions = normalizeWorkArtifactVersions(result.versions);
+      session.workArtifacts = workArtifactSummaries(session.workArtifactVersions);
+      const latest = latestWorkArtifactVersions(session.workArtifactVersions);
+      const updatedAt = result.artifactVersion.createdAt;
+      const snapshot = {
+        schema: 't8-creator-work-snapshot-v1',
+        workId: session.creatorWork?.workId
+          || `cw_${creatorDigest({ schema: 't8-creator-work-snapshot-v1', sessionId: session.id }).slice(0, 32)}`,
+        revision: session.creatorWork ? session.creatorWork.revision + 1 : 1,
+        taskProfile: session.creatorWork?.taskProfile || {
+          family: 'mixed',
+          intent: '继续编辑当前作品',
+          deliveryKind: 'editable-work',
+          modalities: [],
+          targetPlatform: null,
+          qualityMode: 'standard',
+        },
+        artifactVersionIds: latest.map((version) => version.versionId),
+        changedArtifactIds: [result.artifactVersion.artifactId],
+        invalidatedKinds: result.artifactVersion.invalidates || [],
+        updatedAt,
+      };
+      snapshot.workDigest = creatorDigest(snapshot);
+      session.creatorWork = normalizeCreatorWorkSnapshot(snapshot);
+      if (!session.creatorWork) {
+        throw new CreatorAgentSessionError(
+          'CREATOR_WORK_SNAPSHOT_INVALID',
+          '作品修改后的快照无法验证，已停止写入',
+          409,
+        );
+      }
+      if (input.action === 'accept') {
+        // Accept is an explicit creator approval of the currently visible
+        // structured work. Resolve any still-pending choice questions to the
+        // values already present in that accepted work, but leave the final
+        // stage-confirmation decision pending. This avoids asking the creator
+        // to re-answer decisions their approved draft already embodies while
+        // preserving a separate explicit gate before the phase advances.
+        acceptCreatorWorkAsCurrentDecisionDefaults(session, result.artifactVersion);
+      }
+      session.suggestionSet = creatorSuggestionSet(
+        { ...session.context, phase: session.production.currentPhase },
+        session.latestPlan,
+        {
+          production: session.production,
+          decisionDocument: session.decisionDocument,
+          workSnapshot: session.creatorWork,
+          // Accepting the current typed work is an explicit creator signal
+          // that the draft is ready for the existing production-document
+          // confirmation gate. Rebind the three suggestions to the new work
+          // digest and keep the exact confirm-and-continue action available;
+          // otherwise the safe stale-digest refresh strands the creator on a
+          // generic "draft this stage" suggestion after clicking Accept.
+          stageReadyForConfirmation: input.action === 'accept'
+            && session.latestPlan?.ready === true
+            && Array.isArray(session.latestPlan?.productionDocuments)
+            && session.latestPlan.productionDocuments.length > 0,
+        },
+      );
+      session.suggestions = session.suggestionSet.items.map((item) => item.label);
+      const event = appendEvent(session, 'work.artifact.revised', {
+        action: boundedText(input.action, 40),
+        field: boundedText(input.field, 120) || null,
+        artifactVersion: result.artifactVersion,
+        work: session.creatorWork,
+        suggestionSet: session.suggestionSet,
+        suggestionInvariantReceipt: session.suggestionSet.invariantReceipt,
+        sideEffects: { providerCalls: 0, canvasWrites: 0, fileWrites: 0 },
+      });
+      return {
+        session: read(session.id),
+        artifactVersion: result.artifactVersion,
+        event,
+        duplicate: false,
+      };
+    });
   }
 
   return {
@@ -4931,8 +5645,11 @@ function createCreatorAgentSessionStore(options = {}) {
     stopStreamingTurn,
     messageRequest,
     productionDocumentsForNextPlan,
+    prepareToolProposal,
     read,
+    reconcileToolProposalWritebacks,
     recordToolProposal,
+    reviseWorkArtifactVersion,
     rootDir,
   };
 }

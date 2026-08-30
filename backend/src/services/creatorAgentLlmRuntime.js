@@ -4,11 +4,73 @@ const { generateChatWithProvider } = require('../providers/adapters');
 const { normalizeAdvancedProviders } = require('../providers/registry');
 const { createCreatorArtifactProposal } = require('./creatorAgentArtifacts');
 const { creatorDecisionPromptContract } = require('./creatorAgentDecisions');
+const {
+  ARTIFACT_FIELDS,
+  REQUIRED_KINDS,
+  createCreatorWorkProposal,
+  creatorWorkMutationScope,
+  latestWorkArtifactVersions,
+  normalizeQualityMode,
+} = require('./creatorAgentWorkArtifacts');
+const {
+  normalizeCreatorAudioObservation,
+} = require('./creatorAgentMediaGrounding');
+const {
+  publicVersionedCapabilityToolCatalog,
+} = require('./agentControlCapabilityTools');
 
 const CREATOR_RESPONSE_EVIDENCE_SCHEMA = 't8-creator-agent-response-evidence-v1';
 const MAX_HISTORY_MESSAGES = 8;
 const MAX_HISTORY_TEXT = 4_000;
 const MAX_PROMPT_TEXT = 20_000;
+const CREATOR_STRUCTURED_RESPONSE_SCHEMA = 't8-creator-work-model-response-v1';
+
+// Keep the model-facing catalog focused on fields that materially advance the
+// work. The durable artifact schema remains intentionally broader so older
+// versions and explicit user edits stay compatible.
+const COMPACT_PROMPT_FIELDS = Object.freeze({
+  ProductionBrief: [
+    'title', 'outcome', 'audience', 'format', 'durationSeconds', 'aspectRatio',
+    'style', 'tone', 'language', 'constraints', 'assumptions', 'unknowns',
+  ],
+  TaskProfile: [
+    'family', 'intent', 'deliveryKind', 'modalities', 'targetPlatform',
+    'qualityMode', 'scope',
+  ],
+  CreativeDirectionSet: ['directions', 'recommendedDirectionId', 'selectionReason', 'risks'],
+  ProductTruth: ['facts', 'claimsToAvoid', 'sourceBindings', 'unknowns'],
+  BrandKit: [
+    'brandVoice', 'palette', 'typography', 'logoRules', 'mandatoryElements',
+    'forbiddenElements', 'constraints',
+  ],
+  CommerceContentPlan: ['channels', 'contentUnits', 'storyArc', 'assetNeeds', 'complianceNotes'],
+  CopySet: ['headlines', 'subheads', 'body', 'cta', 'disclaimers', 'variants'],
+  VisualSpec: [
+    'composition', 'subject', 'environment', 'lighting', 'color', 'palette',
+    'materials', 'textTreatment', 'references', 'negativeRules', 'constraints',
+  ],
+  LayoutSpec: ['canvas', 'grid', 'hierarchy', 'safeAreas', 'placements', 'variants'],
+  EditPlan: ['preserve', 'change', 'remove', 'add', 'steps', 'maskNotes', 'qualityChecks'],
+  ScriptDoc: [
+    'title', 'logline', 'theme', 'synopsis', 'characters', 'acts', 'scenes',
+    'dialogue', 'ending', 'assumptions', 'unknowns', 'constraints',
+  ],
+  WorldBible: ['premise', 'locations', 'rules', 'timeline', 'continuity', 'assumptions', 'unknowns'],
+  CharacterBible: [
+    'characters', 'identityLocks', 'relationships', 'wardrobe', 'continuity',
+    'assumptions', 'unknowns',
+  ],
+  ShotList: ['shots', 'totalDurationSeconds', 'continuityRules', 'coverage', 'constraints'],
+  Storyboard: ['frames', 'styleContinuity', 'missingFrames'],
+  MotionPlan: ['beats', 'camera', 'motion', 'transitions', 'timing', 'continuity'],
+  AudioPlan: ['tracks', 'cues', 'dialogue', 'voiceover', 'music', 'ambience', 'sfx', 'mixNotes'],
+  AssetNeed: ['items', 'existing', 'missing', 'protected', 'assumptions', 'unknowns'],
+  PromptPack: ['prompts', 'negativePrompts', 'referenceBindings', 'modelHints', 'reviewNotes'],
+  CandidateReview: ['candidates', 'criteria', 'hardGates', 'adoptions'],
+  EDL: ['sequence', 'transitions', 'audioLayers', 'durationSeconds'],
+  QCReport: ['checks', 'failures', 'warnings', 'verifiedArtifacts'],
+  DeliveryManifest: ['deliverables', 'formats', 'licenses', 'verification'],
+});
 
 function boundedText(value, maximum = 2_000) {
   return String(value == null ? '' : value)
@@ -121,6 +183,259 @@ function taskFamily(input = {}) {
   return 'mixed';
 }
 
+function requestedQualityMode(input = {}) {
+  const explicit = boundedText(input.qualityMode, 32).toLowerCase();
+  // Older callers keep their historical single-call behavior. The Canvas UI
+  // sends `standard`, which is the product default for new work.
+  return explicit ? normalizeQualityMode(explicit) : 'quick';
+}
+
+function qualityModeCallCount(value) {
+  const mode = normalizeQualityMode(value);
+  return mode === 'quality' ? 3 : mode === 'standard' ? 2 : 1;
+}
+
+const STORY_STAGE_WORK_KINDS = Object.freeze({
+  idea: ['ProductionBrief', 'TaskProfile'],
+  script: ['ScriptDoc', 'WorldBible'],
+  assets: ['CharacterBible', 'AssetNeed'],
+  shots: ['ShotList', 'Storyboard', 'AudioPlan', 'PromptPack'],
+  candidates: ['CandidateReview'],
+  delivery: ['EDL', 'QCReport', 'DeliveryManifest'],
+});
+
+function creatorStructuredRequiredKinds(input = {}) {
+  const family = taskFamily(input);
+  const full = REQUIRED_KINDS[family] || REQUIRED_KINDS.mixed;
+  const latest = latestWorkArtifactVersions(input.session?.workArtifactVersions);
+  if (!latest.length) return full;
+  const mutationScope = creatorWorkMutationScope(input.prompt, latest);
+  if (mutationScope.restricted && mutationScope.allowedPaths.length) {
+    const kinds = [...new Set(mutationScope.allowedPaths.map((path) => (
+      String(path).split('/').filter(Boolean)[0]
+    )).filter((kind) => Object.prototype.hasOwnProperty.call(ARTIFACT_FIELDS, kind)))];
+    if (kinds.length) return kinds;
+  }
+  if (family === 'story' && input.stageContinuation === true) {
+    const stageKinds = STORY_STAGE_WORK_KINDS[productionPhase(input)] || [];
+    const kinds = stageKinds.filter((kind) => (
+      Object.prototype.hasOwnProperty.call(ARTIFACT_FIELDS, kind)
+    ));
+    if (kinds.length) return kinds;
+  }
+  return full;
+}
+
+function creatorCurrentWorkContract(input = {}) {
+  const latest = latestWorkArtifactVersions(input.session?.workArtifactVersions);
+  if (!latest.length) return '当前没有已建立的结构化作品版本，本轮是正式作品首版。';
+  const mutationScope = creatorWorkMutationScope(input.prompt, latest);
+  const requiredKinds = new Set(creatorStructuredRequiredKinds(input));
+  const scopedLatest = requiredKinds.size < latest.length
+    ? latest.filter((version) => requiredKinds.has(version.kind))
+    : latest;
+  const currentWork = scopedLatest.map((version) => ({
+    artifactId: version.artifactId,
+    versionId: version.versionId,
+    revision: version.revision,
+    kind: version.kind,
+    title: version.title,
+    status: version.status,
+    fields: version.fields,
+    fieldLocks: version.fieldLocks,
+    dependencies: version.dependencies.map((dependency) => ({
+      kind: dependency.kind,
+      versionId: dependency.versionId,
+      versionDigest: dependency.versionDigest,
+    })),
+  }));
+  const serialized = boundedResponseText(stableString(currentWork), 64_000);
+  return [
+    '以下是当前权威作品版本。必须基于它修改，不得把旧聊天正文当作权威数据。',
+    `当前作品：${serialized}`,
+    mutationScope.restricted
+      ? mutationScope.allowedPaths.length
+        ? `用户明确要求局部修改；本轮只允许改变：${mutationScope.allowedPaths.join('、')}。其他字段必须逐字保持，服务端会拒绝越界变化。`
+        : '用户明确要求局部修改，但系统无法安全识别允许字段；不得修改任何作品字段，应在 displayMarkdown 中明确说明无法定位字段。'
+      : '本轮没有“只修改”限制；仍必须保持全部 fieldLocks，且只改变完成用户要求所必需的字段。',
+  ].join('\n');
+}
+
+function creatorStructuredResponseContract(input = {}) {
+  const family = taskFamily(input);
+  const requiredKinds = creatorStructuredRequiredKinds(input);
+  const fullKinds = REQUIRED_KINDS[family] || REQUIRED_KINDS.mixed;
+  const partial = requiredKinds.length < fullKinds.length;
+  const latest = latestWorkArtifactVersions(input.session?.workArtifactVersions);
+  const mutationScope = creatorWorkMutationScope(input.prompt, latest);
+  const allowedPathSet = new Set(mutationScope.allowedPaths);
+  const allowedFields = Object.fromEntries(requiredKinds.map((kind) => [
+    kind,
+    mutationScope.restricted
+      ? (ARTIFACT_FIELDS[kind] || []).filter((field) => (
+          allowedPathSet.has(`/${kind}/fields/${field}`)
+        ))
+      : (COMPACT_PROMPT_FIELDS[kind] || ARTIFACT_FIELDS[kind] || []),
+  ]));
+  const exactTitleKinds = mutationScope.restricted
+    ? requiredKinds.filter((kind) => !allowedPathSet.has(`/${kind}/title`))
+    : [];
+  return [
+    '输出必须是一个 JSON 对象，不能使用 Markdown 代码围栏，也不能在 JSON 前后添加解释。',
+    `schema 必须为“${CREATOR_STRUCTURED_RESPONSE_SCHEMA}”。`,
+    '对象顶层只允许 schema、displayMarkdown、taskProfile、artifacts、toolProposals。',
+    'displayMarkdown 是给创作者看的完整可编辑正文，必须有实质内容。',
+    `taskProfile.family 必须为“${family}”，qualityMode 必须为“${requestedQualityMode(input)}”；intent、deliveryKind 不能为空，modalities 为字符串数组。`,
+    partial
+      ? `这是有界增量轮次。artifacts 只能包含且必须完整包含这些种类：${requiredKinds.join('、')}；其他作品类型由服务端逐字保留，禁止在本轮重发。`
+      : `artifacts 必须至少包含并且种类唯一：${requiredKinds.join('、')}。`,
+    mutationScope.restricted
+      ? '这是稀疏字段补丁，不是完整文档重写。每个 artifact 的 fields 只能输出下方明确列出的字段；即使当前作品里还有其他字段，也禁止复制、总结或重发。服务端会把这些字段安全合并回当前权威版本。'
+      : '每个 artifact 只允许 kind、title、fields、dependsOnKinds；fields 只能使用下方该 kind 对应的字段，不能增加其他键。',
+    mutationScope.restricted && exactTitleKinds.length
+      ? `这些 artifact 的 title 必须逐字复制当前权威值，不得改写：${exactTitleKinds.join('、')}。`
+      : '',
+    mutationScope.preserveArrayPrefixes?.length
+      ? `用户只允许修改数组最后一项。下列字段在 fields 中必须各自只输出一个元素的数组，数组内唯一元素就是替换后的最后一项；禁止重发任何较早项目，服务端会把该元素安全拼接回原数组：${mutationScope.preserveArrayPrefixes.join('、')}。`
+      : '',
+    `${mutationScope.restricted ? '本轮唯一允许输出的字段' : '字段目录'}：${JSON.stringify(allowedFields)}`,
+    '未知事实必须进入 assumptions 或 unknowns；不得为了填满字段而编造素材、商品、人物、品牌或执行结果。',
+    creatorToolProposalContract(input),
+  ].join('\n');
+}
+
+function creatorToolProposalContract(input = {}) {
+  const kind = boundedText(input.kind, 80).toLowerCase().replace(/^edit-/u, '');
+  const prompt = boundedText(input.prompt, MAX_PROMPT_TEXT);
+  const wantsLocalization = /(?:本地化|多语(?:言)?|翻译(?:成|为|字幕)?|字幕翻译|配音|locali[sz](?:e|ation)|translate|dubb?ing|subtitles?)/iu.test(prompt);
+  const toolByKind = Object.freeze({
+    image: 'zcanvas_create_image',
+    video: 'zcanvas_create_video',
+    audio: 'zcanvas_create_audio',
+    script: 'zcanvas_create_script',
+    story: 'zcanvas_create_story',
+  });
+  const toolName = wantsLocalization ? 'zcanvas_localization_create' : toolByKind[kind] || '';
+  const projectId = boundedText(input.projectId, 256);
+  const canvasId = boundedText(input.canvasId, 256);
+  if (!toolName || !projectId || !canvasId) {
+    return 'toolProposals 必须返回空数组；当前没有与本轮作用域绑定的可提议高层能力。不得声称已经执行任何工具、画布写入或 Provider 生成。';
+  }
+  const catalog = publicVersionedCapabilityToolCatalog();
+  const tool = catalog.tools.find((candidate) => candidate.name === toolName);
+  if (!tool) {
+    return 'toolProposals 必须返回空数组；当前能力版本没有匹配工具。不得声称已经执行任何工具、画布写入或 Provider 生成。';
+  }
+  const localizationLanguagePatterns = [
+    ['ZH', /(?:中文|汉语|Chinese)/iu],
+    ['EN', /(?:英文|英语|English)/iu],
+    ['JA', /(?:日文|日语|Japanese)/iu],
+    ['ES', /(?:西班牙文|西班牙语|Spanish)/iu],
+    ['AR', /(?:阿拉伯文|阿拉伯语|Arabic)/iu],
+  ];
+  let targetLanguages = localizationLanguagePatterns
+    .filter(([, pattern]) => pattern.test(prompt))
+    .map(([language]) => language);
+  if (wantsLocalization && /(?:五语|5\s*(?:种)?语言|five\s+languages)/iu.test(prompt)) {
+    targetLanguages = ['ZH', 'EN', 'JA', 'ES', 'AR'];
+  }
+  if (wantsLocalization && targetLanguages.length === 0) targetLanguages = ['EN'];
+  const localizationMode = /(?:仅|只要|只做).{0,6}字幕|subtitles?\s+only/iu.test(prompt)
+    ? 'subtitle-only'
+    : /(?:仅|只要|只做).{0,6}配音|dubb?ing\s+only/iu.test(prompt)
+      ? 'dubbing-only'
+      : 'full';
+  const requestTemplate = {
+    schema: 't8-versioned-creative-tool-request-v1',
+    tool: tool.name,
+    version: tool.version,
+    operation: 'plan',
+    projectId,
+    canvasId,
+    clientRequestId: boundedText(input.logicalRequestId, 256) || null,
+    input: wantsLocalization ? {
+      instruction: '用一句话概括本轮要准备的本地化目标；不得包含 API Key、URL、headers、节点数组、连线数组或 Canvas Patch。',
+      targetLanguages,
+      sourceLanguage: 'AUTO',
+      mode: localizationMode,
+    } : {
+      prompt: '用一句话概括要基于本轮已完成作品准备的画布结构；不得包含 API Key、URL、headers、节点数组、连线数组或 Canvas Patch。',
+    },
+  };
+  return [
+    'toolProposals 只能表示尚未执行的高层能力提案；绝不能声称已写画布、调用 Provider 或生成素材。',
+    '如果用户本轮明确要求创作、制作或生成该作品，返回且只返回 1 个提案；如果只要求解释、审阅或分析，则返回空数组。',
+    '提案对象顶层只能有 schema、request；schema 必须为“t8-creator-model-tool-proposal-v1”。',
+    wantsLocalization
+      ? 'request 必须严格复制下面模板的 schema、tool、version、operation、projectId、canvasId、clientRequestId、input.targetLanguages、input.sourceLanguage 和 input.mode；只把 input.instruction 改写为本轮作品的一句话可见本地化目标。operation 只能是 plan，后续预览、确认、写入和运行由产品安全链处理。'
+      : 'request 必须严格复制下面模板的 schema、tool、version、operation、projectId、canvasId、clientRequestId；只把 input.prompt 改写为本轮作品的一句话可见目标。operation 只能是 plan，后续预览、确认、写入和运行由产品安全链处理。',
+    `唯一允许的 request 模板：${JSON.stringify(requestTemplate)}`,
+  ].join('\n');
+}
+
+function extractStructuredJson(value) {
+  const text = boundedResponseText(value);
+  if (!text) return null;
+  const candidates = [text];
+  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/iu);
+  if (fenced?.[1]) candidates.push(fenced[1]);
+  const first = text.indexOf('{');
+  const last = text.lastIndexOf('}');
+  if (first >= 0 && last > first) candidates.push(text.slice(first, last + 1));
+  for (const candidate of candidates) {
+    try {
+      const parsed = JSON.parse(candidate);
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+        && parsed.schema === CREATOR_STRUCTURED_RESPONSE_SCHEMA) return parsed;
+    } catch {
+      // Continue with the next bounded candidate.
+    }
+  }
+  return null;
+}
+
+function structuredModelResult(value, input = {}) {
+  const parsed = extractStructuredJson(value);
+  if (!parsed) return null;
+  const proposal = createCreatorWorkProposal({
+    modelValue: parsed,
+    taskFamily: taskFamily(input),
+    qualityMode: requestedQualityMode(input),
+    requiredKinds: creatorStructuredRequiredKinds(input),
+    logicalRequestId: input.logicalRequestId || input.clientRequestId,
+  });
+  if (!proposal) return null;
+  return {
+    parsed,
+    proposal,
+    displayMarkdown: proposal.displayMarkdown,
+    toolProposals: Array.isArray(parsed.toolProposals) ? parsed.toolProposals.slice(0, 12) : [],
+  };
+}
+
+function refinementMessages(prepared, priorRaw, passIndex, totalCalls) {
+  const role = passIndex === totalCalls - 1 ? 'final-merger' : 'critic-refiner';
+  return [
+    ...prepared.messages,
+    {
+      role: 'assistant',
+      content: boundedResponseText(priorRaw),
+    },
+    {
+      role: 'user',
+      content: [
+        `你现在是本轮的 ${role}。这是第 ${passIndex + 1}/${totalCalls} 次已批准模型调用。`,
+        '检查作品是否真正回应用户、事实与推断是否分离、跨文档是否一致、镜头/文案是否具体、字段是否符合 Schema。',
+        '直接返回修订后的完整 JSON 对象；不要解释批评过程，不要省略已有合格内容，不得改变锁定事实或虚构执行结果。',
+        creatorStructuredResponseContract({
+          ...prepared.input,
+          qualityMode: prepared.qualityMode,
+        }),
+      ].join('\n'),
+    },
+  ];
+}
+
 function productionPhase(input = {}) {
   const value = boundedText(input.session?.production?.currentPhase, 40).toLowerCase();
   return ['idea', 'script', 'assets', 'shots', 'candidates', 'delivery'].includes(value)
@@ -131,6 +446,27 @@ function productionPhase(input = {}) {
 function stagedStoryContract(input = {}) {
   if (taskFamily(input) !== 'story') return '';
   const phase = productionPhase(input);
+  if (input.requireStructuredWork === true) {
+    const requiredKinds = creatorStructuredRequiredKinds(input);
+    const fullKinds = REQUIRED_KINDS.story;
+    const incremental = requiredKinds.length < fullKinds.length;
+    const phaseFocus = {
+      idea: '首轮要先形成可以真正继续制作的完整 V0；若用户已明确要求剧本、镜头数、分镜或提示词，就在本轮直接交付，不得退回成问卷。',
+      script: '本轮重点完善完整剧本，并保留已经确认的简报、人物、素材、镜头和提示词字段；不得无关重写。',
+      assets: '本轮重点完善角色、服装、场景、道具和声音资产需求，并保留已确认上游与后续草案；不得擅自生成素材。',
+      shots: '本轮重点交付逐镜镜头表、分镜、动作、声音、连续性与提示词，并保留已确认上游；不得声称已经生成。',
+      candidates: '本轮只能根据画布真实候选证据更新比较与采用建议；不存在的结果保持未知，不得冒充生成或采用。',
+      delivery: '本轮只可根据真实采用和核验结果更新 EDL、QC 与交付清单；缺少物理文件证据时必须保持阻断。',
+    };
+    return [
+      `当前生产阶段：${phase}。${phaseFocus[phase]}`,
+      incremental
+        ? `本轮是有界增量：只返回 ${requiredKinds.join('、')}，其他作品类型由服务端保留；不得为了“完整”而重发或改写其他类型。`
+        : '结构化 artifacts 表示“当前完整作品对象”，不是已经执行的生产结果；首版必须包含全部必需作品类型。',
+      '典型“人设图 + 30 秒视频 + 6 个镜头”首轮必须至少给出：素材观察、ProductionBrief、ScriptDoc、人物锚点、素材需求、恰好 6 条可编辑 ShotList、Storyboard、AudioPlan 与逐镜 PromptPack。',
+      '作品对象可以先完整，但生产阶段仍只能由真实确认、画布 Patch、Run、候选采用、EDL、QC 与 DeliveryManifest 证据逐步推进。',
+    ].join('\n');
+  }
   const contracts = {
     idea: [
       '当前唯一阶段是“创意”。只交付可确认的创意简报，不提前写完整剧本、资产表、分镜或生成计划。',
@@ -245,14 +581,20 @@ function mediaGroundingRequirement(input = {}) {
       index: index + 1,
       kind: attachmentMediaKind(item),
       name: boundedText(item?.name, 240),
+      observation: attachmentMediaKind(item) === 'audio'
+        ? normalizeCreatorAudioObservation(item?.audioObservation, item)
+        : null,
     }))
     .filter((item) => ['image', 'video', 'audio'].includes(item.kind));
   const visual = attachments.filter((item) => ['image', 'video'].includes(item.kind));
   const audio = attachments.filter((item) => item.kind === 'audio');
+  const observedAudio = audio.filter((item) => item.observation);
   return {
     required: visual.length > 0 || audio.length > 0,
     visualRequired: visual.length > 0,
-    unsupportedAudio: audio.length > 0,
+    audioRequired: audio.length > 0,
+    audioObserved: audio.length > 0 && observedAudio.length === audio.length,
+    unsupportedAudio: audio.length > 0 && observedAudio.length !== audio.length,
     attachmentCount: attachments.length,
     kinds: [...new Set(attachments.map((item) => item.kind))].sort(),
     visual,
@@ -272,7 +614,11 @@ function mediaGroundingContract(input = {}) {
   const audioLines = requirement.unsupportedAudio
     ? [
       '本轮含音频附件。只有在输入链路提供了可核验转写或音频分析证据时才能描述其内容；否则必须明确说明无法读取音频内容，禁止猜测。',
-    ] : [];
+    ] : requirement.audioObserved
+      ? [
+        '本轮音频内容来自与素材 ID、revision 和 SHA-256 绑定的 Whisper 转写观察。只能把转写文字和返回的时间段当作事实。',
+        'Whisper 转写不证明说话人身份、音乐风格、BPM、环境声或音效；这些内容除非另有真实证据，否则必须列为未知，禁止推断成已听见事实。',
+      ] : [];
   return [...visualLines, ...audioLines].join('\n');
 }
 
@@ -415,11 +761,23 @@ function distinctMatches(value, patterns) {
 function mediaObservationQuality(text, input = {}) {
   const requirement = mediaGroundingRequirement(input);
   if (!requirement.visualRequired) {
+    const audioDigests = requirement.audio
+      .map((item) => item.observation?.observationDigest)
+      .filter(Boolean);
     return {
       ok: !requirement.unsupportedAudio,
       code: requirement.unsupportedAudio ? 'media-input-unsupported' : 'not-required',
       required: requirement.required,
-      status: requirement.unsupportedAudio ? 'unsupported' : 'not-required',
+      status: requirement.unsupportedAudio
+        ? 'unsupported'
+        : requirement.audioObserved ? 'confirmed' : 'not-required',
+      ...(requirement.audioObserved ? {
+        code: 'media-grounded',
+        observationDigest: digest({
+          schema: 't8-creator-agent-audio-observation-set-v1',
+          observationDigests: audioDigests,
+        }),
+      } : {}),
     };
   }
   const value = boundedText(text, 80_000);
@@ -612,30 +970,49 @@ function systemPrompt(input = {}) {
     '当前任务可能是电商、品牌、海报、修图、角色、故事、分镜、视频、音频或混合创作；必须根据用户真实需求选择最短路径，不得一律套用故事板。',
     '同一轮先交付有实质内容的可编辑版本，再只提出系统指定的当前一个决策。其余待处理内容保存在内部版本文档中，不得在回复里倾倒问题清单。',
     '明确区分用户事实、你的建议和未知项。不得编造商品参数、人物身份、品牌规则、素材内容、模型调用结果或已经发生的画布修改。',
-    '本轮只回复创作正文；不要声称已经运行节点、生成素材、覆盖内容或写入画布。工具和画布动作由后续受控计划单独处理。',
-    '不要在正文末尾生成产品 UI 的“三个下一步按钮”，SuggestionSet 会由系统根据本轮产物另行形成。',
+    '本轮只生成创作正文与结构化作品对象；不要声称已经运行节点、生成素材、覆盖内容或写入画布。工具和画布动作由后续受控计划单独处理。',
+    '不要在 displayMarkdown 末尾生成产品 UI 的“三个下一步按钮”，SuggestionSet 会由系统根据本轮作品版本另行形成。',
     '使用清楚、可扫读的中文。避免“已为你整理计划”之类空话，也不要只连续提问。',
     '正文应使用短标题、段落、列表或编号形成可直接编辑的结构；至少包含三段陈述性内容，问题只能放在实质 V0 之后。',
     mediaGroundingContract(input),
     stagedStoryContract(input),
     taskResponseContract(input),
     creatorDecisionPromptContract(input.decisionTurn),
+    creatorCurrentWorkContract(input),
     `任务类型：${taskFamily(input)}；计划种类：${boundedText(input.kind, 40) || 'mixed'}；recipe：${boundedText(input.recipe, 80) || 'general'}。`,
+    creatorStructuredResponseContract(input),
   ].join('\n');
 }
 
 function userMessage(input = {}) {
   const prompt = boundedText(input.prompt, MAX_PROMPT_TEXT);
   const attachments = Array.isArray(input.attachments) ? input.attachments : [];
-  const metadata = attachments.map((item, index) => ({
-    index: index + 1,
-    kind: attachmentMediaKind(item),
-    name: boundedText(item.name, 240),
-    mimeType: boundedText(item.mimeType, 120),
-    width: Number(item.width) || null,
-    height: Number(item.height) || null,
-    duration: Number(item.duration) || null,
-  }));
+  const metadata = attachments.map((item, index) => {
+    const audioObservation = attachmentMediaKind(item) === 'audio'
+      ? normalizeCreatorAudioObservation(item?.audioObservation, item)
+      : null;
+    return {
+      index: index + 1,
+      assetId: boundedText(item.assetId, 160) || null,
+      contentRevision: Math.max(0, Math.trunc(Number(item.contentRevision) || 0)),
+      contentHash: boundedText(item.contentHash, 128).toLowerCase().replace(/^sha256:/u, '') || null,
+      kind: attachmentMediaKind(item),
+      name: boundedText(item.name, 240),
+      mimeType: boundedText(item.mimeType, 120),
+      width: Number(item.width) || null,
+      height: Number(item.height) || null,
+      duration: Number(item.duration) || null,
+      ...(audioObservation ? {
+        audioObservation: {
+          observationDigest: audioObservation.observationDigest,
+          model: audioObservation.model,
+          transcript: audioObservation.transcript,
+          segments: audioObservation.segments,
+          limitation: audioObservation.limitation,
+        },
+      } : {}),
+    };
+  });
   const text = [
     `用户要求：${prompt}`,
     `当前生产阶段：${productionPhase(input)}`,
@@ -661,6 +1038,18 @@ function evidence(input = {}) {
     errorCode: boundedText(input.errorCode, 120) || null,
     qualityCode: boundedText(input.qualityCode, 120) || null,
     modelDecisionDigest: boundedText(input.modelDecisionDigest, 64).toLowerCase() || null,
+    qualityMode: normalizeQualityMode(input.qualityMode),
+    promptContractDigest: boundedText(input.promptContractDigest, 64).toLowerCase() || null,
+    calls: (Array.isArray(input.calls) ? input.calls : []).slice(0, 8).map((call, index) => ({
+      index,
+      role: boundedText(call?.role, 40) || (index === 0 ? 'draft' : 'refine'),
+      status: boundedText(call?.status, 40) || 'completed',
+      provider: boundedText(call?.provider, 160) || null,
+      model: boundedText(call?.model, 240) || null,
+      requestId: boundedText(call?.requestId, 240) || null,
+      finishReason: boundedText(call?.finishReason, 120) || null,
+      errorCode: boundedText(call?.errorCode, 120) || null,
+    })),
   };
   if (input.mediaGrounding && typeof input.mediaGrounding === 'object') {
     value.mediaGrounding = {
@@ -687,6 +1076,9 @@ function evidence(input = {}) {
 
 function withArtifactProposal(input, result) {
   if (!result?.text || result.stopped || !result.evidence) return result;
+  if (result.evidence.mode !== 'online-model'
+    || result.evidence.status !== 'completed'
+    || Number(result.evidence.providerCalls || 0) < 1) return result;
   return {
     ...result,
     artifactProposal: createCreatorArtifactProposal({
@@ -711,6 +1103,12 @@ function createCreatorAgentLlmRuntime(options = {}) {
     const decision = selectedLlmDecision(input.modelDecisionReceipt);
     const modelDecisionDigest = boundedText(input.modelDecisionReceipt?.receiptDigest, 64);
     const mediaRequirement = mediaGroundingRequirement(input);
+    const qualityMode = requestedQualityMode(input);
+    const promptContract = systemPrompt(input);
+    const promptContractDigest = digest({
+      schema: 't8-creator-llm-prompt-contract-v1',
+      systemPrompt: promptContract,
+    });
     let settings = {};
     try {
       settings = settingsProvider() || {};
@@ -744,6 +1142,9 @@ function createCreatorAgentLlmRuntime(options = {}) {
         modelDecisionDigest,
         provider: null,
         messages: [],
+        input,
+        qualityMode,
+        promptContractDigest,
         offlineText: mediaRequirement.required
           ? mediaUnavailableText(input, errorCode)
           : offlineV0(input),
@@ -756,6 +1157,8 @@ function createCreatorAgentLlmRuntime(options = {}) {
           model: decision?.selected?.model,
           errorCode,
           modelDecisionDigest,
+          qualityMode,
+          promptContractDigest,
           mediaGrounding,
         }),
       };
@@ -767,10 +1170,15 @@ function createCreatorAgentLlmRuntime(options = {}) {
       decision,
       modelDecisionDigest,
       provider,
+      input,
+      qualityMode,
+      promptContractDigest,
       mediaRequirement,
       messages: [
-        { role: 'system', content: systemPrompt(input) },
-        ...historyMessages(input.session),
+        { role: 'system', content: promptContract },
+        ...(latestWorkArtifactVersions(input.session?.workArtifactVersions).length
+          ? []
+          : historyMessages(input.session)),
         userMessage(input),
       ],
       offlineText: '',
@@ -781,6 +1189,8 @@ function createCreatorAgentLlmRuntime(options = {}) {
         provider: provider.id,
         model: decision.selected.model,
         modelDecisionDigest,
+        qualityMode,
+        promptContractDigest,
         mediaGrounding: mediaRequirement.required ? {
           ...mediaRequirement,
           status: 'pending',
@@ -800,7 +1210,10 @@ function createCreatorAgentLlmRuntime(options = {}) {
     let bufferedProviderText = '';
     const mediaRequirement = prepared.mediaRequirement
       || mediaGroundingRequirement(input);
-    const bufferUntilGrounded = mediaRequirement.visualRequired === true;
+    // The upstream response now carries a validated JSON work envelope. Keep
+    // raw deltas out of the creator-facing transcript and publish only the
+    // validated displayMarkdown after the response passes the schema gate.
+    const bufferUntilGrounded = true;
 
     const emitDelta = async (value, meta = {}) => {
       if (!onDelta) return '';
@@ -849,52 +1262,80 @@ function createCreatorAgentLlmRuntime(options = {}) {
           } : null,
         }),
       };
-      return mediaRequirement.required ? response : withArtifactProposal(input, response);
+      return response;
     }
 
     const provider = prepared.provider;
     const decision = prepared.decision;
-    let result;
-    try {
-      result = await generateChat(provider, {
-        model: decision.selected.model,
-        messages: prepared.messages,
-        temperature: 0.7,
-        maxTokens: 4_096,
-        stream: Boolean(onDelta),
-      }, {
-        baseUrl: input.requestBaseUrl,
-        timeoutMs: Number(options.timeoutMs) || 90_000,
-        fetchImpl: options.fetchImpl,
-        ffmpegPath: options.ffmpegPath,
-        ...(onDelta ? {
-          onDelta: async (delta, meta) => {
-            if (bufferUntilGrounded) {
-              const remaining = Math.max(0, 80_000 - bufferedProviderText.length);
+    const totalCalls = qualityModeCallCount(prepared.qualityMode);
+    const calls = [];
+    const runCall = async (messages, index, stream) => {
+      const verifiedSeed21StructuredControls = prepared.input?.requireStructuredWork === true
+        && provider.id === 'seedance-nz'
+        && decision.selected.model === 'bytedance/doubao-seed-2.1-pro';
+      let callResult;
+      try {
+        callResult = await generateChat(provider, {
+          model: decision.selected.model,
+          messages,
+          temperature: index === 0 ? 0.72 : index === totalCalls - 1 ? 0.32 : 0.45,
+          // The default Seed 2.1 endpoint has been live-verified with both
+          // json_object and low reasoning. Without these controls it can spend
+          // the whole 8K completion budget on hidden reasoning and truncate
+          // the Creator Work JSON. Keep other providers on the compatibility
+          // path until the same parameters have been verified for them.
+          maxTokens: prepared.input?.requireStructuredWork === true
+            ? (verifiedSeed21StructuredControls ? 8_192 : 16_384)
+            : 8_192,
+          ...(verifiedSeed21StructuredControls ? {
+            responseFormat: { type: 'json_object' },
+            reasoningEffort: 'low',
+          } : {}),
+          stream,
+        }, {
+          baseUrl: input.requestBaseUrl,
+          timeoutMs: Number(options.timeoutMs) || 120_000,
+          fetchImpl: options.fetchImpl,
+          ffmpegPath: options.ffmpegPath,
+          ...(stream && onDelta ? {
+            onDelta: async (delta) => {
+              const remaining = Math.max(0, 160_000 - bufferedProviderText.length);
               const boundedDelta = boundedResponseText(delta, remaining);
               if (boundedDelta.length < String(delta || '').length) streamOverflow = true;
               bufferedProviderText += boundedDelta;
               return boundedDelta;
-            }
-            return emitDelta(delta, {
-              ...meta,
-              mode: 'online-model',
-            });
-          },
-        } : {}),
-        ...(shouldStop ? { shouldStop } : {}),
+            },
+          } : {}),
+          ...(shouldStop ? { shouldStop } : {}),
+        });
+      } catch (error) {
+        callResult = {
+          ok: false,
+          code: boundedText(error?.code || error?.name, 120) || 'runtime-error',
+          error: boundedText(error?.message, 500) || '模型调用失败',
+        };
+      }
+      calls.push({
+        role: index === 0 ? 'draft' : index === totalCalls - 1 ? 'final-merger' : 'critic-refiner',
+        status: callResult?.ok ? 'completed' : callResult?.code === 'stopped' ? 'stopped' : 'failed',
+        provider: provider.id,
+        model: callResult?.model || decision.selected.model,
+        requestId: callResult?.requestId || null,
+        finishReason: callResult?.finishReason || null,
+        errorCode: callResult?.ok ? null : boundedText(callResult?.code, 120) || 'provider-failed',
       });
-    } catch (error) {
-      result = {
-        ok: false,
-        code: boundedText(error?.code || error?.name, 120) || 'runtime-error',
-        error: boundedText(error?.message, 500) || '模型调用失败',
-      };
-    }
+      return callResult;
+    };
+
+    let result = await runCall(prepared.messages, 0, Boolean(onDelta));
 
     if (result?.code === 'stopped' || (shouldStop && await shouldStop())) {
       return {
-        text: streamedText || boundedResponseText(result?.text),
+        // Structured Provider output is not creator-facing until the full JSON
+        // envelope and quality gates pass. A stopped first pass therefore has
+        // no safe partial text to persist; exposing result.text here would leak
+        // raw or truncated JSON into the transcript.
+        text: streamedText,
         stopped: true,
         streamed: streamedDeltaCount > 0,
         evidence: evidence({
@@ -907,20 +1348,94 @@ function createCreatorAgentLlmRuntime(options = {}) {
           requestId: result?.requestId,
           errorCode: 'stopped',
           modelDecisionDigest: prepared.modelDecisionDigest,
+          qualityMode: prepared.qualityMode,
+          promptContractDigest: prepared.promptContractDigest,
+          calls,
         }),
       };
     }
 
-    const providerText = boundedResponseText(result?.text || bufferedProviderText);
+    let providerRaw = boundedResponseText(result?.text || bufferedProviderText);
+    let structured = result?.ok ? structuredModelResult(providerRaw, {
+      ...input,
+      qualityMode: prepared.qualityMode,
+    }) : null;
+    let refinementFailureCode = '';
+    if (result?.ok && structured && totalCalls > 1) {
+      for (let passIndex = 1; passIndex < totalCalls; passIndex += 1) {
+        if (shouldStop && await shouldStop()) break;
+        const refined = await runCall(
+          refinementMessages(prepared, providerRaw, passIndex, totalCalls),
+          passIndex,
+          false,
+        );
+        if (refined?.code === 'stopped' || (shouldStop && await shouldStop())) {
+          result = refined;
+          break;
+        }
+        if (!refined?.ok) {
+          result = refined;
+          refinementFailureCode = boundedText(refined?.code, 120) || 'quality-pass-failed';
+          break;
+        }
+        const refinedRaw = boundedResponseText(refined.text);
+        const refinedStructured = structuredModelResult(refinedRaw, {
+          ...input,
+          qualityMode: prepared.qualityMode,
+        });
+        if (!refinedStructured) {
+          result = refined;
+          refinementFailureCode = 'work-schema-invalid';
+          break;
+        }
+        result = refined;
+        providerRaw = refinedRaw;
+        structured = refinedStructured;
+      }
+    }
+    if (result?.code === 'stopped' || (shouldStop && await shouldStop())) {
+      const partialText = structured?.displayMarkdown || '';
+      if (partialText && onDelta) await emitDelta(partialText, {
+        mode: 'online-model',
+        grounded: true,
+        synthesizedFromCompletedResponse: true,
+      });
+      return {
+        text: partialText,
+        stopped: true,
+        streamed: streamedDeltaCount > 0,
+        evidence: evidence({
+          mode: 'online-model',
+          status: 'stopped',
+          providerCalls: calls.length,
+          provider: provider.id,
+          model: result?.model || decision.selected.model,
+          finishReason: result?.finishReason,
+          requestId: result?.requestId,
+          errorCode: 'stopped',
+          modelDecisionDigest: prepared.modelDecisionDigest,
+          qualityMode: prepared.qualityMode,
+          promptContractDigest: prepared.promptContractDigest,
+          calls,
+        }),
+      };
+    }
+
+    const providerText = boundedResponseText(structured?.displayMarkdown || providerRaw);
     let quality = result?.ok ? responseQuality(providerText, prepared.prompt, input) : {
       ok: false,
       code: boundedText(result?.code, 120) || 'provider-failed',
     };
+    if (result?.ok && input.requireStructuredWork === true && !structured) {
+      quality = { ok: false, code: refinementFailureCode || 'work-schema-invalid' };
+    } else if (result?.ok && refinementFailureCode) {
+      quality = { ok: false, code: refinementFailureCode };
+    }
     if (result?.ok && quality.ok && streamOverflow) {
       quality = { ok: false, code: 'response-too-large' };
     }
     if (result?.ok && quality.ok && onDelta && bufferUntilGrounded) {
-      const acceptedText = providerText || bufferedProviderText;
+      const acceptedText = providerText;
       const chunks = acceptedText.match(/[\s\S]{1,800}(?:\n\n|$)/g) || [acceptedText];
       for (const chunk of chunks) {
         await emitDelta(chunk, {
@@ -941,28 +1456,33 @@ function createCreatorAgentLlmRuntime(options = {}) {
     }
     if (result?.ok && quality.ok) {
       const text = onDelta ? streamedText : providerText;
-      return withArtifactProposal(input, {
+      const responseEvidence = evidence({
+        mode: 'online-model',
+        status: 'completed',
+        providerCalls: calls.length,
+        provider: provider.id,
+        model: result.model || decision.selected.model,
+        finishReason: result.finishReason,
+        requestId: result.requestId,
+        qualityCode: structured ? 'structured-work-accepted' : quality.code,
+        modelDecisionDigest: prepared.modelDecisionDigest,
+        qualityMode: prepared.qualityMode,
+        promptContractDigest: prepared.promptContractDigest,
+        calls,
+        mediaGrounding: quality.mediaGrounding?.required ? {
+          ...mediaRequirement,
+          status: quality.mediaGrounding.status,
+          observationDigest: quality.mediaGrounding.observationDigest,
+        } : null,
+      });
+      const accepted = withArtifactProposal(input, {
         text,
         streamed: streamedDeltaCount > 0,
-        toolProposals: Array.isArray(result.toolProposals)
-          ? result.toolProposals.slice(0, 12) : [],
-        evidence: evidence({
-          mode: 'online-model',
-          status: 'completed',
-          providerCalls: 1,
-          provider: provider.id,
-          model: result.model || decision.selected.model,
-          finishReason: result.finishReason,
-          requestId: result.requestId,
-          qualityCode: quality.code,
-          modelDecisionDigest: prepared.modelDecisionDigest,
-          mediaGrounding: quality.mediaGrounding?.required ? {
-            ...mediaRequirement,
-            status: quality.mediaGrounding.status,
-            observationDigest: quality.mediaGrounding.observationDigest,
-          } : null,
-        }),
+        toolProposals: structured?.toolProposals
+          || (Array.isArray(result.toolProposals) ? result.toolProposals.slice(0, 12) : []),
+        evidence: responseEvidence,
       });
+      return structured ? { ...accepted, workProposal: structured.proposal } : accepted;
     }
 
     const mediaFailure = mediaRequirement.required;
@@ -973,9 +1493,7 @@ function createCreatorAgentLlmRuntime(options = {}) {
     const reason = result?.ok
       ? '在线模型回复未达到可用质量'
       : '在线模型调用中断';
-    const continuationText = streamedText && !bufferUntilGrounded
-      ? `\n\n---\n\n> ${reason}，下面保留已收到内容并补充离线结构 V0。\n\n${fallback}`
-      : fallback;
+    const continuationText = fallback;
     if (onDelta) await emitDelta(continuationText, {
       mode: mediaFailure ? 'media-unavailable' : 'offline-fallback',
       fallback: true,
@@ -987,7 +1505,7 @@ function createCreatorAgentLlmRuntime(options = {}) {
       evidence: evidence({
         mode: mediaFailure ? 'media-unavailable' : 'offline-fallback',
         status: 'completed-with-fallback',
-        providerCalls: 1,
+        providerCalls: calls.length || 1,
         provider: provider.id,
         model: result?.model || decision.selected.model,
         finishReason: result?.finishReason,
@@ -995,13 +1513,16 @@ function createCreatorAgentLlmRuntime(options = {}) {
         errorCode: fallbackCode,
         qualityCode: quality.code,
         modelDecisionDigest: prepared.modelDecisionDigest,
+        qualityMode: prepared.qualityMode,
+        promptContractDigest: prepared.promptContractDigest,
+        calls,
         mediaGrounding: mediaFailure ? {
           ...mediaRequirement,
           status: mediaRequirement.unsupportedAudio ? 'unsupported' : 'unavailable',
         } : null,
       }),
     };
-    return mediaFailure ? response : withArtifactProposal(input, response);
+    return response;
   }
 
   return { createResponse, prepareResponse };
@@ -1018,4 +1539,5 @@ module.exports = {
   selectedLlmDecision,
   taskFamily,
   taskResponseContract,
+  creatorToolProposalContract,
 };

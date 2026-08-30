@@ -1,7 +1,7 @@
 {
   "name": "t8-penguin-canvas",
   "private": false,
-  "version": "3.0.9",
+  "version": "3.1.0",
   "type": "module",
   "main": "electron/main.cjs",
   "description": "T8-penguin-canvas — AI 节点画布工作流工具（Web + Electron 桌面端）",
@@ -58,9 +58,12 @@
     "workflows:hailuo-refresh": "node scripts/generate-hailuo-refresh-workflows.cjs",
     "workflows:wan30": "node scripts/generate-wan30-workflows.cjs",
     "verify:wan30:live": "node scripts/verify-wan30-live.cjs",
+    "verify:veo-omni11:live": "node scripts/verify-veo-omni11-live.cjs",
     "verify:seedream-layer:live": "node scripts/verify-seedream-layer-live.cjs",
     "verify:latest-image-audio:live": "node scripts/verify-latest-image-audio-live.cjs",
     "verify:mv-music-master:live": "tsx scripts/verify-mv-music-master-live.ts",
+    "verify:localization-indextts:preflight": "node scripts/verify-localization-indextts-live.cjs --preflight",
+    "verify:localization-indextts:live": "node scripts/verify-localization-indextts-live.cjs",
     "collaboration:evidence:attest": "node scripts/collaboration-evidence-attestation.cjs",
     "preelectron:dev": "node scripts/worktree-role.cjs development",
     "electron:dev": "cross-env T8PC_PACKAGED=0 electron electron/main.cjs",
@@ -221,13 +224,22 @@
           "package.json"
         ]
       },
-      {
-        "from": "build/backend-enc",
-        "to": "backend-enc",
-        "filter": [
-          "**/*"
-        ]
-      },
+    {
+      "from": "build/backend-enc",
+      "to": "backend-enc",
+      "filter": [
+        "**/*"
+      ]
+    },
+    {
+      "from": "backend/src/tools/localizationRuntime",
+      "to": "backend-enc/tools/localizationRuntime",
+      "filter": [
+        "worker.py",
+        "download_auxiliary.py",
+        "auxiliary-models.json"
+      ]
+    },
       {
         "from": "dist",
         "to": "frontend",
@@ -367,6 +379,13 @@
             "ffmpeg",
             "ffprobe",
             "runtime-manifest.json"
+          ]
+        },
+        {
+          "from": "build/mac-runtime/indextts25-python",
+          "to": "tools/indextts25-python",
+          "filter": [
+            "**/*"
           ]
         }
       ]

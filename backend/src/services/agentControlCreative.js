@@ -48,8 +48,19 @@ const CREATIVE_ITERATE_ACTIONS = Object.freeze([
   'accept',
   'rollback',
 ]);
+const LOCALIZATION_ACTIONS = Object.freeze([
+  'localization.create',
+  'localization.transcribe',
+  'localization.translate',
+  'localization.cast-voices',
+  'localization.generate-dub',
+  'localization.compose',
+  'localization.verify',
+  'localization.package',
+]);
 const CREATIVE_ACTIONS = Object.freeze([
   ...CREATIVE_ITERATE_ACTIONS,
+  ...LOCALIZATION_ACTIONS,
   'graph.node-add',
   'production.continue',
   'video.extract-frames',
@@ -655,6 +666,49 @@ function analyseScriptSource(sourceValue) {
   };
 }
 
+function analyseSingleOutputSource(sourceValue, kind, analysisValue = null) {
+  const analysis = analysisValue || analyseScriptSource(sourceValue);
+  const sourceText = text(sourceValue, 200_000);
+  const normalizedKind = text(kind, 40).toLowerCase();
+  const singleOutputKinds = new Set(['image', 'edit-image', 'video', 'edit-video', 'audio']);
+  if (!singleOutputKinds.has(normalizedKind)
+    || !sourceText
+    || (Array.isArray(analysis.shots) && analysis.shots.length > 0)) {
+    return analysis;
+  }
+  const lines = sourceText.replace(/\r\n?/g, '\n').split('\n');
+  const title = ['image', 'edit-image'].includes(normalizedKind)
+    ? '主画面'
+    : ['video', 'edit-video'].includes(normalizedKind)
+      ? '主镜头'
+      : '主音频段落';
+  const shot = {
+    id: stableId('creator-script-shot', `${analysis.sourceDigest}:single-output:${normalizedKind}`),
+    ordinal: 1,
+    marker: '1',
+    title,
+    sceneId: null,
+    sourceRange: { lineStart: 1, lineEnd: Math.max(1, lines.length) },
+    sourceText: sourceText.slice(0, 6_000),
+    sourceTextTruncated: sourceText.length > 6_000,
+  };
+  return {
+    ...analysis,
+    status: 'source-structured',
+    method: 'deterministic-single-output-source-map',
+    inferredFacts: 0,
+    counts: {
+      ...analysis.counts,
+      shots: 1,
+    },
+    outline: [title],
+    shots: [shot],
+    unresolved: (Array.isArray(analysis.unresolved) ? analysis.unresolved : [])
+      .filter((item) => item !== '未识别明确镜头标题'),
+    singleOutputFallback: true,
+  };
+}
+
 function productionSourceLine(scriptDocument, lineStart, lineEnd = lineStart) {
   const lines = text(scriptDocument?.content?.sourceText, 200_000)
     .replace(/\r\n?/g, '\n')
@@ -675,7 +729,7 @@ function productionSourceDerivation(scriptDocument) {
   const upstreamDerivation = record(scriptDocument?.content?.derivation);
   return {
     schema: 't8-creator-source-derivation-v1',
-    method: 'deterministic-source-map',
+    method: text(analysis.method, 120) || 'deterministic-source-map',
     sourceBacked: true,
     sourceDocumentId: text(scriptDocument?.id, 160),
     sourceVersionId: text(scriptDocument?.versionId, 160),
@@ -683,6 +737,7 @@ function productionSourceDerivation(scriptDocument) {
     sourceDigest: text(analysis.sourceDigest || upstreamDerivation.sourceDigest, 64),
     providerCalls: 0,
     inferredFacts: 0,
+    singleOutputFallback: analysis.singleOutputFallback === true,
   };
 }
 
@@ -1994,7 +2049,11 @@ function productionDocumentContent(kind, brief, sourceDocument = null) {
     };
   }
   if (kind === 'script-doc') {
-    const analysis = analyseScriptSource(brief.goal);
+    const analysis = analyseSingleOutputSource(
+      brief.goal,
+      brief.kind,
+      analyseScriptSource(brief.goal),
+    );
     return {
       title: brief.title,
       sourceText: brief.goal,
@@ -2006,7 +2065,9 @@ function productionDocumentContent(kind, brief, sourceDocument = null) {
       scenes: analysis.scenes,
       shots: analysis.shots,
       scriptAnalysis: analysis,
-      editingGuidance: analysis.status === 'source-structured'
+      editingGuidance: analysis.singleOutputFallback === true
+        ? '这是单一输出任务；仅把创作者整段原文确定性映射为一个作品单元，没有拆镜、补写事实或调用模型。'
+        : analysis.status === 'source-structured'
         ? '仅按原文明示标题建立结构与行号映射；没有推断人物、场景事实或镜头内容。'
         : '保留创作者原文和硬约束；未识别的结构保持空白，补写前先让创作者核对。',
     };
@@ -3282,6 +3343,106 @@ function patchEnvelope(document, id, summary, operations) {
     requiresConfirmation: true,
     operations,
   };
+}
+
+const LOCALIZATION_TARGET_LANGUAGES = Object.freeze([
+  'ZH', 'EN', 'JA', 'ES', 'AR', 'KO', 'FR', 'DE', 'IT', 'PT', 'RU', 'TH', 'VI', 'ID', 'TR', 'HI',
+]);
+const LOCALIZATION_SOURCE_LANGUAGES = Object.freeze(['AUTO', ...LOCALIZATION_TARGET_LANGUAGES]);
+const LOCALIZATION_MODES = Object.freeze(['subtitle-only', 'dubbing-only', 'full']);
+const LOCALIZATION_ACTION_LABELS = Object.freeze({
+  'localization.create': '创建多语言本地化工作台',
+  'localization.transcribe': '准备源媒体转写',
+  'localization.translate': '准备多语言翻译',
+  'localization.cast-voices': '准备角色音色授权与分配',
+  'localization.generate-dub': '准备多语言配音',
+  'localization.compose': '准备字幕、配音与视频合成',
+  'localization.verify': '准备本地化质量检查',
+  'localization.package': '准备本地化交付包',
+});
+
+function localizationLanguage(value, fallback, allowed = LOCALIZATION_TARGET_LANGUAGES) {
+  const normalized = text(value, 8).toUpperCase();
+  return allowed.includes(normalized) ? normalized : fallback;
+}
+
+function localizationTargetLanguages(input = {}) {
+  const requested = Array.isArray(input.targetLanguages)
+    ? input.targetLanguages
+    : [input.targetLanguage];
+  const normalized = unique(requested.map((value) => String(value || '').toUpperCase()))
+    .filter((value) => LOCALIZATION_TARGET_LANGUAGES.includes(value))
+    .slice(0, LOCALIZATION_TARGET_LANGUAGES.length);
+  return normalized.length ? normalized : ['EN'];
+}
+
+function localizationActionPatch(document, planId, action, input = {}) {
+  const label = LOCALIZATION_ACTION_LABELS[action];
+  if (!label) {
+    throw new AgentControlCreativeError('CREATIVE_ACTION_UNSUPPORTED', '不支持此本地化操作');
+  }
+  const targets = localizationTargetLanguages(input);
+  const mode = LOCALIZATION_MODES.includes(String(input.mode || '')) ? String(input.mode) : 'full';
+  const sourceLanguage = localizationLanguage(input.sourceLanguage, 'AUTO', LOCALIZATION_SOURCE_LANGUAGES);
+  const sourceText = text(input.sourceText, 500_000);
+  const request = {
+    schema: 't8-localization-agent-request-v1',
+    id: stableId('localization-request', `${planId}:${action}`),
+    action,
+    status: action === 'localization.create' ? 'prepared' : 'awaiting-user-run',
+    targetLanguages: targets,
+    mode,
+    sourceLanguage,
+    instruction: text(input.instruction || input.prompt, 4_000),
+    createdBy: 'creator-agent',
+  };
+  if (action === 'localization.create') {
+    const origin = originFor(document);
+    const nodeId = input.nodeId
+      ? identifier(input.nodeId, '本地化节点 ID')
+      : stableId('localization-master', planId);
+    if (findNode(document, nodeId)) {
+      throw new AgentControlCreativeError('CREATIVE_NODE_ALREADY_EXISTS', '本地化节点 ID 已存在', 409);
+    }
+    return patchEnvelope(document, stableId('creative-patch', planId), label, [
+      nodeAdd(
+        nodeId,
+        'localization-master',
+        finiteCanvasCoordinate(input.x, origin.x, '节点 X 坐标'),
+        finiteCanvasCoordinate(input.y, origin.y, '节点 Y 坐标'),
+        {
+          mode,
+          sourceLanguage,
+          targetLanguage: targets[0],
+          targetLanguages: targets,
+          sourceText,
+          llmApiSource: 'seedance-nz',
+          llmModel: 'bytedance/doubao-seed-2.1-pro',
+          providerSource: 'zhenzhen',
+          providerId: '',
+          providerModel: 'bytedance/doubao-seed-2.1-pro',
+          status: 'idle',
+          localizationAgentRequest: request,
+        },
+      ),
+    ]);
+  }
+  const node = requireNode(document, input.nodeId, ['localization-master']);
+  const data = nodeData(node);
+  const existingProject = record(data.localizationProject);
+  const dataPatch = {
+    mode,
+    sourceLanguage,
+    targetLanguage: targets.includes(String(data.targetLanguage || existingProject.targetLanguage || '').toUpperCase())
+      ? String(data.targetLanguage || existingProject.targetLanguage).toUpperCase()
+      : targets[0],
+    targetLanguages: targets,
+    localizationAgentRequest: request,
+    status: 'idle',
+    error: '',
+  };
+  if (sourceText) dataPatch.sourceText = sourceText;
+  return patchEnvelope(document, stableId('creative-patch', planId), label, [nodePatch(node.id, dataPatch)]);
 }
 
 function imagePatch(document, planId, brief, candidateCount, options = {}) {
@@ -5328,6 +5489,9 @@ function createAgentControlCreativeService(options = {}) {
       summary = patch.summary;
     } else if (action === 'production.continue') {
       patch = productionContinuePatch(document, id, input);
+      summary = patch.summary;
+    } else if (LOCALIZATION_ACTIONS.includes(action)) {
+      patch = localizationActionPatch(document, id, action, input);
       summary = patch.summary;
     } else if (Object.prototype.hasOwnProperty.call(LOCAL_UTILITY_ACTIONS, action)) {
       patch = localUtilityPatch(document, id, action, input);

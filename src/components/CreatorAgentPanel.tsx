@@ -61,9 +61,11 @@ import {
   getCreatorAgentPlanPatch,
   listCreatorAgentSessions,
   getCreatorAgentSession,
+  prepareCreatorAgentToolProposal,
   reconcileCreatorAgentRunLinks,
   recoverCreatorAgentMessageRequest,
   requestCreatorAgentDeliveryApproval,
+  reviseCreatorAgentWorkArtifact,
   sendCreatorAgentMessage,
   stopCreatorAgentResponse,
   subscribeCreatorAgentEvents,
@@ -75,6 +77,8 @@ import {
   type CreatorAgentCandidateComparison,
   type CreatorAgentContext,
   type CreatorAgentCreativeArtifactVersion,
+  type CreatorAgentWorkArtifactVersion,
+  type CreatorAgentWorkQualityMode,
   type CreatorAgentEvent,
   type CreatorAgentPlan,
   type CreatorAgentProductionDocument,
@@ -83,6 +87,7 @@ import {
   type CreatorAgentSuggestion,
   type CreatorAgentSuggestionSet,
   type CreatorAgentSession,
+  type CreatorAgentToolProposal,
   type CreatorAgentRunLink,
   type CreatorAgentArtifactVerification,
   type CreatorAgentCatalogModel,
@@ -139,6 +144,13 @@ interface PatchPreviewState {
   plan: CreatorAgentPlan;
   patch: CanvasPatch;
   preview: CanvasPatchPreview;
+  toolProposalBinding?: {
+    proposalId: string;
+    proposalDigest: string;
+    workId: string;
+    workRevision: number;
+    workDigest: string;
+  };
 }
 
 interface PendingStageContinuation {
@@ -163,6 +175,36 @@ interface CreatorAgentNodeReference {
   nodeType: string;
   label: string;
   assetIds: string[];
+}
+
+type CreatorToolProposalStage = 'not-started' | 'prepared' | 'applied' | 'running' | 'verified' | 'verification-failed';
+
+function creatorToolProposalStage(
+  events: CreatorAgentEvent[] | undefined,
+  proposalId: string,
+): CreatorToolProposalStage {
+  let stage: CreatorToolProposalStage = 'not-started';
+  for (const event of events || []) {
+    if (String(event.payload?.proposalId || '') !== proposalId) continue;
+    if (event.type === 'assistant.tool-proposal.prepared') stage = 'prepared';
+    if (event.type === 'assistant.tool-proposal.writeback') {
+      const next = String(event.payload?.stage || '') as CreatorToolProposalStage;
+      if (['applied', 'running', 'verified', 'verification-failed'].includes(next)) stage = next;
+    }
+  }
+  return stage;
+}
+
+function creatorToolProposalStageLabel(stage: CreatorToolProposalStage) {
+  const labels: Record<CreatorToolProposalStage, string> = {
+    'not-started': '尚未预览',
+    prepared: '预览已准备',
+    applied: '已写入画布',
+    running: '生成任务已关联',
+    verified: '真实结果已核验',
+    'verification-failed': '结果核验未通过',
+  };
+  return labels[stage];
 }
 
 const CREATIVE_PHASES = [
@@ -2346,6 +2388,176 @@ function CandidateComparison(props: {
   );
 }
 
+function workFieldText(value: unknown) {
+  if (typeof value === 'string') return value;
+  try { return JSON.stringify(value, null, 2); } catch { return String(value ?? ''); }
+}
+
+function parseWorkFieldText(value: string, previous: unknown) {
+  if (typeof previous === 'string') return value;
+  try { return JSON.parse(value); } catch { return value; }
+}
+
+function CreatorWorkArtifactCard(props: {
+  artifact: CreatorAgentWorkArtifactVersion;
+  versions: CreatorAgentWorkArtifactVersion[];
+  busyAction: string;
+  onRevise: (
+    artifact: CreatorAgentWorkArtifactVersion,
+    action: 'edit' | 'lock' | 'unlock' | 'accept' | 'reject',
+    field?: string,
+    value?: unknown,
+  ) => void;
+}) {
+  const [editingField, setEditingField] = useState('');
+  const [draftValue, setDraftValue] = useState('');
+  const [selectedVersionId, setSelectedVersionId] = useState(props.artifact.versionId);
+  useEffect(() => {
+    setSelectedVersionId(props.artifact.versionId);
+    setEditingField('');
+  }, [props.artifact.versionId]);
+  const history = [...props.versions].sort((left, right) => right.revision - left.revision);
+  const displayedArtifact = history.find((version) => version.versionId === selectedVersionId)
+    || props.artifact;
+  const isLatestVersion = displayedArtifact.versionId === props.artifact.versionId;
+  const fields = Object.entries(displayedArtifact.fields || {}).slice(0, 12);
+  const busy = Boolean(props.busyAction);
+  return (
+    <article className={`t8-creator-work-card is-${displayedArtifact.status}`}>
+      <header>
+        <span>
+          <strong>{displayedArtifact.title}</strong>
+          <small>{displayedArtifact.kind} · v{displayedArtifact.revision}</small>
+        </span>
+        <em>{displayedArtifact.status === 'accepted'
+          ? '已接受'
+          : displayedArtifact.status === 'rejected'
+            ? '已驳回'
+            : displayedArtifact.status === 'creator-edited'
+              ? '已编辑'
+              : '模型草案'}</em>
+      </header>
+      {history.length > 1 && (
+        <label className="t8-creator-work-card__version-picker">
+          <span>查看版本</span>
+          <select
+            value={displayedArtifact.versionId}
+            onChange={(event) => {
+              setSelectedVersionId(event.currentTarget.value);
+              setEditingField('');
+            }}
+          >
+            {history.map((version) => (
+              <option key={version.versionId} value={version.versionId}>
+                V{version.revision} · {version.status} · {new Date(version.createdAt).toLocaleString()}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+      {!isLatestVersion && (
+        <p className="t8-creator-work-card__history-note">
+          这是只读历史版本。切回最新版本后可以继续编辑、锁定或接受。
+        </p>
+      )}
+      {displayedArtifact.diff.operations.length > 0 && (
+        <details className="t8-creator-work-card__diff">
+          <summary>与上一版的字段差异（{displayedArtifact.diff.operations.length}）</summary>
+          <ul>
+            {displayedArtifact.diff.operations.map((operation, index) => (
+              <li key={`${operation.path}-${index}`}>
+                <code>{operation.op}</code>
+                <span>{operation.path}</span>
+                {operation.beforeDigest && <small>原 {operation.beforeDigest.slice(0, 8)}</small>}
+                {operation.afterDigest && <small>新 {operation.afterDigest.slice(0, 8)}</small>}
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+      <div className="t8-creator-work-card__fields">
+        {fields.map(([field, value]) => {
+          const path = `/fields/${field}`;
+          const locked = displayedArtifact.fieldLocks.includes(path);
+          const editing = editingField === field;
+          return (
+            <section key={field}>
+              <header>
+                <span>{field}</span>
+                <div>
+                  <button
+                    type="button"
+                    disabled={busy || !isLatestVersion || displayedArtifact.status === 'rejected'}
+                    title={locked ? '解锁后允许后续修改' : '锁定后模型不得修改此字段'}
+                    aria-label={locked ? `解锁 ${field}` : `锁定 ${field}`}
+                    onClick={() => props.onRevise(
+                      displayedArtifact,
+                      locked ? 'unlock' : 'lock',
+                      field,
+                    )}
+                  >
+                    <LockKeyhole size={11} />{locked ? '已锁' : '锁定'}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={busy || !isLatestVersion || displayedArtifact.status === 'rejected'}
+                    title={locked ? '创作者仍可修改；字段锁只阻止模型自动改写' : '编辑并保存为新版本'}
+                    onClick={() => {
+                      setEditingField(editing ? '' : field);
+                      setDraftValue(workFieldText(value));
+                    }}
+                  >
+                    {editing ? '取消' : '编辑'}
+                  </button>
+                </div>
+              </header>
+              {editing ? (
+                <div className="t8-creator-work-card__editor">
+                  <textarea
+                    value={draftValue}
+                    rows={Math.min(8, Math.max(2, draftValue.split('\n').length))}
+                    onChange={(event) => setDraftValue(event.currentTarget.value)}
+                  />
+                  <button
+                    type="button"
+                    disabled={busy || !draftValue.trim()}
+                    onClick={() => {
+                      props.onRevise(
+                        displayedArtifact,
+                        'edit',
+                        field,
+                        parseWorkFieldText(draftValue, value),
+                      );
+                      setEditingField('');
+                    }}
+                  >保存新版本</button>
+                </div>
+              ) : (
+                <p>{workFieldText(value)}</p>
+              )}
+            </section>
+          );
+        })}
+      </div>
+      {Object.keys(displayedArtifact.fields || {}).length > fields.length && (
+        <small>其余字段仍完整保存在当前作品版本中</small>
+      )}
+      <footer>
+        <button
+          type="button"
+          disabled={busy || !isLatestVersion || displayedArtifact.status === 'rejected'}
+          onClick={() => props.onRevise(displayedArtifact, 'reject')}
+        >驳回此版</button>
+        <button
+          type="button"
+          disabled={busy || !isLatestVersion || displayedArtifact.status === 'accepted'}
+          onClick={() => props.onRevise(displayedArtifact, 'accept')}
+        ><Check size={12} />接受此版</button>
+      </footer>
+    </article>
+  );
+}
+
 export default function CreatorAgentPanel(props: CreatorAgentPanelProps) {
   const { i18n } = useTranslation();
   const uiLocale = i18n.resolvedLanguage || i18n.language;
@@ -2363,6 +2575,7 @@ export default function CreatorAgentPanel(props: CreatorAgentPanelProps) {
   const [previewingPlanId, setPreviewingPlanId] = useState('');
   const [revertingPlanId, setRevertingPlanId] = useState('');
   const [placingAssetId, setPlacingAssetId] = useState('');
+  const [preparingProposalId, setPreparingProposalId] = useState('');
   const [patchPreview, setPatchPreview] = useState<PatchPreviewState | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -2375,6 +2588,18 @@ export default function CreatorAgentPanel(props: CreatorAgentPanelProps) {
   const [runtimeCatalog, setRuntimeCatalog] = useState<CreatorAgentRuntimeCatalog | null>(null);
   const [modelSettingsOpen, setModelSettingsOpen] = useState(false);
   const [modelPreferences, setModelPreferences] = useState<CreatorAgentModelPreferences>({});
+  const [workQualityMode, setWorkQualityMode] = useState<CreatorAgentWorkQualityMode>(() => {
+    if (typeof window === 'undefined') return 'standard';
+    try {
+      const stored = window.localStorage.getItem(
+        `t8.creator-agent.quality.${props.projectId}.${props.canvasId}`,
+      );
+      return stored === 'quick' || stored === 'quality' ? stored : 'standard';
+    } catch {
+      return 'standard';
+    }
+  });
+  const [workActionBusy, setWorkActionBusy] = useState('');
   const [runDetails, setRunDetails] = useState<RunDetail[]>([]);
   const [runSyncError, setRunSyncError] = useState('');
   const [connectionState, setConnectionState] = useState<
@@ -2438,6 +2663,10 @@ export default function CreatorAgentPanel(props: CreatorAgentPanelProps) {
   const uploadBatchActiveRef = useRef(false);
   const modelPreferenceStorageKey = useMemo(
     () => `t8.creator-agent.models.${props.projectId}.${props.canvasId}`,
+    [props.canvasId, props.projectId],
+  );
+  const workQualityStorageKey = useMemo(
+    () => `t8.creator-agent.quality.${props.projectId}.${props.canvasId}`,
     [props.canvasId, props.projectId],
   );
   const pendingMessageKey = useMemo(
@@ -3610,7 +3839,7 @@ export default function CreatorAgentPanel(props: CreatorAgentPanelProps) {
     options: { stageContinuation?: boolean } = {},
   ) => {
     const text = value.trim();
-    if ((!text && messageAttachments.length === 0) || busy || uploading) return;
+    if ((!text && messageAttachments.length === 0 && !suggestion) || busy || uploading) return;
     if (!capabilityContractReady(capabilities)) {
       setError('正在核对可用创作能力，请稍候再发送。当前没有修改画布或调用模型。');
       return;
@@ -3629,6 +3858,7 @@ export default function CreatorAgentPanel(props: CreatorAgentPanelProps) {
       })),
       context,
       modelPreferences,
+      qualityMode: workQualityMode,
       stageContinuation: options.stageContinuation === true,
     });
     const existingPending = readPendingCreatorMessage(pendingMessageKey);
@@ -3651,6 +3881,7 @@ export default function CreatorAgentPanel(props: CreatorAgentPanelProps) {
         attachments: messageAttachments,
         context,
         modelPreferences,
+        qualityMode: workQualityMode,
         stageContinuation: options.stageContinuation === true,
         ...(suggestion ? { suggestion } : {}),
       });
@@ -3728,6 +3959,7 @@ export default function CreatorAgentPanel(props: CreatorAgentPanelProps) {
     draft,
     messageAttachments,
     modelPreferences,
+    workQualityMode,
     ensureSession,
     pendingMessageKey,
     props.canvasId,
@@ -3735,6 +3967,46 @@ export default function CreatorAgentPanel(props: CreatorAgentPanelProps) {
     session,
     uploading,
   ]);
+
+  const reviseWork = useCallback(async (
+    artifact: CreatorAgentWorkArtifactVersion,
+    action: 'edit' | 'lock' | 'unlock' | 'accept' | 'reject',
+    field?: string,
+    value?: unknown,
+  ) => {
+    if (!session || workActionBusy) return;
+    const actionKey = `${artifact.artifactId}:${action}:${field || ''}`;
+    setWorkActionBusy(actionKey);
+    setError('');
+    try {
+      const result = await reviseCreatorAgentWorkArtifact(
+        session.id,
+        artifact.artifactId,
+        {
+          projectId: props.projectId,
+          canvasId: props.canvasId,
+          baseVersionId: artifact.versionId,
+          action,
+          ...(field ? { field } : {}),
+          ...(action === 'edit' ? { value } : {}),
+        },
+      );
+      setSession(result.session);
+    } catch (revisionError) {
+      setError(compactError(revisionError));
+      try {
+        setSession(await getCreatorAgentSession(
+          session.id,
+          props.projectId,
+          props.canvasId,
+        ));
+      } catch {
+        // Preserve the actionable revision error if the refresh also fails.
+      }
+    } finally {
+      setWorkActionBusy('');
+    }
+  }, [props.canvasId, props.projectId, session, workActionBusy]);
 
   const stopResponse = useCallback(async (
     responseId: string,
@@ -3825,6 +4097,61 @@ export default function CreatorAgentPanel(props: CreatorAgentPanelProps) {
       setPreviewingPlanId('');
     }
   }, [busy, previewingPlanId, props, session]);
+
+  const prepareToolProposal = useCallback(async (proposal: CreatorAgentToolProposal) => {
+    if (!session || busy || preparingProposalId) return;
+    setPreparingProposalId(proposal.proposalId);
+    setError('');
+    try {
+      const prepared = await prepareCreatorAgentToolProposal(
+        session.id,
+        proposal.proposalId,
+        {
+          projectId: props.projectId,
+          canvasId: props.canvasId,
+          proposalDigest: proposal.proposalDigest,
+        },
+      );
+      setSession(prepared.session);
+      const preparedPreview = await props.onPreviewPatch(prepared.patch);
+      const updated = await appendCreatorAgentEvent(prepared.session.id, {
+        projectId: props.projectId,
+        canvasId: props.canvasId,
+        type: 'plan.previewed',
+        payload: {
+          planId: prepared.plan.planId,
+          planDigest: prepared.plan.planDigest,
+          patchId: preparedPreview.patch.id,
+          previewDigest: preparedPreview.preview.previewDigest,
+          changeCount: preparedPreview.preview.changes.length,
+          proposalId: proposal.proposalId,
+          proposalDigest: proposal.proposalDigest,
+        },
+      });
+      setSession(updated);
+      const toolProposalBinding = proposal.binding.workId
+        && proposal.binding.workRevision !== null
+        && proposal.binding.workDigest
+        ? {
+            proposalId: proposal.proposalId,
+            proposalDigest: proposal.proposalDigest,
+            workId: proposal.binding.workId,
+            workRevision: proposal.binding.workRevision,
+            workDigest: proposal.binding.workDigest,
+          }
+        : undefined;
+      setPatchPreview({
+        plan: prepared.plan,
+        patch: preparedPreview.patch,
+        preview: preparedPreview.preview,
+        toolProposalBinding,
+      });
+    } catch (proposalError) {
+      setError(`无法准备这条操作预览：${compactError(proposalError)}`);
+    } finally {
+      setPreparingProposalId('');
+    }
+  }, [busy, preparingProposalId, props, session]);
 
   const prepareAssetPlacement = useCallback(async (asset: AssetRef) => {
     if (!session || busy || placingAssetId) return;
@@ -3919,6 +4246,16 @@ export default function CreatorAgentPanel(props: CreatorAgentPanelProps) {
 
   const applyPreview = useCallback(async () => {
     if (!patchPreview || !session || busy) return;
+    const proposalBinding = patchPreview.toolProposalBinding;
+    if (proposalBinding && (
+      session.creatorWork?.workId !== proposalBinding.workId
+      || session.creatorWork?.revision !== proposalBinding.workRevision
+      || session.creatorWork?.workDigest !== proposalBinding.workDigest
+    )) {
+      setPatchPreview(null);
+      setError('作品版本已变化，这条操作预览已失效；请从当前作品重新准备预览。没有写入画布或调用 Provider。');
+      return;
+    }
     setBusy(true);
     setError('');
     try {
@@ -4298,6 +4635,7 @@ export default function CreatorAgentPanel(props: CreatorAgentPanelProps) {
 
   const allVisibleEvents = creatorDisplayEvents(session?.events || []).filter((event) => (
     event.type === 'user.message'
+    || event.type === 'user.suggestion'
     || event.type === 'user.action'
     || event.type === 'assistant.plan'
     || event.type === 'assistant.response'
@@ -4305,6 +4643,30 @@ export default function CreatorAgentPanel(props: CreatorAgentPanelProps) {
   ));
   const creativeArtifactVersions = session?.creativeArtifactVersions || [];
   const creativeArtifacts = session?.creativeArtifacts || [];
+  const workArtifactVersions = session?.workArtifactVersions || [];
+  const workArtifactHistories = useMemo(() => {
+    const histories = new Map<string, CreatorAgentWorkArtifactVersion[]>();
+    workArtifactVersions.forEach((version) => {
+      const current = histories.get(version.artifactId) || [];
+      current.push(version);
+      histories.set(version.artifactId, current);
+    });
+    histories.forEach((versions) => versions.sort((left, right) => right.revision - left.revision));
+    return histories;
+  }, [workArtifactVersions]);
+  const latestWorkArtifacts = useMemo(() => {
+    const latest = new Map<string, CreatorAgentWorkArtifactVersion>();
+    workArtifactVersions.forEach((version) => {
+      const previous = latest.get(version.artifactId);
+      if (!previous || version.revision > previous.revision) latest.set(version.artifactId, version);
+    });
+    return [...latest.values()].sort((left, right) => left.kind.localeCompare(right.kind));
+  }, [workArtifactVersions]);
+  const latestWorkReceipt = [...(session?.creatorLlmTurnReceipts || [])]
+    .reverse()
+    .find((receipt) => receipt.phase === 'compiled')
+    || session?.creatorLlmTurnReceipts?.at(-1)
+    || null;
   const latestCompletedResponseEvent = [...((session?.events) || [])]
     .reverse()
     .find((event) => event.type === 'assistant.response.completed');
@@ -5041,17 +5403,31 @@ export default function CreatorAgentPanel(props: CreatorAgentPanelProps) {
                 </span>
               </header>
               <div>
-                {currentToolProposals.map((proposal) => (
-                  <article key={proposal.proposalId}>
-                    <span>
-                      <strong>{proposal.tool.creatorLabel || proposal.tool.capabilityId}</strong>
-                      <small>
-                        {proposal.gate.previewRequired ? '需先预览并确认' : '仅保存为操作建议'}
-                      </small>
-                    </span>
-                    <em>{proposal.gate.approvalRequired ? '需确认' : '只读'} · 未执行</em>
-                  </article>
-                ))}
+                {currentToolProposals.map((proposal) => {
+                  const stage = creatorToolProposalStage(session?.events, proposal.proposalId);
+                  const terminal = ['applied', 'running', 'verified'].includes(stage);
+                  return (
+                    <article key={proposal.proposalId} data-proposal-stage={stage}>
+                      <span>
+                        <strong>{proposal.tool.creatorLabel || proposal.tool.capabilityId}</strong>
+                        <small>
+                          {proposal.gate.previewRequired ? '需先预览并确认' : '先核对操作预览'}
+                        </small>
+                      </span>
+                      <em>{creatorToolProposalStageLabel(stage)}</em>
+                      <button
+                        type="button"
+                        disabled={busy || Boolean(preparingProposalId) || terminal}
+                        onClick={() => void prepareToolProposal(proposal)}
+                      >
+                        {preparingProposalId === proposal.proposalId
+                          ? <LoaderCircle size={12} className="animate-spin" />
+                          : <WandSparkles size={12} />}
+                        {stage === 'prepared' ? '重新打开预览' : terminal ? '已进入执行链' : '预览并确认'}
+                      </button>
+                    </article>
+                  );
+                })}
               </div>
               <p>Agent 不会自动生成内容、改动画布或写入文件。</p>
             </section>
@@ -5313,10 +5689,25 @@ export default function CreatorAgentPanel(props: CreatorAgentPanelProps) {
                 <div
                   key={event.eventId}
                   className={`t8-creator-agent-message ${isUser ? 'is-user' : 'is-assistant'}`}
+                  data-creator-agent-plan-id={plan?.planId || undefined}
+                  data-readiness-schema={readinessReceipt?.schema || undefined}
+                  data-local-plan-ms={readinessReceipt?.localPlanMs}
+                  data-local-plan-target-ms={readinessReceipt?.targetMs}
+                  data-local-plan-within-target={readinessReceipt?.withinTarget}
+                  data-plan-provider-calls={readinessReceipt?.sideEffects.providerCalls}
+                  data-plan-canvas-writes={readinessReceipt?.sideEffects.canvasWrites}
+                  data-plan-production-file-writes={readinessReceipt?.sideEffects.productionFileWrites}
                 >
                   {!isUser && <span className="t8-creator-agent-avatar"><Sparkles size={14} /></span>}
                   <div className="t8-creator-agent-message__body">
-                    {event.payload.text && (
+                    {event.type === 'user.suggestion' && Boolean(event.payload.suggestion) && (
+                      <span className="t8-creator-agent-suggestion-selection">
+                        已选择：{String(
+                          (event.payload.suggestion as { label?: unknown }).label || '当前建议',
+                        )}
+                      </span>
+                    )}
+                    {event.type !== 'user.suggestion' && event.payload.text && (
                       <CreatorAgentMessageText text={String(event.payload.text)} isUser={isUser} />
                     )}
                     {event.type === 'assistant.response' && event.payload.streamStatus === 'streaming' && (
@@ -5366,6 +5757,106 @@ export default function CreatorAgentPanel(props: CreatorAgentPanelProps) {
               );
             })}
 
+            {currentToolProposals.length > 0 && (
+              <section className="t8-creator-agent-tool-proposals is-visible" aria-label="待确认操作">
+                <header>
+                  <WandSparkles size={14} aria-hidden="true" />
+                  <span>
+                    <strong>待确认操作</strong>
+                    <small>{currentToolProposals.length} 项建议已准备，尚未执行</small>
+                  </span>
+                </header>
+                <div>
+                  {currentToolProposals.map((proposal) => {
+                    const stage = creatorToolProposalStage(session?.events, proposal.proposalId);
+                    const terminal = ['applied', 'running', 'verified'].includes(stage);
+                    return (
+                      <article key={proposal.proposalId} data-proposal-stage={stage}>
+                        <span>
+                          <strong>{proposal.tool.creatorLabel || proposal.tool.capabilityId}</strong>
+                          <small>
+                            {proposal.gate.previewRequired ? '需先预览并确认' : '先核对操作预览'}
+                          </small>
+                        </span>
+                        <em>{creatorToolProposalStageLabel(stage)}</em>
+                        <button
+                          type="button"
+                          disabled={busy || Boolean(preparingProposalId) || terminal}
+                          onClick={() => void prepareToolProposal(proposal)}
+                        >
+                          {preparingProposalId === proposal.proposalId
+                            ? <LoaderCircle size={12} className="animate-spin" />
+                            : <WandSparkles size={12} />}
+                          {stage === 'prepared' ? '重新打开预览' : terminal ? '已进入执行链' : '预览并确认'}
+                        </button>
+                      </article>
+                    );
+                  })}
+                </div>
+                <p>Agent 不能直接执行：必须先通过能力校验、预览和你的确认。</p>
+              </section>
+            )}
+
+            {latestWorkArtifacts.length > 0 && session?.creatorWork && (
+              <section className="t8-creator-work" aria-label="当前结构化作品">
+                <header>
+                  <span>
+                    <Sparkles size={14} aria-hidden="true" />
+                    <span>
+                      <strong>当前作品 · V{session.creatorWork.revision}</strong>
+                      <small>
+                        {session.creatorWork.taskProfile.deliveryKind}
+                        {' · '}
+                        {latestWorkArtifacts.length} 份可编辑文档
+                      </small>
+                    </span>
+                  </span>
+                  <em>
+                    {session.creatorWork.taskProfile.qualityMode === 'quality'
+                      ? '高质量'
+                      : session.creatorWork.taskProfile.qualityMode === 'standard'
+                        ? '标准'
+                        : '快速'}
+                  </em>
+                </header>
+                <p>{session.creatorWork.taskProfile.intent}</p>
+                {session.creatorWork.invalidatedKinds.length > 0 && (
+                  <p className="t8-creator-work__invalidation" role="status">
+                    上游版本已变化，以下作品需要重新核对：
+                    {' '}{session.creatorWork.invalidatedKinds.join('、')}
+                  </p>
+                )}
+                <div className="t8-creator-work__documents">
+                  {latestWorkArtifacts.map((artifact) => (
+                    <CreatorWorkArtifactCard
+                      key={artifact.versionId}
+                      artifact={artifact}
+                      versions={workArtifactHistories.get(artifact.artifactId) || [artifact]}
+                      busyAction={workActionBusy}
+                      onRevise={(current, action, field, value) => {
+                        void reviseWork(current, action, field, value);
+                      }}
+                    />
+                  ))}
+                </div>
+                <footer>
+                  <span>字段修改、接受和锁定只创建作品版本，不调用模型、运行节点或写入画布。</span>
+                  {latestWorkReceipt && (
+                    <details className="t8-creator-work__diagnostics">
+                      <summary>本轮模型凭证</summary>
+                      <dl>
+                        <div><dt>渠道 / 模型</dt><dd>{latestWorkReceipt.provider} · {latestWorkReceipt.model}</dd></div>
+                        <div><dt>真实调用</dt><dd>{latestWorkReceipt.providerCalls} 次 · {latestWorkReceipt.status}</dd></div>
+                        <div><dt>请求</dt><dd>{latestWorkReceipt.calls.map((call) => call.requestId || '无 request ID').join(' · ')}</dd></div>
+                        <div><dt>作品摘要</dt><dd>{session.creatorWork.workDigest.slice(0, 16)}</dd></div>
+                        <div><dt>回执摘要</dt><dd>{latestWorkReceipt.receiptDigest.slice(0, 16)}</dd></div>
+                      </dl>
+                    </details>
+                  )}
+                </footer>
+              </section>
+            )}
+
             {thinkingActive && (
               <div className="t8-creator-agent-thinking">
                 <LoaderCircle size={15} className="animate-spin" />
@@ -5387,6 +5878,7 @@ export default function CreatorAgentPanel(props: CreatorAgentPanelProps) {
               && currentStagePlan
               && currentStageComplete
               && currentStageUnconfirmedDocuments.length > 0
+              && creativeArtifactVersions.some((artifact) => artifact.status === 'model-draft')
               && stageContinuationSuggestion && (
                 <section className="t8-creator-agent-stage-confirm" aria-label="确认当前创作阶段">
                   <span>
@@ -5517,7 +6009,7 @@ export default function CreatorAgentPanel(props: CreatorAgentPanelProps) {
                           void submit(
                             isPristineSession
                               ? String(suggestion.arguments?.creatorPrompt || suggestion.label)
-                              : suggestion.label,
+                              : '',
                             !isPristineSession && session?.suggestionSet?.setDigest
                               ? { id: suggestion.id, setDigest: session.suggestionSet.setDigest }
                               : undefined,
@@ -5808,6 +6300,38 @@ export default function CreatorAgentPanel(props: CreatorAgentPanelProps) {
                 <Sparkles size={14} />
                 <span>{selectedModelPreferenceCount ? `已固定 ${selectedModelPreferenceCount} 项` : '智能选模'}</span>
               </button>
+              <label
+                className="t8-creator-agent-quality-mode"
+                title="快速 1 次；标准 2 次；高质量 3 次。控制操作不会额外调用模型。"
+              >
+                <span>作品质量</span>
+                <select
+                  value={workQualityMode}
+                  disabled={busy || hasStreamingResponse}
+                  onChange={(event) => {
+                    const value = event.currentTarget.value as CreatorAgentWorkQualityMode;
+                    setWorkQualityMode(value);
+                    try {
+                      window.localStorage.setItem(
+                        `t8.creator-agent.quality.${props.projectId}.${props.canvasId}`,
+                        value,
+                      );
+                    } catch {
+                      // Local storage is optional; the in-memory choice still applies.
+                    }
+                  }}
+                >
+                  <option value="quick">快速 · 1 次</option>
+                  <option value="standard">标准 · 2 次</option>
+                  <option value="quality">高质量 · 3 次</option>
+                </select>
+              </label>
+              <span className="t8-creator-agent-call-estimate" role="note">
+                本轮预计 {workQualityMode === 'quality' ? 3 : workQualityMode === 'standard' ? 2 : 1} 次模型调用
+                {messageAttachments.filter((attachment) => attachment.kind === 'audio').length > 0
+                  ? ` · 另需 ${messageAttachments.filter((attachment) => attachment.kind === 'audio').length} 次音频转写`
+                  : ''}
+              </span>
               {hasStreamingResponse ? (
                 <button
                   type="button"

@@ -21,6 +21,7 @@ export type NodeType =
   | 'minimax-h3-official-prompt-enhancer'
   | 'seedance20-prompt-enhancer'
   | 'mv-music-master'
+  | 'localization-master'
   | 'audio'
   | 'llm'
   | 'runninghub'

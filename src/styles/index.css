@@ -14038,6 +14038,35 @@ html[data-theme-visual="saint-seiya"] .t8-generation-target-icon {
 .t8-creator-agent-tool-proposals article em {
   white-space: nowrap;
 }
+
+.t8-creator-agent-tool-proposals article > button {
+  grid-column: 1 / -1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  gap: 6px;
+  padding: 5px 9px;
+  color: var(--creator-accent-strong);
+  background: color-mix(in srgb, var(--creator-accent) 12%, var(--creator-bg-elevated));
+  border: 1px solid color-mix(in srgb, var(--creator-accent) 42%, var(--creator-border));
+  border-radius: 7px;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.t8-creator-agent-tool-proposals article > button:hover:not(:disabled),
+.t8-creator-agent-tool-proposals article > button:focus-visible {
+  background: color-mix(in srgb, var(--creator-accent) 20%, var(--creator-bg-elevated));
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--creator-accent) 22%, transparent);
+}
+
+.t8-creator-agent-tool-proposals article > button:disabled {
+  cursor: default;
+  opacity: 0.58;
+}
 .t8-creator-agent-artifacts {
   display: grid;
   gap: 8px;

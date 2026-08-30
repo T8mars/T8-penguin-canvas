@@ -164,6 +164,26 @@ test('fixed but blocked selection never silently falls back', () => {
   assert.equal(result.modelFields.imageModel, undefined);
 });
 
+test('a version-bound audio transcript lets a normal LLM read evidence without native audio input', () => {
+  const result = createCreatorModelDecision({
+    kind: 'script',
+    attachments: [{
+      assetId: 'asset-audio-1',
+      kind: 'audio',
+      mimeType: 'audio/wav',
+      contentRevision: 2,
+      contentHash: 'a'.repeat(64),
+      observationDigest: 'b'.repeat(64),
+    }],
+    models: [llmModel({ parameters: { vision: false, audioInput: false } })],
+  });
+  assert.deepEqual(result.errors, []);
+  const llm = decisionFor(result, 'llm');
+  assert.equal(llm.inputCompatibility.status, 'compatible');
+  assert.match(llm.inputCompatibility.reasons.join(' '), /可核验转写/);
+  assert.match(result.receipt.attachmentEvidenceDigest, /^[a-f0-9]{64}$/);
+});
+
 test('receipt keeps unknown estimates honest, excludes secrets and has a stable evidence digest', () => {
   const input = {
     kind: 'image',

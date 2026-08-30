@@ -1,5 +1,6 @@
 const express = require('express');
 const crypto = require('crypto');
+const fs = require('node:fs');
 const path = require('path');
 const config = require('../config');
 const creativeModelCatalog = require('../shared/creativeModelCatalog.json');
@@ -58,6 +59,10 @@ const {
   createCreatorAgentLlmRuntime,
 } = require('../services/creatorAgentLlmRuntime');
 const {
+  groundCreatorAudioAttachments,
+} = require('../services/creatorAgentMediaGrounding');
+const seedanceNz = require('../providers/seedanceNz');
+const {
   prepareCreatorDecisionTurn,
 } = require('../services/creatorAgentDecisions');
 const {
@@ -66,6 +71,10 @@ const {
   compileCreatorToolProposal,
   rejectionReceipt,
 } = require('../services/creatorAgentToolProposals');
+const {
+  AgentControlCapabilityToolError,
+  prepareVersionedCapabilityToolRequest,
+} = require('../services/agentControlCapabilityTools');
 
 const CREATOR_AGENT_HTTP_SCHEMA = 't8-creator-agent-http-v1';
 const CREATOR_AGENT_REQUEST_LIMIT = 1024 * 1024;
@@ -481,9 +490,14 @@ function createCreatorAgentRouter(options = {}) {
   const readinessNow = typeof options.readinessNow === 'function'
     ? options.readinessNow
     : monotonicNowMs;
+  const environmentResponseDeltaDelayMs = Number(
+    process.env.T8_CREATOR_AGENT_RESPONSE_DELTA_DELAY_MS,
+  );
   const responseDeltaDelayMs = Object.prototype.hasOwnProperty.call(options, 'responseDeltaDelayMs')
     ? Math.max(0, Math.min(250, Math.trunc(Number(options.responseDeltaDelayMs) || 0)))
-    : 75;
+    : Number.isFinite(environmentResponseDeltaDelayMs)
+      ? Math.max(0, Math.min(250, Math.trunc(environmentResponseDeltaDelayMs)))
+      : 75;
   const waitForResponseDelta = () => responseDeltaDelayMs > 0
     ? new Promise((resolve) => setTimeout(resolve, responseDeltaDelayMs)) : Promise.resolve();
   let lazyCreatorLlmRuntime = options.llmRuntime || null;
@@ -500,6 +514,34 @@ function createCreatorAgentRouter(options = {}) {
     }
     return lazyCreatorLlmRuntime;
   };
+  const creatorSettings = () => {
+    if (typeof options.creatorLlmSettingsProvider === 'function') {
+      return options.creatorLlmSettingsProvider() || {};
+    }
+    try {
+      return JSON.parse(fs.readFileSync(runtimeConfig.SETTINGS_FILE, 'utf8')) || {};
+    } catch {
+      return {};
+    }
+  };
+  const transcribeCreatorAudio = typeof options.creatorAudioTranscriber === 'function'
+    ? options.creatorAudioTranscriber
+    : async (attachment) => {
+      const settings = creatorSettings();
+      const apiKey = String(settings.zhenzhenSd2ApiKey || '').trim();
+      if (!apiKey) {
+        const error = new Error('需要先配置贞贞的平价AI小屋，才能读取音频内容');
+        error.code = 'CREATOR_AUDIO_TRANSCRIBER_CREDENTIAL_REQUIRED';
+        throw error;
+      }
+      return seedanceNz.transcribeAudio({
+        audioUrl: attachment.ref,
+        model: 'whisper-1',
+        response_format: 'verbose_json',
+      }, apiKey, {
+        baseUrl: String(settings.zhenzhenSd2BaseUrl || '').trim() || undefined,
+      });
+    };
   const cleanupDeliveryState = () => {
     const now = Date.now();
     for (const [id, draft] of deliveryDrafts) {
@@ -913,6 +955,174 @@ function createCreatorAgentRouter(options = {}) {
     }
   });
 
+  router.post('/sessions/:sessionId/work-artifacts/:artifactId/revise', (req, res, next) => {
+    try {
+      const session = sessions.read(req.params.sessionId);
+      ensureSessionScope(session, req.body || {});
+      const action = String(req.body?.action || '').trim().toLowerCase();
+      if (!['edit', 'lock', 'unlock', 'accept', 'reject'].includes(action)) {
+        throw new CreatorAgentSessionError(
+          'CREATOR_WORK_ACTION_INVALID',
+          '不支持这个作品操作',
+          400,
+        );
+      }
+      const result = sessions.reviseWorkArtifactVersion(session.id, {
+        artifactId: req.params.artifactId,
+        baseVersionId: req.body?.baseVersionId,
+        action,
+        field: req.body?.field,
+        value: req.body?.value,
+        actor: 'canvas-ui',
+      });
+      return res.status(result.duplicate ? 200 : 201).json(response({
+        message: result.duplicate
+          ? '当前作品字段已经处于这个状态'
+          : action === 'edit'
+            ? '已保存字段修改并创建新版本；没有调用模型或改动画布'
+            : action === 'lock'
+              ? '已锁定字段；后续模型修改将被服务端阻止'
+              : action === 'unlock'
+                ? '已解锁字段；没有自动触发模型修改'
+                : action === 'accept'
+                  ? '已接受当前作品版本；没有启动生成'
+                  : '已驳回当前作品版本；旧版本仍然保留',
+        data: result,
+      }));
+    } catch (error) {
+      return next(error);
+    }
+  });
+
+  router.post('/sessions/:sessionId/tool-proposals/:proposalId/prepare', (req, res, next) => {
+    try {
+      const session = sessions.read(req.params.sessionId);
+      const scope = ensureSessionScope(session, req.body || {});
+      const document = database().getCanvas(scope.canvasId);
+      if (!document || String(document.projectId || '') !== scope.projectId) {
+        throw new CreatorAgentSessionError(
+          'CREATOR_SCOPE_NOT_FOUND',
+          '当前项目或画布不存在，无法准备这条工具提议',
+          404,
+        );
+      }
+      const proposal = (Array.isArray(session.toolProposals) ? session.toolProposals : [])
+        .find((candidate) => candidate?.proposalId === req.params.proposalId);
+      if (!proposal) {
+        throw new CreatorAgentSessionError(
+          'CREATOR_TOOL_PROPOSAL_NOT_FOUND',
+          '这条工具提议不存在或已经被清理，请基于当前作品重新提议',
+          404,
+        );
+      }
+      if (String(req.body?.proposalDigest || '').trim().toLowerCase()
+        !== String(proposal.proposalDigest || '').toLowerCase()) {
+        throw new CreatorAgentSessionError(
+          'CREATOR_TOOL_PROPOSAL_STALE',
+          '工具提议摘要已经变化，未生成预览；请刷新当前作品后重试',
+          409,
+        );
+      }
+      let prepared;
+      try {
+        prepared = prepareVersionedCapabilityToolRequest(proposal.request);
+      } catch (error) {
+        if (error instanceof AgentControlCapabilityToolError) {
+          throw new CreatorAgentSessionError(
+            error.code,
+            error.message,
+            error.status,
+            error.details || {},
+          );
+        }
+        throw error;
+      }
+      if (prepared.surfaceDigest !== proposal.tool.capabilityManifestDigest
+        || prepared.capabilityGraphDigest !== proposal.tool.capabilityGraphDigest
+        || prepared.capabilityId !== proposal.tool.capabilityId) {
+        throw new CreatorAgentSessionError(
+          'CREATOR_TOOL_PROPOSAL_CAPABILITY_STALE',
+          '创作能力清单已经更新，旧提议不会继续执行；请基于当前能力重新提议',
+          409,
+        );
+      }
+      if (prepared.surface?.agentTool?.service !== 'agentControlCreative'
+        || prepared.surface?.agentTool?.method !== 'createPlan') {
+        throw new CreatorAgentSessionError(
+          'CREATOR_TOOL_PROPOSAL_PREVIEW_UNAVAILABLE',
+          '这条高层能力还没有接入 Creator Agent 的安全预览链，当前不会执行',
+          409,
+        );
+      }
+      const responseEvent = (Array.isArray(session.events) ? session.events : [])
+        .find((event) => (
+          event?.type === 'assistant.response.completed'
+          && event?.payload?.responseId === proposal.binding.responseId
+          && event?.payload?.responseDigest === proposal.binding.responseDigest
+        ));
+      const plan = responseEvent?.payload?.plan;
+      const expectedKind = String(prepared.surface.agentTool.bindingOperation || '').trim();
+      const actualKind = String(plan?.kind || '').replace(/^edit-/, '');
+      if (!plan?.ready
+        || plan.planId !== proposal.binding.planId
+        || plan.planDigest !== proposal.binding.planDigest
+        || expectedKind !== actualKind) {
+        throw new CreatorAgentSessionError(
+          'CREATOR_TOOL_PROPOSAL_PLAN_STALE',
+          '工具提议与当前创作计划不再一致，未生成预览',
+          409,
+        );
+      }
+      let patch = null;
+      const durablePlan = session.latestPlan?.planId === plan.planId
+        && session.latestPlan?.planDigest === plan.planDigest
+        && session.latestPatch
+        ? { ...session.latestPlan, patch: session.latestPatch }
+        : creative().requirePlan(plan.planId, scope);
+      if (String(durablePlan.planDigest || '') !== String(plan.planDigest || '')) {
+        throw new CreatorAgentSessionError(
+          'CREATOR_TOOL_PROPOSAL_PLAN_STALE',
+          '创作计划摘要不匹配，未生成预览',
+          409,
+        );
+      }
+      patch = durablePlan.patch;
+      if (!patch || !Array.isArray(patch.operations) || patch.operations.length === 0) {
+        throw new CreatorAgentSessionError(
+          'CREATOR_TOOL_PROPOSAL_PREVIEW_EMPTY',
+          '这条工具提议没有可预览的画布变更，当前不会执行',
+          409,
+        );
+      }
+      const preparedRecord = sessions.prepareToolProposal(session.id, {
+        proposalId: proposal.proposalId,
+        proposalDigest: proposal.proposalDigest,
+        plan,
+      });
+      return res.status(preparedRecord.duplicate ? 200 : 201).json(response({
+        message: preparedRecord.duplicate
+          ? '已恢复同一条工具提议的安全预览，不会重复执行'
+          : '已准备与当前作品版本绑定的安全预览；确认前不会写画布或调用 Provider',
+        data: {
+          session: preparedRecord.session,
+          proposal: preparedRecord.proposal,
+          event: preparedRecord.event,
+          plan,
+          patch,
+          duplicate: preparedRecord.duplicate,
+          execution: {
+            status: 'prepared',
+            requestedOperation: proposal.tool.operation,
+            nextBoundary: proposal.gate.approvalRequired ? 'preview-and-approval' : 'preview',
+            sideEffects: { canvasWrites: 0, providerCalls: 0, fileWrites: 0 },
+          },
+        },
+      }));
+    } catch (error) {
+      return next(error);
+    }
+  });
+
   router.post('/sessions/:sessionId/assets/:assetId/place-plan', async (req, res, next) => {
     try {
       const session = sessions.read(req.params.sessionId);
@@ -1089,6 +1299,7 @@ function createCreatorAgentRouter(options = {}) {
           : null,
         kind: String(req.body?.kind || '').trim().toLowerCase(),
         profile: String(req.body?.profile || 'balanced').trim(),
+        qualityMode: String(req.body?.qualityMode || '').trim().toLowerCase(),
         ratio: String(req.body?.ratio || '').trim(),
         duration: Number(req.body?.duration) || 0,
         candidates: Number(req.body?.candidates) || 0,
@@ -1176,6 +1387,21 @@ function createCreatorAgentRouter(options = {}) {
         phase: 'planning',
       };
       activeMessageStreams.set(session.id, streamingControl);
+      let groundedAttachments = attachments;
+      try {
+        const grounding = await groundCreatorAudioAttachments(attachments, {
+          transcribeAudio: transcribeCreatorAudio,
+          provider: 'seedance-nz',
+        });
+        groundedAttachments = grounding.attachments;
+      } catch (error) {
+        throw new CreatorAgentSessionError(
+          String(error?.code || 'CREATOR_AUDIO_GROUNDING_FAILED'),
+          String(error?.message || '音频内容无法完成可核验观察，已停止基于音频创作'),
+          409,
+          { providerCalls: String(error?.code || '').includes('CREDENTIAL') ? 0 : 1 },
+        );
+      }
       const selectedSuggestion = requestedSuggestion
         ? resolveCreatorSuggestionSelection(session, {
             suggestionId: requestedSuggestion.id,
@@ -1209,7 +1435,7 @@ function createCreatorAgentRouter(options = {}) {
       const planningPrompt = referenceProduction?.prompt || suggestionPrompt || visiblePrompt;
       const assetIds = [...new Set([
         ...(Array.isArray(req.body?.assetIds) ? req.body.assetIds : []),
-        ...attachments.map((attachment) => attachment.assetId).filter(Boolean),
+        ...groundedAttachments.map((attachment) => attachment.assetId).filter(Boolean),
         ...((refiningShotBreakdown || continuingReferenceProduction)
           && Array.isArray(session.latestPlan?.brief?.reuseAssetIds)
           ? session.latestPlan.brief.reuseAssetIds
@@ -1228,7 +1454,7 @@ function createCreatorAgentRouter(options = {}) {
                 }
               : null;
           }).filter(Boolean)
-        : attachments;
+        : groundedAttachments;
       const suggestionKind = String(
         selectedSuggestion?.arguments?.creatorKind || '',
       ).trim().toLowerCase();
@@ -1247,14 +1473,14 @@ function createCreatorAgentRouter(options = {}) {
         : allowedSuggestionKinds.has(suggestionKind)
           ? suggestionKind
           : String(req.body?.kind || '').trim().toLowerCase()
-            || inferCreatorKind(planningPrompt, attachments);
+            || inferCreatorKind(planningPrompt, groundedAttachments);
       const recipe = refiningShotBreakdown
         ? 'shot-breakdown'
         : continuingReferenceProduction
           ? 'storyboard'
         : Object.prototype.hasOwnProperty.call(req.body || {}, 'recipe')
         ? String(req.body?.recipe || 'general').trim().toLowerCase()
-        : inferCreatorRecipe(planningPrompt, kind, attachments);
+        : inferCreatorRecipe(planningPrompt, kind, groundedAttachments);
       let decisionTurn = null;
       if (recipe !== 'shot-breakdown') {
         try {
@@ -1356,14 +1582,25 @@ function createCreatorAgentRouter(options = {}) {
       });
       const requestHost = String(req.get('host') || '').replace(/[^A-Za-z0-9.:[\]-]/g, '');
       const responseInput = {
+        projectId: scope.projectId,
+        canvasId: scope.canvasId,
         prompt: planningPrompt,
         kind,
         recipe,
-        attachments,
+        attachments: groundedAttachments,
         session,
         plan,
         modelDecisionReceipt: modelDecision.receipt,
         decisionTurn,
+        qualityMode: String(req.body?.qualityMode || '').trim().toLowerCase(),
+        // Current Canvas clients always send an explicit quality mode and use
+        // the strict Creator Work contract. Older API clients that predate the
+        // work-object UI keep their legacy prose response path until migrated.
+        requireStructuredWork: ['quick', 'standard', 'quality'].includes(
+          String(req.body?.qualityMode || '').trim().toLowerCase(),
+        ),
+        stageContinuation: req.body?.stageContinuation === true,
+        logicalRequestId: clientRequestId,
         requestBaseUrl: requestHost ? `${req.protocol}://${requestHost}` : undefined,
       };
       const llmRuntime = creatorLlm();
@@ -1374,8 +1611,10 @@ function createCreatorAgentRouter(options = {}) {
         ? creative().requirePlan(plan.planId, scope).patch
         : null;
       const baseTurnInput = {
-        text: selectedSuggestion?.label || String(req.body?.text || '').trim(),
-        attachments,
+        text: selectedSuggestion
+          ? suggestionPrompt || visiblePrompt
+          : String(req.body?.text || '').trim(),
+        attachments: groundedAttachments,
         context: currentContext,
         plan,
         patch: controlledPatch,
@@ -1383,6 +1622,7 @@ function createCreatorAgentRouter(options = {}) {
           ? {
               id: selectedSuggestion.id,
               intent: selectedSuggestion.intent,
+              label: selectedSuggestion.label,
               setDigest: requestedSuggestion.setDigest,
             }
           : null,
@@ -1390,6 +1630,7 @@ function createCreatorAgentRouter(options = {}) {
         requestDigest,
         readinessReceipt,
         decisionTurn,
+        qualityMode: String(req.body?.qualityMode || '').trim().toLowerCase(),
       };
       const preparedResponse = wantsStream && typeof llmRuntime.prepareResponse === 'function'
         ? llmRuntime.prepareResponse(responseInput)
@@ -1482,6 +1723,7 @@ function createCreatorAgentRouter(options = {}) {
           assistantText: creativeResponse.text,
           responseEvidence: creativeResponse.evidence,
           artifactProposal: creativeResponse.artifactProposal,
+          workProposal: creativeResponse.workProposal,
         });
         const toolProposalResult = persistCreatorToolProposals(
           session.id,
@@ -1526,6 +1768,7 @@ function createCreatorAgentRouter(options = {}) {
         assistantText: creativeResponse.text,
         responseEvidence: creativeResponse.evidence,
         artifactProposal: creativeResponse.artifactProposal,
+        workProposal: creativeResponse.workProposal,
       };
       if (!wantsStream) {
         const turn = sessions.appendTurn(session.id, turnInput);

@@ -96,11 +96,13 @@ test('macOS source binding peels annotated remote tags to their commit', () => {
 
 test('GitHub Actions builds current and future Mac releases on a real Apple Silicon runner', () => {
   const workflow = read('../.github/workflows/release-macos.yml');
+  const pkg = JSON.parse(read('../package.json'));
+  const versionPattern = String(pkg.version).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
   assert.match(workflow, /workflow_dispatch:/);
   assert.match(workflow, /release_tag:/);
   assert.match(workflow, /source_ref:/);
-  assert.match(workflow, /release_tag:[\s\S]*default: v3\.0\.9/);
+  assert.match(workflow, new RegExp(`release_tag:[\\s\\S]*default: v${versionPattern}`));
   assert.match(workflow, /runs-on: macos-15/);
   assert.match(workflow, /T8_MAC_LOCAL_PRIVATE_BUNDLE_B64/);
   assert.match(workflow, /T8_MAC_LOCAL_PRIVATE_FRONTEND_BUNDLE_B64/);

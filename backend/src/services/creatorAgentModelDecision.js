@@ -233,7 +233,18 @@ function compatibilityFor(item, request) {
   }
 
   if (item.kind === 'llm' && attachmentKinds.has('audio')) {
-    if (parameters.audioInput === true) {
+    const audioAttachments = (Array.isArray(request.attachments) ? request.attachments : [])
+      .filter((attachment) => text(attachment?.kind, 24).toLowerCase() === 'audio');
+    const transcriptGrounded = audioAttachments.length > 0 && audioAttachments.every((attachment) => (
+      /^[a-f0-9]{64}$/u.test(text(
+        attachment?.observationDigest || attachment?.audioObservation?.observationDigest,
+        128,
+      ).toLowerCase())
+    ));
+    if (transcriptGrounded) {
+      confidence += 4;
+      reasons.push('音频已先形成绑定素材版本的可核验转写，语言模型只读取转写证据');
+    } else if (parameters.audioInput === true) {
       confidence += 4;
       reasons.push('目录明确声明支持音频输入');
     } else {
@@ -633,6 +644,10 @@ function createCreatorModelDecision(input = {}) {
     width: Math.max(0, Math.trunc(Number(attachment?.width) || 0)),
     height: Math.max(0, Math.trunc(Number(attachment?.height) || 0)),
     duration: Math.max(0, Number(attachment?.duration) || 0),
+    observationDigest: text(
+      attachment?.observationDigest || attachment?.audioObservation?.observationDigest,
+      128,
+    ).toLowerCase(),
   })));
   const request = {
     kind: text(input.kind, 40).toLowerCase(),

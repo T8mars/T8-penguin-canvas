@@ -20,6 +20,9 @@ const EXPECTED_KEYS = new Set([
   'artifactId',
   'artifactVersionId',
   'artifactDigest',
+  'workId',
+  'workRevision',
+  'workDigest',
   'canvasRevision',
 ]);
 const TOP_LEVEL_KEYS = new Set(['schema', 'proposalId', 'request', 'expected']);
@@ -83,6 +86,8 @@ function currentBinding(session, assistantEvent) {
   const artifact = assistantEvent.payload?.artifactVersion
     && typeof assistantEvent.payload.artifactVersion === 'object'
     ? assistantEvent.payload.artifactVersion : null;
+  const work = session?.creatorWork && typeof session.creatorWork === 'object'
+    && !Array.isArray(session.creatorWork) ? session.creatorWork : null;
   const canvasRevision = Number(session?.context?.canvasRevision);
   return {
     sessionId: boundedText(session?.id, 160),
@@ -95,6 +100,10 @@ function currentBinding(session, assistantEvent) {
     artifactId: boundedText(artifact?.artifactId, 80) || null,
     artifactVersionId: boundedText(artifact?.versionId, 80) || null,
     artifactDigest: boundedText(artifact?.content?.contentDigest, 64).toLowerCase() || null,
+    workId: boundedText(work?.workId, 80) || null,
+    workRevision: Number.isSafeInteger(Number(work?.revision)) && Number(work.revision) >= 1
+      ? Number(work.revision) : null,
+    workDigest: boundedText(work?.workDigest, 64).toLowerCase() || null,
     canvasRevision: Number.isSafeInteger(canvasRevision) && canvasRevision >= 0
       ? canvasRevision : null,
   };
@@ -112,7 +121,7 @@ function assertExpectedBinding(expectedValue, binding) {
   }
   for (const key of Object.keys(expected)) {
     const actual = binding[key];
-    const supplied = key === 'canvasRevision'
+    const supplied = key === 'canvasRevision' || key === 'workRevision'
       ? Number(expected[key])
       : boundedText(expected[key], key.toLowerCase().includes('digest') ? 160 : 256)
         || null;
@@ -266,6 +275,9 @@ function assertCreatorToolProposalCurrent(proposalValue, session, options = {}) 
     'artifactId',
     'artifactVersionId',
     'artifactDigest',
+    'workId',
+    'workRevision',
+    'workDigest',
     'canvasRevision',
   ]) {
     if (proposal.binding?.[key] !== binding[key]) {
