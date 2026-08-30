@@ -26,6 +26,14 @@ test('package metadata declares an arm64 macOS DMG/ZIP update channel without ch
   const commonResources = pkg.build.extraResources.map((item: any) => item.to);
   assert.ok(!commonResources.includes('tools/runtime-archives'));
   assert.ok(!commonResources.includes('tools/ffmpeg'));
+  const localizationRuntime = pkg.build.extraResources.find(
+    (item: any) => item.to === 'backend-enc/tools/localizationRuntime',
+  );
+  assert.deepEqual(localizationRuntime?.filter, ['worker.py', 'download_auxiliary.py']);
+  assert.ok(
+    !localizationRuntime?.filter.includes('auxiliary-models.json'),
+    'macOS cannot hard-link a sidecar already present under build/backend-enc to the same destination twice',
+  );
   const windowsResources = pkg.build.win.extraResources.map((item: any) => `${item.from}->${item.to}`);
   const macResources = pkg.build.mac.extraResources.map((item: any) => `${item.from}->${item.to}`);
   assert.ok(windowsResources.includes('tools/runtime-archives->tools/runtime-archives'));

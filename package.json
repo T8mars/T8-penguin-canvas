@@ -1,7 +1,7 @@
 {
   "name": "t8-penguin-canvas",
   "private": false,
-  "version": "3.1.0",
+  "version": "3.1.1",
   "type": "module",
   "main": "electron/main.cjs",
   "description": "T8-penguin-canvas — AI 节点画布工作流工具（Web + Electron 桌面端）",
@@ -224,22 +224,21 @@
           "package.json"
         ]
       },
-    {
-      "from": "build/backend-enc",
-      "to": "backend-enc",
-      "filter": [
-        "**/*"
-      ]
-    },
-    {
-      "from": "backend/src/tools/localizationRuntime",
-      "to": "backend-enc/tools/localizationRuntime",
-      "filter": [
-        "worker.py",
-        "download_auxiliary.py",
-        "auxiliary-models.json"
-      ]
-    },
+      {
+        "from": "build/backend-enc",
+        "to": "backend-enc",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "backend/src/tools/localizationRuntime",
+        "to": "backend-enc/tools/localizationRuntime",
+        "filter": [
+          "worker.py",
+          "download_auxiliary.py"
+        ]
+      },
       {
         "from": "dist",
         "to": "frontend",

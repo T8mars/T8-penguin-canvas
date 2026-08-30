@@ -96,7 +96,15 @@ test('packaged app ships the standalone Worker and both platforms resolve a mana
   const pkg = JSON.parse(read('package.json'));
   const workerResource = pkg.build.extraResources.find((item) => item.to === 'backend-enc/tools/localizationRuntime');
   assert.ok(workerResource);
-  assert.deepEqual(workerResource.filter, ['worker.py', 'download_auxiliary.py', 'auxiliary-models.json']);
+  assert.deepEqual(workerResource.filter, ['worker.py', 'download_auxiliary.py']);
+  const encryptedBackend = pkg.build.extraResources.find((item) => item.to === 'backend-enc');
+  assert.ok(encryptedBackend);
+  assert.ok(encryptedBackend.filter.includes('**/*'));
+  assert.equal(
+    workerResource.filter.includes('auxiliary-models.json'),
+    false,
+    'auxiliary-models.json is already copied into build/backend-enc and must not be mapped twice on macOS',
+  );
   const service = read('backend/src/services/localizationMaster.js');
   assert.match(service, /remove-ai-watermarks-runtime/);
   assert.match(service, /indextts25-python/);

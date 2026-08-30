@@ -1,13 +1,41 @@
 {
   "$schema": "本文件为 T8-penguin-canvas 节点清单防丢失锁,任何节点删减都需要在 roadmap.md 中说明并更新本文件。",
-  "version": "3.1.0",
-  "lastUpdated": "2026-08-30-v3.1.0-release-authorized",
-  "electronReleaseV310": {
+  "version": "3.1.1",
+  "lastUpdated": "2026-08-30-v3.1.1-macos-packaging-hotfix-authorized",
+  "electronReleaseV311": {
     "status": "authorized-pending-technical-gates",
+    "date": "2026-08-30",
+    "releaseIncluded": true,
+    "version": "3.1.1",
+    "tag": "v3.1.1",
+    "scope": [
+      "完整承接 v3.1.0 的 Creator Agent 作品化、多语言本地化大师和 Veo TAB 模型 zhenzhen-video-g-omni-1.1-flash-lowprice，不回退旧画布、Provider、模型、工作流或 MiniMax Music3。",
+      "修复 macOS electron-builder 对 backend-enc/tools/localizationRuntime/auxiliary-models.json 的重复硬链接 EEXIST：固定辅助模型清单只由加密后端整目录携带，Worker 和安装器继续通过独立明文运行时资源映射进入同一目录。",
+      "Windows 与真实 macOS arm64 必须从同一修复提交和不可变 v3.1.1 Tag 重新构建、完整验证并进入同一个 Latest Release；不得移动或改写已公开 v3.1.0 Tag。"
+    ],
+    "verification": [
+      "macOS 失败日志已精确定位为同一目标文件的双来源复制，不是模型、业务逻辑或私有源恢复失败。",
+      "新增双平台打包回归，明确禁止 localizationRuntime 显式资源再次包含已经由 build/backend-enc 复制的 auxiliary-models.json；macOS 打包专项 6/6 和本地化直接运行时 6/6 通过。",
+      "v3.1.1 Windows Electron 正式链与真实 macOS arm64 同源链仍须在固定修复提交后全部通过。"
+    ],
+    "evidenceBoundary": {
+      "technicalGates": "must-pass-before-publish",
+      "affectedUserInstallF8F10AndInstalledUpgrade": "deferred-not-passed",
+      "deferralApproval": "owner-approved-post-release-v3.1.1",
+      "rule": "证据后补只适用于反馈用户安装、多端协作、F8-F10、真人听感与安装升级；测试、构建、加密、运行时、app.asar 启动合同、NSIS、provenance、sealed recovery、固定 Tag/target、Windows/Mac 自动更新资产与完整性验证不可延期。"
+    }
+  },
+  "electronReleaseV310": {
+    "status": "published-windows-only-superseded-by-v3.1.1",
     "date": "2026-08-30",
     "releaseIncluded": true,
     "version": "3.1.0",
     "tag": "v3.1.0",
+    "sourceCommit": "0ade3ba4435fa7a1154c2548e7ed764161785016",
+    "releaseUrl": "https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.1.0",
+    "publishedAt": "2026-08-30T01:32:06Z",
+    "latest": false,
+    "macWorkflow": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/33285931497",
     "scope": [
       "Creator Agent 作品化把真实 LLM、版本化作品文档、字段锁与差异、媒体接地、建议回执、工具预览/批准/执行及可验证交付收敛为同一作品生命周期。",
       "新增多语言本地化大师核心节点，支持剧本/字幕/音视频输入、上下文翻译、术语与保护词、五语 IndexTTS 2.5 本地配音、字幕、换轨、QC 与交付清单。",
@@ -18,10 +46,11 @@
       "Creator Agent 低资源串行回归 229/229、真实受控 Chromium、真实平价小屋 LLM、真实工具预览/批准/执行与物理媒体交付已经通过。",
       "本地化专项与直接运行时 17/17、五语真实 IndexTTS 2.5 推理/复用、四次付费翻译加中文恒等分支、完整解码与脱敏证据已经通过。",
       "Veo Omni 1.1 模型/请求/四份工作流专项 5/5 和相邻高级 Provider 19/19 通过；一次真实 4 秒任务成功下载 1280x720 H.264 MP4，并通过 FFprobe 与 FFmpeg 全片解码。",
-      "Windows Electron 正式构建、app.asar 合同、NSIS、provenance、sealed recovery、远端上传与完整回下载，以及真实 macOS arm64 同源构建/上传仍须在固定发布提交后完成。"
+      "Windows Electron 正式构建、app.asar 合同、NSIS、provenance、sealed recovery、远端上传与完整回下载通过；安装包 1,321,222,241 bytes / SHA-256 87569da723a4500fe1c9a7f979df97f0ef57dadbe2e26c3baf7c41543e52ae35。",
+      "真实 macOS arm64 在 electron-builder 阶段因 auxiliary-models.json 被两个 extraResources 来源映射到同一路径而以 EEXIST 失败，因此 v3.1.0 不得标记为双平台完整发布，改由不可变 v3.1.1 热修版取代。"
     ],
     "evidenceBoundary": {
-      "technicalGates": "must-pass-before-publish",
+      "technicalGates": "failed-macos-eexist-superseded-by-v3.1.1",
       "affectedUserInstallF8F10AndInstalledUpgrade": "deferred-not-passed",
       "deferralApproval": "owner-approved-post-release-v3.1.0",
       "rule": "证据后补只适用于反馈用户安装、多端协作、F8-F10、真人听感与安装升级；测试、构建、加密、运行时、app.asar 启动合同、NSIS、provenance、sealed recovery、固定 Tag/target、Windows/Mac 自动更新资产与完整性验证不可延期。"
@@ -1721,7 +1750,7 @@
     "security": "API Key 只允许由一次性进程环境注入真实验收脚本；源码、工作流与脱敏报告不得保存密钥、任务 ID、签名 URL或 Provider 原始响应。"
   },
   "veoOmni11FlashLowprice": {
-    "status": "release-authorized-v3.1.0-live-verified",
+    "status": "release-authorized-v3.1.1-live-verified",
     "date": "2026-08-30",
     "releaseIncluded": true,
     "provider": "seedance-nz",
@@ -1761,7 +1790,7 @@
     ]
   },
   "localizationMaster": {
-    "status": "release-authorized-v3.1.0-live-translation-and-five-language-tts-verified",
+    "status": "release-authorized-v3.1.1-live-translation-and-five-language-tts-verified",
     "date": "2026-08-30",
     "releaseIncluded": true,
     "nodeType": "localization-master",
@@ -1817,9 +1846,9 @@
       "liveIndexTtsInference": "passed-five-languages-real-inference-and-restart-safe-reuse",
       "fiveLanguageVerifier": "passed-zh-en-ja-es-ar",
       "livePaidLlmTranslation": "passed-4-paid-calls-plus-1-source-identity-branch",
-      "electronPackage": "pending-v3.1.0-technical-gate",
-      "gitOrRelease": "authorized-pending-v3.1.0-technical-gates",
-      "rule": "核心目录真实 LLM 翻译与五语 IndexTTS 端到端技术验收已通过；只有 v3.1.0 Electron/双平台自动更新技术门禁全部收敛后才能称为已发布，真人听感盲评仍须后补。"
+      "electronPackage": "pending-v3.1.1-technical-gate",
+      "gitOrRelease": "authorized-pending-v3.1.1-technical-gates",
+      "rule": "核心目录真实 LLM 翻译与五语 IndexTTS 端到端技术验收已通过；只有 v3.1.1 Electron/双平台自动更新技术门禁全部收敛后才能称为已发布，真人听感盲评仍须后补。"
     }
   },
   "mvMusicMaster": {
@@ -14657,7 +14686,7 @@
     ]
   },
   "creatorAgentWorkObjectLifecycle": {
-    "status": "release-authorized-v3.1.0-live-verified",
+    "status": "release-authorized-v3.1.1-live-verified",
     "date": "2026-08-29",
     "releaseIncluded": true,
     "schemas": {
@@ -14704,7 +14733,7 @@
     ],
     "boundaries": [
       "真实 LLM、真实 Canvas Patch、真实媒体 Run 和物理交付已经有脱敏证据；未执行独立真人盲评，且未知素材许可证继续阻止 release-ready 结论。",
-      "已执行普通 Vite production build 与真实 Chromium 验收；v3.1.0 Electron 构建、打包、固定 Tag 与发布仍是发布前必须通过的技术门禁。",
+      "已执行普通 Vite production build 与真实 Chromium 验收；v3.1.1 Electron 构建、打包、固定 Tag 与发布仍是发布前必须通过的技术门禁。",
       "高层工具只覆盖能力图中注册的受控入口；本地化阶段仍需用户在节点中明确运行，任意内部路由、凭据、原始 CanvasPatch 或 Worker 调用继续失败关闭。"
     ]
   }
