@@ -10,6 +10,17 @@
 - Windows 专用 `remove-ai-watermarks` / ParseHub Python 离线归档不会塞进 Mac 包；相关本地工具需要用户自行安装兼容 Python 环境。其缺失不得影响普通画布和云端节点启动。
 - 首个未公证预览升级到未来 Developer ID 正式版时，按手动覆盖安装处理；配置正式签名后，后续版本才把 `latest-mac.yml` + ZIP 视为可交付的 Mac 自动更新链路。
 
+## v3.1.1 已发布结果
+
+- Windows 与 Mac 固定源码/Tag：`6188f7547062e9c01578994fb5247f8e30f3f208` / `v3.1.1`，进入同一非草稿、非预发布 Latest Release：<https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.1.1>。
+- v3.1.0 的 Windows 链完成后，真实 Mac workflow <https://github.com/T8mars/T8-penguin-canvas/actions/runs/33285931497> 在 electron-builder 阶段精确拦截 `auxiliary-models.json` 双来源写入同一目标的 `EEXIST`；该失败未生成或上传 Mac 资产，公开 Tag 未移动。
+- v3.1.1 移除重复资源映射并由专项回归锁定；成功的真实 Apple Silicon workflow：<https://github.com/T8mars/T8-penguin-canvas/actions/runs/33286855296>，于 `2026-08-30T02:05:01Z` 完成。runner 端和本机独立验证都完整回下载三项 Mac 资产。
+- Windows 安装包 1,321,222,616 bytes / SHA-256 `12d45cc3bf390f69325d0a69af5a38a5c57a6ab3c30ca967453d2ff032667f17`；blockmap 1,376,749 bytes / `da933e86432d7d09e81785f862d5db2f59a9f0969dee30144bcd7822cb89daaf`；`latest.yml` 362 bytes / `8e767d8794efafcd9c3bec3599554baf796f4b4508add1d9e905220d178f2c65`。
+- `T8-PenguinCanvas-3.1.1-mac-arm64.dmg`：493,680,189 bytes，SHA-256 `f5358085dc70fb8516aa6930dcde7b8cb6851afc0decb5f906bddf1c41c43962`。
+- `T8-PenguinCanvas-3.1.1-mac-arm64.zip`：486,361,409 bytes，SHA-256 `96b1c1fcff69bfe625eabdcbca58e6534adf4e9fe554bdc57b8edad10f5973b5`。
+- `latest-mac.yml`：536 bytes，SHA-256 `47084088199a3aea1dd9da3bf509b5fb3e6034ed6e13e89097e8c0af14d0fd31`；ZIP size/SHA-512 与下载字节一致。
+- 当前仍为 ad-hoc 完整性签名、未使用 Apple Developer ID、未公证技术预览；不得描述为 Apple 已认证包。
+
 ## v3.0.9 已发布结果
 
 - Windows 与 Mac 固定源码/Tag：`d6ed9c0bb0445d99823a5811935c8d4e2d1359d0` / `v3.0.9`，进入同一非草稿、非预发布 Latest Release：<https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.0.9>。
