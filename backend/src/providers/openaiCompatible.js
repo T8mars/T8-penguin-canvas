@@ -636,13 +636,14 @@ async function generateChat(provider, input = {}, options = {}) {
     if (!res.ok) {
       const raw = await responseJson(res);
       const trace = providerTrace(res, raw, { pollCount: 0 });
+      const upstreamMessage = raw?.message || raw?.error?.message || raw?.error;
       return {
         ok: false,
         code: 'http_error',
         providerId: provider.id,
         protocol: provider.protocol,
         model,
-        error: `扩展 LLM 调用失败：HTTP ${res.status}${raw?.message ? ` ${trimBodyForError(raw.message)}` : ''}`,
+        error: `扩展 LLM 调用失败：HTTP ${res.status}${upstreamMessage ? ` ${trimBodyForError(upstreamMessage)}` : ''}`,
         raw,
         ...trace,
       };
@@ -728,13 +729,19 @@ async function generateChat(provider, input = {}, options = {}) {
     const streamCode = ['invalid_stream_event', 'stream_error'].includes(String(e?.code || ''))
       ? String(e.code)
       : '';
+    const networkCauseCode = String(e?.cause?.code || '').replace(/[^A-Z0-9_-]/gi, '').slice(0, 80);
     return {
       ok: false,
       code: isParentAbort ? 'request_aborted' : isTimeout ? 'timeout' : (streamCode || 'network_error'),
       providerId: provider.id,
       protocol: provider.protocol,
       model,
-      error: isParentAbort ? '扩展 LLM 调用已取消。' : isTimeout ? '扩展 LLM 调用超时。' : (e?.message || '扩展 LLM 调用失败。'),
+      error: isParentAbort
+        ? '扩展 LLM 调用已取消。'
+        : isTimeout
+          ? '扩展 LLM 调用超时。'
+          : `${e?.message || '扩展 LLM 调用失败。'}${networkCauseCode ? ` [${networkCauseCode}]` : ''}`,
+      ...(networkCauseCode ? { networkCauseCode } : {}),
     };
   }
 }

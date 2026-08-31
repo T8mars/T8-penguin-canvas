@@ -80,16 +80,28 @@ test('auxiliary models are pinned, verified during install, and inference is off
   assert.match(worker, /T8_INDEXTTS25_ASR_DEVICE", "cpu"/);
   assert.match(service, /T8_INDEXTTS25_ASR_DEVICE \|\| 'cpu'/);
   assert.match(worker, /spoken_text = str\(unit\.get\("pronunciation"\)/);
+  assert.match(worker, /qwen_emotion = model\.ensure_qwen_emotion\(\)/);
+  assert.match(worker, /"emotionControl": emotion_control/);
+  assert.match(worker, /text-emotion-unavailable:/);
   assert.match(worker, /score = similarity\(spoken_text, recognized, language\)/);
   assert.match(worker, /OpenCC\("t2s"\)\.convert\(value\)/);
   assert.match(worker, /str\.maketrans\("0123456789", "零一二三四五六七八九"\)/);
   assert.doesNotMatch(service, /torchcodec/iu);
   const coreDownload = service.indexOf("'--accept-license', '--skip-aux'");
   const auxiliaryDownload = service.indexOf("AUXILIARY_INSTALLER_PATH, '--model-root'");
-  const receiptWrite = service.indexOf('await fsp.writeFile(layout.licenseReceiptPath', auxiliaryDownload);
-  assert.ok(coreDownload >= 0 && auxiliaryDownload > coreDownload && receiptWrite > auxiliaryDownload);
+  const localReceipt = service.indexOf('async function acceptIndexTtsModelLicense');
+  const installGate = service.indexOf('await requireIndexTtsModelLicense()', coreDownload - 5_000);
+  assert.ok(localReceipt >= 0 && installGate >= 0 && coreDownload > installGate && auxiliaryDownload > coreDownload);
+  assert.match(service, /modelRevision: MODEL_REVISION/);
+  assert.match(service, /画布中的旧确认不会被信任/);
+  const verifier = read('scripts/verify-localization-indextts-live.cjs');
+  assert.match(verifier, /acceptIndexTtsModelLicense\(\{ accepted: true \}\)/);
   assert.match(service, /env\.HF_HUB_OFFLINE = '1'/);
   assert.match(service, /env\.TRANSFORMERS_OFFLINE = '1'/);
+  assert.match(service, /atrim=0:/);
+  assert.match(service, /afade=t=in/);
+  assert.match(service, /amix=inputs=2:duration=first:dropout_transition=0:normalize=0/);
+  assert.match(service, /\[1:a:0\]apad\[a\]/);
 });
 
 test('packaged app ships the standalone Worker and both platforms resolve a managed Python runtime', () => {

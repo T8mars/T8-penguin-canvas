@@ -22,7 +22,25 @@ const {
 } = require('./utils/apiErrorEnvelope');
 const agentControlRouter = require('./routes/agentControl');
 const canvasAgentToolsRouter = require('./routes/canvasAgentTools');
-const creatorAgentRouter = require('./routes/creatorAgent');
+const CREATOR_AGENT_V2_HTTP_SCHEMA = 't8-creator-agent-http-v2';
+const CREATOR_AGENT_V2_REQUEST_LIMIT = 1024 * 1024;
+let creatorAgentV2Router = null;
+const CREATOR_AGENT_V1_HTTP_SCHEMA = 't8-creator-agent-http-v1';
+const CREATOR_AGENT_V1_REQUEST_LIMIT = 1024 * 1024;
+let creatorAgentV1Router = null;
+
+function getCreatorAgentV1Router() {
+  if (!creatorAgentV1Router) creatorAgentV1Router = require('./routes/creatorAgent');
+  return creatorAgentV1Router;
+}
+
+function getCreatorAgentV2Router() {
+  if (!creatorAgentV2Router) {
+    const { createCreatorAgentV2Router } = require('./routes/creatorAgentV2');
+    creatorAgentV2Router = createCreatorAgentV2Router();
+  }
+  return creatorAgentV2Router;
+}
 
 const app = express();
 const backendStartupStartedAt = Date.now();
@@ -411,11 +429,32 @@ app.use('/api/canvas-agent', (req, res, next) => {
     });
   });
 }, canvasAgentToolsRouter);
+app.use('/api/creator-agent/v2', (req, res, next) => {
+  const contentLength = Number(req.get('content-length'));
+  if (Number.isFinite(contentLength) && contentLength > CREATOR_AGENT_V2_REQUEST_LIMIT) {
+    return res.status(413).json({
+      schema: CREATOR_AGENT_V2_HTTP_SCHEMA,
+      ok: false,
+      code: 'CREATOR_AGENT_REQUEST_TOO_LARGE',
+      message: '创作 Agent 请求超过 1 MiB，请把大文件作为附件上传',
+    });
+  }
+  return creatorAgentJsonParser(req, res, (error) => {
+    if (!error) return next();
+    const tooLarge = error?.type === 'entity.too.large';
+    return res.status(tooLarge ? 413 : 400).json({
+      schema: CREATOR_AGENT_V2_HTTP_SCHEMA,
+      ok: false,
+      code: tooLarge ? 'CREATOR_AGENT_REQUEST_TOO_LARGE' : 'CREATOR_AGENT_REQUEST_INVALID',
+      message: tooLarge ? '创作 Agent 请求超过 1 MiB' : '创作 Agent JSON 格式无效',
+    });
+  });
+}, (req, res, next) => getCreatorAgentV2Router()(req, res, next));
 app.use('/api/creator-agent/v1', (req, res, next) => {
   const contentLength = Number(req.get('content-length'));
-  if (Number.isFinite(contentLength) && contentLength > creatorAgentRouter.CREATOR_AGENT_REQUEST_LIMIT) {
+  if (Number.isFinite(contentLength) && contentLength > CREATOR_AGENT_V1_REQUEST_LIMIT) {
     return res.status(413).json({
-      schema: creatorAgentRouter.CREATOR_AGENT_HTTP_SCHEMA,
+      schema: CREATOR_AGENT_V1_HTTP_SCHEMA,
       ok: false,
       code: 'CREATOR_AGENT_REQUEST_TOO_LARGE',
       message: '创作 Agent 请求超过 1 MiB，请把大文件作为附件上传，不要嵌入对话正文',
@@ -425,7 +464,7 @@ app.use('/api/creator-agent/v1', (req, res, next) => {
     if (!error) return next();
     const tooLarge = error?.type === 'entity.too.large';
     return res.status(tooLarge ? 413 : 400).json({
-      schema: creatorAgentRouter.CREATOR_AGENT_HTTP_SCHEMA,
+      schema: CREATOR_AGENT_V1_HTTP_SCHEMA,
       ok: false,
       code: tooLarge ? 'CREATOR_AGENT_REQUEST_TOO_LARGE' : 'CREATOR_AGENT_REQUEST_INVALID',
       message: tooLarge
@@ -433,7 +472,7 @@ app.use('/api/creator-agent/v1', (req, res, next) => {
         : '创作 Agent JSON 格式无效',
     });
   });
-}, creatorAgentRouter);
+}, (req, res, next) => getCreatorAgentV1Router()(req, res, next));
 app.use(express.json({ limit: '120mb' }));
 app.use(express.urlencoded({ extended: true, limit: '120mb' }));
 

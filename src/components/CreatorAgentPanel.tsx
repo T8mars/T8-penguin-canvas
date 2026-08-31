@@ -437,6 +437,7 @@ function creatorSuggestionSetContractReady(
 }
 
 const SESSION_STORAGE_PREFIX = 't8-creator-agent-session-v1';
+const DRAFT_STORAGE_PREFIX = 't8-creator-agent-draft-v1';
 const CREATOR_PANEL_WIDTH_STORAGE_KEY = 't8-creator-agent-panel-width-v1';
 const CREATOR_EFFECTS_STORAGE_KEY = 't8-creator-agent-effects-v1';
 const CREATOR_PANEL_MIN_WIDTH = 420;
@@ -459,6 +460,33 @@ function CreatorAgentVisible({ children }: { children: ReactNode }) {
 
 function storageKey(projectId: string, canvasId: string) {
   return `${SESSION_STORAGE_PREFIX}:${projectId}:${canvasId}`;
+}
+
+function draftStorageKey(projectId: string, canvasId: string) {
+  return `${DRAFT_STORAGE_PREFIX}:${projectId}:${canvasId}`;
+}
+
+function readCreatorDraft(key: string) {
+  if (typeof window === 'undefined') return '';
+  try {
+    return String(window.sessionStorage.getItem(key) || '');
+  } catch {
+    return '';
+  }
+}
+
+function qualityStorageKey(projectId: string, canvasId: string) {
+  return `t8.creator-agent.quality.${projectId}.${canvasId}`;
+}
+
+function readCreatorQualityMode(projectId: string, canvasId: string): CreatorAgentWorkQualityMode {
+  if (typeof window === 'undefined') return 'standard';
+  try {
+    const stored = window.localStorage.getItem(qualityStorageKey(projectId, canvasId));
+    return stored === 'quick' || stored === 'quality' ? stored : 'standard';
+  } catch {
+    return 'standard';
+  }
 }
 
 const CREATOR_PENDING_MESSAGE_PREFIX = 't8-creator-agent-pending-message-v1';
@@ -532,7 +560,7 @@ function creatorInlineText(text: string): ReactNode[] {
 function CreatorAgentMessageText(props: { text: string; isUser: boolean }) {
   const text = String(props.text || '').trim();
   if (!text) return null;
-  if (props.isUser) return <p>{text}</p>;
+  if (props.isUser) return <p data-i18n-skip="true">{text}</p>;
   const lines = text.replace(/\r\n?/g, '\n').split('\n');
   const nodes: ReactNode[] = [];
   let index = 0;
@@ -610,7 +638,7 @@ function CreatorAgentMessageText(props: { text: string; isUser: boolean }) {
       </p>,
     );
   }
-  return <div className="t8-creator-agent-rich-text">{nodes}</div>;
+  return <div className="t8-creator-agent-rich-text" data-i18n-skip="true">{nodes}</div>;
 }
 
 function eventReadinessReceipt(event: CreatorAgentEvent) {
@@ -2412,15 +2440,18 @@ function CreatorWorkArtifactCard(props: {
   const [editingField, setEditingField] = useState('');
   const [draftValue, setDraftValue] = useState('');
   const [selectedVersionId, setSelectedVersionId] = useState(props.artifact.versionId);
+  const [showAllFields, setShowAllFields] = useState(false);
   useEffect(() => {
     setSelectedVersionId(props.artifact.versionId);
     setEditingField('');
+    setShowAllFields(false);
   }, [props.artifact.versionId]);
   const history = [...props.versions].sort((left, right) => right.revision - left.revision);
   const displayedArtifact = history.find((version) => version.versionId === selectedVersionId)
     || props.artifact;
   const isLatestVersion = displayedArtifact.versionId === props.artifact.versionId;
-  const fields = Object.entries(displayedArtifact.fields || {}).slice(0, 12);
+  const allFields = Object.entries(displayedArtifact.fields || {});
+  const fields = showAllFields ? allFields : allFields.slice(0, 12);
   const busy = Boolean(props.busyAction);
   return (
     <article className={`t8-creator-work-card is-${displayedArtifact.status}`}>
@@ -2539,8 +2570,15 @@ function CreatorWorkArtifactCard(props: {
           );
         })}
       </div>
-      {Object.keys(displayedArtifact.fields || {}).length > fields.length && (
-        <small>其余字段仍完整保存在当前作品版本中</small>
+      {allFields.length > 12 && (
+        <button
+          type="button"
+          className="t8-creator-work-card__show-fields"
+          aria-expanded={showAllFields}
+          onClick={() => setShowAllFields((current) => !current)}
+        >
+          {showAllFields ? '收起其余字段' : `显示全部 ${allFields.length} 个字段`}
+        </button>
       )}
       <footer>
         <button
@@ -2561,9 +2599,10 @@ function CreatorWorkArtifactCard(props: {
 export default function CreatorAgentPanel(props: CreatorAgentPanelProps) {
   const { i18n } = useTranslation();
   const uiLocale = i18n.resolvedLanguage || i18n.language;
+  const composerDraftKey = draftStorageKey(props.projectId, props.canvasId);
   const [open, setOpen] = useState(false);
   const [session, setSession] = useState<CreatorAgentSession | null>(null);
-  const [draft, setDraft] = useState('');
+  const [draft, setDraft] = useState(() => readCreatorDraft(composerDraftKey));
   const [customIdeaDraft, setCustomIdeaDraft] = useState('');
   const [attachments, setAttachments] = useState<CreatorAgentAttachment[]>([]);
   const [referencedNodes, setReferencedNodes] = useState<CreatorAgentNodeReference[]>([]);
@@ -2589,15 +2628,7 @@ export default function CreatorAgentPanel(props: CreatorAgentPanelProps) {
   const [modelSettingsOpen, setModelSettingsOpen] = useState(false);
   const [modelPreferences, setModelPreferences] = useState<CreatorAgentModelPreferences>({});
   const [workQualityMode, setWorkQualityMode] = useState<CreatorAgentWorkQualityMode>(() => {
-    if (typeof window === 'undefined') return 'standard';
-    try {
-      const stored = window.localStorage.getItem(
-        `t8.creator-agent.quality.${props.projectId}.${props.canvasId}`,
-      );
-      return stored === 'quick' || stored === 'quality' ? stored : 'standard';
-    } catch {
-      return 'standard';
-    }
+    return readCreatorQualityMode(props.projectId, props.canvasId);
   });
   const [workActionBusy, setWorkActionBusy] = useState('');
   const [runDetails, setRunDetails] = useState<RunDetail[]>([]);
@@ -2627,6 +2658,33 @@ export default function CreatorAgentPanel(props: CreatorAgentPanelProps) {
     eventId: string;
     text: string;
   } | null>(null);
+  const draftStorageRef = useRef({ key: composerDraftKey, value: draft });
+
+  useEffect(() => {
+    const current = draftStorageRef.current;
+    if (current.key !== composerDraftKey) {
+      try {
+        window.sessionStorage.setItem(current.key, current.value);
+      } catch {
+        // Session-scoped draft persistence is best effort.
+      }
+      const next = readCreatorDraft(composerDraftKey);
+      draftStorageRef.current = { key: composerDraftKey, value: next };
+      setDraft(next);
+      return;
+    }
+    current.value = draft;
+    try {
+      if (draft) window.sessionStorage.setItem(composerDraftKey, draft);
+      else window.sessionStorage.removeItem(composerDraftKey);
+    } catch {
+      // The in-memory draft remains usable when storage is unavailable.
+    }
+  }, [composerDraftKey, draft]);
+
+  useEffect(() => {
+    setWorkQualityMode(readCreatorQualityMode(props.projectId, props.canvasId));
+  }, [props.canvasId, props.projectId]);
   const [deliveryApproval, setDeliveryApproval] = useState<{
     approvalRequestId: string;
     planId: string;
@@ -3194,6 +3252,10 @@ export default function CreatorAgentPanel(props: CreatorAgentPanelProps) {
   }, [context, props.canvasId, props.projectId]);
 
   const startNewConversation = useCallback(async () => {
+    if ((draft.trim() || attachments.length || referencedNodes.length)
+      && !window.confirm('当前尚未发送的文字、附件或节点引用会被清空。确定开始新对话吗？')) {
+      return;
+    }
     const next = await ensureSession(true);
     if (!next) return;
     const pending = readPendingCreatorMessage(pendingMessageKey);
@@ -3210,7 +3272,7 @@ export default function CreatorAgentPanel(props: CreatorAgentPanelProps) {
     setCodexOpen(false);
     composerFocusPendingRef.current = true;
     window.requestAnimationFrame(() => composerRef.current?.focus());
-  }, [ensureSession, pendingMessageKey]);
+  }, [attachments.length, draft, ensureSession, pendingMessageKey, referencedNodes.length]);
 
   useEffect(() => {
     if (!open || session || busy) return;
@@ -3465,9 +3527,13 @@ export default function CreatorAgentPanel(props: CreatorAgentPanelProps) {
         const summaries = await api.listProjectRuns({
           projectId: props.projectId,
           canvasId: props.canvasId,
-          limit: 3,
+          limit: 50,
         });
-        const details = await Promise.all(summaries.slice(0, 3).map(async (summary) => {
+        const monitoredSummaries = [...new Map([
+          ...summaries.filter((summary) => ACTIVE_RUN_STATUSES.has(summary.status)),
+          ...summaries.slice(0, 3),
+        ].map((summary) => [summary.id, summary])).values()].slice(0, 24);
+        const details = await Promise.all(monitoredSummaries.map(async (summary) => {
           try {
             return await api.getProjectRun(summary.id);
           } catch {
@@ -6313,7 +6379,7 @@ export default function CreatorAgentPanel(props: CreatorAgentPanelProps) {
                     setWorkQualityMode(value);
                     try {
                       window.localStorage.setItem(
-                        `t8.creator-agent.quality.${props.projectId}.${props.canvasId}`,
+                        qualityStorageKey(props.projectId, props.canvasId),
                         value,
                       );
                     } catch {

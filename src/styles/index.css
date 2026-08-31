@@ -13650,8 +13650,43 @@ html[data-theme-visual="saint-seiya"] .t8-generation-target-icon {
 }
 
 .t8-creator-agent-empty {
-  min-height: min(58vh, 560px);
+  min-height: clamp(180px, 36vh, 360px);
   padding: 18px 6px 28px;
+}
+
+.t8-creator-work-card__show-fields {
+  align-self: flex-start;
+  margin-top: 4px;
+  padding: 4px 8px;
+  border: 1px solid var(--creator-border);
+  border-radius: 8px;
+  color: var(--creator-text-muted);
+  background: var(--creator-bg-muted);
+  font-size: 11px;
+}
+
+@media (max-height: 820px) {
+  .t8-creator-agent-messages {
+    padding-top: 12px;
+  }
+
+  .t8-creator-agent-empty {
+    min-height: 150px;
+    padding: 8px 6px 12px;
+  }
+
+  .t8-creator-agent-empty__orb {
+    margin-bottom: 8px;
+  }
+
+  .t8-creator-agent-empty h2 {
+    margin-top: 4px;
+    font-size: clamp(22px, 3vh, 28px);
+  }
+
+  .t8-creator-agent-empty__shuffle {
+    margin-top: 8px;
+  }
 }
 
 .t8-creator-agent-empty__orb {
@@ -14319,4 +14354,459 @@ html[data-theme-visual="saint-seiya"] .t8-generation-target-icon {
 [data-script-master-workbench="true"] :is(button, input, select, textarea)[class] {
   font-size: 14px;
   line-height: 1.4;
+}
+
+/* Creator Agent V2: one compact conversation surface. The component receives
+   semantic theme tokens from Canvas, so light themes never inherit dark cards. */
+.t8-creator-v2-panel {
+  position: absolute;
+  z-index: 86;
+  top: 68px;
+  right: 22px;
+  bottom: 22px;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto auto auto;
+  width: min(440px, calc(100vw - 44px));
+  min-height: min(440px, calc(100dvh - 90px));
+  max-height: calc(100dvh - 90px);
+  overflow: hidden;
+  color: var(--creator-text);
+  font-family: var(--creator-font);
+  background: var(--creator-bg);
+  border: 1px solid var(--creator-border);
+  border-radius: 18px;
+  box-shadow: 0 24px 72px rgba(0, 0, 0, 0.24);
+  animation: t8-creator-v2-enter 150ms ease-out;
+}
+
+@keyframes t8-creator-v2-enter {
+  from { opacity: 0; transform: translate3d(10px, 0, 0); }
+}
+
+.t8-creator-v2-panel *,
+.t8-creator-v2-panel *::before,
+.t8-creator-v2-panel *::after {
+  box-sizing: border-box;
+}
+
+.t8-creator-v2-panel button,
+.t8-creator-v2-panel select,
+.t8-creator-v2-panel textarea {
+  color: inherit;
+  font: inherit;
+}
+
+.t8-creator-v2-panel button {
+  cursor: pointer;
+}
+
+.t8-creator-v2-panel button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+.t8-creator-v2-panel :is(button, select, textarea):focus-visible {
+  outline: 2px solid var(--creator-accent);
+  outline-offset: 2px;
+}
+
+.t8-creator-v2-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 52px;
+  padding: 9px 10px 9px 14px;
+  border-bottom: 1px solid var(--creator-border);
+  background: var(--creator-surface);
+}
+
+.t8-creator-v2-header > div,
+.t8-creator-v2-header nav,
+.t8-creator-v2-header button,
+.t8-creator-v2-state,
+.t8-creator-v2-decision footer,
+.t8-creator-v2-result footer,
+.t8-creator-v2-popover > p {
+  display: flex;
+  align-items: center;
+}
+
+.t8-creator-v2-header > div {
+  min-width: 0;
+  gap: 8px;
+}
+.t8-creator-v2-header strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.t8-creator-v2-header nav { gap: 3px; }
+
+.t8-creator-v2-header button,
+.t8-creator-v2-composer button,
+.t8-creator-v2-attachments button {
+  display: inline-grid;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+}
+
+.t8-creator-v2-header button:hover,
+.t8-creator-v2-composer button:hover {
+  border-color: var(--creator-border);
+  background: var(--creator-surface-alt);
+}
+
+.t8-creator-v2-header button.is-customized {
+  color: var(--creator-accent);
+  background: color-mix(in srgb, var(--creator-accent) 12%, transparent);
+}
+
+.t8-creator-v2-phases {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  margin: 0;
+  padding: 8px 11px;
+  list-style: none;
+  border-bottom: 1px solid var(--creator-border);
+  background: var(--creator-bg);
+}
+
+.t8-creator-v2-phases li {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 3px;
+  color: var(--creator-muted);
+  font-size: 10px;
+}
+
+.t8-creator-v2-phases li:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  top: 8px;
+  left: calc(50% + 10px);
+  width: calc(100% - 20px);
+  height: 1px;
+  background: var(--creator-border);
+}
+
+.t8-creator-v2-phases i {
+  z-index: 1;
+  display: grid;
+  width: 17px;
+  height: 17px;
+  place-items: center;
+  border: 1px solid var(--creator-border);
+  border-radius: 50%;
+  background: var(--creator-surface);
+  font-size: 9px;
+  font-style: normal;
+}
+
+.t8-creator-v2-phases .is-current,
+.t8-creator-v2-phases .is-done { color: var(--creator-accent); }
+.t8-creator-v2-phases .is-current i,
+.t8-creator-v2-phases .is-done i {
+  color: var(--creator-accent-text);
+  border-color: var(--creator-accent);
+  background: var(--creator-accent);
+}
+
+.t8-creator-v2-popover {
+  position: absolute;
+  z-index: 4;
+  top: 51px;
+  right: 10px;
+  width: min(330px, calc(100% - 20px));
+  max-height: min(430px, calc(100dvh - 90px), calc(100% - 61px));
+  padding: 10px;
+  overflow: auto;
+  border: 1px solid var(--creator-border);
+  border-radius: 14px;
+  background: var(--creator-surface);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.22);
+}
+
+.t8-creator-v2-popover.is-history > button {
+  display: grid;
+  width: 100%;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  min-height: 40px;
+  padding: 9px 10px;
+  text-align: left;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+}
+
+.t8-creator-v2-popover.is-history > button:hover,
+.t8-creator-v2-popover.is-history > button.is-current { background: var(--creator-surface-alt); }
+.t8-creator-v2-popover.is-history strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.t8-creator-v2-popover small { color: var(--creator-muted); }
+
+.t8-creator-v2-popover.is-settings { display: grid; gap: 9px; }
+.t8-creator-v2-popover.is-settings label { display: grid; gap: 5px; }
+.t8-creator-v2-popover.is-settings label span { color: var(--creator-muted); font-size: 11px; }
+.t8-creator-v2-popover.is-settings select {
+  width: 100%;
+  min-height: 38px;
+  padding: 0 9px;
+  border: 1px solid var(--creator-border);
+  border-radius: 9px;
+  background: var(--creator-bg);
+}
+.t8-creator-v2-popover footer { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 7px; padding-top: 3px; }
+
+.t8-creator-v2-messages {
+  min-height: 0;
+  padding: 14px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.t8-creator-v2-load-older {
+  display: block;
+  margin: 0 auto 12px;
+  padding: 5px 10px;
+  color: var(--creator-muted);
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+}
+.t8-creator-v2-load-older:hover { color: var(--creator-text); background: var(--creator-surface-alt); }
+
+.t8-creator-v2-empty {
+  max-width: 270px;
+  margin: 26vh auto 0;
+  color: var(--creator-muted);
+  text-align: center;
+  line-height: 1.6;
+}
+
+.t8-creator-v2-message {
+  width: fit-content;
+  max-width: 88%;
+  margin: 0 0 12px;
+  padding: 9px 11px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  border: 1px solid var(--creator-border);
+  border-radius: 13px 13px 13px 4px;
+  background: var(--creator-surface);
+  line-height: 1.55;
+}
+
+.t8-creator-v2-message.is-user {
+  margin-left: auto;
+  color: var(--creator-accent-text);
+  border-color: var(--creator-accent);
+  border-radius: 13px 13px 4px;
+  background: var(--creator-accent);
+}
+
+.t8-creator-v2-message[data-status="failed"] { border-color: var(--creator-danger); }
+.t8-creator-v2-message button { min-height: 34px; margin-top: 7px; padding: 4px 8px; border: 0; border-radius: 7px; }
+.t8-creator-v2-message-media { margin-top: 8px; }
+.t8-creator-v2-message-media :is(img, video) {
+  display: block;
+  width: min(100%, 270px);
+  max-height: 240px;
+  object-fit: contain;
+  border-radius: 9px;
+  background: #000;
+}
+
+.t8-creator-v2-state {
+  justify-content: center;
+  gap: 7px;
+  margin: 10px 0;
+  color: var(--creator-muted);
+}
+
+.t8-creator-v2-decision,
+.t8-creator-v2-result {
+  margin: 12px 0;
+  padding: 11px;
+  border: 1px solid var(--creator-border);
+  border-radius: 13px;
+  background: var(--creator-surface);
+}
+
+.t8-creator-v2-decision.is-error { border-color: var(--creator-danger); }
+.t8-creator-v2-decision p { margin: 0; }
+.t8-creator-v2-decision small { display: block; margin-top: 4px; color: var(--creator-muted); }
+.t8-creator-v2-decision footer,
+.t8-creator-v2-result footer { flex-wrap: wrap; justify-content: flex-end; gap: 7px; margin-top: 10px; }
+
+.t8-creator-v2-decision button,
+.t8-creator-v2-result button,
+.t8-creator-v2-popover footer button,
+.t8-creator-v2-suggestions button {
+  min-height: 34px;
+  padding: 6px 11px;
+  border: 1px solid var(--creator-border);
+  border-radius: 9px;
+  background: var(--creator-bg);
+}
+
+.t8-creator-v2-panel button.is-primary,
+.t8-creator-v2-composer button.is-send {
+  color: var(--creator-accent-text);
+  border-color: var(--creator-accent);
+  background: var(--creator-accent);
+}
+
+.t8-creator-v2-result :is(img, video) {
+  display: block;
+  width: 100%;
+  max-height: min(48vh, 420px);
+  object-fit: contain;
+  border-radius: 10px;
+  background: #000;
+}
+
+.t8-creator-v2-suggestions {
+  display: grid;
+  gap: 7px;
+  margin-top: 12px;
+}
+.t8-creator-v2-suggestions button { width: 100%; text-align: left; background: var(--creator-surface); }
+.t8-creator-v2-suggestions button:hover { border-color: var(--creator-accent); }
+.t8-creator-v2-suggestions button[data-role="recommended"] { border-color: color-mix(in srgb, var(--creator-accent) 58%, var(--creator-border)); }
+
+.t8-creator-v2-error {
+  margin: 0 12px 7px;
+  padding: 7px 9px;
+  color: var(--creator-danger);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--creator-danger) 9%, transparent);
+}
+
+.t8-creator-v2-attachments {
+  display: flex;
+  gap: 5px;
+  padding: 6px 12px 0;
+  overflow-x: auto;
+}
+.t8-creator-v2-attachments > span {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 4px;
+  max-width: 150px;
+  padding: 3px 5px 3px 8px;
+  overflow: hidden;
+  color: var(--creator-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border-radius: 999px;
+  background: var(--creator-surface-alt);
+}
+.t8-creator-v2-attachments button { width: 20px; height: 20px; }
+
+.t8-creator-v2-composer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  margin: 9px 12px 12px;
+  padding: 8px;
+  border: 1px solid var(--creator-border);
+  border-radius: 14px;
+  background: var(--creator-surface);
+}
+.t8-creator-v2-composer textarea {
+  width: 100%;
+  min-height: 46px;
+  max-height: 150px;
+  padding: 3px;
+  resize: vertical;
+  border: 0;
+  outline: 0;
+  background: transparent;
+}
+.t8-creator-v2-composer > div { display: flex; align-items: flex-end; gap: 2px; }
+.t8-creator-v2-composer button.is-active {
+  color: var(--creator-accent);
+  border-color: color-mix(in srgb, var(--creator-accent) 55%, var(--creator-border));
+  background: color-mix(in srgb, var(--creator-accent) 11%, transparent);
+}
+
+@media (max-width: 900px), (max-height: 620px) {
+  .t8-creator-v2-panel {
+    position: fixed;
+    inset: 10px;
+    z-index: 200;
+    width: auto;
+    min-height: 0;
+    max-height: none;
+  }
+}
+
+@media (max-width: 520px) {
+  .t8-creator-v2-panel { inset: 0; border: 0; border-radius: 0; }
+  .t8-creator-v2-phases span { display: none; }
+  .t8-creator-v2-phases { padding-block: 6px; }
+  .t8-creator-v2-popover { top: 50px; right: 8px; width: calc(100% - 16px); }
+  .t8-creator-v2-message { max-width: 94%; }
+  .t8-creator-v2-header { padding-left: 10px; }
+  .t8-creator-v2-header nav { flex: 0 0 auto; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .t8-creator-v2-panel,
+  .t8-creator-v2-panel *,
+  .t8-creator-v2-panel *::before,
+  .t8-creator-v2-panel *::after,
+  .t8-creator-agent-launcher,
+  .t8-creator-agent-launcher * {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Keep compact desktop controls while meeting the 44px minimum touch target
+   on touch-first layouts. */
+@media (pointer: coarse), (max-width: 520px) {
+  .t8-control-rail-creator-slot,
+  .t8-control-rail-creator-slot .t8-creator-agent-launcher {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    flex-basis: 44px;
+  }
+
+  .t8-creator-v2-header button,
+  .t8-creator-v2-composer button {
+    width: 44px;
+    height: 44px;
+  }
+
+  .t8-creator-v2-popover.is-history > button,
+  .t8-creator-v2-popover.is-settings select,
+  .t8-creator-v2-load-older,
+  .t8-creator-v2-message button,
+  .t8-creator-v2-decision button,
+  .t8-creator-v2-result button,
+  .t8-creator-v2-popover footer button,
+  .t8-creator-v2-suggestions button {
+    min-height: 44px;
+  }
+
+  .t8-creator-v2-attachments > span { min-height: 44px; }
+  .t8-creator-v2-attachments button {
+    width: 44px;
+    height: 44px;
+    margin-block: -7px;
+    margin-right: -5px;
+  }
 }

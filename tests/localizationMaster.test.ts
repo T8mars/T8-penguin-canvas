@@ -4,8 +4,12 @@ import test from 'node:test';
 import { workflowManifestToFragment } from '../src/utils/workflowResource.ts';
 import {
   applyLocalizationTranslationResponse,
+  buildLocalizationQc,
   buildLocalizationTranslationMessages,
   createLocalizationProject,
+  inspectLocalizationSourceText,
+  localizationRoles,
+  MAX_LOCALIZATION_ROLES,
   parseLocalizationText,
   resetLocalizationBranches,
   setLocalizationTargetLanguages,
@@ -150,6 +154,38 @@ test('language branches preserve independent translation, approval, TTS, and del
   assert.equal(project.units[0].translatedText, 'ペンギンキャンバスへようこそ。');
   assert.equal(project.stage, 'review');
   assert.deepEqual(project.targetLanguages, ['EN', 'JA', 'ES', 'AR']);
+  project = setLocalizationTargetLanguages(project, ['EN', 'ES', 'AR']);
+  assert.equal(project.branches.find((branch) => branch.language === 'JA')?.active, false);
+  assert.equal(project.branches.find((branch) => branch.language === 'JA')?.units[0].translatedText, 'ペンギンキャンバスへようこそ。');
+  project = setLocalizationTargetLanguages(project, ['EN', 'JA', 'ES', 'AR']);
+  project = switchLocalizationBranch(project, 'JA');
+  assert.equal(project.units[0].translatedText, 'ペンギンキャンバスへようこそ。');
+});
+
+test('localization QC includes per-line warnings and low-confidence evidence', () => {
+  const project = createLocalizationProject({
+    units: [{
+      id: 'line-1', index: 1, startMs: 0, endMs: 1000, role: '旁白', sourceText: '你好',
+      translatedText: 'Hello', approved: true, confidence: 0.61, warnings: ['line-1: timing risk'],
+    }],
+    mode: 'subtitle-only',
+  });
+  const qc = buildLocalizationQc(project);
+  assert.ok(qc.warnings.some((warning) => /timing risk/.test(warning)));
+  assert.ok(qc.warnings.some((warning) => /low translation confidence/.test(warning)));
+  assert.doesNotMatch(serializeLocalizationSrt(project.units, { translated: true, includeRole: true }), /旁白/);
+});
+
+test('mixed malformed timed subtitles fail closed and roles are never silently truncated', () => {
+  const source = '1\n00:00:00,000 --> 00:00:01,000\nHello\n\nThis block has no timestamp';
+  const inspection = inspectLocalizationSourceText(source);
+  assert.equal(inspection.blocked, true);
+  assert.ok(inspection.warnings.length > 0);
+  const roles = localizationRoles(Array.from({ length: MAX_LOCALIZATION_ROLES + 1 }, (_, index) => ({
+    id: `line-${index}`, index, startMs: index * 1000, endMs: index * 1000 + 900,
+    role: `Role ${index}`, sourceText: 'x', translatedText: 'x', approved: true,
+  })));
+  assert.equal(roles.length, MAX_LOCALIZATION_ROLES + 1);
 });
 
 test('example workflow restores a direct no-ComfyUI localization node with stable defaults', () => {
@@ -162,4 +198,16 @@ test('example workflow restores a direct no-ComfyUI localization node with stabl
   assert.equal(data.localizationProject?.schema, 't8-localization-project-v1');
   assert.equal(data.localizationProject?.modelLicenseConfirmed, false);
   assert.equal(data.localizationProject?.stage, 'materials');
+});
+
+test('localization workbench keeps the real workflow progressive and exposes targeted line recovery', () => {
+  const node = readFileSync(new URL('../src/components/nodes/LocalizationMasterNode.tsx', import.meta.url), 'utf8');
+  assert.match(node, /type LocalizationWorkbenchStep = 'source' \| 'translate' \| 'voice' \| 'deliver'/);
+  assert.match(node, /role="tablist"/);
+  assert.match(node, /activeWorkbenchStep === 'source'/);
+  assert.match(node, /activeWorkbenchStep === 'translate'/);
+  assert.match(node, /activeWorkbenchStep === 'voice'/);
+  assert.match(node, /activeWorkbenchStep === 'deliver'/);
+  assert.match(node, /requestAction\('dub-line'\)/);
+  assert.match(node, /project\.ttsStaleUnitIds\.length > 0/);
 });

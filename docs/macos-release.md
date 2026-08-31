@@ -10,6 +10,12 @@
 - Windows 专用 `remove-ai-watermarks` / ParseHub Python 离线归档不会塞进 Mac 包；相关本地工具需要用户自行安装兼容 Python 环境。其缺失不得影响普通画布和云端节点启动。
 - 首个未公证预览升级到未来 Developer ID 正式版时，按手动覆盖安装处理；配置正式签名后，后续版本才把 `latest-mac.yml` + ZIP 视为可交付的 Mac 自动更新链路。
 
+## v3.1.2 发布授权
+
+- Windows 与 Mac 固定使用同一源码提交和正式 `v3.1.2` Tag，进入同一个非草稿、非预发布 Latest Release；不得移动或改写 `v3.1.1`。
+- Windows 本机正式链先完成 EXE、blockmap 与 `latest.yml`；随后真实 `macos-15` arm64 workflow 以 `release_tag=v3.1.2`、`source_ref=v3.1.2`、`publish=true`、`signing=unsigned-preview` 追加 DMG、ZIP 与 `latest-mac.yml`。
+- 两个平台都必须完成构建、原生依赖、私有源、启动合同、更新清单和远端完整回下载；反馈用户安装、设备级交互及安装升级证据按 `owner-approved-post-release-v3.1.2` 后补，不得冒充已通过。
+
 ## v3.1.1 已发布结果
 
 - Windows 与 Mac 固定源码/Tag：`6188f7547062e9c01578994fb5247f8e30f3f208` / `v3.1.1`，进入同一非草稿、非预发布 Latest Release：<https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.1.1>。

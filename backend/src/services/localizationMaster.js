@@ -116,7 +116,7 @@ function ttsJobInputDigest(input = {}) {
     asrThreshold: input.asrThreshold,
     subtitleTimingMode: input.subtitleTimingMode,
     subtitleTextMode: input.subtitleTextMode,
-    subtitleIncludeRole: input.subtitleIncludeRole !== false,
+    subtitleIncludeRole: input.subtitleIncludeRole === true,
     postprocessPreset: input.postprocessPreset,
     postprocessStrength: input.postprocessStrength,
     seed: input.seed,
@@ -335,6 +335,7 @@ async function probeRuntime(layout = runtimeLayout()) {
 }
 
 async function inspectIndexTtsRuntime() {
+  const license = await readIndexTtsLicenseReceipt();
   const probe = await probeRuntime();
   const engineReady = !!probe.engineRoot;
   const dependenciesReady = probe.dependenciesReady === true;
@@ -342,9 +343,10 @@ async function inspectIndexTtsRuntime() {
   const auxiliaryReady = probe.auxiliaryReady === true;
   const nvidiaAvailable = hasNvidiaGpu();
   const accelerationReady = !nvidiaAvailable || probe.torch?.cudaAvailable === true;
-  const ready = engineReady && dependenciesReady && modelReady && auxiliaryReady && accelerationReady;
+  const ready = license.accepted && engineReady && dependenciesReady && modelReady && auxiliaryReady && accelerationReady;
   let message = 'IndexTTS 2.5 本地引擎已就绪，无需 ComfyUI。';
-  if (!probe.python) message = '未找到可用的内置 Python 运行时，请点击“一键安装本地引擎”。';
+  if (!license.accepted) message = '请先在本机阅读并接受 IndexTTS 2.5 模型许可。许可不会写入画布或随项目传递。';
+  else if (!probe.python) message = '未找到可用的内置 Python 运行时，请点击“一键安装本地引擎”。';
   else if (!engineReady) message = 'IndexTTS 2.5 推理引擎尚未安装。';
   else if (!dependenciesReady) message = `本地推理依赖尚未完成：${(probe.missingDependencies || []).join('、') || probe.probeError || '需要安装'}`;
   else if (!modelReady) message = 'IndexTTS 2.5 模型尚未下载（约 5.5GB，需先确认模型许可）。';
@@ -352,6 +354,8 @@ async function inspectIndexTtsRuntime() {
   else if (!accelerationReady) message = '检测到 NVIDIA GPU，但当前 Torch 不是可用的 CUDA 版本，需要修复本地推理依赖。';
   return {
     schema: 't8-indextts25-runtime-receipt-v2', checkedAt: Date.now(), ready, online: true,
+    licenseAccepted: license.accepted,
+    ...(license.acceptedAt ? { licenseAcceptedAt: license.acceptedAt } : {}),
     engineReady, dependenciesReady, modelReady, auxiliaryReady, accelerationReady, nvidiaAvailable,
     pythonVersion: String(probe.pythonVersion || ''),
     device: probe.torch?.cudaAvailable ? 'cuda' : probe.torch?.mpsAvailable ? 'mps' : 'cpu',
@@ -364,6 +368,51 @@ async function inspectIndexTtsRuntime() {
     auxiliaryFileCount: Number(probe.auxiliaryFileCount || 0),
     requiresComfyUI: false, install: { ...installState }, message,
   };
+}
+
+async function readIndexTtsLicenseReceipt() {
+  const layout = runtimeLayout();
+  try {
+    const payload = JSON.parse(await fsp.readFile(layout.licenseReceiptPath, 'utf8'));
+    const accepted = payload?.schema === 't8-indextts25-model-license-receipt-v1'
+      && payload?.modelRepository === MODEL_REPOSITORY
+      && payload?.modelRevision === MODEL_REVISION
+      && Number(payload?.acceptedAt) > 0;
+    return { accepted, acceptedAt: accepted ? Number(payload.acceptedAt) : 0 };
+  } catch {
+    return { accepted: false, acceptedAt: 0 };
+  }
+}
+
+async function acceptIndexTtsModelLicense(input = {}) {
+  if (input?.accepted !== true) {
+    const error = new Error('必须在本机明确阅读并接受 IndexTTS 2.5 模型许可。');
+    error.code = 'INDEXTTS25_LICENSE_NOT_CONFIRMED';
+    error.status = 409;
+    throw error;
+  }
+  const layout = runtimeLayout();
+  await fsp.mkdir(layout.root, { recursive: true });
+  const receipt = {
+    schema: 't8-indextts25-model-license-receipt-v1',
+    acceptedAt: Date.now(),
+    modelRepository: MODEL_REPOSITORY,
+    modelRevision: MODEL_REVISION,
+    licenseUrl: MODEL_LICENSE_URL,
+  };
+  await writeJsonAtomic(layout.licenseReceiptPath, receipt);
+  return { accepted: true, acceptedAt: receipt.acceptedAt, modelRepository: MODEL_REPOSITORY, modelRevision: MODEL_REVISION };
+}
+
+async function requireIndexTtsModelLicense() {
+  const receipt = await readIndexTtsLicenseReceipt();
+  if (!receipt.accepted) {
+    const error = new Error('必须先在本机确认 IndexTTS 2.5 模型许可，画布中的旧确认不会被信任。');
+    error.code = 'INDEXTTS25_LICENSE_NOT_CONFIRMED';
+    error.status = 409;
+    throw error;
+  }
+  return receipt;
 }
 
 async function downloadFile(url, destination, expectedSha256, signal) {
@@ -489,11 +538,7 @@ async function installModelSourceDependency(python, layout, engineRoot, signal, 
 }
 function updateInstall(stage, progress, message) { installState = { ...installState, running: true, stage, progress, message, error: '' }; }
 async function performInstall(input, signal) {
-  if (input?.modelLicenseConfirmed !== true) {
-    const error = new Error('必须先阅读并确认 IndexTTS 2.5 模型许可。');
-    error.code = 'INDEXTTS25_LICENSE_NOT_CONFIRMED';
-    throw error;
-  }
+  await requireIndexTtsModelLicense();
   const layout = runtimeLayout();
   await Promise.all([fsp.mkdir(layout.root, { recursive: true }), fsp.mkdir(layout.cacheRoot, { recursive: true }), fsp.mkdir(layout.modelRoot, { recursive: true })]);
   updateInstall('engine', 8, '正在校验并安装 IndexTTS 2.5 推理引擎…');
@@ -535,10 +580,6 @@ async function performInstall(input, signal) {
     ];
     throw new Error(finalProbe.probeError || `最终校验未通过：${failures.join('、')}`);
   }
-  await fsp.writeFile(layout.licenseReceiptPath, `${JSON.stringify({
-    schema: 't8-indextts25-model-license-receipt-v1', acceptedAt: Date.now(), modelRepository: MODEL_REPOSITORY,
-    modelRevision: MODEL_REVISION, licenseUrl: MODEL_LICENSE_URL, source: modelSource,
-  }, null, 2)}\n`, 'utf8');
   updateInstall('complete', 100, 'IndexTTS 2.5 本地引擎与模型已就绪。');
 }
 function startIndexTtsRuntimeInstall(input = {}) {
@@ -696,13 +737,19 @@ async function ensureAudioFile(mediaRef, options = {}) {
 }
 
 async function runIndexTtsDialogue(input, options = {}) {
-  if (input?.modelLicenseConfirmed !== true) throw new Error('必须先确认 IndexTTS 2.5 模型许可。');
+  await requireIndexTtsModelLicense();
   const language = String(input.language || '').trim().toUpperCase();
   if (!DUBBING_LANGUAGES.has(language)) throw new Error(`IndexTTS 2.5 不支持 ${language} 配音。`);
   const units = Array.isArray(input.units) ? input.units.slice(0, 5_000) : [];
   if (!units.length) throw new Error('没有可配音的译文。');
-  const inputRoles = Array.isArray(input.roles) ? input.roles.slice(0, 16) : [];
+  const inputRoles = Array.isArray(input.roles) ? input.roles : [];
   if (!inputRoles.length) throw new Error('至少需要 1 个角色音色。');
+  if (inputRoles.length > 16) {
+    const error = new Error(`IndexTTS 2.5 最多支持 16 个角色音色，当前为 ${inputRoles.length} 个。`);
+    error.code = 'LOCALIZATION_ROLE_LIMIT_EXCEEDED';
+    error.status = 400;
+    throw error;
+  }
   const jobId = ttsJobIdentity(input);
   const inputDigest = ttsJobInputDigest(input);
   const paths = ttsJobPaths(jobId, options);
@@ -784,7 +831,7 @@ async function runIndexTtsDialogue(input, options = {}) {
         roles, outputDir: paths.outputDir, timelinePolicy: input.timelinePolicy, timingMode: input.timingMode,
         asrEnabled: input.asrEnabled !== false, asrRetryCount: input.asrRetryCount, asrThreshold: input.asrThreshold,
         subtitleTimingMode: input.subtitleTimingMode, subtitleTextMode: input.subtitleTextMode,
-        subtitleIncludeRole: input.subtitleIncludeRole !== false, postprocessPreset: input.postprocessPreset,
+        subtitleIncludeRole: input.subtitleIncludeRole === true, postprocessPreset: input.postprocessPreset,
         postprocessStrength: input.postprocessStrength, seed: input.seed,
       }, { signal: options.signal, onProgress: options.onProgress });
       const current = generationTail.then(run, run);
@@ -837,13 +884,65 @@ async function runIndexTtsDialogue(input, options = {}) {
   }
 }
 
+async function retryIndexTtsDialogueLine(input, options = {}) {
+  await requireIndexTtsModelLicense();
+  const unit = input?.unit && typeof input.unit === 'object' ? input.unit : null;
+  if (!unit) throw new Error('缺少要重新配音的台词。');
+  const startMs = Math.max(0, Math.round(Number(unit.startMs) || 0));
+  const endMs = Math.max(startMs + 1, Math.round(Number(unit.endMs) || startMs + 1));
+  const baseAudio = await ensureAudioFile(boundedText(input.baseAudioUrl, 16_384, '现有配音音轨'), options);
+  let replacement;
+  try {
+    const lineResult = await runIndexTtsDialogue({
+      ...input,
+      units: [{ ...unit, startMs: 0, endMs: endMs - startMs }],
+      roles: Array.isArray(input.roles) ? input.roles : [],
+      timelinePolicy: 'shift',
+      subtitleTimingMode: 'original',
+      subtitleIncludeRole: false,
+      jobKey: boundedText(input.jobKey, 512, '逐句重配任务键'),
+    }, options);
+    replacement = await ensureAudioFile(lineResult.audioUrl, options);
+    await fsp.mkdir(config.OUTPUT_DIR, { recursive: true });
+    const output = path.join(config.OUTPUT_DIR, safeOutputName(`localized_line_${Number(unit.index) || 0}`, '.wav'));
+    const startSeconds = (startMs / 1000).toFixed(3);
+    const endSeconds = (endMs / 1000).toFixed(3);
+    const slotSeconds = Math.max(0.001, (endMs - startMs) / 1000);
+    const fadeSeconds = Math.min(0.02, slotSeconds / 4);
+    const fadeOutStart = Math.max(0, slotSeconds - fadeSeconds);
+    // Keep the untouched programme at its original gain. FFmpeg amix defaults to
+    // normalize=1, which would make the whole reused track quieter even though
+    // only one dialogue slot is being replaced.
+    const filter = `[0:a]volume=0:enable='between(t,${startSeconds},${endSeconds})'[base];[1:a]atrim=0:${slotSeconds.toFixed(3)},asetpts=PTS-STARTPTS,afade=t=in:st=0:d=${fadeSeconds.toFixed(3)},afade=t=out:st=${fadeOutStart.toFixed(3)}:d=${fadeSeconds.toFixed(3)},adelay=${startMs}:all=1[new];[base][new]amix=inputs=2:duration=first:dropout_transition=0:normalize=0[out]`;
+    await runProcess(resolveFfmpeg(), [
+      '-y', '-i', baseAudio.path, '-i', replacement.path,
+      '-filter_complex', filter, '-map', '[out]', '-c:a', 'pcm_s16le', output,
+    ], { timeoutMs: 60 * 60_000, signal: options.signal });
+    const stat = await fsp.stat(output);
+    if (!stat.size) throw new Error('逐句重配生成了空音频。');
+    return {
+      schema: 't8-localization-tts-line-retry-result-v1',
+      index: Number(unit.index) || 0,
+      audioUrl: outputPublicUrl(output),
+      byteLength: stat.size,
+      sha256: await sha256File(output),
+      lineResult,
+    };
+  } finally {
+    if (baseAudio.temporary) await fsp.rm(baseAudio.path, { force: true }).catch(() => undefined);
+    if (baseAudio.sourceTemporaryPath) await fsp.rm(baseAudio.sourceTemporaryPath, { force: true }).catch(() => undefined);
+    if (replacement?.temporary) await fsp.rm(replacement.path, { force: true }).catch(() => undefined);
+    if (replacement?.sourceTemporaryPath) await fsp.rm(replacement.sourceTemporaryPath, { force: true }).catch(() => undefined);
+  }
+}
+
 async function muxLocalizedVideo(input, options = {}) {
   const video = await materializeMediaRef(boundedText(input.videoUrl, 16_384, '源视频'), options);
   const audio = await ensureAudioFile(boundedText(input.audioUrl, 16_384, '配音音轨'), options);
   await fsp.mkdir(config.OUTPUT_DIR, { recursive: true });
   const output = path.join(config.OUTPUT_DIR, safeOutputName('localized_video', '.mp4'));
   try {
-    await runProcess(resolveFfmpeg(), ['-y', '-i', video.path, '-i', audio.path, '-map', '0:v:0', '-map', '1:a:0', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-shortest', '-movflags', '+faststart', output], { timeoutMs: 60 * 60_000, signal: options.signal });
+    await runProcess(resolveFfmpeg(), ['-y', '-i', video.path, '-i', audio.path, '-filter_complex', '[1:a:0]apad[a]', '-map', '0:v:0', '-map', '[a]', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-shortest', '-movflags', '+faststart', output], { timeoutMs: 60 * 60_000, signal: options.signal });
     const stat = await fsp.stat(output);
     if (!stat.size) throw new Error('视频换轨生成了空文件。');
     return { schema: 't8-localization-video-mux-result-v1', videoUrl: outputPublicUrl(output), byteLength: stat.size, sha256: await sha256File(output), audioPolicy: 'replace' };
@@ -871,7 +970,7 @@ async function writeLocalizationSubtitle(input) {
 }
 
 module.exports = {
-  DUBBING_LANGUAGES, MODEL_LICENSE_URL, cancelIndexTtsRuntimeInstall, inspectIndexTtsRuntime,
-  inspectIndexTtsJob, muxLocalizedVideo, runIndexTtsDialogue, startIndexTtsRuntimeInstall, stopWorker,
+  DUBBING_LANGUAGES, MODEL_LICENSE_URL, acceptIndexTtsModelLicense, cancelIndexTtsRuntimeInstall, inspectIndexTtsRuntime,
+  inspectIndexTtsJob, muxLocalizedVideo, retryIndexTtsDialogueLine, runIndexTtsDialogue, startIndexTtsRuntimeInstall, stopWorker,
   writeLocalizationSubtitle,
 };

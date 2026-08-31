@@ -5,7 +5,12 @@ async function localizationRequest<T>(path: string, options: RequestInit = {}): 
   const text = await response.text();
   let payload: any;
   try { payload = text ? JSON.parse(text) : null; } catch { throw new Error(`本地化接口返回异常：${text.slice(0, 200)}`); }
-  if (!response.ok || !payload?.success) throw new Error(payload?.error || `HTTP ${response.status}`);
+  if (!response.ok || !payload?.success) {
+    const error = new Error(payload?.error || `HTTP ${response.status}`) as Error & { code?: string; status?: number };
+    error.code = String(payload?.code || 'LOCALIZATION_REQUEST_FAILED');
+    error.status = response.status;
+    throw error;
+  }
   return payload.data as T;
 }
 
@@ -13,8 +18,23 @@ export function inspectLocalizationRuntime(signal?: AbortSignal): Promise<Locali
   return localizationRequest<LocalizationRuntimeReceipt>('runtime', { signal });
 }
 
+export function acceptLocalizationModelLicense(signal?: AbortSignal): Promise<{
+  accepted: true;
+  acceptedAt: number;
+  modelRepository: string;
+  modelRevision: string;
+}> {
+  return localizationRequest('runtime/license', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ accepted: true }),
+    signal,
+  });
+}
+
 export function installLocalizationRuntime(input: {
-  modelLicenseConfirmed: true;
+  /** @deprecated The backend trusts only its device-local license receipt. */
+  modelLicenseConfirmed?: true;
   source?: 'huggingface' | 'modelscope';
 }, signal?: AbortSignal): Promise<LocalizationRuntimeReceipt['install'] & { duplicate?: boolean }> {
   return localizationRequest('runtime/install', {
@@ -40,7 +60,8 @@ export interface LocalizationTtsRequest {
   subtitleIncludeRole: boolean;
   postprocessPreset: string;
   postprocessStrength: number;
-  modelLicenseConfirmed: true;
+  /** @deprecated The backend trusts only its device-local license receipt. */
+  modelLicenseConfirmed?: true;
   seed?: number;
   /** Stable Canvas Attempt identity. The backend hashes it and never persists the raw value. */
   jobKey?: string;
@@ -69,6 +90,25 @@ export function inspectLocalizationTtsJob(jobId: string, signal?: AbortSignal): 
 
 export function runLocalizationTts(input: LocalizationTtsRequest, signal?: AbortSignal): Promise<LocalizationTtsResult> {
   return localizationRequest<LocalizationTtsResult>('tts', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+    signal,
+  });
+}
+
+export function retryLocalizationTtsLine(input: Omit<LocalizationTtsRequest, 'units'> & {
+  baseAudioUrl: string;
+  unit: LocalizationTtsRequest['units'][number];
+}, signal?: AbortSignal): Promise<{
+  schema: 't8-localization-tts-line-retry-result-v1';
+  index: number;
+  audioUrl: string;
+  byteLength: number;
+  sha256: string;
+  lineResult: LocalizationTtsResult;
+}> {
+  return localizationRequest('tts/retry-line', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(input),

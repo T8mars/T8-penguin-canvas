@@ -110,6 +110,7 @@ import {
   selectStoryAssetTargets,
   selectStoryVideoTargets,
   splitStoryShot,
+  storyProviderSubmissionKey,
   storyAnalysisSystemPrompt,
   storyAnalysisUserPrompt,
   storyAssetKindLabel,
@@ -158,6 +159,13 @@ const STAGE_ORDER: StoryStage[] = ['script', 'shots', 'assets', 'prompts', 'vide
 const ASSET_KIND_ORDER: StoryAssetKind[] = ['character', 'scene', 'prop', 'costume', 'audio'];
 const ACTIVE_TASK_STATUSES = new Set(['submitting', 'running', 'polling']);
 const POLL_TIMEOUT_MS = 60 * 60 * 1000;
+
+function storyReporterSubmissionBase(reporter: RunNodeLifecycleReporter): string {
+  return reporter.providerSubmissionKey
+    || reporter.attemptId
+    || reporter.nodeRunId
+    || reporter.executionToken;
+}
 const GPT_IMAGE_2_OPTIONS = IMAGE_MODELS.find((item) => item.id === 'gpt-image-2')?.apiModelOptions || [];
 const LEGACY_GPT_IMAGE_2_MODELS = new Set(['gpt-image-2-all', 'gpt-image-2', 'gpt-image-2-2K', 'gpt-image-2-4K']);
 const STORY_LEGACY_IMAGE_OPTIONS = [
@@ -609,7 +617,7 @@ const StoryNode = ({ id, data, selected }: NodeProps) => {
         ? current.settings.llmNzModel
         : current.settings.llmModel
     );
-    const runLlm = (messages: Array<{ role: 'system' | 'user'; content: string }>, temperature: number) => external
+    const runLlm = (messages: Array<{ role: 'system' | 'user'; content: string }>, temperature: number, operation: string) => external
       ? generateExternalLlm({
         providerId: external.providerId,
         providerModel: external.providerModel,
@@ -617,14 +625,16 @@ const StoryNode = ({ id, data, selected }: NodeProps) => {
         temperature,
         max_tokens: 32768,
         messages,
-      }, { submissionKey: reporter.providerSubmissionKey })
-      : generateLlm({ source: builtinSource, model, temperature, max_tokens: 32768, messages }, { submissionKey: reporter.providerSubmissionKey });
+      }, { submissionKey: storyProviderSubmissionKey(storyReporterSubmissionBase(reporter), operation, current.storyId) })
+      : generateLlm({ source: builtinSource, model, temperature, max_tokens: 32768, messages }, {
+        submissionKey: storyProviderSubmissionKey(storyReporterSubmissionBase(reporter), operation, current.storyId),
+      });
     try {
       await reporter.providerRequest({ provider, model, jobKind: 'story-analysis' });
       const result = await runLlm([
           { role: 'system', content: storyAnalysisSystemPrompt() },
           { role: 'user', content: storyAnalysisUserPrompt(current.script, current.settings) },
-        ], 0.2);
+        ], 0.2, 'analysis');
       await reporter.providerResponse({
         provider, model, requestId: result.requestId,
         transportHttpStatus: result.transportHttpStatus,
@@ -637,7 +647,7 @@ const StoryNode = ({ id, data, selected }: NodeProps) => {
         const repaired = await runLlm([
             { role: 'system', content: `${storyAnalysisSystemPrompt()}\n这是一次且仅一次的格式修复：保持原有事实和镜头，不得删减剧本覆盖，只修成合法 JSON。` },
             { role: 'user', content: JSON.stringify({ parseError: parseError?.message || 'JSON 无效', invalidResponse: String(result.content || '').slice(0, 60_000) }) },
-          ], 0);
+          ], 0, 'analysis-repair');
         await reporter.providerResponse({
           provider, model, requestId: repaired.requestId,
           transportHttpStatus: repaired.transportHttpStatus, usage: repaired.usage,
@@ -679,6 +689,7 @@ const StoryNode = ({ id, data, selected }: NodeProps) => {
   ) => {
     const asset = projectRef.current.assets.find((item) => item.id === assetId);
     if (!asset || asset.locked || asset.url && !replaceExisting) return;
+    const assetSubmissionKey = storyProviderSubmissionKey(storyReporterSubmissionBase(reporter), 'asset', assetId);
     const originalUrl = asset.url;
     const generationSpec = buildStoryAssetGenerationSpec(projectRef.current, asset);
     const referenceImages = generationSpec.referenceImages;
@@ -722,7 +733,7 @@ const StoryNode = ({ id, data, selected }: NodeProps) => {
       } else {
         const submitted = await submitAudio(
           { mode: 'generate', prompt: generationSpec.prompt, title: asset.name, version: 'v5.5' },
-          { submissionKey: reporter.providerSubmissionKey },
+          { submissionKey: assetSubmissionKey },
         );
         taskId = submitted.taskId;
         taskProvider = 'suno';
@@ -765,7 +776,7 @@ const StoryNode = ({ id, data, selected }: NodeProps) => {
         images: referenceImages,
         size: externalImageSizeFor(imageAspectRatio, '2K'),
         n: 1,
-      }, { submissionKey: reporter.providerSubmissionKey });
+      }, { submissionKey: assetSubmissionKey });
       url = String(result.imageUrls?.[0] || '');
       taskId = String(result.taskId || '');
       taskProvider = external.providerSource;
@@ -786,7 +797,7 @@ const StoryNode = ({ id, data, selected }: NodeProps) => {
           ratio: isLowpriceModel ? undefined : imageAspectRatio as any,
           size: isLowpriceModel ? imageAspectRatio : undefined,
           n: isLowpriceModel ? 1 : undefined,
-        }, { submissionKey: reporter.providerSubmissionKey });
+        }, { submissionKey: assetSubmissionKey });
         taskId = String(submitted.taskId || '');
         taskProvider = 'seedance-nz';
         if (!taskId) throw new Error(`${asset.name} 未返回图像任务 ID`);
@@ -832,7 +843,7 @@ const StoryNode = ({ id, data, selected }: NodeProps) => {
           mode: referenceImages.length ? 'edit' : 'gen',
           size: falImageSizeFor(imageAspectRatio),
           quality: 'medium',
-        }, { submissionKey: reporter.providerSubmissionKey });
+        }, { submissionKey: assetSubmissionKey });
         url = String(submitted.urls?.[0] || '');
         taskId = String(submitted.requestId || '');
         taskEndpoint = String(submitted.endpoint || '');
@@ -879,7 +890,7 @@ const StoryNode = ({ id, data, selected }: NodeProps) => {
         n: 1,
         aspect_ratio: imageAspectRatio,
         image_size: gptImage2ZhenzhenVariantSize(model) || '2K',
-      }, { submissionKey: reporter.providerSubmissionKey });
+      }, { submissionKey: assetSubmissionKey });
       url = String(result.urls?.[0] || '');
       if (!url) throw new Error(`${asset.name} 未返回图片`);
       await reporter.providerResponse({ provider: 'zhenzhen', model, requestId: result.requestId, transportHttpStatus: result.transportHttpStatus, upstreamHttpStatus: result.upstreamHttpStatus, usage: result.usage, status: 'succeeded', jobId: assetId, jobKind: 'story-asset', httpStatusSource: 'local-backend' });
@@ -1170,6 +1181,7 @@ const StoryNode = ({ id, data, selected }: NodeProps) => {
     let taskProvider = resumable ? shot!.taskProvider : defaultProvider;
     let taskId = resumable ? shot!.taskId : '';
     let resolvedModel = resumable && shot!.taskModel ? shot!.taskModel : external?.providerModel || job.payload.model;
+    const shotSubmissionKey = storyProviderSubmissionKey(storyReporterSubmissionBase(reporter), 'shot', job.shotId);
     if (external) {
       taskProvider = external.providerSource;
       await reporter.providerRequest({ provider: taskProvider, model: resolvedModel, jobId: job.id, jobKind: 'story-shot', resumed: false });
@@ -1192,7 +1204,7 @@ const StoryNode = ({ id, data, selected }: NodeProps) => {
         videos: job.payload.videos,
         audios: job.payload.audios,
         providerParams: job.payload.providerParams,
-      }, { submissionKey: reporter.providerSubmissionKey });
+      }, { submissionKey: shotSubmissionKey });
       const videoUrl = String(result.videoUrls?.[0] || '');
       if (!videoUrl) throw new Error(`${job.title} 未返回视频`);
       if (result.taskId || result.requestId) await reporter.providerSubmitted({ provider: taskProvider, model: resolvedModel, upstreamTaskId: result.taskId, requestId: result.requestId, transportHttpStatus: result.transportHttpStatus, upstreamHttpStatus: result.upstreamHttpStatus, usage: result.usage, jobId: job.id, jobKind: 'story-shot', httpStatusSource: 'local-backend' });
@@ -1205,7 +1217,7 @@ const StoryNode = ({ id, data, selected }: NodeProps) => {
     } else {
       const submitted = await submitSeedance(
         { ...job.payload, taskProvider: defaultProvider },
-        { submissionKey: reporter.providerSubmissionKey },
+        { submissionKey: shotSubmissionKey },
       );
       taskProvider = submitted.taskProvider || defaultProvider;
       taskId = submitted.taskId;

@@ -10,18 +10,18 @@ https://www.runninghub.cn/?inviteCode=rh-v1121
 My favorite girl Go YounJung
 # 🐧 贞贞的无限画布（企鹅共创版） · T8-penguin-canvas
 
-> AI 节点画布工作流工具 · Web + Electron 桌面端｜v3.1.1
+> AI 节点画布工作流工具 · Web + Electron 桌面端｜v3.1.2
 >
 > GitHub：<https://github.com/T8mars/T8-penguin-canvas>
 
 一个面向 AI 创作的 **节点式画布**：拖拽节点、连线编排、生成图像 / 视频 / 音频、调用 LLM、串接 RunningHub 工作流，叠加批量执行、智能对齐、打组、主题模板与终端日志。Web 浏览器和桌面端均可使用。
 
-![status](https://img.shields.io/badge/version-v3.1.1-brightgreen) ![node](https://img.shields.io/badge/node-83-blue) ![react](https://img.shields.io/badge/react-19-61dafb) ![electron](https://img.shields.io/badge/electron-33-47848f) ![license](https://img.shields.io/badge/license-MIT-yellow)
+![status](https://img.shields.io/badge/version-v3.1.2-brightgreen) ![node](https://img.shields.io/badge/node-83-blue) ![react](https://img.shields.io/badge/react-19-61dafb) ![electron](https://img.shields.io/badge/electron-33-47848f) ![license](https://img.shields.io/badge/license-MIT-yellow)
 
 ## 💻 桌面版下载
 
-- **Windows x64**：在 [v3.1.1 Release](https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.1.1) 下载 `T8-PenguinCanvas-Setup-3.1.1.exe`。
-- **macOS Apple Silicon**：同一 Release 提供 `T8-PenguinCanvas-3.1.1-mac-arm64.dmg` 技术预览，支持 M1/M2/M3/M4 等 arm64 Mac，最低 macOS 12。当前包使用 ad-hoc 完整性签名，尚无 Apple Developer ID 签名和公证；首次打开请在 Finder 中右键应用并选择“打开”。Intel Mac 暂不支持。
+- **Windows x64**：在 [v3.1.2 Release](https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.1.2) 下载 `T8-PenguinCanvas-Setup-3.1.2.exe`。
+- **macOS Apple Silicon**：同一 Release 提供 `T8-PenguinCanvas-3.1.2-mac-arm64.dmg` 技术预览，支持 M1/M2/M3/M4 等 arm64 Mac，最低 macOS 12。当前包使用 ad-hoc 完整性签名，尚无 Apple Developer ID 签名和公证；首次打开请在 Finder 中右键应用并选择“打开”。Intel Mac 暂不支持。
 
 ---
 
@@ -41,6 +41,7 @@ My favorite girl Go YounJung
 ## ✨ 功能亮点
 
 - 🎨 **83 个节点**，覆盖文本 / 图像 / 视频 / 音频 / LLM / RunningHub / ComfyUI / 3D / 工具 / 辅助 / 工具箱 / 输出预览 / 上传素材 / 素材集 / 火山引擎素材库 / 批量打标 / 随机路由 / Story 全自动制片 / 剧本大师 / Creator Agent 作品化 / 多语言本地化大师 / MiniMax H3 / MiniMax Music3 / Seedance 2.0 提示词增强器 / MiniMax H3 官方提示词增强器 / Seedance 2.5 / FlashVSR 视频超分 / 白模预演 / MV 音乐大师
+- 💬🛡️ **[v3.1.2 极简创作与大画布可靠性版](https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.1.2)**：Creator Agent 改为六步进度、自然对话、三个明确建议和对话内媒体的极简 V2，正式回复继续强制真实 LLM；本地化大师完善可恢复翻译、单句重配和五语 IndexTTS 2.5；输出素材不再静默截断为 59/60 项，Story 与画布运行增加稳定提交身份和同节点防重复启动，终态 Run 不再永久钉住全画布快照。默认渠道、模型、MiniMax Music3、Veo Omni 1.1 与全部旧画布能力保持不变。
 - 🎬🌍 **[v3.1.1 作品化、本地化与 Veo Omni 1.1 双平台热修版](https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.1.1)**：Creator Agent 正式创作强制真实 LLM 和版本化作品/回执闭环；新增多语言本地化大师，以固定 IndexTTS 2.5 完成中、英、日、西、阿五语本地配音；视频节点 Veo TAB 新增 `zhenzhen-video-g-omni-1.1-flash-lowprice`，覆盖文生、单首帧、三图参考和单视频参考四种工作流；并修复 macOS 本地化运行时资源重复打包。默认仍为贞贞的平价AI小屋 `bytedance/doubao-seed-2.1-pro`。
 - ⚡ **[v3.0.9 启动与性能控制体验版](https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.0.9)**：核心目录开发启动不再要求切换到另一条开发分支，启动器会安全清理旧的本项目开发进程与监听端口；画布“自动 / 高性能”控制移到顶部工具条最右侧、紧邻终端按钮，支持醒目状态提示、窄屏收缩、点击外部与 Esc 关闭，并遵循减少动态效果偏好。
 - 🗃️ **[v3.0.8 火山素材选材与本地中转版](https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.0.8)**：最多 15 个已选素材集中在节点内一个预览栏，可逐项删除或一键清空，不再为每个素材自动铺开输出节点；本地图像、视频和音频可复用 API 设置中已启用的 COS、OSS 或 WebDAV 目标取得公网 URL，再导入火山素材库，画布不保存本机路径、中转凭据或临时地址。

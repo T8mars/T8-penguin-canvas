@@ -53,3 +53,15 @@ test('placement shelf can be hidden and restored from the consolidated canvas to
   assert.match(css, /\.t8-placement-shelf\[data-placement-shelf-hidden="false"\]/);
   assert.match(css, /html\[data-theme-visual\] \.t8-canvas-shell \.t8-control-rail-placement-shelf/);
 });
+
+test('placement shelf retains every canvas material and paginates only rendered previews', () => {
+  const canvas = read('../src/components/Canvas.tsx');
+
+  assert.doesNotMatch(canvas, /placementShelfItemsFromCanvasNodes[\s\S]{0,500}\.slice\(0, 60\)/);
+  assert.doesNotMatch(canvas, /return next\.slice\(0, 60\)/);
+  assert.match(canvas, /const \[expandedVisibleCount, setExpandedVisibleCount\] = useState\(20\)/);
+  assert.match(canvas, /items\.slice\(0, open \? expandedVisibleCount : 5\)/);
+  assert.match(canvas, /setExpandedVisibleCount\(\(count\) => Math\.min\(items\.length, count \+ 20\)\)/);
+  assert.match(canvas, /controls\.shelfLoadMore/);
+  assert.match(canvas, /limit: items\.length/);
+});

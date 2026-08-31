@@ -631,6 +631,120 @@ test('B2 explicit owner pins exclude Text/output/grant/Patch base/reverted and c
   }
 });
 
+test('B2 terminal Runs retain execution history while releasing full-canvas snapshot pins', () => {
+  const database = new ProjectDatabase(':memory:', databaseOptions({
+    canvasSnapshotRetentionLimit: 2,
+    canvasHistoryPolicy: { maxSnapshotRows: 4 },
+  }));
+  try {
+    let document = seed(database, '-terminal-run-release');
+    document = move(database, document, 1, 'terminal-run-release');
+    const run = createActiveRun(database, document, 'snapshot-pin-terminal-run');
+    const nodeRun = database.createNodeRun({
+      runId: run.id,
+      nodeId: NODE_ID,
+      status: 'running',
+      inputSnapshot: { prompt: '保留 Run 自身输入证据', upstreamNodes: [], incomingEdges: [] },
+    });
+    assert.equal(pinRows(database, document.canvasId).some((pin) => pin.pinKind === 'run' && pin.ownerId === run.id), true);
+
+    database.updateNodeRun(nodeRun.id, { status: 'succeeded' });
+    database.updateRun(run.id, { status: 'succeeded' });
+
+    assert.equal(pinRows(database, document.canvasId).some((pin) => pin.pinKind === 'run' && pin.ownerId === run.id), false);
+    assert.equal(database.getRun(run.id).status, 'succeeded');
+    assert.deepEqual(database.getNodeRun(nodeRun.id).inputSnapshot, {
+      prompt: '保留 Run 自身输入证据', upstreamNodes: [], incomingEdges: [],
+    });
+
+    for (let sequence = 2; sequence <= 8; sequence += 1) {
+      document = move(database, document, sequence, 'terminal-run-release');
+      database.recordCanvasSnapshot(document, 'terminal-run-release');
+    }
+    assert.ok(snapshotRows(database, document.canvasId).length <= 4);
+    assert.equal(database.getRun(run.id).status, 'succeeded');
+    assert.ok(database.getNodeRun(nodeRun.id));
+    assert.equal(database.db.pragma('quick_check', { simple: true }), 'ok');
+    assert.deepEqual(database.db.pragma('foreign_key_check'), []);
+  } finally {
+    database.close();
+  }
+});
+
+test('B2 many terminal Runs survive a small snapshot window without lowering Run retention', () => {
+  const database = new ProjectDatabase(':memory:', databaseOptions({
+    canvasSnapshotRetentionLimit: 2,
+    canvasHistoryPolicy: { maxSnapshotRows: 4, maxPinRows: 100 },
+  }));
+  try {
+    let document = seed(database, '-many-terminal-runs');
+    const runIds = [];
+    for (let sequence = 1; sequence <= 12; sequence += 1) {
+      document = move(database, document, sequence, 'many-terminal-runs');
+      const run = createActiveRun(database, document, `snapshot-pin-terminal-run-${sequence}`);
+      runIds.push(run.id);
+      const nodeRun = database.createNodeRun({
+        runId: run.id,
+        nodeId: NODE_ID,
+        status: 'succeeded',
+        inputSnapshot: { sequence, upstreamNodes: [], incomingEdges: [] },
+      });
+      database.updateRun(run.id, { status: 'succeeded' });
+      assert.equal(database.getNodeRun(nodeRun.id).inputSnapshot.sequence, sequence);
+    }
+
+    assert.equal(database.db.prepare(`
+      SELECT COUNT(*) AS count FROM runs WHERE project_id = ? AND canvas_id = ?
+    `).get(document.projectId, document.canvasId).count, 12);
+    assert.deepEqual(database.db.prepare(`
+      SELECT id FROM runs WHERE project_id = ? AND canvas_id = ? ORDER BY created_at ASC, id ASC
+    `).all(document.projectId, document.canvasId).map((row) => row.id).sort(), [...runIds].sort());
+    assert.equal(pinRows(database, document.canvasId).some((pin) => pin.pinKind === 'run'), false);
+    assert.ok(snapshotRows(database, document.canvasId).length <= 4);
+    assert.equal(database.db.pragma('quick_check', { simple: true }), 'ok');
+    assert.deepEqual(database.db.pragma('foreign_key_check'), []);
+  } finally {
+    database.close();
+  }
+});
+
+test('B2 cold reopen upgrades terminal Run pins left by an older build without losing Run evidence', async () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 't8-b2-terminal-run-pin-upgrade-'));
+  const filename = path.join(directory, 'projects.sqlite3');
+  let database = null;
+  try {
+    database = new ProjectDatabase(filename, databaseOptions());
+    let document = seed(database, '-terminal-pin-upgrade');
+    document = move(database, document, 1, 'terminal-pin-upgrade');
+    const run = createActiveRun(database, document, 'snapshot-pin-old-terminal-run');
+    const nodeRun = database.createNodeRun({
+      runId: run.id,
+      nodeId: NODE_ID,
+      status: 'succeeded',
+      inputSnapshot: { prompt: '旧版本 Run 证据', upstreamNodes: [], incomingEdges: [] },
+    });
+    assert.equal(pinRows(database, document.canvasId).some((pin) => pin.ownerId === run.id), true);
+
+    // Reproduce the exact durable state an older build could leave behind:
+    // the Run is terminal, while its derived full-canvas pin still exists.
+    database.db.prepare(`
+      UPDATE runs SET status = 'succeeded', revision = revision + 1, finished_at = ? WHERE id = ?
+    `).run(Date.now(), run.id);
+    await database.close();
+    database = null;
+
+    database = new ProjectDatabase(filename, databaseOptions());
+    assert.equal(database.getRun(run.id).status, 'succeeded');
+    assert.equal(database.getNodeRun(nodeRun.id).inputSnapshot.prompt, '旧版本 Run 证据');
+    assert.equal(pinRows(database, document.canvasId).some((pin) => pin.pinKind === 'run' && pin.ownerId === run.id), false);
+    assert.equal(database.db.pragma('quick_check', { simple: true }), 'ok');
+    assert.deepEqual(database.db.pragma('foreign_key_check'), []);
+  } finally {
+    try { await database?.close(); } catch (_) {}
+    fs.rmSync(directory, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
+  }
+});
+
 test('B2 maxPinRows boundary rejects an owner atomically with the stable 507 pin-capacity contract', () => {
   const database = new ProjectDatabase(':memory:', databaseOptions({
     canvasHistoryPolicy: { maxPinRows: 1 },

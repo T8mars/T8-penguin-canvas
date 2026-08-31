@@ -450,6 +450,34 @@ def generate_line(
     slot_seconds = (end_ms - start_ms) / 1000.0
     candidates: list[tuple[float, Any, int, dict[str, Any]]] = []
     maximum_attempts = max(1, min(4, int(asr_retry_count) + 1 if asr_enabled else 1))
+    emotion_kwargs: dict[str, Any] = {}
+    emotion_control: dict[str, Any] = {
+        "requested": bool(emotion),
+        "applied": False,
+        "mode": "speaker",
+    }
+    if emotion:
+        try:
+            qwen_emotion = model.ensure_qwen_emotion()
+            if bool(getattr(model, "low_vram", False)):
+                import gc
+                import torch
+
+                emotion_dict = qwen_emotion.inference(emotion)
+                emotion_kwargs.update(emo_vector=list(emotion_dict.values()), emo_alpha=0.8)
+                model.qwen_emo = None
+                gc.collect()
+                if MODEL_DEVICE.startswith("cuda") and torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+                emotion_control.update(applied=True, mode="text-vector-low-vram")
+            else:
+                emotion_kwargs.update(use_emo_text=True, emo_text=emotion, emo_alpha=0.8)
+                emotion_control.update(applied=True, mode="text-qwen")
+        except Exception as exc:
+            # The spoken line remains usable when optional text-emotion guidance
+            # cannot be loaded. Record the capability downgrade instead of
+            # crashing or pretending that the requested emotion was applied.
+            emotion_control["warning"] = f"text-emotion-unavailable:{type(exc).__name__}"
     for attempt in range(maximum_attempts):
         line_seed = int(seed) + index + attempt * 100_003
         raw_path = work_dir / f"line-{index:05d}-attempt-{attempt + 1}.wav"
@@ -477,8 +505,7 @@ def generate_line(
             length_penalty=0.0,
             max_mel_tokens=1500,
         )
-        if emotion:
-            kwargs.update(use_emo_text=True, emo_text=emotion, emo_alpha=0.8)
+        kwargs.update(emotion_kwargs)
         if timing_mode == "native":
             kwargs["target_duration"] = slot_seconds
         result = model.infer(**kwargs)
@@ -513,6 +540,7 @@ def generate_line(
             "seed": line_seed,
             "durationMs": round(len(fitted) * 1000 / sample_rate),
             "durationAdjustment": adjustment,
+            "emotionControl": emotion_control,
             "asr": review,
         }
         candidates.append((score, fitted, sample_rate, report))
@@ -652,7 +680,7 @@ def handle_generate(payload: dict[str, Any], engine_root: Path, model_root: Path
                 asr = line.report.get("asr") or {}
                 if asr.get("recognizedText") and (payload.get("subtitleTextMode") == "asr_all" or asr.get("passed")):
                     subtitle_text = str(asr["recognizedText"])
-            if payload.get("subtitleIncludeRole", True):
+            if payload.get("subtitleIncludeRole", False) and line.role != "旁白":
                 subtitle_text = f"[{line.role}] {subtitle_text}"
             srt_blocks.append(f"{position}\n{format_srt_time(start_ms)} --> {format_srt_time(end_ms)}\n{subtitle_text}")
         report = {

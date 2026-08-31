@@ -444,6 +444,7 @@ const RUN_INTENT_ERROR_CODE_LIMIT = 120;
 const RUN_INTENT_ERROR_MESSAGE_LIMIT = 500;
 const RUN_INTENT_QUEUED_STATUSES = new Set(['pending', 'accepted']);
 const RUN_INTENT_RESERVED_STATUSES = new Set(['pending', 'accepted', 'dispatching', 'running']);
+const RUN_SNAPSHOT_PIN_ACTIVE_STATUSES = new Set(['queued', 'running']);
 const RUN_RECOVERY_TERMINAL_STATUSES = new Set(['succeeded', 'failed', 'interrupted']);
 const PROJECT_DATABASE_BACKUP_QUEUES = new Map();
 
@@ -7305,6 +7306,12 @@ class ProjectDatabase {
         this.projectDatabaseStoragePolicy32,
       );
     }
+    if (migratedSchema.version >= PROJECT_DATABASE_MIGRATION_29.version) {
+      // Startup has not entered the public write coordinator yet. Removing
+      // derived terminal-Run pins is safe here; the next normal snapshot write
+      // performs bounded compaction through the coordinator.
+      this._reconcileTerminalRunSnapshotPins({ compact: false });
+    }
     const foreignKeyViolations = this.db.pragma('foreign_key_check');
     if (foreignKeyViolations.length > 0) {
       throw new ProjectDatabaseSchemaInvalidError('项目数据库外键不变量校验失败', {
@@ -13076,7 +13083,8 @@ class ProjectDatabase {
       { id: row.id, status: row.status, canvasRevision: Number(row.canvas_revision) },
     ));
     this.db.prepare(`
-      SELECT id, canvas_revision, status FROM runs WHERE project_id = ? AND canvas_id = ?
+      SELECT id, canvas_revision, status FROM runs
+      WHERE project_id = ? AND canvas_id = ? AND status IN ('queued', 'running')
     `).all(normalizedProjectId, normalizedCanvasId).forEach((row) => push(
       row.canvas_revision,
       'run',
@@ -13343,6 +13351,17 @@ class ProjectDatabase {
       SELECT project_id FROM canvas_documents WHERE canvas_id = ?
     `).get(String(run.canvasId));
     if (!document || document.project_id !== String(run.projectId)) return;
+    const pinIdentity = {
+      projectId: run.projectId,
+      canvasId: run.canvasId,
+      pinKind: 'run',
+      ownerId: run.id,
+      slot: 'canvas',
+    };
+    if (!RUN_SNAPSHOT_PIN_ACTIVE_STATUSES.has(String(run.status))) {
+      this._deleteCanvasSnapshotPin(pinIdentity);
+      return;
+    }
     const snapshot = this.db.prepare(`
       SELECT 1 AS present FROM canvas_snapshots
       WHERE project_id = ? AND canvas_id = ? AND revision = ?
@@ -13355,12 +13374,8 @@ class ProjectDatabase {
       });
     }
     this._putCanvasSnapshotPin({
-      projectId: run.projectId,
-      canvasId: run.canvasId,
+      ...pinIdentity,
       snapshotRevision: Number(run.canvasRevision),
-      pinKind: 'run',
-      ownerId: run.id,
-      slot: 'canvas',
       retentionClass: 'operational',
       ownerState: {
         id: run.id,
@@ -13368,6 +13383,53 @@ class ProjectDatabase {
         canvasRevision: Number(run.canvasRevision),
       },
     });
+  }
+
+  _releaseTerminalRunSnapshotPins(projectId, canvasId) {
+    this._assertProjectDatabaseMutationTransaction('existing-transaction');
+    const result = this.db.prepare(`
+      DELETE FROM canvas_snapshot_pins
+      WHERE project_id = ? AND canvas_id = ? AND pin_kind = 'run'
+        AND EXISTS (
+          SELECT 1 FROM runs owner
+          WHERE owner.id = canvas_snapshot_pins.owner_id
+            AND owner.project_id = canvas_snapshot_pins.project_id
+            AND owner.canvas_id = canvas_snapshot_pins.canvas_id
+            AND owner.status NOT IN ('queued', 'running')
+        )
+    `).run(String(projectId), String(canvasId));
+    return Number(result.changes || 0);
+  }
+
+  _reconcileTerminalRunSnapshotPins(options = {}) {
+    const reconcile = () => {
+      this._assertProjectDatabaseMutationTransaction('existing-transaction');
+      const scopes = this.db.prepare(`
+        SELECT DISTINCT pins.project_id, pins.canvas_id
+        FROM canvas_snapshot_pins pins
+        JOIN runs owner
+          ON owner.id = pins.owner_id
+         AND owner.project_id = pins.project_id
+         AND owner.canvas_id = pins.canvas_id
+        WHERE pins.pin_kind = 'run' AND owner.status NOT IN ('queued', 'running')
+        ORDER BY pins.project_id ASC, pins.canvas_id ASC
+      `).all();
+      let releasedPins = 0;
+      let compactedSnapshots = 0;
+      for (const scope of scopes) {
+        releasedPins += this._releaseTerminalRunSnapshotPins(scope.project_id, scope.canvas_id);
+        if (options.compact !== false) {
+          try {
+            compactedSnapshots += Number(this._compactCanvasSnapshotHistory(scope.canvas_id)?.deletedCount || 0);
+          } catch (error) {
+            if (error?.code !== 'canvas_snapshot_capacity_exceeded') throw error;
+          }
+        }
+      }
+      if (scopes.length > 0) this._assertCanvasHistoryAccounting({ updatePressureState: true });
+      return { releasedPins, compactedSnapshots, canvasCount: scopes.length };
+    };
+    return this.db.inTransaction ? reconcile() : this.db.transaction(reconcile).immediate();
   }
 
   _syncReviewSnapshotPins(thread) {
@@ -13600,7 +13662,7 @@ class ProjectDatabase {
       )
       SELECT project_id, canvas_id, 'run', id, 'canvas', 'operational',
              canvas_revision, status, revision
-      FROM runs WHERE canvas_id IS NOT NULL;
+      FROM runs WHERE canvas_id IS NOT NULL AND status IN ('queued', 'running');
       INSERT INTO migration29_snapshot_pin_owners(
         project_id, canvas_id, pin_kind, owner_id, slot, retention_class,
         snapshot_revision, owner_status, owner_revision
@@ -13744,6 +13806,7 @@ class ProjectDatabase {
                 WHERE owner.id = gap.owner_id
                   AND owner.project_id = gap.project_id AND owner.canvas_id = gap.canvas_id
                   AND owner.canvas_revision = gap.snapshot_revision
+                  AND owner.status IN ('queued', 'running')
               ))
               OR (gap.pin_kind = 'review_source' AND EXISTS (
                 SELECT 1 FROM review_threads owner
@@ -13893,7 +13956,14 @@ class ProjectDatabase {
           retentionClass: pin.retention_class,
           expiresAt: pin.expires_at == null ? null : Number(pin.expires_at),
           ownerStateDigest: pin.owner_state_digest,
-        }));
+        })).filter((pin) => {
+          if (pin.pinKind !== 'run') return true;
+          const owner = this.db.prepare(`
+            SELECT status FROM runs
+            WHERE id = ? AND project_id = ? AND canvas_id = ? AND canvas_revision = ?
+          `).get(pin.ownerId, pin.projectId, pin.canvasId, pin.snapshotRevision);
+          return !owner || RUN_SNAPSHOT_PIN_ACTIVE_STATUSES.has(String(owner.status));
+        });
         const sortPins = (pins) => pins.sort((left, right) => stableJson(left).localeCompare(stableJson(right)));
         if (stableJson(sortPins(desired)) !== stableJson(sortPins(actual))) {
           throw new ProjectDatabaseSchemaInvalidError('canvas snapshot owner pin/gap 分区与权威 owner 状态不一致', {
@@ -25549,6 +25619,12 @@ class ProjectDatabase {
       startedAt: input.startedAt || null,
       finishedAt: input.finishedAt || null,
     };
+    this._releaseTerminalRunSnapshotPins(run.projectId, run.canvasId);
+    try {
+      this._compactCanvasSnapshotHistory(run.canvasId);
+    } catch (error) {
+      if (error?.code !== 'canvas_snapshot_capacity_exceeded') throw error;
+    }
     if (run.canvasRevision >= 1) {
       this._ensureSchema31SnapshotOwnerAuthority({
         projectId: run.projectId,
@@ -26046,6 +26122,13 @@ class ProjectDatabase {
       .run(status, JSON.stringify(summary), startedAt, finishedAt, runId);
     const updated = this.getRun(runId);
     this._syncRunSnapshotPin(updated);
+    if (updated && !RUN_SNAPSHOT_PIN_ACTIVE_STATUSES.has(String(updated.status))) {
+      try {
+        this._compactCanvasSnapshotHistory(updated.canvasId);
+      } catch (error) {
+        if (error?.code !== 'canvas_snapshot_capacity_exceeded') throw error;
+      }
+    }
     return updated;
     });
   }

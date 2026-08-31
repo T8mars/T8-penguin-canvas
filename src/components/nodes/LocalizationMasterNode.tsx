@@ -1,4 +1,4 @@
-import { memo, useMemo, useRef, useState } from 'react';
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { Handle, Position, useReactFlow, type NodeProps } from '@xyflow/react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -26,10 +26,12 @@ import {
   transcribeWhisper,
 } from '../../services/generation';
 import {
+  acceptLocalizationModelLicense,
   cancelLocalizationRuntime,
   inspectLocalizationRuntime,
   installLocalizationRuntime,
   muxLocalizationVideo,
+  retryLocalizationTtsLine,
   runLocalizationTts,
   saveLocalizationSubtitle,
 } from '../../services/localizationMaster';
@@ -44,11 +46,13 @@ import {
 import {
   LOCALIZATION_LANGUAGE_LABELS,
   LOCALIZATION_TARGET_LANGUAGES,
+  MAX_LOCALIZATION_ROLES,
   applyLocalizationTranslationResponse,
   buildLocalizationQc,
   buildLocalizationTranslationMessages,
   createLocalizationProject,
   localizationRoles,
+  inspectLocalizationSourceText,
   parseLocalizationText,
   resetLocalizationBranches,
   setLocalizationTargetLanguages,
@@ -69,7 +73,8 @@ import type { RunNodeLifecycleReporter } from '../../types/project';
 import { useUpdateNodeData } from './useUpdateNodeData';
 import { useUpstreamMaterials, type Material } from './useUpstreamMaterials';
 
-type LocalizationAction = 'parse' | 'transcribe' | 'translate' | 'translate-all' | 'install' | 'dub' | 'verify' | 'deliver';
+type LocalizationAction = 'parse' | 'transcribe' | 'translate' | 'translate-all' | 'install' | 'dub' | 'dub-line' | 'verify' | 'deliver' | 'deliver-all';
+type LocalizationWorkbenchStep = 'source' | 'translate' | 'voice' | 'deliver';
 type LocalizationAgentAction = 'localization.create' | 'localization.transcribe' | 'localization.translate'
   | 'localization.cast-voices' | 'localization.generate-dub' | 'localization.compose'
   | 'localization.verify' | 'localization.package';
@@ -118,6 +123,27 @@ function mediaKind(material: Material | undefined): 'video' | 'audio' | 'none' {
   return material?.kind === 'video' ? 'video' : material?.kind === 'audio' ? 'audio' : 'none';
 }
 
+function materialsForTargetHandle(materials: Material[], handle: string): Material[] {
+  const routed = materials.filter((material) => material.targetHandles?.includes(handle));
+  if (routed.length) return routed;
+  const hasExplicitRoutes = materials.some((material) => (material.targetHandles?.length || 0) > 0);
+  return hasExplicitRoutes
+    ? materials.filter((material) => !material.targetHandles?.length)
+    : materials;
+}
+
+function localizationErrorText(error: unknown, isEnglish: boolean): string {
+  const code = String((error as any)?.code || '');
+  const messages: Record<string, [string, string]> = {
+    INDEXTTS25_LICENSE_NOT_CONFIRMED: ['请先在本机阅读并接受 IndexTTS 2.5 模型许可。', 'Read and accept the IndexTTS 2.5 model license on this device first.'],
+    INDEXTTS25_RUNTIME_NOT_READY: ['本机 IndexTTS 2.5 运行时尚未就绪，请先检查或安装。', 'The IndexTTS 2.5 runtime is not ready on this device. Check or install it first.'],
+    LOCALIZATION_ROLE_LIMIT_EXCEEDED: [`角色数量超过 ${MAX_LOCALIZATION_ROLES} 个，请合并角色后重试。`, `More than ${MAX_LOCALIZATION_ROLES} roles were found. Merge roles and retry.`],
+    LOCALIZATION_TTS_RECOVERY_CONFIRMATION_REQUIRED: ['上次配音未留下完整结果。请明确重试，不会自动重复推理。', 'The prior dubbing run has no complete result. Retry explicitly; inference will not replay automatically.'],
+  };
+  if (messages[code]) return messages[code][isEnglish ? 1 : 0];
+  return error instanceof Error ? error.message : String(error);
+}
+
 function normalizeProject(data: any): LocalizationProject {
   const saved = data?.localizationProject && typeof data.localizationProject === 'object'
     ? data.localizationProject
@@ -139,6 +165,15 @@ function runtimeTone(receipt: LocalizationRuntimeReceipt | undefined) {
   return 'idle';
 }
 
+function workbenchStepForProject(project: LocalizationProject): LocalizationWorkbenchStep {
+  if (project.stage === 'materials' || project.stage === 'transcript') return 'source';
+  if (project.stage === 'translation' || project.stage === 'review') return 'translate';
+  if (project.stage === 'voices' || project.stage === 'dubbing') {
+    return project.mode === 'subtitle-only' ? 'deliver' : 'voice';
+  }
+  return 'deliver';
+}
+
 function LocalizationMasterNode({ id, data, selected }: NodeProps) {
   const { t: translate, i18n } = useTranslation('nodes');
   const t = (key: string, options?: Record<string, unknown>) => translate(key.replace(/^nodes\./, ''), options);
@@ -153,9 +188,23 @@ function LocalizationMasterNode({ id, data, selected }: NodeProps) {
     ? d.localizationAgentRequest as LocalizationAgentRequest
     : undefined;
   const [localError, setLocalError] = useState('');
-  const [runtimeLocal, setRuntimeLocal] = useState<LocalizationRuntimeReceipt | undefined>(project.runtimeReceipt);
+  const [runtimeLocal, setRuntimeLocal] = useState<LocalizationRuntimeReceipt | undefined>();
   const [runtimeBusy, setRuntimeBusy] = useState(false);
+  const [licenseBusy, setLicenseBusy] = useState(false);
+  const [sourceTextDraft, setSourceTextDraft] = useState(project.sourceText);
+  const [sourceMediaDraft, setSourceMediaDraft] = useState(project.sourceMediaUrl);
+  const persistedSourceRef = useRef({ text: project.sourceText, media: project.sourceMediaUrl });
   const actionRef = useRef<LocalizationAction>('parse');
+  const pendingActionRef = useRef<LocalizationAction | null>(null);
+  const retryUnitIdRef = useRef('');
+  const [pendingAction, setPendingAction] = useState<LocalizationAction | null>(null);
+  const [reviewFilter, setReviewFilter] = useState<'attention' | 'all' | 'approved'>('attention');
+  const [reviewPage, setReviewPage] = useState(0);
+  const [activeWorkbenchStep, setActiveWorkbenchStep] = useState<LocalizationWorkbenchStep>(() => workbenchStepForProject(project));
+  const automaticStepKeyRef = useRef(`${project.mode}:${project.stage}`);
+  const [voicePreviewUrl, setVoicePreviewUrl] = useState('');
+  const dubbingPreviewRef = useRef<HTMLAudioElement>(null);
+  const previewStopTimerRef = useRef<number | null>(null);
 
   const advancedProviders = useApiKeysStore((state) => state.settings.advancedProviders);
   const llmAdvancedProviders = useMemo(
@@ -185,24 +234,44 @@ function LocalizationMasterNode({ id, data, selected }: NodeProps) {
   const externalModel = externalModels.includes(project.providerModel)
     ? project.providerModel
     : externalModels[0] || project.providerModel;
-  const sourceMaterials = useMemo(
+  const allSourceMaterials = useMemo(
     () => [...upstream.videos, ...upstream.audios],
     [upstream.audios, upstream.videos],
   );
+  const sourceMaterials = useMemo(
+    () => materialsForTargetHandle(allSourceMaterials, 'source-media'),
+    [allSourceMaterials],
+  );
+  const voiceRoutedMaterials = useMemo(
+    () => materialsForTargetHandle(allSourceMaterials, 'voice-references'),
+    [allSourceMaterials],
+  );
   const upstreamText = useMemo(
-    () => upstream.texts.map((item) => item.url).filter(Boolean).join('\n\n').trim(),
+    () => materialsForTargetHandle(upstream.texts, 'source-text').map((item) => item.url).filter(Boolean).join('\n\n').trim(),
     [upstream.texts],
   );
-  const effectiveSourceMedia = project.sourceMediaUrl || sourceMaterials[0]?.url || '';
-  const effectiveSourceText = project.sourceText.trim() || upstreamText;
+  const effectiveSourceMedia = sourceMediaDraft || sourceMaterials[0]?.url || '';
+  const effectiveSourceText = sourceTextDraft.trim() || upstreamText;
   const voiceMaterials = useMemo(
-    () => sourceMaterials.filter((item) => item.url !== effectiveSourceMedia),
-    [effectiveSourceMedia, sourceMaterials],
+    () => voiceRoutedMaterials.filter((item) => item.url !== effectiveSourceMedia),
+    [effectiveSourceMedia, voiceRoutedMaterials],
   );
-  const runtime = runtimeLocal || project.runtimeReceipt;
+  const runtime = runtimeLocal;
   const roles = localizationRoles(project.units);
-  const running = ['running', 'generating', 'installing', 'transcribing', 'translating', 'dubbing', 'delivering'].includes(String(d.status || ''));
+  const sourceDirty = sourceTextDraft !== project.sourceText || sourceMediaDraft !== project.sourceMediaUrl;
+  const running = pendingAction != null || ['running', 'generating', 'installing', 'transcribing', 'translating', 'dubbing', 'delivering'].includes(String(d.status || ''));
   const isEnglish = i18n.language.toLowerCase().startsWith('en');
+  const filteredReviewUnits = project.units.filter((unit) => reviewFilter === 'all'
+    || (reviewFilter === 'approved' ? unit.approved : !unit.approved || (unit.warnings?.length || 0) > 0 || (unit.confidence ?? 1) < 0.75));
+  const reviewPageCount = Math.max(1, Math.ceil(filteredReviewUnits.length / 50));
+  const visibleReviewUnits = filteredReviewUnits.slice(reviewPage * 50, reviewPage * 50 + 50);
+
+  useEffect(() => {
+    const key = `${project.mode}:${project.stage}`;
+    if (automaticStepKeyRef.current === key) return;
+    automaticStepKeyRef.current = key;
+    setActiveWorkbenchStep(workbenchStepForProject(project));
+  }, [project.mode, project.stage]);
 
   const surface = isDark ? 'border-slate-700 bg-slate-950 text-slate-100' : 'border-slate-300 bg-white text-slate-900';
   const header = isDark ? 'border-slate-700 bg-slate-900/90' : 'border-slate-200 bg-slate-50';
@@ -211,6 +280,33 @@ function LocalizationMasterNode({ id, data, selected }: NodeProps) {
     ? 'border-slate-700 bg-slate-950 text-slate-100 placeholder:text-slate-600'
     : 'border-slate-300 bg-white text-slate-900 placeholder:text-slate-400';
   const muted = isDark ? 'text-slate-400' : 'text-slate-500';
+
+  useEffect(() => {
+    const previous = persistedSourceRef.current;
+    setSourceTextDraft((current) => current === previous.text ? project.sourceText : current);
+    setSourceMediaDraft((current) => current === previous.media ? project.sourceMediaUrl : current);
+    persistedSourceRef.current = { text: project.sourceText, media: project.sourceMediaUrl };
+  }, [project.sourceMediaUrl, project.sourceText]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void inspectLocalizationRuntime()
+      .then((receipt) => {
+        if (!cancelled) setRuntimeLocal(receipt);
+      })
+      .catch(() => {
+        if (!cancelled) setRuntimeLocal(undefined);
+      });
+    return () => { cancelled = true; };
+  }, [id]);
+
+  useEffect(() => {
+    setReviewPage((current) => Math.min(current, reviewPageCount - 1));
+  }, [reviewPageCount]);
+
+  useEffect(() => () => {
+    if (previewStopTimerRef.current) window.clearTimeout(previewStopTimerRef.current);
+  }, []);
 
   const readProject = () => normalizeProject((getNode(id)?.data || d) as any);
   const commitProject = (base: LocalizationProject, patch: Partial<LocalizationProject>, nodePatch: Record<string, unknown> = {}) => {
@@ -248,33 +344,50 @@ function LocalizationMasterNode({ id, data, selected }: NodeProps) {
     try {
       const receipt = await inspectLocalizationRuntime();
       setRuntimeLocal(receipt);
-      commitProject(readProject(), { runtimeReceipt: receipt });
     } catch (error) {
-      setLocalError(error instanceof Error ? error.message : String(error));
+      setLocalError(localizationErrorText(error, isEnglish));
     } finally {
       setRuntimeBusy(false);
     }
   };
 
+  const acceptModelLicense = async () => {
+    setLicenseBusy(true);
+    setLocalError('');
+    try {
+      await acceptLocalizationModelLicense();
+      setRuntimeLocal(await inspectLocalizationRuntime());
+    } catch (error) {
+      setLocalError(localizationErrorText(error, isEnglish));
+    } finally {
+      setLicenseBusy(false);
+    }
+  };
+
   const runParse = async (reporter: RunNodeLifecycleReporter) => {
     const base = readProject();
-    const sourceText = base.sourceText.trim() || upstreamText;
+    const sourceText = sourceTextDraft.trim() || upstreamText;
     if (!sourceText) throw new Error(t('nodes.localization.errors.sourceText'));
+    const sourceInspection = inspectLocalizationSourceText(sourceText);
+    if (sourceInspection.blocked) throw new Error(sourceInspection.warnings.join('\n'));
     const units = parseLocalizationText(sourceText);
     if (!units.length) throw new Error(t('nodes.localization.errors.parse'));
-    const selectedMedia = sourceMaterials.find((item) => item.url === (base.sourceMediaUrl || effectiveSourceMedia));
+    const selectedMedia = sourceMaterials.find((item) => item.url === effectiveSourceMedia);
     const next = commitProject(base, resetLocalizationBranches({
       ...base,
       sourceText,
-      sourceMediaUrl: selectedMedia?.url || base.sourceMediaUrl,
+      sourceMediaUrl: selectedMedia?.url || effectiveSourceMedia,
       sourceMediaKind: mediaKind(selectedMedia),
+      warnings: sourceInspection.warnings,
     }, units), { status: 'success', error: '', outputText: serializeLocalizationSrt(units) });
+    setSourceTextDraft(next.sourceText);
+    setSourceMediaDraft(next.sourceMediaUrl);
     await reporter.output({ status: 'succeeded', outputCount: 1, assets: [{ kind: 'text', text: next.sourceText, mimeType: 'text/plain' }] });
   };
 
   const runTranscribe = async (reporter: RunNodeLifecycleReporter) => {
     const base = readProject();
-    const sourceUrl = base.sourceMediaUrl || effectiveSourceMedia;
+    const sourceUrl = effectiveSourceMedia;
     const source = sourceMaterials.find((item) => item.url === sourceUrl);
     if (!sourceUrl || !source) throw new Error(t('nodes.localization.errors.sourceMedia'));
     update({ status: 'transcribing', error: '' });
@@ -294,13 +407,15 @@ function LocalizationMasterNode({ id, data, selected }: NodeProps) {
       : parseLocalizationText(evidence.text);
     if (!units.length) throw new Error(t('nodes.localization.errors.transcriptEmpty'));
     const sourceText = units.map((unit) => `[${unit.role}] ${unit.sourceText}`).join('\n');
-    commitProject(base, resetLocalizationBranches({
+    const next = commitProject(base, resetLocalizationBranches({
       ...base,
       sourceMediaUrl: sourceUrl,
       sourceMediaKind: mediaKind(source),
       sourceText,
       warnings: evidence.attribution === 'untimed' ? [t('nodes.localization.warnings.untimed')] : [],
     }, units), { status: 'success', error: '', outputText: serializeLocalizationSrt(units) });
+    setSourceTextDraft(next.sourceText);
+    setSourceMediaDraft(next.sourceMediaUrl);
     await reporter.output({ status: 'succeeded', outputCount: 1, assets: [{ kind: 'text', text: sourceText, mimeType: 'text/plain' }] });
   };
 
@@ -310,6 +425,9 @@ function LocalizationMasterNode({ id, data, selected }: NodeProps) {
     progress: { branch: number; totalBranches: number },
   ): Promise<LocalizationProject> => {
     let base = inputProject;
+    if (sourceDirty) throw new Error(isEnglish
+      ? 'The source draft changed. Parse or transcribe it before translating so earlier branches are not reused.'
+      : '源素材或源文本已修改，请先重新解析或转写，避免复用旧译文。');
     if (!base.units.length) {
       const sourceText = base.sourceText.trim() || upstreamText;
       const parsed = parseLocalizationText(sourceText);
@@ -336,6 +454,7 @@ function LocalizationMasterNode({ id, data, selected }: NodeProps) {
           model: 'none',
           createdAt: Date.now(),
         },
+        translationCheckpoint: undefined,
         ttsReceipt: undefined,
         delivery: undefined,
         updatedAt: Date.now(),
@@ -360,10 +479,26 @@ function LocalizationMasterNode({ id, data, selected }: NodeProps) {
         : (base.llmModel || DEFAULT_ZHENZHEN_MODEL);
     if (!model) throw new Error(t('nodes.localization.errors.modelMissing'));
     const provider = external ? currentSelection.provider!.id : source;
+    const bindingDigest = await sha256Text(JSON.stringify({
+      provider,
+      model,
+      sourceLanguage: base.sourceLanguage,
+      targetLanguage: base.targetLanguage,
+      glossaryText: base.glossaryText,
+      protectedTermsText: base.protectedTermsText,
+      units: base.units.map((unit) => [unit.id, unit.startMs, unit.endMs, unit.role, unit.sourceText]),
+    }));
+    const resumableCheckpoint = base.translationCheckpoint?.schema === 't8-localization-translation-checkpoint-v1'
+      && base.translationCheckpoint.bindingDigest === bindingDigest
+      && base.translationCheckpoint.provider === provider
+      && base.translationCheckpoint.model === model
+      ? base.translationCheckpoint
+      : undefined;
     update({ status: 'translating', error: '' });
     const translated: LocalizationTranslationUnit[] = [];
     const requestDigests: string[] = [];
-    const requestIds: string[] = [];
+    const requestIds: string[] = [...(resumableCheckpoint?.requestIds || [])];
+    const completedBatchDigests = new Set(resumableCheckpoint?.completedBatchDigests || []);
     const batches = Math.ceil(base.units.length / TRANSLATION_BATCH_SIZE);
     for (let index = 0; index < batches; index += 1) {
       if (reporter.signal?.aborted) throw reporter.signal.reason || new Error('aborted');
@@ -372,6 +507,15 @@ function LocalizationMasterNode({ id, data, selected }: NodeProps) {
       const messages = buildLocalizationTranslationMessages(batchProject);
       const digest = await sha256Text(JSON.stringify({ provider, model, messages }));
       requestDigests.push(digest);
+      if (completedBatchDigests.has(digest) && units.every((unit) => unit.translatedText.trim())) {
+        translated.push(...units);
+        await reporter.progress({
+          current: (progress.branch - 1) * batches + index + 1,
+          total: progress.totalBranches * batches,
+          stage: `translation:${base.targetLanguage}:resumed`,
+        });
+        continue;
+      }
       await reporter.providerRequest({
         provider, model, targetLanguage: base.targetLanguage,
         branch: progress.branch, totalBranches: progress.totalBranches,
@@ -389,7 +533,8 @@ function LocalizationMasterNode({ id, data, selected }: NodeProps) {
             providerParams: base.providerParams || {},
           }, { submissionKey, signal: reporter.signal })
         : await generateLlm({ ...request, source: builtInSource, requestProfile: 'localization-master' }, { submissionKey, signal: reporter.signal });
-      translated.push(...applyLocalizationTranslationResponse(batchProject, result.content));
+      const batchTranslated = applyLocalizationTranslationResponse(batchProject, result.content);
+      translated.push(...batchTranslated);
       if (result.requestId) requestIds.push(result.requestId);
       if (result.usage) await reporter.providerUsage({ provider, model, requestId: result.requestId, usage: result.usage, targetLanguage: base.targetLanguage, batch: index + 1 });
       await reporter.providerResponse({
@@ -402,6 +547,27 @@ function LocalizationMasterNode({ id, data, selected }: NodeProps) {
         total: progress.totalBranches * batches,
         stage: `translation:${base.targetLanguage}`,
       });
+      completedBatchDigests.add(digest);
+      const translatedById = new Map(batchTranslated.map((unit) => [unit.id, unit]));
+      base = syncActiveLocalizationBranch({
+        ...base,
+        units: base.units.map((unit) => translatedById.get(unit.id) || unit),
+        stage: 'translation',
+        translationReceipt: undefined,
+        translationCheckpoint: {
+          schema: 't8-localization-translation-checkpoint-v1',
+          bindingDigest,
+          provider,
+          model,
+          completedBatchDigests: [...completedBatchDigests],
+          requestIds: [...new Set(requestIds)],
+          updatedAt: Date.now(),
+        },
+        ttsReceipt: undefined,
+        delivery: undefined,
+        updatedAt: Date.now(),
+      });
+      commitProject(readProject(), base, { status: 'translating', error: '' });
     }
     const requestDigest = await sha256Text(requestDigests.join('\n'));
     return syncActiveLocalizationBranch({
@@ -412,6 +578,7 @@ function LocalizationMasterNode({ id, data, selected }: NodeProps) {
         schema: 't8-localization-translation-receipt-v1', requestDigest,
         requestId: requestIds.join(','), provider, model, createdAt: Date.now(),
       },
+      translationCheckpoint: undefined,
       ttsReceipt: undefined,
       delivery: undefined,
       updatedAt: Date.now(),
@@ -470,10 +637,12 @@ function LocalizationMasterNode({ id, data, selected }: NodeProps) {
 
   const runInstall = async (reporter: RunNodeLifecycleReporter) => {
     let base = readProject();
-    if (!base.modelLicenseConfirmed) throw new Error(t('nodes.localization.errors.license'));
+    const preflight = await inspectLocalizationRuntime(reporter.signal);
+    setRuntimeLocal(preflight);
+    if (!preflight.licenseAccepted) throw Object.assign(new Error(t('nodes.localization.errors.license')), { code: 'INDEXTTS25_LICENSE_NOT_CONFIRMED' });
     update({ status: 'installing', error: '' });
     try {
-      await installLocalizationRuntime({ modelLicenseConfirmed: true, source: 'huggingface' }, reporter.signal);
+      await installLocalizationRuntime({ source: 'huggingface' }, reporter.signal);
       while (true) {
         await sleepWithSignal(1800, reporter.signal);
         const receipt = await inspectLocalizationRuntime(reporter.signal);
@@ -487,7 +656,7 @@ function LocalizationMasterNode({ id, data, selected }: NodeProps) {
           }),
         });
         if (receipt.ready) {
-          base = commitProject(base, { runtimeReceipt: receipt, stage: base.stage === 'review' ? 'voices' : base.stage }, { status: 'success', error: '' });
+          base = commitProject(base, { runtimeReceipt: undefined, stage: base.stage === 'review' ? 'voices' : base.stage }, { status: 'success', error: '' });
           return;
         }
         if (!receipt.install.running) throw new Error(receipt.install.error || receipt.message);
@@ -500,11 +669,15 @@ function LocalizationMasterNode({ id, data, selected }: NodeProps) {
 
   const runDub = async (reporter: RunNodeLifecycleReporter) => {
     const base = readProject();
-    const errors = validateLocalizationForDubbing(base);
+    if (sourceDirty) throw new Error(isEnglish ? 'Parse the changed source before dubbing.' : '源内容已修改，请先重新解析后再配音。');
+    const liveRuntime = await inspectLocalizationRuntime(reporter.signal);
+    setRuntimeLocal(liveRuntime);
+    const runtimeProject = { ...base, runtimeReceipt: liveRuntime };
+    const errors = validateLocalizationForDubbing(runtimeProject);
     if (errors.length) throw new Error(errors.join('\n'));
     update({ status: 'dubbing', error: '' });
     await reporter.providerRequest({
-      provider: 'embedded-index-tts-2.5', model: base.runtimeReceipt?.modelRevision || 'IndexTTS-2.5',
+      provider: 'embedded-index-tts-2.5', model: liveRuntime.modelRevision || 'IndexTTS-2.5',
       unitCount: base.units.length, roleCount: base.voiceProfiles.length, requiresComfyUI: false,
     });
     const result = await runLocalizationTts({
@@ -527,7 +700,6 @@ function LocalizationMasterNode({ id, data, selected }: NodeProps) {
       subtitleIncludeRole: base.subtitleIncludeRole,
       postprocessPreset: base.postprocessPreset,
       postprocessStrength: base.postprocessStrength,
-      modelLicenseConfirmed: true,
       jobKey: reporter.providerSubmissionKey
         || (reporter.nodeRunId && reporter.attemptId ? `${reporter.nodeRunId}:${reporter.attemptId}:${base.targetLanguage}` : undefined),
     }, reporter.signal);
@@ -546,11 +718,12 @@ function LocalizationMasterNode({ id, data, selected }: NodeProps) {
       } : unit;
     });
     await reporter.providerResponse({
-      provider: 'embedded-index-tts-2.5', model: base.runtimeReceipt?.modelRevision || 'IndexTTS-2.5',
+      provider: 'embedded-index-tts-2.5', model: liveRuntime.modelRevision || 'IndexTTS-2.5',
       requestId: result.requestId, status: 'succeeded', requiresComfyUI: false,
     });
     commitProject(base, {
       units,
+      ttsStaleUnitIds: [],
       stage: 'delivery',
       ttsReceipt: {
         schema: 't8-localization-tts-receipt-v2', requestId: result.requestId,
@@ -564,29 +737,106 @@ function LocalizationMasterNode({ id, data, selected }: NodeProps) {
       status: 'success', error: '', audioUrl: result.audioUrl, outputText: result.subtitleText,
       outputs: {
         'dubbed-audio': { audioUrl: result.audioUrl, audioUrls: [result.audioUrl] },
-        subtitles: { outputText: result.subtitleText, text: result.subtitleText },
+        subtitles: base.mode === 'dubbing-only' ? {} : { outputText: result.subtitleText, text: result.subtitleText },
       },
     });
     await reporter.output({
-      status: 'succeeded', outputCount: 2,
-      assets: [
-        { kind: 'audio', sourceUrl: result.audioUrl, mimeType: 'audio/wav' },
-        { kind: 'text', text: result.subtitleText, mimeType: 'application/x-subrip' },
-      ],
+      status: 'succeeded', outputCount: base.mode === 'dubbing-only' ? 1 : 2,
+      assets: base.mode === 'dubbing-only'
+        ? [{ kind: 'audio', sourceUrl: result.audioUrl, mimeType: 'audio/wav' }]
+        : [
+            { kind: 'audio', sourceUrl: result.audioUrl, mimeType: 'audio/wav' },
+            { kind: 'text', text: result.subtitleText, mimeType: 'application/x-subrip' },
+          ],
     });
+  };
+
+  const runDubLine = async (reporter: RunNodeLifecycleReporter) => {
+    const base = readProject();
+    const unit = base.units.find((item) => item.id === retryUnitIdRef.current);
+    if (!unit || !base.ttsReceipt?.audioUrl) throw new Error(isEnglish ? 'Generate a full dub before retrying one line.' : '请先生成一次完整配音，再逐句重配。');
+    const liveRuntime = await inspectLocalizationRuntime(reporter.signal);
+    setRuntimeLocal(liveRuntime);
+    const errors = validateLocalizationForDubbing({ ...base, runtimeReceipt: liveRuntime });
+    if (errors.length) throw new Error(errors.join('\n'));
+    const profile = base.voiceProfiles.find((item) => item.role === unit.role);
+    if (!profile?.referenceUrl || !profile.consentConfirmed) throw new Error(isEnglish ? `Reference voice or consent is missing for ${unit.role}.` : `${unit.role} 缺少参考音色或授权确认。`);
+    const previousReport = base.ttsReceipt.generationReport as any;
+    const retryCount = Math.max(0, Number(previousReport?.lineRetryCount) || 0) + 1;
+    update({ status: 'dubbing', error: '' });
+    await reporter.providerRequest({ provider: 'embedded-index-tts-2.5', model: liveRuntime.modelRevision, unitIndex: unit.index, retryCount });
+    const result = await retryLocalizationTtsLine({
+      baseAudioUrl: base.ttsReceipt.audioUrl,
+      language: base.targetLanguage,
+      unit: {
+        index: unit.index, role: unit.role, translatedText: unit.translatedText,
+        pronunciation: unit.pronunciation, emotion: unit.emotion,
+        startMs: unit.startMs, endMs: unit.endMs,
+      },
+      roles: [{ role: profile.role, referenceUrl: profile.referenceUrl, consentConfirmed: true }],
+      timelinePolicy: base.timelinePolicy,
+      timingMode: base.timingMode,
+      asrEnabled: base.asrEnabled,
+      asrRetryCount: base.asrRetryCount,
+      asrThreshold: base.asrThreshold,
+      subtitleTimingMode: base.subtitleTimingMode,
+      subtitleTextMode: base.subtitleTextMode,
+      subtitleIncludeRole: false,
+      postprocessPreset: base.postprocessPreset,
+      postprocessStrength: base.postprocessStrength,
+      seed: 20260828 + retryCount,
+      jobKey: `${reporter.providerSubmissionKey || `${reporter.nodeRunId}:${reporter.attemptId}`}:${base.targetLanguage}:line:${unit.index}:retry:${retryCount}`,
+    }, reporter.signal);
+    const lineReport = Array.isArray((result.lineResult.generationReport as any)?.lines)
+      ? (result.lineResult.generationReport as any).lines[0]
+      : undefined;
+    const priorLines = Array.isArray(previousReport?.lines) ? previousReport.lines : [];
+    const nextLines = [...priorLines.filter((line: any) => Number(line?.index) !== unit.index), ...(lineReport ? [{ ...lineReport, sourceStartMs: unit.startMs, sourceEndMs: unit.endMs }] : [])]
+      .sort((left: any, right: any) => Number(left?.index) - Number(right?.index));
+    const asr = lineReport?.asr;
+    const units = base.units.map((item) => item.id === unit.id && asr ? {
+      ...item,
+      asrText: String(asr.recognizedText || ''),
+      asrPassed: asr.passed === true,
+      asrSimilarity: Number(asr.similarity) || 0,
+    } : item);
+    const remainingStale = base.ttsStaleUnitIds.filter((unitId) => unitId !== unit.id);
+    const rewrittenSrt = serializeLocalizationSrt(units, { translated: true, includeRole: base.subtitleIncludeRole });
+    commitProject(base, {
+      units,
+      ttsStaleUnitIds: remainingStale,
+      stage: remainingStale.length ? 'review' : 'delivery',
+      ttsReceipt: {
+        ...base.ttsReceipt,
+        audioUrl: result.audioUrl,
+        rewrittenSrt,
+        generationReport: { ...previousReport, lines: nextLines, lineRetryCount: retryCount, lastRetriedUnitIndex: unit.index },
+        createdAt: Date.now(),
+      },
+      delivery: undefined,
+    }, { status: 'success', error: '', audioUrl: result.audioUrl, outputText: base.mode === 'dubbing-only' ? '' : rewrittenSrt });
+    await reporter.providerResponse({ provider: 'embedded-index-tts-2.5', model: liveRuntime.modelRevision, requestId: result.lineResult.requestId, status: 'succeeded', unitIndex: unit.index });
+    await reporter.output({ status: 'succeeded', outputCount: 1, assets: [{ kind: 'audio', sourceUrl: result.audioUrl, mimeType: 'audio/wav' }] });
   };
 
   const runDeliver = async (reporter: RunNodeLifecycleReporter) => {
     const base = readProject();
+    if (sourceDirty) throw new Error(isEnglish ? 'Parse the changed source before delivery.' : '源内容已修改，请先重新解析后再交付。');
     if (!base.units.length || base.units.some((unit) => !unit.translatedText.trim())) throw new Error(t('nodes.localization.errors.translationMissing'));
     if (base.units.some((unit) => !unit.approved)) throw new Error(t('nodes.localization.errors.approval'));
     if (base.mode !== 'subtitle-only' && !base.ttsReceipt?.audioUrl) throw new Error(t('nodes.localization.errors.dubFirst'));
+    if (base.mode !== 'subtitle-only' && base.ttsStaleUnitIds.length) throw new Error(isEnglish ? 'Re-dub the changed lines before delivery.' : '部分台词在上次配音后有修改，请先逐句重配或重新生成配音。');
     update({ status: 'delivering', error: '' });
-    const subtitleText = base.ttsReceipt?.rewrittenSrt
-      || serializeLocalizationSrt(base.units, { translated: true, includeRole: base.subtitleIncludeRole });
-    const subtitle = base.ttsReceipt?.subtitleUrl
-      ? { subtitleUrl: base.ttsReceipt.subtitleUrl }
-      : await saveLocalizationSubtitle({ text: subtitleText, format: 'srt' }, reporter.signal);
+    const shouldDeliverSubtitle = base.mode !== 'dubbing-only';
+    const subtitleText = shouldDeliverSubtitle
+      ? (base.ttsReceipt?.rewrittenSrt
+        || serializeLocalizationSrt(base.units, { translated: true, includeRole: base.subtitleIncludeRole }))
+      : '';
+    const subtitle = !shouldDeliverSubtitle
+      ? undefined
+      : base.ttsReceipt?.subtitleUrl
+        ? { subtitleUrl: base.ttsReceipt.subtitleUrl }
+        : await saveLocalizationSubtitle({ text: subtitleText, format: 'srt' }, reporter.signal);
     let localizedVideoUrl = '';
     if (base.mode === 'full' && base.sourceMediaKind === 'video' && base.sourceMediaUrl && base.ttsReceipt?.audioUrl) {
       const mux = await muxLocalizationVideo({ videoUrl: base.sourceMediaUrl, audioUrl: base.ttsReceipt.audioUrl }, reporter.signal);
@@ -598,8 +848,7 @@ function LocalizationMasterNode({ id, data, selected }: NodeProps) {
       targetLanguage: base.targetLanguage,
       mode: base.mode,
       sourceMediaUrl: base.sourceMediaUrl,
-      subtitleUrl: subtitle.subtitleUrl,
-      subtitleText,
+      ...(subtitle ? { subtitleUrl: subtitle.subtitleUrl, subtitleText } : {}),
       dubbedAudioUrl: base.ttsReceipt?.audioUrl,
       localizedVideoUrl: localizedVideoUrl || undefined,
       generationReport: base.ttsReceipt?.generationReport,
@@ -613,24 +862,84 @@ function LocalizationMasterNode({ id, data, selected }: NodeProps) {
       outputs: {
         'localized-video': manifest.localizedVideoUrl ? { videoUrl: manifest.localizedVideoUrl, videoUrls: [manifest.localizedVideoUrl] } : {},
         'dubbed-audio': manifest.dubbedAudioUrl ? { audioUrl: manifest.dubbedAudioUrl, audioUrls: [manifest.dubbedAudioUrl] } : {},
-        subtitles: { outputText: subtitleText, text: subtitleText },
+        subtitles: shouldDeliverSubtitle ? { outputText: subtitleText, text: subtitleText } : {},
         manifest: { metadata: manifest, outputText: manifestText },
       },
     });
     const assets: Array<Record<string, unknown>> = [
-      { kind: 'text', text: subtitleText, sourceUrl: subtitle.subtitleUrl, filename: `localization-${base.targetLanguage}.srt`, mimeType: 'application/x-subrip' },
       { kind: 'text', text: manifestText, filename: `localization-${base.targetLanguage}-manifest.json`, mimeType: 'application/json' },
     ];
+    if (subtitle) assets.unshift({ kind: 'text', text: subtitleText, sourceUrl: subtitle.subtitleUrl, filename: `localization-${base.targetLanguage}.srt`, mimeType: 'application/x-subrip' });
     if (manifest.dubbedAudioUrl) assets.push({ kind: 'audio', sourceUrl: manifest.dubbedAudioUrl, mimeType: 'audio/wav' });
     if (manifest.localizedVideoUrl) assets.push({ kind: 'video', sourceUrl: manifest.localizedVideoUrl, mimeType: 'video/mp4' });
     await reporter.output({ status: 'succeeded', outputCount: assets.length, assets });
   };
 
+  const runDeliverAll = async (reporter: RunNodeLifecycleReporter) => {
+    if (sourceDirty) throw new Error(isEnglish ? 'Parse the changed source before delivery.' : '源内容已修改，请先重新解析后再交付。');
+    let current = readProject();
+    const targets = [...current.targetLanguages];
+    const assets: Array<Record<string, unknown>> = [];
+    const manifests: LocalizationDeliveryManifest[] = [];
+    for (const language of targets) {
+      let branch = switchLocalizationBranch(current, language);
+      if (!branch.units.length || branch.units.some((unit) => !unit.translatedText.trim() || !unit.approved)) {
+        throw new Error(isEnglish ? `${language} still has untranslated or unapproved lines.` : `${language} 仍有未翻译或未确认台词。`);
+      }
+      if (branch.mode !== 'subtitle-only' && !branch.ttsReceipt?.audioUrl) {
+        throw new Error(isEnglish ? `${language} has no approved dubbed audio.` : `${language} 尚无已确认配音。`);
+      }
+      if (branch.mode !== 'subtitle-only' && branch.ttsStaleUnitIds.length) {
+        throw new Error(isEnglish ? `${language} has changed lines that need re-dubbing.` : `${language} 有已修改台词需要重新配音。`);
+      }
+      const shouldDeliverSubtitle = branch.mode !== 'dubbing-only';
+      const subtitleText = shouldDeliverSubtitle
+        ? (branch.ttsReceipt?.rewrittenSrt || serializeLocalizationSrt(branch.units, { translated: true, includeRole: branch.subtitleIncludeRole }))
+        : '';
+      const subtitle = !shouldDeliverSubtitle
+        ? undefined
+        : branch.ttsReceipt?.subtitleUrl
+          ? { subtitleUrl: branch.ttsReceipt.subtitleUrl }
+          : await saveLocalizationSubtitle({ text: subtitleText, format: 'srt' }, reporter.signal);
+      let localizedVideoUrl = '';
+      if (branch.mode === 'full' && branch.sourceMediaKind === 'video' && branch.sourceMediaUrl && branch.ttsReceipt?.audioUrl) {
+        const mux = await muxLocalizationVideo({ videoUrl: branch.sourceMediaUrl, audioUrl: branch.ttsReceipt.audioUrl }, reporter.signal);
+        localizedVideoUrl = mux.videoUrl;
+      }
+      const manifest: LocalizationDeliveryManifest = {
+        schema: 't8-localization-delivery-manifest-v1',
+        createdAt: Date.now(),
+        targetLanguage: language,
+        mode: branch.mode,
+        sourceMediaUrl: branch.sourceMediaUrl,
+        ...(subtitle ? { subtitleUrl: subtitle.subtitleUrl, subtitleText } : {}),
+        dubbedAudioUrl: branch.ttsReceipt?.audioUrl,
+        localizedVideoUrl: localizedVideoUrl || undefined,
+        generationReport: branch.ttsReceipt?.generationReport,
+        qc: buildLocalizationQc(branch),
+      };
+      manifests.push(manifest);
+      const manifestText = JSON.stringify(manifest, null, 2);
+      if (subtitle) assets.push({ kind: 'text', text: subtitleText, sourceUrl: subtitle.subtitleUrl, filename: `localization-${language}.srt`, mimeType: 'application/x-subrip' });
+      assets.push({ kind: 'text', text: manifestText, filename: `localization-${language}-manifest.json`, mimeType: 'application/json' });
+      if (manifest.dubbedAudioUrl) assets.push({ kind: 'audio', sourceUrl: manifest.dubbedAudioUrl, filename: `localization-${language}.wav`, mimeType: 'audio/wav' });
+      if (manifest.localizedVideoUrl) assets.push({ kind: 'video', sourceUrl: manifest.localizedVideoUrl, filename: `localization-${language}.mp4`, mimeType: 'video/mp4' });
+      branch = syncActiveLocalizationBranch({ ...branch, stage: 'delivery', delivery: manifest, updatedAt: Date.now() });
+      current = commitProject(current, branch, { status: 'delivering', error: '' });
+      await reporter.progress({ current: manifests.length, total: targets.length, stage: `delivery:${language}` });
+    }
+    current = switchLocalizationBranch(current, targets[0]);
+    commitProject(readProject(), current, { status: 'success', error: '', metadata: { schema: 't8-localization-multilingual-delivery-v1', manifests } });
+    await reporter.output({ status: 'succeeded', outputCount: assets.length, assets });
+  };
+
   const runVerify = async (reporter: RunNodeLifecycleReporter) => {
     const base = readProject();
+    if (sourceDirty) throw new Error(isEnglish ? 'Parse the changed source before verification.' : '源内容已修改，请先重新解析后再校验。');
     if (!base.units.length || base.units.some((unit) => !unit.translatedText.trim())) throw new Error(t('nodes.localization.errors.translationMissing'));
     if (base.units.some((unit) => !unit.approved)) throw new Error(t('nodes.localization.errors.approval'));
     if (base.mode !== 'subtitle-only' && !base.ttsReceipt?.audioUrl) throw new Error(t('nodes.localization.errors.dubFirst'));
+    if (base.mode !== 'subtitle-only' && base.ttsStaleUnitIds.length) throw new Error(isEnglish ? 'Changed lines must be re-dubbed before verification.' : '已修改台词必须先重新配音再校验。');
     const qc = buildLocalizationQc(base);
     const report = {
       schema: 't8-localization-qc-report-v1',
@@ -655,33 +964,51 @@ function LocalizationMasterNode({ id, data, selected }: NodeProps) {
   };
 
   useRunTrigger(id, async (reporter) => {
+    const requestedAction = pendingActionRef.current || actionRef.current;
     setLocalError('');
     update({ status: 'running', error: '' });
     try {
-      switch (actionRef.current) {
+      switch (requestedAction) {
         case 'parse': await runParse(reporter); break;
         case 'transcribe': await runTranscribe(reporter); break;
         case 'translate': await runTranslate(reporter); break;
         case 'translate-all': await runTranslateAll(reporter); break;
         case 'install': await runInstall(reporter); break;
         case 'dub': await runDub(reporter); break;
+        case 'dub-line': await runDubLine(reporter); break;
         case 'verify': await runVerify(reporter); break;
         case 'deliver': await runDeliver(reporter); break;
+        case 'deliver-all': await runDeliverAll(reporter); break;
       }
       markAgentRequest('completed');
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
+      const message = localizationErrorText(error, isEnglish);
       setLocalError(message);
       update({ status: 'error', error: message });
       markAgentRequest('failed', message);
       throw error;
+    } finally {
+      pendingActionRef.current = null;
+      setPendingAction(null);
     }
   }, 'localization-master', { lifecycleAware: true });
 
   const requestAction = (action: LocalizationAction) => {
+    if (pendingActionRef.current || running) {
+      setLocalError(isEnglish ? 'Another localization stage is already starting or running.' : '已有本地化阶段正在启动或运行，请等待完成。');
+      return false;
+    }
     actionRef.current = action;
+    pendingActionRef.current = action;
+    setPendingAction(action);
     setLocalError('');
-    if (!requestCanvasNodeRun(id)) setLocalError(t('nodes.localization.errors.runRequest'));
+    if (!requestCanvasNodeRun(id)) {
+      pendingActionRef.current = null;
+      setPendingAction(null);
+      setLocalError(t('nodes.localization.errors.runRequest'));
+      return false;
+    }
+    return true;
   };
 
   const runAgentRequest = () => {
@@ -697,7 +1024,7 @@ function LocalizationMasterNode({ id, data, selected }: NodeProps) {
     const action = actionByRequest[agentRequest.action];
     if (!action) return;
     markAgentRequest('running');
-    requestAction(action);
+    if (!requestAction(action)) markAgentRequest('failed', t('nodes.localization.errors.runRequest'));
   };
 
   const agentRequestRunnable = Boolean(agentRequest && !['localization.create', 'localization.cast-voices'].includes(agentRequest.action));
@@ -753,12 +1080,25 @@ function LocalizationMasterNode({ id, data, selected }: NodeProps) {
   };
 
   const updateUnit = (unitId: string, patch: Partial<LocalizationTranslationUnit>) => {
+    const invalidatesAudio = ['translatedText', 'pronunciation', 'emotion', 'startMs', 'endMs', 'role']
+      .some((key) => Object.prototype.hasOwnProperty.call(patch, key));
     changeProject({
       units: project.units.map((unit) => unit.id === unitId ? { ...unit, ...patch, approved: patch.approved ?? false } : unit),
+      ttsStaleUnitIds: invalidatesAudio
+        ? [...new Set([...project.ttsStaleUnitIds, unitId])]
+        : project.ttsStaleUnitIds,
       stage: 'review',
-      ttsReceipt: undefined,
       delivery: undefined,
     });
+  };
+
+  const previewUnitAudio = async (unit: LocalizationTranslationUnit) => {
+    const audio = dubbingPreviewRef.current;
+    if (!audio || !project.ttsReceipt?.audioUrl) return;
+    if (previewStopTimerRef.current) window.clearTimeout(previewStopTimerRef.current);
+    audio.currentTime = Math.max(0, unit.startMs / 1000);
+    await audio.play();
+    previewStopTimerRef.current = window.setTimeout(() => audio.pause(), Math.max(250, unit.endMs - unit.startMs));
   };
 
   const approveAll = () => {
@@ -775,12 +1115,22 @@ function LocalizationMasterNode({ id, data, selected }: NodeProps) {
       referenceUrl: '',
       consentConfirmed: false,
     });
+    const cleanUnitIds = new Set(project.units.filter((unit) => !(unit.warnings?.length)
+      && (unit.confidence ?? 1) >= 0.75).map((unit) => unit.id));
+    const nextUnits = project.units.map((unit) => ({ ...unit, approved: cleanUnitIds.has(unit.id) ? true : unit.approved }));
     changeProject({
-      units: project.units.map((unit) => ({ ...unit, approved: true })),
+      units: nextUnits,
       voiceProfiles,
-      stage: project.mode === 'subtitle-only' ? 'delivery' : 'voices',
+      stage: nextUnits.every((unit) => unit.approved)
+        ? (project.mode === 'subtitle-only' ? 'delivery' : 'voices')
+        : 'review',
       delivery: undefined,
     });
+    if (cleanUnitIds.size < project.units.length) {
+      setLocalError(isEnglish
+        ? `${project.units.length - cleanUnitIds.size} warning or low-confidence line(s) still need explicit review.`
+        : `仍有 ${project.units.length - cleanUnitIds.size} 条警告或低置信度译文需要逐条确认。`);
+    }
   };
 
   const updateVoice = (role: string, patch: Partial<LocalizationVoiceProfile>) => {
@@ -803,9 +1153,18 @@ function LocalizationMasterNode({ id, data, selected }: NodeProps) {
   const selectedProvider = isExternal ? providerSelection.providerId : project.llmApiSource;
   const activeModel = isExternal ? externalModel : project.llmApiSource === 'seedance-nz' ? seedanceModel : zhenzhenModel;
   const approvedCount = project.units.filter((unit) => unit.approved).length;
+  const allBranchesDeliverable = project.targetLanguages.every((language) => {
+    const branch = project.branches.find((item) => item.language === language);
+    return Boolean(branch?.units.length)
+      && branch!.units.every((unit) => unit.translatedText.trim() && unit.approved)
+      && !(branch?.ttsStaleUnitIds?.length)
+      && (project.mode === 'subtitle-only' || Boolean(branch?.ttsReceipt?.audioUrl));
+  });
   const runtimeState = runtimeTone(runtime);
   const runtimeMessage = !runtime
     ? t('nodes.localization.runtime.notChecked')
+    : !runtime.licenseAccepted
+      ? (isEnglish ? 'Accept the model license on this device before install or inference.' : '请先在本机接受模型许可，再安装或推理；许可不会写入画布。')
     : runtime.ready
       ? t('nodes.localization.runtime.ready')
       : runtime.install.running
@@ -889,6 +1248,7 @@ function LocalizationMasterNode({ id, data, selected }: NodeProps) {
               </select>
             </label>
           </div>
+          {project.sourceLanguage === 'AUTO' && <div className={`-mt-1 text-[9px] leading-4 ${muted}`}>{isEnglish ? 'AUTO delegates source-language detection to the selected translation provider. Verify it here before approving translations.' : '“自动识别”由当前翻译渠道判断源语言；确认译文前请在此核对，必要时手动选择。'}</div>}
 
           <div className={`rounded-xl border p-3 ${panel}`}>
             <div className={`mb-2 text-[10px] font-semibold ${muted}`}>{t('nodes.localization.targetBranches')}</div>
@@ -898,70 +1258,96 @@ function LocalizationMasterNode({ id, data, selected }: NodeProps) {
                 const branch = project.branches.find((item) => item.language === language);
                 const completed = branch?.delivery != null;
                 return (
-                  <button
-                    key={language}
-                    type="button"
-                    onClick={() => toggleTargetBranch(language)}
-                    aria-pressed={enabled}
-                    title={enabled && project.targetLanguages.length === 1 ? t('nodes.localization.keepOneTarget') : undefined}
-                    className={`rounded-full border px-2 py-1 text-[9px] font-semibold transition ${enabled
-                      ? completed
-                        ? 'border-emerald-500 bg-emerald-500/15 text-emerald-600'
-                        : 'border-cyan-500 bg-cyan-500/15 text-cyan-600'
-                      : isDark ? 'border-slate-700 text-slate-500' : 'border-slate-300 text-slate-500'}`}
-                  >
-                    {language}{branch ? ` · ${branch.stage}` : ''}
-                  </button>
+                  <span key={language} className="inline-flex items-center gap-0.5">
+                    <button
+                      type="button"
+                      onClick={() => enabled ? switchTargetBranch(language) : toggleTargetBranch(language)}
+                      aria-pressed={enabled}
+                      className={`rounded-full border px-2 py-1 text-[9px] font-semibold transition ${enabled
+                        ? completed
+                          ? 'border-emerald-500 bg-emerald-500/15 text-emerald-600'
+                          : 'border-cyan-500 bg-cyan-500/15 text-cyan-600'
+                        : isDark ? 'border-slate-700 text-slate-500' : 'border-slate-300 text-slate-500'}`}
+                    >
+                      {language}{branch ? ` · ${isEnglish ? ({ materials: 'Source', transcript: 'Transcript', translation: 'Translate', review: 'Review', voices: 'Voices', dubbing: 'Dubbing', delivery: 'Delivery' } as const)[branch.stage] : ({ materials: '素材', transcript: '转写', translation: '翻译', review: '审校', voices: '音色', dubbing: '配音', delivery: '交付' } as const)[branch.stage]}` : ''}
+                    </button>
+                    {enabled && project.targetLanguages.length > 1 && (
+                      <button type="button" aria-label={`${isEnglish ? 'Archive target language' : '移出目标语言'} ${language}`} title={isEnglish ? 'Archive this language; progress is preserved' : '移出目标语言；进度会保留'} onClick={() => toggleTargetBranch(language)} className={`rounded-full border px-1.5 py-1 text-[9px] ${field}`}>×</button>
+                    )}
+                  </span>
                 );
               })}
             </div>
             <div className={`mt-2 text-[9px] leading-4 ${muted}`}>{t('nodes.localization.branchHint')}</div>
           </div>
 
-          <div className={`rounded-xl border p-3 ${panel}`}>
+          <div className={`grid gap-1.5 ${project.mode === 'subtitle-only' ? 'grid-cols-3' : 'grid-cols-4'}`} role="tablist" aria-label={isEnglish ? 'Localization workflow steps' : '本地化工作步骤'}>
+            {([
+              { id: 'source', label: isEnglish ? '1 Source' : '1 素材', complete: project.units.length > 0 },
+              { id: 'translate', label: isEnglish ? '2 Translate' : '2 翻译', complete: project.units.length > 0 && approvedCount === project.units.length },
+              ...(project.mode === 'subtitle-only' ? [] : [{ id: 'voice', label: isEnglish ? '3 Voice' : '3 配音', complete: Boolean(project.ttsReceipt?.audioUrl) && project.ttsStaleUnitIds.length === 0 }]),
+              { id: 'deliver', label: project.mode === 'subtitle-only' ? (isEnglish ? '3 Deliver' : '3 交付') : (isEnglish ? '4 Deliver' : '4 交付'), complete: Boolean(project.delivery) },
+            ] as Array<{ id: LocalizationWorkbenchStep; label: string; complete: boolean }>).map((step) => (
+              <button
+                key={step.id}
+                type="button"
+                role="tab"
+                aria-selected={activeWorkbenchStep === step.id}
+                onClick={() => setActiveWorkbenchStep(step.id)}
+                className={`rounded-lg border px-2 py-2 text-[10px] font-bold transition ${activeWorkbenchStep === step.id
+                  ? 'border-teal-500 bg-teal-500 text-white'
+                  : step.complete
+                    ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-600'
+                    : field}`}
+              >
+                {step.complete ? '✓ ' : ''}{step.label}
+              </button>
+            ))}
+          </div>
+
+          {activeWorkbenchStep === 'source' && <div className={`rounded-xl border p-3 ${panel}`} role="tabpanel">
             <div className="mb-2 flex items-center gap-2 text-xs font-bold"><FileText size={14} className="text-teal-500" />{t('nodes.localization.source')}</div>
-            <select value={effectiveSourceMedia} onChange={(event) => {
-              const material = sourceMaterials.find((item) => item.url === event.target.value);
-              changeProject({ sourceMediaUrl: event.target.value, sourceMediaKind: mediaKind(material), ttsReceipt: undefined, delivery: undefined });
-            }} className={`mb-2 w-full rounded-lg border px-2 py-2 text-xs outline-none ${field}`}>
+            <select aria-label={isEnglish ? 'Source audio or video' : '源音频或视频'} value={effectiveSourceMedia} onChange={(event) => setSourceMediaDraft(event.target.value)} className={`mb-2 w-full rounded-lg border px-2 py-2 text-xs outline-none ${field}`}>
               <option value="">{t('nodes.localization.noSourceMedia')}</option>
               {sourceMaterials.map((item) => <option key={item.id} value={item.url}>{item.kind.toUpperCase()} · {item.label || item.url.slice(0, 60)}</option>)}
             </select>
             <textarea
-              value={project.sourceText}
-              onChange={(event) => changeProject({ sourceText: event.target.value, translationReceipt: undefined, ttsReceipt: undefined, delivery: undefined })}
+              aria-label={isEnglish ? 'Source script or subtitles' : '源剧本或字幕'}
+              value={sourceTextDraft}
+              onChange={(event) => setSourceTextDraft(event.target.value)}
               rows={4}
               maxLength={500000}
               placeholder={upstreamText ? t('nodes.localization.upstreamText', { count: upstream.texts.length }) : t('nodes.localization.sourcePlaceholder')}
               className={`w-full resize-y rounded-lg border px-2.5 py-2 text-xs leading-5 outline-none ${field}`}
             />
+            {sourceDirty && <div className="mt-2 rounded border border-amber-500/30 bg-amber-500/10 px-2 py-1.5 text-[10px] text-amber-600">{isEnglish ? 'Source draft changed. Parse or transcribe to apply it; existing translations stay intact until then.' : '源草稿已修改。请解析或转写后再继续；在应用前，现有译文不会被静默覆盖。'}</div>}
             <div className="mt-2 grid grid-cols-2 gap-2">
               <button type="button" disabled={running || !effectiveSourceText} onClick={() => requestAction('parse')} className="flex items-center justify-center gap-1.5 rounded-lg bg-teal-500 px-2 py-2 text-xs font-semibold text-white disabled:opacity-40"><FileText size={13} />{t('nodes.localization.parse')}</button>
               <button type="button" disabled={running || !effectiveSourceMedia} onClick={() => requestAction('transcribe')} className={`flex items-center justify-center gap-1.5 rounded-lg border px-2 py-2 text-xs font-semibold disabled:opacity-40 ${field}`}><Mic2 size={13} />{t('nodes.localization.transcribe')}</button>
             </div>
-          </div>
+          </div>}
 
-          <div className={`rounded-xl border p-3 ${panel}`}>
+          {activeWorkbenchStep === 'translate' && <div className={`rounded-xl border p-3 ${panel}`} role="tabpanel">
             <div className="mb-2 flex items-center justify-between">
               <div className="flex items-center gap-2 text-xs font-bold"><Languages size={14} className="text-cyan-500" />{t('nodes.localization.translation')}</div>
               <span className={`text-[10px] ${muted}`}>{project.units.length} {t('nodes.localization.units')} · {approvedCount}/{project.units.length}</span>
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <select value={selectedProvider} onChange={(event) => setProvider(event.target.value)} className={`rounded-lg border px-2 py-2 text-xs outline-none ${field}`}>
+              <select aria-label={isEnglish ? 'Translation provider' : '翻译渠道'} value={selectedProvider} onChange={(event) => setProvider(event.target.value)} className={`rounded-lg border px-2 py-2 text-xs outline-none ${field}`}>
                 <option value="seedance-nz">{t('nodes.localization.providers.budget')}</option>
                 <option value="zhenzhen">{t('nodes.localization.providers.workshop')}</option>
                 {llmAdvancedProviders.map((provider) => <option key={provider.id} value={provider.id}>{provider.label || provider.id}</option>)}
               </select>
               {isExternal ? (
-                <select value={externalModel} onChange={(event) => changeProject({ providerModel: event.target.value })} className={`rounded-lg border px-2 py-2 text-xs outline-none ${field}`}>
+                <select aria-label={isEnglish ? 'Translation model' : '翻译模型'} value={externalModel} onChange={(event) => changeProject({ providerModel: event.target.value })} className={`rounded-lg border px-2 py-2 text-xs outline-none ${field}`}>
                   {externalModels.map((model) => <option key={model}>{model}</option>)}
                 </select>
               ) : project.llmApiSource === 'seedance-nz' ? (
-                <select value={seedanceModel} onChange={(event) => changeProject({ providerModel: event.target.value })} className={`rounded-lg border px-2 py-2 text-xs outline-none ${field}`}>
+                <select aria-label={isEnglish ? 'Translation model' : '翻译模型'} value={seedanceModel} onChange={(event) => changeProject({ providerModel: event.target.value })} className={`rounded-lg border px-2 py-2 text-xs outline-none ${field}`}>
                   {SEEDANCE_NZ_LLM_MODELS.map((model) => <option key={model}>{model}</option>)}
                 </select>
               ) : (
-                <select value={zhenzhenModel} onChange={(event) => changeProject({ llmModel: event.target.value })} className={`rounded-lg border px-2 py-2 text-xs outline-none ${field}`}>
+                <select aria-label={isEnglish ? 'Translation model' : '翻译模型'} value={zhenzhenModel} onChange={(event) => changeProject({ llmModel: event.target.value })} className={`rounded-lg border px-2 py-2 text-xs outline-none ${field}`}>
                   {ZHENZHEN_LLM_MODELS.map((model) => <option key={model.id} value={model.id}>{model.label}</option>)}
                 </select>
               )}
@@ -972,32 +1358,76 @@ function LocalizationMasterNode({ id, data, selected }: NodeProps) {
             </div>
             {savedExternalMissing && <div className="mt-2 rounded border border-amber-400/30 bg-amber-400/10 px-2 py-1.5 text-[10px] text-amber-600">{t('nodes.localization.errors.providerMissing')}</div>}
             <div className="mt-2 grid grid-cols-2 gap-2">
-              <button type="button" disabled={running || !project.units.length} onClick={() => requestAction('translate')} className="flex w-full items-center justify-center gap-2 rounded-lg bg-cyan-500 px-3 py-2 text-xs font-bold text-white disabled:opacity-40"><Languages size={14} />{t('nodes.localization.translateCurrent')}</button>
-              <button type="button" disabled={running || !project.units.length || project.targetLanguages.length < 2} onClick={() => requestAction('translate-all')} className={`flex w-full items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-bold disabled:opacity-40 ${field}`}><Languages size={14} />{t('nodes.localization.translateAll', { count: project.targetLanguages.length })}</button>
+              <button type="button" disabled={running || sourceDirty || !project.units.length} onClick={() => requestAction('translate')} className="flex w-full items-center justify-center gap-2 rounded-lg bg-cyan-500 px-3 py-2 text-xs font-bold text-white disabled:opacity-40"><Languages size={14} />{t('nodes.localization.translateCurrent')}</button>
+              <button type="button" disabled={running || sourceDirty || !project.units.length || project.targetLanguages.length < 2} onClick={() => requestAction('translate-all')} className={`flex w-full items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-bold disabled:opacity-40 ${field}`}><Languages size={14} />{t('nodes.localization.translateAll', { count: project.targetLanguages.length })}</button>
             </div>
-            <div className={`mt-1 text-[9px] ${muted}`}>{t('nodes.localization.translateWith', { model: activeModel })}</div>
+            <div className={`mt-1 text-[9px] ${muted}`}>{t('nodes.localization.translateWith', { model: activeModel })} · {isEnglish ? `up to ${Math.ceil(project.units.length / TRANSLATION_BATCH_SIZE) * project.targetLanguages.length} provider call(s); fees follow the provider bill` : `最多 ${Math.ceil(project.units.length / TRANSLATION_BATCH_SIZE) * project.targetLanguages.length} 次渠道调用；费用以渠道账单为准`}</div>
 
             {!!project.units.length && (
-              <div className={`mt-2 max-h-64 space-y-2 overflow-y-auto rounded-lg border p-2 ${isDark ? 'border-slate-700 bg-slate-950/60' : 'border-slate-200 bg-white'}`}>
-                {project.units.map((unit) => (
-                  <div key={unit.id} className={`rounded-lg border p-2 ${unit.approved ? 'border-emerald-500/35' : isDark ? 'border-slate-700' : 'border-slate-200'}`}>
+              <div className="mt-2">
+                <div className="mb-1 flex items-center justify-between gap-2">
+                  <select aria-label={isEnglish ? 'Translation review filter' : '译文审校筛选'} value={reviewFilter} onChange={(event) => { setReviewFilter(event.target.value as typeof reviewFilter); setReviewPage(0); }} className={`rounded border px-2 py-1 text-[10px] ${field}`}>
+                    <option value="attention">{isEnglish ? 'Needs attention' : '待处理优先'}</option>
+                    <option value="all">{isEnglish ? 'All lines' : '全部台词'}</option>
+                    <option value="approved">{isEnglish ? 'Approved' : '已确认'}</option>
+                  </select>
+                  <span className={`text-[9px] ${muted}`}>{filteredReviewUnits.length} · {reviewPage + 1}/{reviewPageCount}</span>
+                </div>
+              <div className={`max-h-72 space-y-2 overflow-y-auto rounded-lg border p-2 ${isDark ? 'border-slate-700 bg-slate-950/60' : 'border-slate-200 bg-white'}`}>
+                {visibleReviewUnits.map((unit) => {
+                  const voiceProfile = project.voiceProfiles.find((profile) => profile.role === unit.role);
+                  const isTtsStale = project.ttsStaleUnitIds.includes(unit.id);
+                  return (
+                  <div key={unit.id} className={`rounded-lg border p-2 ${isTtsStale ? 'border-amber-500/60 bg-amber-500/5' : unit.approved ? 'border-emerald-500/35' : isDark ? 'border-slate-700' : 'border-slate-200'}`}>
                     <div className={`mb-1 flex items-center justify-between text-[9px] ${muted}`}><span>#{unit.index} · {unit.role} · {(unit.startMs / 1000).toFixed(2)}–{(unit.endMs / 1000).toFixed(2)}s</span><span>{unit.approved ? t('nodes.localization.approved') : t('nodes.localization.review')}</span></div>
                     <div className={`mb-1 text-[10px] leading-4 ${muted}`}>{unit.sourceText}</div>
-                    <textarea value={unit.translatedText} onChange={(event) => updateUnit(unit.id, { translatedText: event.target.value })} rows={2} placeholder={t('nodes.localization.translationPlaceholder')} className={`w-full resize-y rounded border px-2 py-1 text-[11px] leading-4 outline-none ${field}`} />
-                    <div className="mt-1 grid grid-cols-[1fr_1fr_auto] gap-1">
-                      <input value={unit.pronunciation || ''} onChange={(event) => updateUnit(unit.id, { pronunciation: event.target.value })} placeholder={t('nodes.localization.pronunciation')} className={`rounded border px-1.5 py-1 text-[10px] outline-none ${field}`} />
-                      <input value={unit.emotion || ''} onChange={(event) => updateUnit(unit.id, { emotion: event.target.value })} placeholder={t('nodes.localization.emotion')} className={`rounded border px-1.5 py-1 text-[10px] outline-none ${field}`} />
-                      <button type="button" onClick={() => updateUnit(unit.id, { approved: !unit.approved })} className={`rounded px-2 text-[10px] font-semibold ${unit.approved ? 'bg-emerald-500 text-white' : isDark ? 'bg-slate-800 text-slate-300' : 'bg-slate-200 text-slate-700'}`}><Check size={12} /></button>
+                    <div className="mb-1 grid grid-cols-2 gap-1">
+                      <label className={`text-[9px] ${muted}`}>{isEnglish ? 'Start (s)' : '开始（秒）'}<input aria-label={`${isEnglish ? 'Start time' : '开始时间'} #${unit.index}`} type="number" min={0} step={0.01} value={(unit.startMs / 1000).toFixed(2)} onChange={(event) => { const startMs = Math.max(0, Math.round(Number(event.target.value) * 1000)); updateUnit(unit.id, { startMs: Math.min(startMs, unit.endMs - 1) }); }} className={`mt-0.5 w-full rounded border px-1.5 py-1 text-[10px] ${field}`} /></label>
+                      <label className={`text-[9px] ${muted}`}>{isEnglish ? 'End (s)' : '结束（秒）'}<input aria-label={`${isEnglish ? 'End time' : '结束时间'} #${unit.index}`} type="number" min={(unit.startMs + 1) / 1000} step={0.01} value={(unit.endMs / 1000).toFixed(2)} onChange={(event) => updateUnit(unit.id, { endMs: Math.max(unit.startMs + 1, Math.round(Number(event.target.value) * 1000)) })} className={`mt-0.5 w-full rounded border px-1.5 py-1 text-[10px] ${field}`} /></label>
                     </div>
+                    <textarea aria-label={`${isEnglish ? 'Translation' : '译文'} #${unit.index}`} value={unit.translatedText} onChange={(event) => updateUnit(unit.id, { translatedText: event.target.value })} rows={2} placeholder={t('nodes.localization.translationPlaceholder')} className={`w-full resize-y rounded border px-2 py-1 text-[11px] leading-4 outline-none ${field}`} />
+                    {unit.backTranslation && <div className={`mt-1 rounded border px-2 py-1 text-[9px] leading-4 ${isDark ? 'border-slate-700 bg-slate-900' : 'border-slate-200 bg-slate-50'} ${muted}`}><strong>{isEnglish ? 'Back translation' : '回译'}：</strong>{unit.backTranslation}</div>}
+                    <div className="mt-1 grid grid-cols-[1fr_1fr_auto_auto] gap-1">
+                      <input aria-label={`${isEnglish ? 'Spoken script' : '发音稿'} #${unit.index}`} value={unit.pronunciation || ''} onChange={(event) => updateUnit(unit.id, { pronunciation: event.target.value })} placeholder={t('nodes.localization.pronunciation')} className={`rounded border px-1.5 py-1 text-[10px] outline-none ${field}`} />
+                      <input aria-label={`${isEnglish ? 'Emotion' : '情绪'} #${unit.index}`} value={unit.emotion || ''} onChange={(event) => updateUnit(unit.id, { emotion: event.target.value })} placeholder={t('nodes.localization.emotion')} className={`rounded border px-1.5 py-1 text-[10px] outline-none ${field}`} />
+                      <button type="button" aria-label={`${isEnglish ? 'Listen to dubbed line' : '试听配音'} #${unit.index}`} title={isEnglish ? 'Listen to this line from the latest dub' : '试听最新配音中的本句'} disabled={!project.ttsReceipt?.audioUrl} onClick={() => void previewUnitAudio(unit)} className={`rounded px-2 text-[10px] ${field}`}><Volume2 size={12} /></button>
+                      <button type="button" aria-label={`${unit.approved ? (isEnglish ? 'Unapprove' : '取消确认') : (isEnglish ? 'Approve' : '确认')} #${unit.index}`} title={unit.approved ? t('nodes.localization.approved') : t('nodes.localization.review')} onClick={() => updateUnit(unit.id, { approved: !unit.approved })} className={`rounded px-2 text-[10px] font-semibold ${unit.approved ? 'bg-emerald-500 text-white' : isDark ? 'bg-slate-800 text-slate-300' : 'bg-slate-200 text-slate-700'}`}><Check size={12} /></button>
+                    </div>
+                    {(typeof unit.confidence === 'number' || (unit.warnings?.length || 0) > 0) && <div className={`mt-1 text-[9px] ${(unit.warnings?.length || 0) > 0 || (unit.confidence ?? 1) < 0.75 ? 'text-amber-600' : muted}`}>{typeof unit.confidence === 'number' ? `${isEnglish ? 'Confidence' : '置信度'} ${Math.round(unit.confidence * 100)}%` : ''}{unit.warnings?.length ? ` · ${unit.warnings.join('；')}` : ''}</div>}
                     {typeof unit.asrPassed === 'boolean' && <div className={`mt-1 text-[9px] ${unit.asrPassed ? 'text-emerald-500' : 'text-rose-500'}`}>ASR {(Number(unit.asrSimilarity || 0) * 100).toFixed(1)}% · {unit.asrText}</div>}
+                    {project.ttsReceipt?.audioUrl && (
+                      <div className="mt-1 flex items-center justify-between gap-2">
+                        <span className={`text-[9px] ${isTtsStale ? 'font-semibold text-amber-600' : muted}`}>
+                          {isTtsStale
+                            ? (isEnglish ? 'Changed after dubbing; re-dub this line.' : '配音后已修改，请重配本句。')
+                            : (isEnglish ? 'Current dub is reusable.' : '当前配音可继续复用。')}
+                        </span>
+                        <button
+                          type="button"
+                          disabled={running || !runtime?.ready || !unit.approved || !voiceProfile?.referenceUrl || !voiceProfile.consentConfirmed}
+                          onClick={() => {
+                            retryUnitIdRef.current = unit.id;
+                            requestAction('dub-line');
+                          }}
+                          aria-label={`${isEnglish ? 'Re-dub line' : '重配本句'} #${unit.index}`}
+                          title={isEnglish ? 'Generate and replace only this line; other dubbed lines are reused' : '仅生成并替换本句，其余已配音台词继续复用'}
+                          className={`shrink-0 rounded border px-2 py-1 text-[9px] font-semibold disabled:opacity-40 ${isTtsStale ? 'border-amber-500 bg-amber-500/15 text-amber-600' : field}`}
+                        >
+                          {isEnglish ? 'Re-dub line' : '重配本句'}
+                        </button>
+                      </div>
+                    )}
                   </div>
-                ))}
+                  );
+                })}
+              </div>
+                {reviewPageCount > 1 && <div className="mt-1 grid grid-cols-2 gap-2"><button type="button" disabled={reviewPage === 0} onClick={() => setReviewPage((page) => Math.max(0, page - 1))} className={`rounded border px-2 py-1 text-[10px] disabled:opacity-40 ${field}`}>{isEnglish ? 'Previous 50' : '前 50 条'}</button><button type="button" disabled={reviewPage >= reviewPageCount - 1} onClick={() => setReviewPage((page) => Math.min(reviewPageCount - 1, page + 1))} className={`rounded border px-2 py-1 text-[10px] disabled:opacity-40 ${field}`}>{isEnglish ? 'Next 50' : '后 50 条'}</button></div>}
               </div>
             )}
-            {!!project.units.length && <button type="button" onClick={approveAll} className={`mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg border px-2 py-2 text-xs font-semibold ${field}`}><ShieldCheck size={14} />{t('nodes.localization.approveAll')}</button>}
-          </div>
+            {!!project.units.length && <button type="button" onClick={approveAll} className={`mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg border px-2 py-2 text-xs font-semibold ${field}`}><ShieldCheck size={14} />{isEnglish ? 'Approve clean lines; review warnings manually' : '确认无警告译文；警告项逐条审校'}</button>}
+          </div>}
 
-          {project.mode !== 'subtitle-only' && (
+          {activeWorkbenchStep === 'voice' && project.mode !== 'subtitle-only' && (
             <div className={`rounded-xl border p-3 ${panel}`}>
               <div className="mb-2 flex items-center justify-between">
                 <div className="flex items-center gap-2 text-xs font-bold"><Volume2 size={14} className="text-violet-500" />IndexTTS 2.5</div>
@@ -1011,10 +1441,11 @@ function LocalizationMasterNode({ id, data, selected }: NodeProps) {
               {!runtime?.ready && (
                 <>
                   <label className="mt-2 flex items-start gap-2 text-[10px] leading-4">
-                    <input type="checkbox" checked={project.modelLicenseConfirmed} onChange={(event) => changeProject({ modelLicenseConfirmed: event.target.checked })} className="mt-0.5" />
+                    <input type="checkbox" checked={runtime?.licenseAccepted === true} disabled={licenseBusy || runtime?.licenseAccepted === true} onChange={(event) => { if (event.target.checked) void acceptModelLicense(); }} className="mt-0.5" />
                     <span>{t('nodes.localization.runtime.licenseConfirm')} <a href={runtime?.modelLicenseUrl || 'https://github.com/index-tts/index-tts/blob/main/LICENSE_ZH.txt'} target="_blank" rel="noreferrer" className="font-semibold text-teal-500 underline">{t('nodes.localization.runtime.readLicense')}</a></span>
                   </label>
-                  <button type="button" disabled={running || !project.modelLicenseConfirmed} onClick={() => requestAction('install')} className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg bg-violet-500 px-3 py-2 text-xs font-bold text-white disabled:opacity-40"><PackageCheck size={14} />{t('nodes.localization.runtime.install')}</button>
+                  <button type="button" disabled={running || !runtime?.licenseAccepted} onClick={() => requestAction('install')} className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg bg-violet-500 px-3 py-2 text-xs font-bold text-white disabled:opacity-40"><PackageCheck size={14} />{t('nodes.localization.runtime.install')}</button>
+                  {runtime?.install?.running && <button type="button" onClick={() => void cancelLocalizationRuntime().then(refreshRuntime)} className={`mt-1 w-full rounded-lg border px-3 py-1.5 text-[10px] font-semibold ${field}`}>{isEnglish ? 'Cancel installation' : '取消安装'}</button>}
                   <div className={`mt-1 text-[9px] leading-4 ${muted}`}>{t('nodes.localization.runtime.installHint')}</div>
                 </>
               )}
@@ -1022,21 +1453,24 @@ function LocalizationMasterNode({ id, data, selected }: NodeProps) {
               {!!roles.length && (
                 <div className="mt-3 space-y-2">
                   <div className={`text-[10px] font-semibold ${muted}`}>{t('nodes.localization.voices', { count: roles.length })}</div>
+                  {roles.length > MAX_LOCALIZATION_ROLES && <div className="rounded border border-rose-500/30 bg-rose-500/10 px-2 py-1.5 text-[10px] text-rose-500">{isEnglish ? `At most ${MAX_LOCALIZATION_ROLES} roles are supported. Merge roles before dubbing.` : `最多支持 ${MAX_LOCALIZATION_ROLES} 个角色，请先合并角色再配音。`}</div>}
                   {roles.map((role) => {
                     const profile = project.voiceProfiles.find((item) => item.role === role);
                     return (
-                      <div key={role} className="grid grid-cols-[88px_1fr_auto] items-center gap-2">
+                      <div key={role} className="grid grid-cols-[88px_1fr_auto_auto] items-center gap-2">
                         <span className="truncate text-[10px] font-semibold" title={role}>{role}</span>
-                        <select value={profile?.referenceUrl || ''} onChange={(event) => updateVoice(role, { referenceUrl: event.target.value, consentConfirmed: false })} className={`min-w-0 rounded-lg border px-2 py-1.5 text-[10px] outline-none ${field}`}>
+                        <select aria-label={`${isEnglish ? 'Reference voice' : '参考音色'} ${role}`} value={profile?.referenceUrl || ''} onChange={(event) => updateVoice(role, { referenceUrl: event.target.value, consentConfirmed: false })} className={`min-w-0 rounded-lg border px-2 py-1.5 text-[10px] outline-none ${field}`}>
                           <option value="">{t('nodes.localization.voiceReference')}</option>
                           {voiceMaterials.map((item) => <option key={item.id} value={item.url}>{item.kind.toUpperCase()} · {item.label || item.url.slice(0, 45)}</option>)}
                         </select>
+                        <button type="button" disabled={!profile?.referenceUrl} onClick={() => setVoicePreviewUrl(profile?.referenceUrl || '')} aria-label={`${isEnglish ? 'Audition voice' : '试听音色'} ${role}`} className={`rounded border px-2 py-1.5 text-[9px] disabled:opacity-40 ${field}`}>{isEnglish ? 'Listen' : '试听'}</button>
                         <label className="flex items-center gap-1 text-[9px]"><input type="checkbox" checked={profile?.consentConfirmed === true} disabled={!profile?.referenceUrl} onChange={(event) => updateVoice(role, { consentConfirmed: event.target.checked })} />{t('nodes.localization.consent')}</label>
                       </div>
                     );
                   })}
                 </div>
               )}
+              {voicePreviewUrl && <audio controls autoPlay preload="metadata" src={voicePreviewUrl} className="mt-2 w-full" aria-label={isEnglish ? 'Reference voice preview' : '参考音色试听'} />}
 
               <button type="button" onClick={() => changeProject({ advancedOpen: !project.advancedOpen })} className={`mt-3 flex w-full items-center justify-between rounded-lg border px-2 py-1.5 text-[10px] font-semibold ${field}`}><span>{t('nodes.localization.advanced')}</span>{project.advancedOpen ? <ChevronUp size={12} /> : <ChevronDown size={12} />}</button>
               {project.advancedOpen && (
@@ -1048,15 +1482,19 @@ function LocalizationMasterNode({ id, data, selected }: NodeProps) {
                 </div>
               )}
               {!supportsLocalizationDubbing(project.targetLanguage) && <div className="mt-2 rounded border border-amber-500/30 bg-amber-500/10 px-2 py-1.5 text-[10px] text-amber-600">{t('nodes.localization.unsupportedDubbing')}</div>}
-              <button type="button" disabled={running || !runtime?.ready || !supportsLocalizationDubbing(project.targetLanguage) || approvedCount !== project.units.length || !project.units.length} onClick={() => requestAction('dub')} className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg bg-violet-500 px-3 py-2 text-xs font-bold text-white disabled:opacity-40"><Volume2 size={14} />{t('nodes.localization.generateDub')}</button>
+              {project.ttsReceipt?.audioUrl && <audio ref={dubbingPreviewRef} controls preload="metadata" src={project.ttsReceipt.audioUrl} className="mt-2 w-full" aria-label={isEnglish ? 'Latest dubbed audio' : '最新配音音频'} />}
+              <button type="button" disabled={running || sourceDirty || roles.length > MAX_LOCALIZATION_ROLES || !runtime?.ready || !supportsLocalizationDubbing(project.targetLanguage) || approvedCount !== project.units.length || !project.units.length} onClick={() => requestAction('dub')} className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg bg-violet-500 px-3 py-2 text-xs font-bold text-white disabled:opacity-40"><Volume2 size={14} />{t('nodes.localization.generateDub')}</button>
             </div>
           )}
 
-          <div className={`rounded-xl border p-3 ${panel}`}>
-            <div className="mb-2 flex items-center justify-between text-xs font-bold"><span className="flex items-center gap-2"><PackageCheck size={14} className="text-emerald-500" />{t('nodes.localization.delivery')}</span><span className={`text-[10px] ${muted}`}>{project.stage}</span></div>
-            <button type="button" disabled={running || !project.units.length || approvedCount !== project.units.length || (project.mode !== 'subtitle-only' && !project.ttsReceipt?.audioUrl)} onClick={() => requestAction('deliver')} className="flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-500 px-3 py-2 text-xs font-bold text-white disabled:opacity-40"><PackageCheck size={14} />{t('nodes.localization.createDelivery')}</button>
+          {activeWorkbenchStep === 'deliver' && <div className={`rounded-xl border p-3 ${panel}`} role="tabpanel">
+            <div className="mb-2 flex items-center justify-between text-xs font-bold"><span className="flex items-center gap-2"><PackageCheck size={14} className="text-emerald-500" />{t('nodes.localization.delivery')}</span><span className={`text-[10px] ${muted}`}>{isEnglish ? ({ materials: 'Source', transcript: 'Transcript', translation: 'Translate', review: 'Review', voices: 'Voices', dubbing: 'Dubbing', delivery: 'Delivery' } as const)[project.stage] : ({ materials: '素材', transcript: '转写', translation: '翻译', review: '审校', voices: '音色', dubbing: '配音', delivery: '交付' } as const)[project.stage]}</span></div>
+            <div className="grid grid-cols-2 gap-2">
+              <button type="button" disabled={running || sourceDirty || !project.units.length || approvedCount !== project.units.length || (project.mode !== 'subtitle-only' && (!project.ttsReceipt?.audioUrl || project.ttsStaleUnitIds.length > 0))} onClick={() => requestAction('deliver')} className="flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-500 px-3 py-2 text-xs font-bold text-white disabled:opacity-40"><PackageCheck size={14} />{t('nodes.localization.createDelivery')}</button>
+              <button type="button" disabled={running || sourceDirty || project.targetLanguages.length < 2 || !allBranchesDeliverable} onClick={() => requestAction('deliver-all')} className={`flex w-full items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-bold disabled:opacity-40 ${field}`}><PackageCheck size={14} />{isEnglish ? 'Deliver all languages' : '交付全部语言'}</button>
+            </div>
             {project.delivery && <div className="mt-2 flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2 py-2 text-[10px] text-emerald-600"><CheckCircle2 size={14} />{t('nodes.localization.delivered', { language: project.targetLanguage, warnings: project.delivery.qc.warnings.length })}</div>}
-          </div>
+          </div>}
 
           {(localError || d.error) && <div className="flex items-start gap-2 rounded-xl border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-[10px] leading-4 text-rose-500"><AlertCircle size={14} className="mt-0.5 shrink-0" /><span className="whitespace-pre-wrap">{localError || String(d.error)}</span></div>}
           {running && <div className="flex items-center justify-center gap-2 py-1 text-[10px] text-teal-500"><Loader2 size={13} className="animate-spin" />{t('nodes.localization.running')}</div>}

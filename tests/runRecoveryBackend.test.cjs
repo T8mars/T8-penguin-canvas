@@ -437,6 +437,49 @@ test('restart archives unsupported or non-queryable tasks as interrupted instead
   }
 });
 
+test('startup defers Creator Agent tickets to the conversation-owned lazy recovery path', async () => {
+  const db = new ProjectDatabase(':memory:');
+  try {
+    const active = createActiveRecovery(db, {
+      nodeId: 'creator-agent-detached-action',
+      taskId: 'creator-upstream-task-1',
+      metadata: {
+        creatorAgentV2: { version: 1, actionId: 'creator-action-1' },
+        recovery: {
+          kind: 'seedance',
+          taskId: 'creator-upstream-task-1',
+          taskProvider: 'seedance-nz',
+          model: 'seedream-4.5',
+        },
+      },
+    });
+    const prepared = db.recoverInterruptedRuns();
+    assert.equal(prepared.recoverableRuns, 1);
+    assert.equal(db.listPendingRunRecoveries().length, 1);
+    let probes = 0;
+    const manager = new RunRecoveryManager({
+      database: db,
+      baseUrl: 'http://127.0.0.1:1',
+      queryRecovery: async () => {
+        probes += 1;
+        throw new Error('Creator ticket must not enter generic provider recovery');
+      },
+    });
+    const result = await manager.recoverPendingRuns();
+    assert.equal(result.recovered, 0);
+    assert.equal(result.failed, 0);
+    assert.equal(result.interrupted, 0);
+    assert.equal(result.deferred, 1);
+    assert.equal(probes, 0);
+    assert.equal(db.getRun(active.run.id).status, 'running');
+    assert.equal(db.getNodeRun(active.nodeRun.id).status, 'polling');
+    assert.equal(db.getAttempt(active.attempt.id).status, 'polling');
+    assert.equal(db.getAttempt(active.attempt.id).upstreamTaskId, 'creator-upstream-task-1');
+  } finally {
+    db.close();
+  }
+});
+
 test('shutdown fences a signal-ignoring recovery probe before ProjectDatabase close', async () => {
   const db = new ProjectDatabase(':memory:');
   let releaseProbe;

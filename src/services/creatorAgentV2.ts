@@ -1,0 +1,303 @@
+const BASE = '/api/creator-agent/v2';
+
+export type CreatorPhase = 'idea' | 'script' | 'assets' | 'shots' | 'candidates' | 'delivery';
+export type CreatorMediaKind = 'image' | 'video' | 'audio' | 'file';
+
+export interface CreatorMediaRef {
+  assetId: string;
+  kind: CreatorMediaKind;
+  contentHash?: string | null;
+  contentRevision?: number;
+  mimeType?: string | null;
+  duration?: number;
+  ref?: string | null;
+  previewUrl?: string | null;
+  title?: string | null;
+}
+
+export interface CreatorSelectedNodeRefV2 {
+  nodeId: string;
+  type: string;
+  label: string;
+  assetId: string | null;
+  content: string | null;
+}
+
+export interface CreatorMessageV2 {
+  id: string;
+  sessionId: string;
+  sequence: number;
+  role: 'user' | 'assistant';
+  body: string;
+  status: 'streaming' | 'completed' | 'failed' | 'stopped';
+  suggestions: CreatorSuggestionV2[];
+  actionId: string | null;
+  media: CreatorMediaRef[];
+  responseId: string | null;
+  replyToMessageId: string | null;
+  selectedNodes: CreatorSelectedNodeRefV2[];
+  errorCode: string | null;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface CreatorSuggestionV2 {
+  label: string;
+  sendText: string;
+  intentKind: string;
+  role: 'recommended' | 'alternative' | 'execute';
+  inputAssetIds: string[];
+}
+
+export interface CreatorActionV2 {
+  id: string;
+  sessionId: string;
+  sequence: number;
+  type: 'image' | 'video';
+  prompt: string;
+  parameters: { ratio?: string; count?: number; duration?: number; resolution?: string };
+  modelSnapshot: { kind: 'image' | 'video'; providerId: string; modelId: string; catalogDigest: string };
+  inputAssetIds: string[];
+  status: 'pending' | 'running' | 'ambiguous' | 'completed' | 'failed' | 'cancelled';
+  runIntentId: string | null;
+  runId: string | null;
+  resultAssets: CreatorMediaRef[];
+  errorCode: string | null;
+  errorMessage: string | null;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface CreatorConversationV2 {
+  schema: 't8-creator-conversation-v2';
+  id: string;
+  projectId: string;
+  canvasId: string;
+  title: string;
+  phase: CreatorPhase;
+  status: 'active' | 'completed' | 'archived';
+  sequence: number;
+  workingBrief: {
+    goal: string;
+    format: string;
+    audience: string;
+    style: string;
+    story: string;
+    assets: string;
+    constraints: string;
+    decisions: string;
+    openQuestion: string;
+  };
+  phaseEvidence: {
+    source: string;
+    requestedPhase: CreatorPhase | null;
+    acceptedPhase: CreatorPhase | null;
+    transition: 'advance' | 'stay' | 'revise';
+    reason: string;
+    at: number;
+  };
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface CreatorSnapshotV2 {
+  conversation: CreatorConversationV2;
+  messages: CreatorMessageV2[];
+  pendingAction: CreatorActionV2 | null;
+  nextBeforeSequence: number | null;
+}
+
+export interface CreatorChoiceV2 {
+  providerId: string;
+  modelId: string;
+}
+
+export interface CreatorPreferencesV2 {
+  providerId: string;
+  llm: CreatorChoiceV2 | null;
+  image: CreatorChoiceV2 | null;
+  video: CreatorChoiceV2 | null;
+  catalogDigest: string | null;
+  updatedAt?: number;
+}
+
+export interface CreatorCatalogItemV2 extends CreatorChoiceV2 {
+  label: string;
+  providerLabel: string;
+  configured: boolean;
+  recommended: boolean;
+}
+
+export interface CreatorCatalogV2 {
+  catalogDigest: string;
+  providers: Array<{ id: string; label: string; configured: boolean }>;
+  llm: CreatorCatalogItemV2[];
+  image: CreatorCatalogItemV2[];
+  video: CreatorCatalogItemV2[];
+}
+
+/**
+ * Prefer the provider catalog's own display label. When a provider does not
+ * supply one, preserve the model id verbatim instead of inventing a friendly
+ * name or removing technical suffixes that may distinguish billable models.
+ */
+export function formatCreatorProviderLabel(providerId: string, catalogLabel: string, isChinese = true) {
+  const known = {
+    'seedance-nz': ['贞贞的平价AI小屋', 'Zhenzhen Budget AI House'],
+    zhenzhen: ['贞贞的AI工坊', 'Zhenzhen AI Studio'],
+  } as const;
+  const localized = known[providerId as keyof typeof known];
+  return localized ? localized[isChinese ? 0 : 1] : String(catalogLabel || providerId).trim();
+}
+
+export function formatCreatorModelLabel(item: CreatorCatalogItemV2, isChinese = true) {
+  const modelId = String(item.modelId || '').trim();
+  const catalogLabel = String(item.label || '').trim();
+  // The generated catalog is currently authored in Chinese. In an English
+  // workspace, preserve the exact model id rather than leaking a mixed-locale
+  // suffix that can also obscure which billable model is selected.
+  const label = !isChinese && /\p{Script=Han}/u.test(catalogLabel) ? modelId : (catalogLabel || modelId);
+  const providerLabel = formatCreatorProviderLabel(item.providerId, item.providerLabel, isChinese);
+  if (!providerLabel || item.providerId === 'seedance-nz') return label;
+  if (label.toLocaleLowerCase().startsWith(providerLabel.toLocaleLowerCase())) return label;
+  return `${providerLabel} · ${label}`;
+}
+
+interface Envelope<T> {
+  schema: 't8-creator-agent-http-v2';
+  ok: boolean;
+  data?: T;
+  message?: string;
+  code?: string;
+}
+
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(`${BASE}${path}`, {
+    ...init,
+    headers: {
+      ...(init?.body ? { 'Content-Type': 'application/json' } : {}),
+      ...(init?.headers || {}),
+    },
+  });
+  const envelope = await response.json().catch(() => null) as Envelope<T> | null;
+  if (!response.ok || !envelope?.ok || envelope.data == null) {
+    const error = new Error(envelope?.message || `创作 Agent 请求失败（HTTP ${response.status}）`);
+    Object.assign(error, { code: envelope?.code || 'CREATOR_AGENT_V2_REQUEST_FAILED', status: response.status });
+    throw error;
+  }
+  return envelope.data;
+}
+
+const scopeQuery = (projectId: string, canvasId: string) => new URLSearchParams({ projectId, canvasId });
+
+export async function listCreatorConversationsV2(projectId: string, canvasId: string, before?: string) {
+  const query = scopeQuery(projectId, canvasId);
+  query.set('limit', '20');
+  if (before) query.set('before', String(before));
+  return request<{ items: CreatorConversationV2[]; nextBefore: string | null }>(`/sessions?${query}`);
+}
+
+export async function createCreatorConversationV2(projectId: string, canvasId: string, title?: string) {
+  return request<{ conversation: CreatorConversationV2 }>('/sessions', {
+    method: 'POST',
+    body: JSON.stringify({ projectId, canvasId, title }),
+  });
+}
+
+export async function getCreatorConversationV2(sessionId: string, projectId: string, canvasId: string, beforeSequence?: number) {
+  const query = scopeQuery(projectId, canvasId);
+  query.set('limit', '24');
+  if (beforeSequence) query.set('beforeSequence', String(beforeSequence));
+  return request<CreatorSnapshotV2>(`/sessions/${encodeURIComponent(sessionId)}?${query}`);
+}
+
+export async function sendCreatorMessageV2(sessionId: string, input: {
+  projectId: string;
+  canvasId: string;
+  text: string;
+  clientRequestId: string;
+  attachments?: CreatorMediaRef[];
+  selectedNodeIds?: string[];
+}) {
+  return request<CreatorSnapshotV2 & { assistant: CreatorMessageV2; evidence: { providerCalls: number } }>(
+    `/sessions/${encodeURIComponent(sessionId)}/messages`,
+    { method: 'POST', body: JSON.stringify(input) },
+  );
+}
+
+export async function stopCreatorResponseV2(sessionId: string, responseId: string, projectId: string, canvasId: string) {
+  return request<{ stopped: boolean }>(`/sessions/${encodeURIComponent(sessionId)}/responses/${encodeURIComponent(responseId)}/stop`, {
+    method: 'POST',
+    body: JSON.stringify({ projectId, canvasId }),
+  });
+}
+
+export async function confirmCreatorActionV2(sessionId: string, actionId: string, projectId: string, canvasId: string) {
+  return request<{ action: CreatorActionV2 }>(`/sessions/${encodeURIComponent(sessionId)}/actions/${encodeURIComponent(actionId)}/confirm`, {
+    method: 'POST',
+    body: JSON.stringify({ projectId, canvasId }),
+  });
+}
+
+export async function cancelCreatorActionV2(sessionId: string, actionId: string, projectId: string, canvasId: string) {
+  return request<{ action: CreatorActionV2 }>(`/sessions/${encodeURIComponent(sessionId)}/actions/${encodeURIComponent(actionId)}/cancel`, {
+    method: 'POST',
+    body: JSON.stringify({ projectId, canvasId }),
+  });
+}
+
+export async function sendCreatorAssetToCanvasV2(sessionId: string, actionId: string, assetId: string, projectId: string, canvasId: string) {
+  return request<{ nodeId: string; duplicate: boolean; canvasRevision: number }>(
+    `/sessions/${encodeURIComponent(sessionId)}/media/${encodeURIComponent(assetId)}/send-to-canvas`,
+    { method: 'POST', body: JSON.stringify({ projectId, canvasId, actionId }) },
+  );
+}
+
+export async function getCreatorSettingsV2(projectId: string, canvasId: string) {
+  return request<{ preferences: CreatorPreferencesV2 }>(`/settings?${scopeQuery(projectId, canvasId)}`);
+}
+
+export async function saveCreatorSettingsV2(projectId: string, canvasId: string, preferences: CreatorPreferencesV2) {
+  return request<{ preferences: CreatorPreferencesV2 }>('/settings', {
+    method: 'PUT',
+    body: JSON.stringify({ projectId, canvasId, preferences }),
+  });
+}
+
+export async function getCreatorCatalogV2(projectId: string, canvasId: string) {
+  return request<CreatorCatalogV2>(`/settings/catalog?${scopeQuery(projectId, canvasId)}`);
+}
+
+export function subscribeCreatorEventsV2(sessionId: string, projectId: string, canvasId: string, after: number, handlers: {
+  onMessage: (message: CreatorMessageV2) => void;
+  onAction: (action: CreatorActionV2) => void;
+  onConversation?: (conversation: CreatorConversationV2) => void;
+  onCursor?: (sequence: number) => void;
+  onError?: () => void;
+}) {
+  const query = scopeQuery(projectId, canvasId);
+  query.set('after', String(Math.max(0, after)));
+  const source = new EventSource(`${BASE}/sessions/${encodeURIComponent(sessionId)}/events?${query}`);
+  const parse = <T,>(event: MessageEvent<string>) => {
+    try {
+      const envelope = JSON.parse(event.data) as { sequence?: number; data?: T };
+      const sequence = Math.max(0, Math.trunc(Number(envelope.sequence || event.lastEventId) || 0));
+      if (sequence) handlers.onCursor?.(sequence);
+      return envelope.data || null;
+    } catch { return null; }
+  };
+  source.addEventListener('message', (event) => {
+    const value = parse<CreatorMessageV2>(event as MessageEvent<string>);
+    if (value) handlers.onMessage(value);
+  });
+  source.addEventListener('action', (event) => {
+    const value = parse<CreatorActionV2>(event as MessageEvent<string>);
+    if (value) handlers.onAction(value);
+  });
+  source.addEventListener('conversation', (event) => {
+    const value = parse<CreatorConversationV2>(event as MessageEvent<string>);
+    if (value) handlers.onConversation?.(value);
+  });
+  source.onerror = () => handlers.onError?.();
+  return () => source.close();
+}

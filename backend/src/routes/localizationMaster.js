@@ -1,10 +1,12 @@
 const express = require('express');
 const config = require('../config');
 const {
+  acceptIndexTtsModelLicense,
   cancelIndexTtsRuntimeInstall,
   inspectIndexTtsRuntime,
   inspectIndexTtsJob,
   muxLocalizedVideo,
+  retryIndexTtsDialogueLine,
   runIndexTtsDialogue,
   startIndexTtsRuntimeInstall,
   writeLocalizationSubtitle,
@@ -46,11 +48,17 @@ router.get('/runtime', async (req, res) => {
   }
 });
 
+router.post('/runtime/license', async (req, res) => {
+  try {
+    const data = await acceptIndexTtsModelLicense(req.body || {});
+    return res.json({ success: true, data });
+  } catch (error) {
+    return res.status(Number(error?.status) || 409).json({ success: false, code: error?.code || 'INDEXTTS25_LICENSE_NOT_CONFIRMED', error: error?.message || String(error) });
+  }
+});
+
 router.post('/runtime/install', async (req, res) => {
   try {
-    if (req.body?.modelLicenseConfirmed !== true) {
-      return res.status(409).json({ success: false, code: 'INDEXTTS25_LICENSE_NOT_CONFIRMED', error: '必须先阅读并确认 IndexTTS 2.5 模型许可。' });
-    }
     const data = startIndexTtsRuntimeInstall(req.body || {});
     return res.status(202).json({ success: true, data });
   } catch (error) {
@@ -68,9 +76,6 @@ router.post('/runtime/cancel', async (_req, res) => {
 
 router.post('/tts', async (req, res) => {
   try {
-    if (req.body?.modelLicenseConfirmed !== true) {
-      return res.status(409).json({ success: false, code: 'INDEXTTS25_LICENSE_NOT_CONFIRMED', error: '必须先确认 IndexTTS 2.5 模型许可，才会启动本地推理。' });
-    }
     const data = await runIndexTtsDialogue(req.body || {}, {
       t8BaseUrl: t8BaseUrl(req),
       signal: req.t8AbortSignal,
@@ -83,6 +88,19 @@ router.post('/tts', async (req, res) => {
     return res.json({ success: true, data });
   } catch (error) {
     return res.status(Number(error?.status) || 500).json({ success: false, code: error?.code || 'LOCALIZATION_TTS_FAILED', error: error?.message || String(error) });
+  }
+});
+
+router.post('/tts/retry-line', async (req, res) => {
+  try {
+    const data = await retryIndexTtsDialogueLine(req.body || {}, {
+      t8BaseUrl: t8BaseUrl(req),
+      signal: req.t8AbortSignal,
+      onProgress: (progress) => { req.localizationProgress = progress; },
+    });
+    return res.json({ success: true, data });
+  } catch (error) {
+    return res.status(Number(error?.status) || 500).json({ success: false, code: error?.code || 'LOCALIZATION_TTS_LINE_RETRY_FAILED', error: error?.message || String(error) });
   }
 });
 

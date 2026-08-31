@@ -22,6 +22,8 @@ const DEFAULT_VIDEO_CRF = 32;
 const DEFAULT_FFMPEG_TIMEOUT_MS = 120 * 1000;
 const DEFAULT_VIDEO_FRAME_COUNT = 12;
 const MAX_VIDEO_FRAME_COUNT = 60;
+const DEFAULT_IMAGE_MAX_DIMENSION = 1600;
+const DEFAULT_IMAGE_MAX_BYTES = 2 * 1024 * 1024;
 
 function isRemoteUrl(value) {
   return /^https?:\/\//i.test(String(value || '').trim());
@@ -407,15 +409,51 @@ async function extractVideoFramesToDataUrls(value, options = {}) {
   return frames.map((frame) => frame.url);
 }
 
+async function compactVisionImage(resolved, original, options = {}) {
+  const maximumDimension = clampInt(options.imageMaxDimension, 512, 4096, DEFAULT_IMAGE_MAX_DIMENSION);
+  const maximumBytes = numberOr(options.imageMaxBase64Bytes, DEFAULT_IMAGE_MAX_BYTES);
+  let bytes;
+  let mime = resolved?.mime || 'image/png';
+  try {
+    bytes = resolved?.path ? fs.readFileSync(resolved.path) : Buffer.from(String(resolved?.base64 || ''), 'base64');
+    const sharp = require('sharp');
+    const metadata = await sharp(bytes, { failOn: 'none' }).metadata();
+    const width = Number(metadata.width) || 0;
+    const height = Number(metadata.height) || 0;
+    if (bytes.length <= maximumBytes && width <= maximumDimension && height <= maximumDimension) {
+      return /^data:image\//iu.test(original)
+        ? original
+        : `data:${mime};base64,${bytes.toString('base64')}`;
+    }
+    bytes = await sharp(bytes, { failOn: 'none' })
+      .rotate()
+      .resize({ width: maximumDimension, height: maximumDimension, fit: 'inside', withoutEnlargement: true })
+      .webp({ quality: 82, effort: 4 })
+      .toBuffer();
+    mime = 'image/webp';
+    return `data:${mime};base64,${bytes.toString('base64')}`;
+  } catch {
+    if (resolved?.path && fs.existsSync(resolved.path)) {
+      bytes = fs.readFileSync(resolved.path);
+      return `data:${mime};base64,${bytes.toString('base64')}`;
+    }
+    return original;
+  }
+}
+
 async function normalizeImageUrl(url, options = {}) {
-  const text = normalizeT8LocalMediaRef(url);
-  if (!text || isDataUrl(text) || isRemoteUrl(text)) return text;
-  if (isT8LocalMediaPath(text)) {
+  const text = normalizeT8LocalMediaRef(url, options);
+  if (!text || isRemoteUrl(text)) return text;
+  if (isDataUrl(text)) {
+    const info = dataUrlInfo(text);
+    return compactVisionImage(info, text, options);
+  }
+  if (isT8LocalMediaPath(text) || path.isAbsolute(text) || text.startsWith('file://')) {
     const resolved = await resolveMediaRef(text, {
-      target: 'data-url',
+      target: 'local-path',
       baseUrl: options.baseUrl || DEFAULT_BASE_URL,
     });
-    if (resolved.dataUrl) return resolved.dataUrl;
+    if (resolved.path) return compactVisionImage(resolved, text, options);
     throw new Error(`本地图片读取失败: ${text}`);
   }
   return text;
@@ -531,6 +569,8 @@ function normalizeOptions(input = {}, options = {}) {
     videoCrf: input.videoCrf ?? providerParams.videoCrf ?? options.videoCrf ?? DEFAULT_VIDEO_CRF,
     videoFrameCount: clampInt(input.videoFrameCount ?? providerParams.videoFrameCount ?? options.videoFrameCount, 1, MAX_VIDEO_FRAME_COUNT, DEFAULT_VIDEO_FRAME_COUNT),
     videoFrameMaxSize: input.videoFrameMaxSize ?? providerParams.videoFrameMaxSize ?? options.videoFrameMaxSize,
+    imageMaxDimension: input.imageMaxDimension ?? providerParams.imageMaxDimension ?? options.imageMaxDimension ?? DEFAULT_IMAGE_MAX_DIMENSION,
+    imageMaxBase64Bytes: input.imageMaxBase64Bytes ?? providerParams.imageMaxBase64Bytes ?? options.imageMaxBase64Bytes ?? DEFAULT_IMAGE_MAX_BYTES,
     videoMaxBase64Bytes: Number.isFinite(mb) && mb > 0
       ? mb * 1024 * 1024
       : (options.videoMaxBase64Bytes || DEFAULT_VIDEO_MAX_BYTES),

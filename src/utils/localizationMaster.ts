@@ -2,6 +2,7 @@ import type { LlmMessage } from '../services/generation';
 
 export const LOCALIZATION_PROJECT_SCHEMA = 't8-localization-project-v1' as const;
 export const LOCALIZATION_DUBBING_LANGUAGES = ['ZH', 'EN', 'JA', 'ES', 'AR'] as const;
+export const MAX_LOCALIZATION_ROLES = 16;
 export const LOCALIZATION_TARGET_LANGUAGES = [
   'ZH', 'EN', 'JA', 'ES', 'AR', 'KO', 'FR', 'DE', 'IT', 'PT', 'RU', 'TH', 'VI', 'ID', 'TR', 'HI',
 ] as const;
@@ -19,6 +20,16 @@ export interface LocalizationTranslationReceipt {
   provider: string;
   model: string;
   createdAt: number;
+}
+
+export interface LocalizationTranslationCheckpoint {
+  schema: 't8-localization-translation-checkpoint-v1';
+  bindingDigest: string;
+  provider: string;
+  model: string;
+  completedBatchDigests: string[];
+  requestIds: string[];
+  updatedAt: number;
 }
 
 export interface LocalizationTtsReceipt {
@@ -67,6 +78,8 @@ export interface LocalizationRuntimeReceipt {
   schema: 't8-indextts25-runtime-receipt-v2';
   checkedAt: number;
   ready: boolean;
+  licenseAccepted: boolean;
+  licenseAcceptedAt?: number;
   online: boolean;
   engineReady: boolean;
   dependenciesReady: boolean;
@@ -101,7 +114,7 @@ export interface LocalizationDeliveryManifest {
   mode: LocalizationMode;
   sourceMediaUrl: string;
   subtitleUrl?: string;
-  subtitleText: string;
+  subtitleText?: string;
   dubbedAudioUrl?: string;
   localizedVideoUrl?: string;
   generationReport?: Record<string, unknown>;
@@ -125,7 +138,10 @@ export interface LocalizationLanguageBranch {
   ttsReceipt?: LocalizationTtsReceipt;
   delivery?: LocalizationDeliveryManifest;
   warnings: string[];
+  ttsStaleUnitIds: string[];
   updatedAt: number;
+  active?: boolean;
+  translationCheckpoint?: LocalizationTranslationCheckpoint;
 }
 
 export interface LocalizationProject {
@@ -150,6 +166,7 @@ export interface LocalizationProject {
   providerModel: string;
   providerParams: Record<string, unknown>;
   voiceProfiles: LocalizationVoiceProfile[];
+  ttsStaleUnitIds: string[];
   timelinePolicy: 'shift' | 'overlay';
   timingMode: LocalizationTimingMode;
   asrEnabled: boolean;
@@ -164,6 +181,7 @@ export interface LocalizationProject {
   modelLicenseConfirmed: boolean;
   runtimeReceipt?: LocalizationRuntimeReceipt;
   translationReceipt?: LocalizationTranslationReceipt;
+  translationCheckpoint?: LocalizationTranslationCheckpoint;
   ttsReceipt?: LocalizationTtsReceipt;
   delivery?: LocalizationDeliveryManifest;
   warnings: string[];
@@ -241,6 +259,7 @@ function languageBranch(
     stage: units.length ? 'translation' : 'materials',
     units: cloneUnits(units),
     voiceProfiles: [],
+    ttsStaleUnitIds: [],
     warnings: [],
     updatedAt: Date.now(),
     ...overrides,
@@ -251,6 +270,7 @@ function languageBranch(
     language,
     units: cloneUnits(overrides.units || units),
     voiceProfiles: cloneVoices(overrides.voiceProfiles || []),
+    ttsStaleUnitIds: Array.isArray(overrides.ttsStaleUnitIds) ? [...overrides.ttsStaleUnitIds] : [],
     warnings: Array.isArray(overrides.warnings) ? [...overrides.warnings] : [],
   };
 }
@@ -263,7 +283,9 @@ function branchFromProjection(project: LocalizationProject): LocalizationLanguag
     stage: project.stage,
     units: project.units,
     voiceProfiles: project.voiceProfiles,
+    ttsStaleUnitIds: project.ttsStaleUnitIds,
     translationReceipt: project.translationReceipt,
+    translationCheckpoint: project.translationCheckpoint,
     ttsReceipt: project.ttsReceipt,
     delivery: project.delivery,
     warnings: project.warnings,
@@ -278,7 +300,9 @@ function projectWithBranch(project: LocalizationProject, branch: LocalizationLan
     stage: branch.stage,
     units: cloneUnits(branch.units),
     voiceProfiles: cloneVoices(branch.voiceProfiles),
+    ttsStaleUnitIds: [...branch.ttsStaleUnitIds],
     translationReceipt: branch.translationReceipt,
+    translationCheckpoint: branch.translationCheckpoint,
     ttsReceipt: branch.ttsReceipt,
     delivery: branch.delivery,
     warnings: [...branch.warnings],
@@ -291,8 +315,12 @@ export function syncActiveLocalizationBranch(project: LocalizationProject): Loca
   const active = branchFromProjection(project);
   const byLanguage = new Map(project.branches.map((branch) => [branch.language, branch]));
   byLanguage.set(active.language, active);
-  const branches = targetLanguages.map((language) => byLanguage.get(language)
-    || languageBranch(language, blankBranchUnits(project.units)));
+  const branchLanguages = [...new Set([...byLanguage.keys(), ...targetLanguages])];
+  const branches = branchLanguages.map((language) => languageBranch(
+    language,
+    blankBranchUnits(project.units),
+    { ...byLanguage.get(language), active: targetLanguages.includes(language) },
+  ));
   return { ...project, targetLanguages, branches };
 }
 
@@ -304,9 +332,15 @@ export function switchLocalizationBranch(
   if (!validTargetLanguage(language)) return project;
   const saved = syncActiveLocalizationBranch(project);
   const targetLanguages = normalizedTargets([...saved.targetLanguages, language], language);
-  const branch = saved.branches.find((item) => item.language === language)
-    || languageBranch(language, blankBranchUnits(saved.units));
-  return projectWithBranch({ ...saved, targetLanguages, branches: [...saved.branches, ...(saved.branches.some((item) => item.language === language) ? [] : [branch])] }, branch);
+  const branch = languageBranch(
+    language,
+    blankBranchUnits(saved.units),
+    { ...saved.branches.find((item) => item.language === language), active: true },
+  );
+  const branches = saved.branches.some((item) => item.language === language)
+    ? saved.branches.map((item) => item.language === language ? branch : item)
+    : [...saved.branches, branch];
+  return projectWithBranch({ ...saved, targetLanguages, branches }, branch);
 }
 
 /** Add/remove target-language branches while retaining every selected branch's independent progress. */
@@ -318,8 +352,12 @@ export function setLocalizationTargetLanguages(
   const targetLanguages = normalizedTargets(languages, saved.targetLanguage);
   const activeLanguage = targetLanguages.includes(saved.targetLanguage) ? saved.targetLanguage : targetLanguages[0];
   const byLanguage = new Map(saved.branches.map((branch) => [branch.language, branch]));
-  const branches = targetLanguages.map((language) => byLanguage.get(language)
-    || languageBranch(language, blankBranchUnits(saved.units)));
+  const branchLanguages = [...new Set([...byLanguage.keys(), ...targetLanguages])];
+  const branches = branchLanguages.map((language) => languageBranch(
+    language,
+    blankBranchUnits(saved.units),
+    { ...byLanguage.get(language), active: targetLanguages.includes(language) },
+  ));
   const active = branches.find((branch) => branch.language === activeLanguage)!;
   return projectWithBranch({ ...saved, targetLanguages, branches }, active);
 }
@@ -330,9 +368,15 @@ export function resetLocalizationBranches(
   sourceUnits: LocalizationTranslationUnit[],
 ): LocalizationProject {
   const targetLanguages = normalizedTargets(project.targetLanguages, project.targetLanguage);
-  const branches = targetLanguages.map((language) => languageBranch(language, blankBranchUnits(sourceUnits), {
+  const branchLanguages = [...new Set([
+    ...project.branches.map((branch) => branch.language),
+    ...targetLanguages,
+  ])];
+  const branches = branchLanguages.map((language) => languageBranch(language, blankBranchUnits(sourceUnits), {
     revision: (project.branches.find((branch) => branch.language === language)?.revision || 0) + 1,
     stage: sourceUnits.length ? 'translation' : 'materials',
+    active: targetLanguages.includes(language),
+    translationCheckpoint: undefined,
     updatedAt: Date.now(),
   }));
   const active = branches.find((branch) => branch.language === project.targetLanguage) || branches[0];
@@ -363,6 +407,7 @@ export function createLocalizationProject(overrides: Partial<LocalizationProject
     providerModel: 'bytedance/doubao-seed-2.1-pro',
     providerParams: {},
     voiceProfiles: [],
+    ttsStaleUnitIds: [],
     timelinePolicy: 'shift',
     timingMode: 'pad',
     asrEnabled: true,
@@ -370,7 +415,7 @@ export function createLocalizationProject(overrides: Partial<LocalizationProject
     asrThreshold: 0.82,
     subtitleTimingMode: 'actual',
     subtitleTextMode: 'asr_passed',
-    subtitleIncludeRole: true,
+    subtitleIncludeRole: false,
     postprocessPreset: 'voice_clarity',
     postprocessStrength: 0.8,
     advancedOpen: false,
@@ -389,7 +434,9 @@ export function createLocalizationProject(overrides: Partial<LocalizationProject
       stage: project.stage,
       units: project.units,
       voiceProfiles: project.voiceProfiles,
+      ttsStaleUnitIds: project.ttsStaleUnitIds,
       translationReceipt: project.translationReceipt,
+      translationCheckpoint: project.translationCheckpoint,
       ttsReceipt: project.ttsReceipt,
       delivery: project.delivery,
       warnings: project.warnings,
@@ -397,8 +444,12 @@ export function createLocalizationProject(overrides: Partial<LocalizationProject
     });
   const byLanguage = new Map(persistedBranches.map((branch) => [branch.language, branch]));
   byLanguage.set(targetLanguage, active);
-  const branches = targetLanguages.map((language) => byLanguage.get(language)
-    || languageBranch(language, blankBranchUnits(project.units)));
+  const branchLanguages = [...new Set([...byLanguage.keys(), ...targetLanguages])];
+  const branches = branchLanguages.map((language) => languageBranch(
+    language,
+    blankBranchUnits(project.units),
+    { ...byLanguage.get(language), active: targetLanguages.includes(language) },
+  ));
   return projectWithBranch({ ...project, targetLanguages, branches }, active);
 }
 
@@ -428,7 +479,12 @@ export function splitLocalizationRole(text: string, fallback = '旁白'): { role
   const bracket = clean.match(/^\[([^\]\n]{1,40})\]\s*(.+)$/s);
   if (bracket) return { role: bracket[1].trim(), text: bracket[2].trim() };
   const colon = clean.match(/^([^：:\n]{1,32})[：:]\s*(.+)$/s);
-  if (colon && !/[，。！？,.!?]/.test(colon[1])) return { role: colon[1].trim(), text: colon[2].trim() };
+  const metadataLabels = new Set(['scene', 'note', 'title', 'time', 'location', 'shot', '镜头', '场景', '备注', '标题', '时间', '地点']);
+  if (colon
+    && !/[，。！？,.!?]/.test(colon[1])
+    && !metadataLabels.has(colon[1].trim().toLocaleLowerCase())) {
+    return { role: colon[1].trim(), text: colon[2].trim() };
+  }
   return { role: fallback, text: clean };
 }
 
@@ -461,6 +517,32 @@ export function parseLocalizationText(input: string): LocalizationTranslationUni
   });
 }
 
+export function inspectLocalizationSourceText(input: string): {
+  format: 'timed' | 'plain' | 'empty';
+  warnings: string[];
+  blocked: boolean;
+} {
+  const normalized = String(input || '').replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n').trim();
+  if (!normalized) return { format: 'empty', warnings: [], blocked: false };
+  const blocks = normalized.replace(/^WEBVTT[^\n]*\n+/i, '').split(/\n{2,}/).map((item) => item.trim()).filter(Boolean);
+  const timedBlocks = blocks.filter((block) => block.split('\n').some((line) => line.includes('-->')));
+  const untimedBlocks = blocks.filter((block) => !block.split('\n').some((line) => line.includes('-->'))
+    && !/^\d+$/.test(block.trim()));
+  if (timedBlocks.length && untimedBlocks.length) {
+    return {
+      format: 'timed',
+      warnings: [`${untimedBlocks.length} untimed or malformed subtitle block(s) need correction before parsing.`],
+      blocked: true,
+    };
+  }
+  if (timedBlocks.length) return { format: 'timed', warnings: [], blocked: false };
+  return {
+    format: 'plain',
+    warnings: ['Plain text has provisional timing. Review or import timed SRT/VTT before dubbing.'],
+    blocked: false,
+  };
+}
+
 export function unitsFromWhisperSegments(segments: Array<{ start: number; end: number; text: string }>): LocalizationTranslationUnit[] {
   return (Array.isArray(segments) ? segments : []).flatMap((segment, offset) => {
     const startMs = Math.max(0, Math.round(Number(segment?.start) * 1000));
@@ -484,7 +566,7 @@ function formatSrtTimestamp(value: number): string {
 export function serializeLocalizationSrt(units: LocalizationTranslationUnit[], options: { translated?: boolean; includeRole?: boolean } = {}): string {
   return units.map((unit, offset) => {
     const value = options.translated ? unit.translatedText.trim() : unit.sourceText.trim();
-    const text = options.includeRole === false || !unit.role ? value : `[${unit.role}] ${value}`;
+    const text = options.includeRole === false || !unit.role || unit.role === '旁白' ? value : `[${unit.role}] ${value}`;
     return `${offset + 1}\n${formatSrtTimestamp(unit.startMs)} --> ${formatSrtTimestamp(unit.endMs)}\n${text}`;
   }).join('\n\n');
 }
@@ -625,19 +707,21 @@ export function applyLocalizationTranslationResponse(project: LocalizationProjec
 }
 
 export function localizationRoles(units: LocalizationTranslationUnit[]): string[] {
-  return [...new Set(units.map((unit) => unit.role.trim() || '旁白'))].slice(0, 16);
+  return [...new Set(units.map((unit) => unit.role.trim() || '旁白'))];
 }
 
 export function validateLocalizationForDubbing(project: LocalizationProject): string[] {
   const errors: string[] = [];
   if (!supportsLocalizationDubbing(project.targetLanguage)) errors.push(`IndexTTS 2.5 does not support ${project.targetLanguage} dubbing; use subtitle-only mode.`);
-  if (!project.modelLicenseConfirmed) errors.push('Confirm the IndexTTS 2.5 model license before running local inference.');
-  if (!project.runtimeReceipt?.ready || project.runtimeReceipt.requiresComfyUI !== false) errors.push('IndexTTS 2.5 embedded runtime preflight has not passed.');
+  if (!project.runtimeReceipt?.licenseAccepted) errors.push('Confirm the IndexTTS 2.5 model license on this device before running local inference.');
+  if (!project.runtimeReceipt?.ready || project.runtimeReceipt.requiresComfyUI !== false) errors.push('IndexTTS 2.5 embedded runtime preflight has not passed on this device.');
   if (!project.units.length) errors.push('No translation units are available.');
   if (project.units.some((unit) => !unit.translatedText.trim())) errors.push('Every unit needs translated text.');
   if (project.units.some((unit) => !unit.approved)) errors.push('Every translated unit must be explicitly approved.');
+  const uniqueRoles = localizationRoles(project.units);
+  if (uniqueRoles.length > MAX_LOCALIZATION_ROLES) errors.push(`IndexTTS 2.5 supports at most ${MAX_LOCALIZATION_ROLES} roles; found ${uniqueRoles.length}.`);
   const profiles = new Map(project.voiceProfiles.map((profile) => [profile.role, profile]));
-  for (const role of localizationRoles(project.units)) {
+  for (const role of uniqueRoles) {
     const profile = profiles.get(role);
     if (!profile?.referenceUrl) errors.push(`Role ${role} has no reference voice.`);
     else if (!profile.consentConfirmed) errors.push(`Role ${role} is missing voice consent confirmation.`);
@@ -648,6 +732,12 @@ export function validateLocalizationForDubbing(project: LocalizationProject): st
 export function buildLocalizationQc(project: LocalizationProject): LocalizationDeliveryManifest['qc'] {
   const asrReviewed = project.units.filter((unit) => typeof unit.asrPassed === 'boolean');
   const warnings = [...project.warnings];
+  for (const unit of project.units) {
+    for (const warning of unit.warnings || []) warnings.push(warning);
+    if (typeof unit.confidence === 'number' && unit.confidence < 0.75) {
+      warnings.push(`${unit.id}: low translation confidence (${Math.round(unit.confidence * 100)}%)`);
+    }
+  }
   if (project.mode !== 'subtitle-only' && !asrReviewed.length) warnings.push('No per-line ASR review evidence is available.');
   if (asrReviewed.some((unit) => unit.asrPassed === false)) warnings.push('One or more dubbed lines did not pass the configured ASR threshold.');
   return {

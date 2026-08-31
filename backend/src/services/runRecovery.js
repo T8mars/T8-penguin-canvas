@@ -297,6 +297,12 @@ class RunRecoveryManager {
 
   async recoverTicket(ticket) {
     if (this.stopping) return 'deferred';
+    // Creator Agent owns the matching conversation/action transition and uses
+    // the same durable Run/NodeRun/Attempt as its recovery authority.  Leave
+    // these tickets active for the lazy Creator runtime instead of committing
+    // them through canvas-node artifact authority (the detached NodeRun has no
+    // canvas node entity by design).
+    if (ticket.attempt.metadata?.creatorAgentV2?.version === 1) return 'deferred';
     const descriptor = normalizeRunRecoveryDescriptor(ticket.attempt.metadata?.recovery);
     if (!descriptor) return this.interruptTicket(ticket, '恢复描述缺失或不受支持');
     const startedAt = Date.now();

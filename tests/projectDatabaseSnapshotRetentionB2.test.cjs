@@ -78,7 +78,7 @@ function mutationState(database) {
   };
 }
 
-test('B2 snapshot retention keeps only explicit Run/Intent/Review/Patch consumers plus the latest window across cold reopen', async () => {
+test('B2 snapshot retention keeps active Run/Intent and durable Review/Patch consumers across cold reopen', async () => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 't8-b2-snapshot-retention-'));
   const filename = path.join(directory, 'projects.sqlite3');
   let database = null;
@@ -283,8 +283,9 @@ test('B2 snapshot retention keeps only explicit Run/Intent/Review/Patch consumer
     });
     assert.deepEqual(revisions(database), [1, 2, 3, 4, 5, 7, 12, 13, 14, 15, 16]);
     assert.equal(database.getCanvas(CANVAS_ID).revision, 16);
-    assert.equal(snapshotPins(database).length, 6);
-    assert.equal(database.resolveNodeRunSourceEntityUid(run.id, nodeRun.nodeId), nodeRun.nodeEntityUid);
+    assert.equal(snapshotPins(database).length, 5);
+    assert.equal(database.getRun(run.id).status, 'interrupted');
+    assert.equal(database.getNodeRun(nodeRun.id).nodeEntityUid, nodeRun.nodeEntityUid);
     const reopenedDuplicatePatch = database.applyCanvasPatch(CANVAS_ID, patch, {
       previewDigest: preview.previewDigest,
       confirmed: true,
@@ -321,7 +322,7 @@ test('B2 snapshot retention keeps only explicit Run/Intent/Review/Patch consumer
       false,
       'a reverted Patch no longer owns its applied snapshot',
     );
-    assert.deepEqual(revisions(database), [1, 2, 3, 4, 5, 19, 20, 21, 22, 23]);
+    assert.deepEqual(revisions(database), [1, 3, 4, 5, 19, 20, 21, 22, 23]);
     assert.equal(
       database.db.prepare(`
         SELECT 1 FROM canvas_snapshots
@@ -428,7 +429,7 @@ test('B2 snapshot evidence is immutable, idempotent, and bound to the authoritat
   }
 });
 
-test('B2 Run retention releases and compacts snapshots pinned only by deleted Run history', () => {
+test('B2 terminal Run history never pins a full canvas snapshot while Run pruning remains independent', () => {
   const database = new ProjectDatabase(':memory:', {
     autoBackup: false,
     canvasSnapshotRetentionLimit: 2,
@@ -448,7 +449,7 @@ test('B2 Run retention releases and compacts snapshots pinned only by deleted Ru
     database.recordCanvasSnapshot(document, 'run-prune-release');
     document = move(database, document, 3);
     database.recordCanvasSnapshot(document, 'run-prune-release');
-    assert.deepEqual(revisions(database), [1, 2, 3, 4]);
+    assert.deepEqual(revisions(database), [1, 3, 4]);
 
     database.db.prepare('UPDATE runs SET created_at = ? WHERE id = ?')
       .run(Date.now() - 3 * 24 * 60 * 60 * 1000, run.id);

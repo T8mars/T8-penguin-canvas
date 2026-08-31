@@ -10,6 +10,7 @@ import { assertProductionNodeSchema } from './helpers/canvasNodeSchema.ts';
 
 const require = createRequire(import.meta.url);
 const { normalizeLlmMessageMedia, resolveBundledFfmpeg } = require('../backend/src/providers/llmMedia.js');
+const sharp = require('sharp');
 
 const ROOT = path.resolve(process.cwd());
 
@@ -32,7 +33,7 @@ test('LLM node accepts video ports and builds video_url payloads', () => {
   assert.match(node, /video_url:\s*\{\s*url:\s*u\s*\}/);
   assert.match(node, /groups=\{\['text', 'image', 'video'\]\}/);
   assert.match(node, /accepts:\s*\['image', 'video', 'text'\]/);
-  assert.match(node, /关键帧优先/);
+  assert.match(node, /t\('llm\.framesHelp'\)/);
   assert.match(node, /videoFrameCount/);
   assert.match(node, /userVideos\.length === 0/);
   assert.match(node, /llmVideoMode/);
@@ -293,6 +294,30 @@ test('LLM media normalizer extracts requested evenly-spread keyframes', async ()
     assert.match(content[firstFrameIndex - 1].text, /采样帧 1\/4/);
     assert.equal(imageParts.length, 4);
     assert.equal(imageParts.every((part: any) => /^data:image\/jpeg;base64,/.test(part.image_url.url)), true);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('LLM media normalizer sends a bounded visual copy instead of the full source image', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 't8-llm-image-compact-'));
+  const imagePath = path.join(dir, 'large-source.png');
+  try {
+    await sharp({ create: { width: 2400, height: 1600, channels: 3, background: '#21445f' } })
+      .png()
+      .toFile(imagePath);
+    const originalBytes = fs.statSync(imagePath).size;
+    const normalized = await normalizeLlmMessageMedia([{
+      role: 'user',
+      content: [{ type: 'image_url', image_url: { url: imagePath } }],
+    }], { imageMaxDimension: 800, imageMaxBase64Bytes: 1024 });
+    const url = normalized[0].content[0].image_url.url;
+    assert.match(url, /^data:image\/webp;base64,/u);
+    const output = Buffer.from(url.split(',', 2)[1], 'base64');
+    const metadata = await sharp(output).metadata();
+    assert.ok(output.length < originalBytes);
+    assert.ok(Number(metadata.width) <= 800);
+    assert.ok(Number(metadata.height) <= 800);
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }

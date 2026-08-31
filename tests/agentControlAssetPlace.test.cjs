@@ -11,7 +11,7 @@ const express = require('express');
 
 const { createAgentControlAuthService } = require('../backend/src/services/agentControlAuth.js');
 const { createAgentControlApprovalService } = require('../backend/src/services/agentControlApprovals.js');
-const { createAgentControlAssetService } = require('../backend/src/services/agentControlAssets.js');
+const { createAgentControlAssetService, resolveAppliedAssetPlacement } = require('../backend/src/services/agentControlAssets.js');
 const { canvasPatchRequestDigest, previewCanvasPatch } = require('../backend/src/services/canvasPatch.js');
 const agentControlRoute = require('../backend/src/routes/agentControl.js');
 
@@ -262,6 +262,47 @@ test('asset.place previews a verified project asset and applies one deterministi
   assert.equal(applied.size, 1);
   assert.equal(applyCalls, 2);
   assert.equal(commitCalls, 1);
+});
+
+test('asset.place without an explicit position reuses its original stable placement after canvas growth', async (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'zcanvas-asset-place-replay-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const bytes = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.from('replay')]);
+  const managedPath = path.join(root, 'result.png');
+  fs.writeFileSync(managedPath, bytes);
+  const asset = {
+    id: 'asset-replay', projectId: 'project-local', kind: 'image', filename: 'result.png',
+    mimeType: 'image/png', sizeBytes: bytes.length, contentHash: crypto.createHash('sha256').update(bytes).digest('hex'),
+    contentRevision: 1, storageMode: 'managed', managedPath,
+  };
+  let document = {
+    schemaVersion: 1, projectId: 'project-local', canvasId: 'canvas-replay', revision: 1,
+    nodes: [], edges: [], viewport: { x: 0, y: 0, zoom: 1 }, tombstones: { nodes: {}, edges: {} },
+  };
+  const applications = new Map();
+  const database = {
+    getCanvas: () => document,
+    getAsset: () => asset,
+    getCanvasPatchApplication: (_canvasId, patchId) => applications.get(patchId) || null,
+  };
+  const service = createAgentControlAssetService({
+    database,
+    uploadManager: { ingestFile: async () => { throw new Error('unexpected import'); } },
+  });
+  const first = await service.inspectPlace(asset.id, document, { projectId: 'project-local' });
+  const node = first.patch.operations[0].payload.node;
+  document = { ...document, revision: 2, nodes: [node] };
+  applications.set(first.patch.id, {
+    patchId: first.patch.id,
+    requestDigest: canvasPatchRequestDigest(first.patch),
+    baseRevision: 1,
+    appliedRevision: 2,
+    status: 'applied',
+  });
+  const replay = await service.inspectPlace(asset.id, document, { projectId: 'project-local' });
+  assert.equal(replay.patch.id, first.patch.id);
+  assert.deepEqual(replay.placement.position, first.placement.position);
+  assert.equal(resolveAppliedAssetPlacement(database, document.canvasId, replay).status, 'applied');
 });
 
 test('asset.place rejects assets outside the current project before creating an approval', async (t) => {

@@ -5,17 +5,17 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createInstance } from 'i18next';
 import { I18nextProvider } from 'react-i18next';
-import LocalizedVisibleTree, { localizeWorkbenchVisibleString } from '../src/i18n/LocalizedVisibleTree';
+import LocalizedVisibleTree, { localizeWorkbenchVisibleString } from '../src/i18n/LocalizedVisibleTree.tsx';
 import {
   CREATOR_AGENT_STARTER_ENGLISH,
   localizeCreatorAgentStarterIdea,
-} from '../src/i18n/creatorAgentStarterEnglish';
+} from '../src/i18n/creatorAgentStarterEnglish.ts';
 import {
   CREATOR_AGENT_VISIBLE_CATALOG,
   VIDEO_EDIT_VISIBLE_CATALOG,
   type WorkbenchVisibleCatalog,
-} from '../src/i18n/workbenchVisibleCatalog';
-import { INSPIRATION_VISIBLE_CATALOG } from '../src/i18n/inspirationVisibleCatalog';
+} from '../src/i18n/workbenchVisibleCatalog.ts';
+import { INSPIRATION_VISIBLE_CATALOG } from '../src/i18n/inspirationVisibleCatalog.ts';
 
 function source(relativePath: string) {
   return readFileSync(new URL(`../${relativePath}`, import.meta.url), 'utf8');

@@ -318,10 +318,30 @@ function assetPlacementPatch(asset, document, input = {}, textContent = '') {
     throw new AgentControlAssetError('ASSET_PLACE_TARGET_NOT_FOUND', '目标节点不存在，请刷新画布后重新选择', 404);
   }
   const nodes = Array.isArray(document?.nodes) ? document.nodes : [];
-  const defaultX = targetNode
+  // A replay without an explicit position must resolve to the node that this
+  // exact asset revision already placed. Otherwise the growing rightmost-node
+  // fallback changes the placement digest on every click and defeats the
+  // CanvasPatch exactly-once ledger.
+  const priorPlacement = !targetNodeId && input.position == null
+    ? nodes.find((node) => {
+        const data = node?.data && typeof node.data === 'object' ? node.data : {};
+        const bindings = Array.isArray(data.referenceBindings) ? data.referenceBindings : [];
+        return String(data.sourceAssetId || '') === String(asset.id || '')
+          && bindings.some((binding) => (
+            String(binding?.assetId || '') === String(asset.id || '')
+            && String(binding?.contentHash || '').toLowerCase() === String(asset.contentHash || '').toLowerCase()
+            && Math.max(1, Number(binding?.contentRevision) || 1) === Math.max(1, Number(asset.contentRevision || asset.revision) || 1)
+          ));
+      })
+    : null;
+  const defaultX = priorPlacement
+    ? Number(priorPlacement.position?.x || 0)
+    : targetNode
     ? Number(targetNode.position?.x || 0) - 420
     : nodes.reduce((maximum, node) => Math.max(maximum, Number(node?.position?.x) || 0), 0) + 420;
-  const defaultY = targetNode
+  const defaultY = priorPlacement
+    ? Number(priorPlacement.position?.y || 0)
+    : targetNode
     ? Number(targetNode.position?.y || 0)
     : nodes.reduce((minimum, node) => Math.min(minimum, Number(node?.position?.y) || 0), 0);
   const position = {

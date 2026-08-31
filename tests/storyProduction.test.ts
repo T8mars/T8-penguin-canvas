@@ -23,6 +23,7 @@ import {
   selectStoryVideoTargets,
   splitStoryShot,
   splitStoryScriptBlocks,
+  storyProviderSubmissionKey,
   storyToDirectorShots,
   storyToVideoEditClips,
   storyToVideoEditTimeline,
@@ -83,6 +84,30 @@ test('long scripts keep stable unique shots and full coverage without truncation
   assert.equal(new Set(analyzed.shots.map((shot) => shot.id)).size, 120);
   assert.equal(analyzed.coverage.percent, 100);
   assert.equal(compileStoryPrompts(analyzed).shots.every((shot) => Boolean(shot.finalPrompt)), true);
+});
+
+test('legacy or LLM Story data repairs duplicate shot ids deterministically', () => {
+  const input = {
+    ...createEmptyStoryProject({ storyId: 'story-duplicate-shot-ids', script: 'a\n\nb' }),
+    shots: [
+      { id: 'same-shot', title: 'A', sourceSpan: { start: 0, end: 1, text: 'a' }, durationSec: 5, visualDescription: 'a' },
+      { id: 'same-shot', title: 'B', sourceSpan: { start: 3, end: 4, text: 'b' }, durationSec: 5, visualDescription: 'b' },
+    ],
+  };
+  const first = sanitizeStoryProject(input);
+  const second = sanitizeStoryProject(input);
+  assert.equal(new Set(first.shots.map((shot) => shot.id)).size, 2);
+  assert.deepEqual(first.shots.map((shot) => shot.id), second.shots.map((shot) => shot.id));
+});
+
+test('Story derives a stable independent submission identity for each paid operation', () => {
+  const base = 'run-attempt-key';
+  const shotA = storyProviderSubmissionKey(base, 'shot', 'shot-a');
+  const shotB = storyProviderSubmissionKey(base, 'shot', 'shot-b');
+  assert.notEqual(shotA, shotB);
+  assert.equal(shotA, storyProviderSubmissionKey(base, 'shot', 'shot-a'));
+  assert.notEqual(shotA, storyProviderSubmissionKey(base, 'asset', 'shot-a'));
+  assert.ok(shotA.length <= 160);
 });
 
 test('legacy Story project data without recovery fields upgrades safely', () => {

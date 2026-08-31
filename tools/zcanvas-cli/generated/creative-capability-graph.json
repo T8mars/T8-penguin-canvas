@@ -21,7 +21,7 @@
     "canvasNodeSchema": "56cc84a3e73879b4da1a518d433f40e6bd1077fec2f659c5efc168c396958631",
     "canvasNodeSchemaFile": "e734d7ce986e11bf382716bad259e18018620283e8024af28b55b6b99c9eef94",
     "i18nNodeCatalog": "0479653284399372bba58f69d528e45ed9de267f9a1d7107347401ab75f60676",
-    "i18nRendererResources": "fb27f815fc0b9dc615abeb8f38528a3c803120ee92589f44f9da651f2a5fa7fb",
+    "i18nRendererResources": "97aecbadccd969edf6d87c961b440c5c448a4db205c8e3657e4ac05f18e5036d",
     "i18nElectronCatalog": "409cf6403ce3d7bd3bfc96e996e43008b57b248a53bf9fb0f38b9bcf2fbea2d7",
     "runtimeCatalogSources": "9ef6b59cec91b32595b0215c78f801d8c231de81062f64f68e06d772fb59d9c2",
     "runtimeCatalogArtifact": "a88c58906f4e7270ffe6e1920a642fbf16cbb36815c45a57bd4fcdf0fa5e526e",
@@ -30,7 +30,7 @@
     "coverageReceiptCompiler": "68c02167cb5317107edd346223a5e5999168e447bacbb977ff8e9678e6753fe7",
     "canonicalTextDigestCompiler": "b0afcf28a257fbbd8f391edc117348f8f2ede1b4a039ae91bce25a8d563ac0cf"
   },
-  "aggregateDigest": "ba5648301144d2e52fbff76bb90fe1196814bf3092132b37bcb4f0eb47ce6e1e",
+  "aggregateDigest": "1f4e04b591f6f4cf482414b73ce8df4abacda147a93ae18d8e51975406c21576",
   "principles": {
     "oneSentenceStart": true,
     "directCanvasMutation": false,

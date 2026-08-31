@@ -261,6 +261,12 @@ function stableId(prefix: string, seed: string, index = 0): string {
   return `${safePrefix}-${stableHash(`${seed}\u0001${index}`)}`;
 }
 
+export function storyProviderSubmissionKey(baseKey: string | null | undefined, operation: string, targetId = ''): string {
+  const base = stringValue(baseKey, 'story-run').slice(0, 96);
+  const operationId = stableId(`story-${operation}`, `${operation}\u0001${targetId}`, 0);
+  return `${base}:${operationId}`.slice(0, 160);
+}
+
 function normalizeSpan(value: unknown, script: string, fallbackText = ''): StorySourceSpan {
   const raw = record(value);
   const sourceText = stringValue(raw.text, fallbackText);
@@ -451,6 +457,25 @@ function sanitizeShot(value: unknown, script: string, index: number, defaultScen
   };
 }
 
+function ensureUniqueStoryShotIds(shots: StoryShot[]): StoryShot[] {
+  const seen = new Set<string>();
+  return shots.map((shot, index) => {
+    if (!seen.has(shot.id)) {
+      seen.add(shot.id);
+      return shot;
+    }
+    const seed = `${shot.id}\u0001${shot.title}\u0001${shot.sourceSpan.start}\u0001${shot.sourceSpan.end}`;
+    let id = stableId('shot', seed, index);
+    let collision = 0;
+    while (seen.has(id)) {
+      collision += 1;
+      id = stableId('shot', seed, index + collision);
+    }
+    seen.add(id);
+    return { ...shot, id };
+  });
+}
+
 function sanitizeStageState(value: unknown): StoryStageState {
   const raw = record(value);
   return {
@@ -467,7 +492,9 @@ export function sanitizeStoryProject(value: unknown): StoryProject {
   const fallback = createEmptyStoryProject({ storyId: stringValue(raw.storyId), title: stringValue(raw.title), script: stringValue(raw.script) });
   const script = stringValue(raw.script);
   const scenes = Array.isArray(raw.scenes) ? raw.scenes.map((scene, index) => sanitizeScene(scene, script, index)) : [];
-  const shots = Array.isArray(raw.shots) ? raw.shots.map((shot, index) => sanitizeShot(shot, script, index, scenes[0]?.id)) : [];
+  const shots = ensureUniqueStoryShotIds(
+    Array.isArray(raw.shots) ? raw.shots.map((shot, index) => sanitizeShot(shot, script, index, scenes[0]?.id)) : [],
+  );
   const assets = Array.isArray(raw.assets) ? raw.assets.map(sanitizeAsset) : [];
   const stage = STAGES.includes(raw.stage) ? raw.stage as StoryStage : fallback.stage;
   const stages = Object.fromEntries(STAGES.map((key) => [key, sanitizeStageState(record(raw.stages)[key])])) as Record<StoryStage, StoryStageState>;
@@ -850,10 +877,10 @@ export function applyStoryAnalysis(
   if (!Array.isArray(raw.shots) || raw.shots.length === 0) throw new Error('Story 分析没有生成任何镜头');
   const scenes = Array.isArray(raw.scenes) ? raw.scenes.map((scene, index) => sanitizeScene(scene, current.script, index)) : [];
   const previousShotById = new Map(current.shots.map((shot) => [shot.id, shot]));
-  const shots = raw.shots.map((shot: unknown, index: number) => {
+  const shots = ensureUniqueStoryShotIds(raw.shots.map((shot: unknown, index: number) => {
     const sanitized = sanitizeShot(shot, current.script, index, scenes[0]?.id);
     return mergeLockedShot(previousShotById.get(sanitized.id), sanitized);
-  });
+  }));
   const previousAssetByKey = new Map(current.assets.map((asset) => [`${asset.kind}:${asset.name}`, asset]));
   const sanitizedAssets = (Array.isArray(raw.assets) ? raw.assets : []).map((asset: unknown, index: number) => {
     const sanitized = sanitizeAsset(asset, index);

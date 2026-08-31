@@ -43,6 +43,8 @@ export interface Material {
   sourceNodeSerialId?: number;
   /** Stable provider clip identity used by chained music operations. */
   clipId?: string;
+  /** Target handles on the consuming node reached by this source material. */
+  targetHandles?: string[];
 }
 
 export interface UpstreamMaterials {
@@ -202,6 +204,18 @@ export function useUpstreamMaterials(nodeId: string): UpstreamMaterials {
       set.add((c as any).sourceHandle ?? null);
     }
     return m;
+  }, [conns]);
+
+  const targetHandleMap = useMemo(() => {
+    const map = new Map<string, Set<string>>();
+    for (const connection of conns) {
+      const targetHandle = String((connection as any).targetHandle || '').trim();
+      if (!targetHandle) continue;
+      const handles = map.get(connection.source) || new Set<string>();
+      handles.add(targetHandle);
+      map.set(connection.source, handles);
+    }
+    return map;
   }, [conns]);
 
   return useMemo<UpstreamMaterials>(() => {
@@ -412,7 +426,16 @@ export function useUpstreamMaterials(nodeId: string): UpstreamMaterials {
       fixedImages.push(m);
     }
 
-    const collected = dedupeUpstreamMaterialBuckets({ texts, images: fixedImages, videos, audios });
+    const withTargetHandles = (materials: Material[]) => materials.map((material) => ({
+      ...material,
+      targetHandles: [...(targetHandleMap.get(material.sourceNodeId) || [])],
+    }));
+    const collected = dedupeUpstreamMaterialBuckets({
+      texts: withTargetHandles(texts),
+      images: withTargetHandles(fixedImages),
+      videos: withTargetHandles(videos),
+      audios: withTargetHandles(audios),
+    });
     const self = Array.isArray(currentNodeData) ? currentNodeData[0] : null;
     const customInput = normalizeLoopCustomIterationInput((self?.data as any)?.__loopCustomInput);
     if (!customInput) return collected;
@@ -431,7 +454,7 @@ export function useUpstreamMaterials(nodeId: string): UpstreamMaterials {
       videos: asMaterials('video', customInput.videos),
       audios: asMaterials('audio', customInput.audios),
     };
-  }, [upstreamNodes, handleMap, currentNodeData]);
+  }, [upstreamNodes, handleMap, targetHandleMap, currentNodeData]);
 }
 
 /**
