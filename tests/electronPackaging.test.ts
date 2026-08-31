@@ -617,8 +617,27 @@ test('Electron release publishing requires explicit per-version approval', () =>
     fixtureAssetNames.map((name) => ({ name, size: 1 })),
     fixtureAssetNames,
   ));
+  const fixtureMacAssetNames = [
+    'T8-PenguinCanvas-9.9.9-mac-arm64.dmg',
+    'T8-PenguinCanvas-9.9.9-mac-arm64.zip',
+    'latest-mac.yml',
+  ];
+  assert.doesNotThrow(() => assertExactReleaseAssets(
+    [...fixtureAssetNames, ...fixtureMacAssetNames].map((name) => ({ name, size: 1 })),
+    fixtureAssetNames,
+    fixtureMacAssetNames,
+  ));
   assert.throws(() => assertExactReleaseAssets(
     [...fixtureAssetNames, 'unexpected-debug.zip'].map((name) => ({ name, size: 1 })),
+    fixtureAssetNames,
+  ), /unexpected release asset/);
+  assert.throws(() => assertExactReleaseAssets(
+    [...fixtureAssetNames, 'T8-PenguinCanvas-9.9.8-mac-arm64.dmg'].map((name) => ({ name, size: 1 })),
+    fixtureAssetNames,
+    fixtureMacAssetNames,
+  ), /unexpected release asset/);
+  assert.throws(() => assertExactReleaseAssets(
+    [...fixtureAssetNames, ...fixtureMacAssetNames].map((name) => ({ name, size: 1 })),
     fixtureAssetNames,
   ), /unexpected release asset/);
   assert.throws(() => assertExactReleaseAssets(
@@ -629,6 +648,11 @@ test('Electron release publishing requires explicit per-version approval', () =>
     [fixtureInstallerName, fixtureInstallerName, 'latest.yml'].map((name) => ({ name, size: 1 })),
     fixtureAssetNames,
   ), /duplicate asset names/);
+  assert.throws(() => assertExactReleaseAssets(
+    fixtureAssetNames.map((name) => ({ name, size: 1 })),
+    fixtureAssetNames,
+    [fixtureMacAssetNames[0], fixtureMacAssetNames[0]],
+  ), /allowed additional release asset names are invalid/);
   assert.doesNotThrow(() => assertReleaseAssetMetadata(
     new Map(fixtureAssets.map((asset) => [asset.name, asset])),
     new Map(Object.values(fixtureExpectedArtifacts).map((artifact) => [

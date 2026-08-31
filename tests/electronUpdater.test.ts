@@ -105,6 +105,8 @@ test('release scripts verify installer, blockmap, latest.yml, and GitHub assets'
   assert.match(verify, /release asset SHA-256 mismatch/);
   assert.match(verify, /release asset advertised SHA-256 mismatch/);
   assert.match(verify, /unexpected release asset/);
+  assert.match(verify, /allowedMacAssetNames/);
+  assert.match(verify, /prepublish \? \[\] : allowedMacAssetNames/);
   assert.match(verify, /isImmutable/);
   assert.match(verify, /publisher-level no-overwrite only/);
   assert.match(verify, /metadata-only/);

@@ -23,6 +23,8 @@ const repo = process.env.T8_RELEASE_REPO || process.env.GITHUB_REPOSITORY || 'T8
 const productName = pkg.build && pkg.build.productName ? pkg.build.productName : 'T8-PenguinCanvas';
 const installerName = `${productName}-Setup-${version}.exe`;
 const blockmapName = `${installerName}.blockmap`;
+const macBaseName = `${productName}-${version}-mac-arm64`;
+const allowedMacAssetNames = [`${macBaseName}.dmg`, `${macBaseName}.zip`, 'latest-mac.yml'];
 const distDir = path.join(ROOT, 'dist_electron');
 const releaseTarget = String(process.env.T8_RELEASE_TARGET || '').toLowerCase();
 const releaseRemote = process.env.T8_RELEASE_REMOTE || 'origin';
@@ -119,19 +121,26 @@ function withReleaseTemp(action) {
   }
 }
 
-function assertExactReleaseAssets(assets, expectedNames) {
+function assertExactReleaseAssets(assets, expectedNames, allowedAdditionalNames = []) {
   if (!Array.isArray(assets)) fail('release assets metadata is invalid');
   const names = assets.map((asset) => String(asset?.name || ''));
   if (names.some((name) => !name)) fail('release contains an unnamed asset');
   if (new Set(names).size !== names.length) fail('release contains duplicate asset names');
   const expected = new Set(expectedNames);
   if (expected.size !== expectedNames.length || expected.has('')) fail('expected release asset names are invalid');
+  const allowedAdditional = new Set(allowedAdditionalNames);
+  if (allowedAdditional.size !== allowedAdditionalNames.length || allowedAdditional.has('')) {
+    fail('allowed additional release asset names are invalid');
+  }
+  if (allowedAdditionalNames.some((name) => expected.has(name))) {
+    fail('allowed additional release asset names overlap required assets');
+  }
   for (const required of expectedNames) {
     if (!names.includes(required)) fail(`missing release asset: ${required}`);
   }
-  const unexpected = names.filter((name) => !expected.has(name));
+  const allowed = new Set([...expectedNames, ...allowedAdditionalNames]);
+  const unexpected = names.filter((name) => !allowed.has(name));
   if (unexpected.length > 0) fail(`unexpected release asset: ${unexpected.join(', ')}`);
-  if (names.length !== expectedNames.length) fail('release asset set is not exact');
   return new Map(assets.map((asset) => [asset.name, asset]));
 }
 
@@ -184,7 +193,11 @@ function main() {
     }
   }
   const expectedAssetNames = [installerName, blockmapName, 'latest.yml'];
-  const assetByName = assertExactReleaseAssets(data.assets, expectedAssetNames);
+  const assetByName = assertExactReleaseAssets(
+    data.assets,
+    expectedAssetNames,
+    prepublish ? [] : allowedMacAssetNames,
+  );
   let expectedByName;
   let sealedRecovery;
   if (recoveryManifest) {

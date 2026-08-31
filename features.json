@@ -34,6 +34,7 @@
       "Creator Repository / LLM / Route / Action / Run 恢复 / 前端 / 双语、Story 稳定提交、输出素材完整访问与 Run 快照容量专项共 235 项回归通过；TypeScript、4378 条双语键、39 actions / 278 runtime / 83/83 nodes、公开源码、Music3 资源和 2945 模块生产构建通过。",
       "Windows 单核/BelowNormal/零压缩正式链完成后端与 4 个私有文件加密、双运行时、native rebuild、NSIS、app.asar/post-build、provenance、sealed recovery、上传与三资产完整回下载；退出码 0 且 recovery 已清除。",
       "真实 macos-15 arm64 workflow 33376172560 从同一不可变 v3.1.2 Tag 完成原生依赖、ad-hoc 签名、DMG/ZIP/更新清单、追加上传和 runner 完整回下载；本机独立验证再次完整下载三项 Mac 资产。",
+      "Mac 三资产追加后，本机 Windows 复验器仅额外放行名称精确匹配 v3.1.2 的 Mac 三件套，继续拒绝未知、跨版本、重复或缺失资产；再次完整下载 1,360,758,784-byte Windows 安装包、blockmap 与 latest.yml，并与正式构建字节、GitHub digest/size 及清单 SHA-512 全部对账通过。",
       "六项 GitHub 资产 size/SHA-256、两个自动更新清单、固定 Tag/target、workflow source 与 GitHub Latest 全部一致。"
     ],
     "evidenceBoundary": {
@@ -2261,10 +2262,11 @@
       "macUpdateManifest": { "name": "latest-mac.yml", "size": 536, "sha256": "3c8424f556a69f3dc7f6a1f7da6a8381244275f888f314c2a55836dd4998fc0b" }
     },
     "verification": [
-      "固定 source commit b2c776a2da22ee8a753561375c986c9155765698、origin/main 与不可变 v3.1.2 Tag 一致；Release 非草稿、非预发布并为 GitHub Latest。",
+    "固定 source commit b2c776a2da22ee8a753561375c986c9155765698、不可变 v3.1.2 Tag、Release target 与 macOS workflow source 一致；origin/main 仅在该源码之后追加发布证据与复验器维护提交。Release 非草稿、非预发布并为 GitHub Latest。",
       "Windows 正式链以低资源模式完成构建、加密、双运行时、native rebuild、NSIS、post-build、provenance、sealed recovery、上传与三资产完整回下载，退出码 0 且 recovery 已清除。",
-      "真实 macos-15 arm64 workflow https://github.com/T8mars/T8-penguin-canvas/actions/runs/33376172560 完成同源构建、ad-hoc 签名、三资产追加上传和 runner 完整回下载；本机独立验证再次完整下载三项 Mac 资产。",
-      "六项资产实际字节、SHA-256 与 GitHub digest/size 一致，latest.yml 与 latest-mac.yml 均绑定 v3.1.2。",
+    "真实 macos-15 arm64 workflow https://github.com/T8mars/T8-penguin-canvas/actions/runs/33376172560 完成同源构建、ad-hoc 签名、三资产追加上传和 runner 完整回下载；本机独立验证再次完整下载三项 Mac 资产。",
+    "双平台六资产合并后再次执行 Windows 完整下载复验：复验器只允许同版本精确 Mac 三资产作为附加项，仍对未知、跨版本、重复或缺失资产失败关闭；Windows 三资产下载字节、本地正式构建、GitHub digest/size 与 latest.yml SHA-512 一致。",
+    "六项资产实际字节、SHA-256 与 GitHub digest/size 一致，latest.yml 与 latest-mac.yml 均绑定 v3.1.2。",
       "用户已明确授权先发布、后补反馈用户安装环境、协作多端、F8-F10 及安装升级证据；协作证据门只允许完全缺失的清单按 owner-approved-post-release-v3.1.2 延期，不能把延期标记为已通过，任何技术门禁失败均不可延期。"
     ]
   },
