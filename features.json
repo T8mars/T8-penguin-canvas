@@ -1,14 +1,26 @@
 {
   "$schema": "本文件为 T8-penguin-canvas 节点清单防丢失锁,任何节点删减都需要在 roadmap.md 中说明并更新本文件。",
   "version": "3.1.2",
-  "lastUpdated": "2026-08-31-v3.1.2-release-authorized-build-pending",
+  "lastUpdated": "2026-08-31-v3.1.2-released-live-verified",
   "electronReleaseV312": {
-    "status": "release-authorized-build-pending",
+    "status": "released-live-verified",
     "date": "2026-08-31",
     "releaseIncluded": true,
     "version": "3.1.2",
     "tag": "v3.1.2",
+    "sourceCommit": "b2c776a2da22ee8a753561375c986c9155765698",
+    "releaseUrl": "https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.1.2",
+    "publishedAt": "2026-08-31T09:07:19Z",
     "latest": true,
+    "macWorkflow": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/33376172560",
+    "artifacts": [
+      { "name": "T8-PenguinCanvas-Setup-3.1.2.exe", "size": 1360758784, "sha256": "019c70b144c919207e9f5db3b827d802dbb9063ef8b3895378e50c98ecca6a40" },
+      { "name": "T8-PenguinCanvas-Setup-3.1.2.exe.blockmap", "size": 1418279, "sha256": "48afd60e6c107d5225819964775d3a073cfb9bfdd89f22571f4672f4f42db7ac" },
+      { "name": "latest.yml", "size": 362, "sha256": "2ff3465378796f9060500f177760e357e62f17c7d3254dcaf49bbc195f9fa788" },
+      { "name": "T8-PenguinCanvas-3.1.2-mac-arm64.dmg", "size": 493926733, "sha256": "4420cefe0cd5b114922c182b144f52739bd1d1b5a38d4730ab6753679625e70e" },
+      { "name": "T8-PenguinCanvas-3.1.2-mac-arm64.zip", "size": 486544879, "sha256": "298f121779a33a810d259a56036798b15bbc08c861556f822cb47192dd2a1ff5" },
+      { "name": "latest-mac.yml", "size": 536, "sha256": "3c8424f556a69f3dc7f6a1f7da6a8381244275f888f314c2a55836dd4998fc0b" }
+    ],
     "scope": [
       "Creator Agent 默认入口切换到极简 V2：六步进度、自然对话、三个语义分工明确的建议、单一生成确认、对话内媒体和右上角四项模型设置；每轮正式回复恰好调用一次用户选择的真实 LLM，不使用离线模板冒充成功且全程不显示费用。",
       "多语言本地化大师完成可恢复分批翻译、归档语言恢复、逐句审阅、单句重配、IndexTTS 2.5 设备许可与五语离线推理硬化；未修改节目声轨保持 0 dB，失败和重启复用同一任务。",
@@ -19,11 +31,13 @@
     ],
     "verification": [
       "Creator Agent 真实 Provider 验收覆盖 11 类用户表达和独立 LLM 评审；自然搭档感、精简度、意图对齐、建议差异与下一步可用性均为 5/5，且不保存 API Key 或 Provider 原始敏感响应。",
-      "Creator Repository / LLM / Route / Action / Run 恢复 / 前端 / 双语、Story 稳定提交、输出素材完整访问、Run 快照容量、TypeScript、i18n、能力同步和生产构建进入正式技术门禁。",
-      "Windows 必须通过私有前后端、后端加密、双运行时、native rebuild、NSIS、app.asar 启动合同、provenance、sealed recovery、GitHub 自动更新资产和完整回下载；Mac 必须从同一不可变 v3.1.2 Tag 在真实 macos-15 arm64 runner 构建并追加三项资产。"
+      "Creator Repository / LLM / Route / Action / Run 恢复 / 前端 / 双语、Story 稳定提交、输出素材完整访问与 Run 快照容量专项共 235 项回归通过；TypeScript、4378 条双语键、39 actions / 278 runtime / 83/83 nodes、公开源码、Music3 资源和 2945 模块生产构建通过。",
+      "Windows 单核/BelowNormal/零压缩正式链完成后端与 4 个私有文件加密、双运行时、native rebuild、NSIS、app.asar/post-build、provenance、sealed recovery、上传与三资产完整回下载；退出码 0 且 recovery 已清除。",
+      "真实 macos-15 arm64 workflow 33376172560 从同一不可变 v3.1.2 Tag 完成原生依赖、ad-hoc 签名、DMG/ZIP/更新清单、追加上传和 runner 完整回下载；本机独立验证再次完整下载三项 Mac 资产。",
+      "六项 GitHub 资产 size/SHA-256、两个自动更新清单、固定 Tag/target、workflow source 与 GitHub Latest 全部一致。"
     ],
     "evidenceBoundary": {
-      "technicalGates": "must-pass-before-release",
+      "technicalGates": "passed-before-release",
       "affectedUserInstallF8F10AndInstalledUpgrade": "deferred-not-passed",
       "deferralApproval": "owner-approved-post-release-v3.1.2",
       "rule": "证据后补只适用于反馈用户安装、多端协作、F8-F10、真人自然语言/听感、设备级交互与安装升级；测试、构建、加密、运行时、app.asar 启动合同、NSIS、provenance、sealed recovery、固定 Tag/target、Windows/Mac 自动更新资产与完整性验证不可延期。"
@@ -1847,7 +1861,7 @@
     "date": "2026-08-30",
     "releaseIncluded": true,
     "currentHardening": {
-      "status": "release-authorized-v3.1.2-build-pending",
+      "status": "released-v3.1.2-live-verified",
       "releaseIncluded": true,
       "scope": [
         "工作台改为按真实创作顺序推进的素材、翻译、配音、交付四步；字幕模式自动省略配音步，只渲染当前阶段，完成阶段保留可回看标记。",
@@ -1865,7 +1879,7 @@
         "单句替换前后未修改节目声轨差异均为 0 dB；FFmpeg 混音使用 normalize=0，视频换轨使用 apad 与 shortest，避免未替换音频被减半或短配音截断视频。",
         "脱敏证据位于 artifacts/localization-master-live/translation-report.json、indextts-five-language-report.json 与 line-retry-report.json；不含 API Key、签名 URL 或 Provider 原始响应。"
       ],
-      "boundary": "本轮已纳入 v3.1.2 固定源码发布范围；反馈用户安装与设备侧证据获准发布后补，但 Electron、自动更新与远端完整性技术门禁必须在正式发布前通过。"
+      "boundary": "本轮已随 v3.1.2 固定源码完成 Windows 与真实 macOS arm64 双平台正式发布和六资产完整性验证；反馈用户安装与设备侧证据按授权后补，不视为已经通过。"
     },
     "nodeType": "localization-master",
     "exampleWorkflow": "docs/workflows/localization-master.json",
@@ -2227,21 +2241,30 @@
     ]
   },
   "release": {
-    "status": "release-authorized-build-pending",
+    "status": "published-stable-latest",
     "version": "3.1.2",
     "date": "2026-08-31",
-    "publishedAt": null,
+    "publishedAt": "2026-08-31T09:07:19Z",
     "tag": "v3.1.2",
     "latest": true,
-    "sourceCommit": null,
+    "sourceCommit": "b2c776a2da22ee8a753561375c986c9155765698",
     "draft": false,
     "prerelease": false,
     "githubImmutable": false,
     "url": "https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.1.2",
-    "artifacts": {},
+    "artifacts": {
+      "installer": { "name": "T8-PenguinCanvas-Setup-3.1.2.exe", "size": 1360758784, "sha256": "019c70b144c919207e9f5db3b827d802dbb9063ef8b3895378e50c98ecca6a40" },
+      "blockmap": { "name": "T8-PenguinCanvas-Setup-3.1.2.exe.blockmap", "size": 1418279, "sha256": "48afd60e6c107d5225819964775d3a073cfb9bfdd89f22571f4672f4f42db7ac" },
+      "updateManifest": { "name": "latest.yml", "size": 362, "sha256": "2ff3465378796f9060500f177760e357e62f17c7d3254dcaf49bbc195f9fa788" },
+      "macDmg": { "name": "T8-PenguinCanvas-3.1.2-mac-arm64.dmg", "size": 493926733, "sha256": "4420cefe0cd5b114922c182b144f52739bd1d1b5a38d4730ab6753679625e70e" },
+      "macZip": { "name": "T8-PenguinCanvas-3.1.2-mac-arm64.zip", "size": 486544879, "sha256": "298f121779a33a810d259a56036798b15bbc08c861556f822cb47192dd2a1ff5" },
+      "macUpdateManifest": { "name": "latest-mac.yml", "size": 536, "sha256": "3c8424f556a69f3dc7f6a1f7da6a8381244275f888f314c2a55836dd4998fc0b" }
+    },
     "verification": [
-      "v3.1.2 源码、专项回归、能力目录、国际化、公开源码与 Electron 打包门禁正在按正式发布 SOP 收口。",
-      "Windows 与 macOS 自动更新资产将在固定 source commit 后构建、上传并完整回下载核验，实测证据随后回填。",
+      "固定 source commit b2c776a2da22ee8a753561375c986c9155765698、origin/main 与不可变 v3.1.2 Tag 一致；Release 非草稿、非预发布并为 GitHub Latest。",
+      "Windows 正式链以低资源模式完成构建、加密、双运行时、native rebuild、NSIS、post-build、provenance、sealed recovery、上传与三资产完整回下载，退出码 0 且 recovery 已清除。",
+      "真实 macos-15 arm64 workflow https://github.com/T8mars/T8-penguin-canvas/actions/runs/33376172560 完成同源构建、ad-hoc 签名、三资产追加上传和 runner 完整回下载；本机独立验证再次完整下载三项 Mac 资产。",
+      "六项资产实际字节、SHA-256 与 GitHub digest/size 一致，latest.yml 与 latest-mac.yml 均绑定 v3.1.2。",
       "用户已明确授权先发布、后补反馈用户安装环境、协作多端、F8-F10 及安装升级证据；协作证据门只允许完全缺失的清单按 owner-approved-post-release-v3.1.2 延期，不能把延期标记为已通过，任何技术门禁失败均不可延期。"
     ]
   },
@@ -14730,7 +14753,7 @@
     "date": "2026-08-29",
     "releaseIncluded": true,
     "currentHardening": {
-      "status": "release-authorized-v3.1.2-build-pending",
+      "status": "released-v3.1.2-live-verified",
       "releaseIncluded": true,
       "scope": [
         "未发送草稿、附件和引用按项目/画布隔离保存于 sessionStorage；切换画布不串稿，新建对话在存在未发送内容时先确认。",
@@ -14745,7 +14768,7 @@
         "脱敏证据位于 artifacts/creator-agent-live/tool-diagnostic-report.json；不含 API Key、签名 URL 或 Provider 原始响应。",
         "Creator Agent/Tool/UI 聚焦测试 88/88 通过；正式结构 JSON 仍在完整 Schema、接地和质量门之前保持有界内存态。"
       ],
-      "boundary": "本轮体验硬化已纳入 v3.1.2 固定源码发布范围；v3.1.1 历史发布事实保持不变，正式完成状态只在 Electron 与 GitHub 技术门禁通过后回填。"
+      "boundary": "本轮体验硬化已随 v3.1.2 固定源码完成 Windows 与真实 macOS arm64 双平台发布和六资产完整性验证；v3.1.1 历史发布事实保持不变，反馈用户安装与设备侧体验仍按授权后补。"
     },
     "schemas": {
       "work": "t8-creator-work-snapshot-v1",
