@@ -240,6 +240,76 @@ test('Creator v2 resolves an explicitly attached managed asset to the real local
   } finally { await f.close(); }
 });
 
+test('Creator v2 accepts an attachment-only turn and gives the real LLM a natural localized intent', async () => {
+  const f = await fixture();
+  try {
+    await request(f.baseUrl, '/sessions', {
+      method: 'POST',
+      body: JSON.stringify({ sessionId: 'creator-route-attachment-only', projectId: 'project-local', canvasId: 'canvas-local' }),
+    });
+    const turn = await request(f.baseUrl, '/sessions/creator-route-attachment-only/messages', {
+      method: 'POST',
+      body: JSON.stringify({
+        projectId: 'project-local', canvasId: 'canvas-local', clientRequestId: 'request-attachment-only',
+        text: '', locale: 'en', attachments: [{ assetId: 'asset-result-001', kind: 'image' }],
+      }),
+    });
+    assert.equal(turn.status, 201);
+    assert.equal(f.llmInputs.length, 1);
+    assert.equal(f.llmInputs[0].prompt, 'Please review these materials, then suggest the strongest creative direction.');
+    assert.equal(f.llmInputs[0].attachments[0].assetId, 'asset-result-001');
+    const snapshot = f.repository.getConversation('creator-route-attachment-only');
+    assert.equal(snapshot.messages[0].body, f.llmInputs[0].prompt);
+  } finally { await f.close(); }
+});
+
+test('Creator v2 accepts a selected-node-only turn without forcing the user to type filler text', async () => {
+  const f = await fixture();
+  try {
+    f.document.nodes.push({
+      id: 'node-text-only',
+      type: 'text',
+      position: { x: 0, y: 0 },
+      data: { label: '文本', text: '一只纸企鹅在雨夜里追着灯塔前进。' },
+    });
+    await request(f.baseUrl, '/sessions', {
+      method: 'POST',
+      body: JSON.stringify({ sessionId: 'creator-route-selection-only', projectId: 'project-local', canvasId: 'canvas-local' }),
+    });
+    const turn = await request(f.baseUrl, '/sessions/creator-route-selection-only/messages', {
+      method: 'POST',
+      body: JSON.stringify({
+        projectId: 'project-local', canvasId: 'canvas-local', clientRequestId: 'request-selection-only',
+        text: '', locale: 'zh-CN', selectedNodeIds: ['node-text-only'],
+      }),
+    });
+    assert.equal(turn.status, 201);
+    assert.equal(f.llmInputs.length, 1);
+    assert.equal(f.llmInputs[0].prompt, '请先看看我选中的画布节点，帮我判断最合适的创作方向。');
+    assert.equal(f.llmInputs[0].selectedNodes[0].nodeId, 'node-text-only');
+    assert.equal(f.llmInputs[0].selectedNodes[0].content.includes('纸企鹅'), true);
+  } finally { await f.close(); }
+});
+
+test('Creator v2 still rejects a truly empty turn with no text, material, or selected node', async () => {
+  const f = await fixture();
+  try {
+    await request(f.baseUrl, '/sessions', {
+      method: 'POST',
+      body: JSON.stringify({ sessionId: 'creator-route-empty-turn', projectId: 'project-local', canvasId: 'canvas-local' }),
+    });
+    const turn = await request(f.baseUrl, '/sessions/creator-route-empty-turn/messages', {
+      method: 'POST',
+      body: JSON.stringify({
+        projectId: 'project-local', canvasId: 'canvas-local', clientRequestId: 'request-empty-turn', text: '', locale: 'zh-CN',
+      }),
+    });
+    assert.equal(turn.status, 400);
+    assert.equal(turn.body.code, 'CREATOR_MESSAGE_EMPTY');
+    assert.equal(f.llmInputs.length, 0);
+  } finally { await f.close(); }
+});
+
 test('Creator v2 rejects a stale selected node instead of silently dropping its context', async () => {
   const f = await fixture();
   try {

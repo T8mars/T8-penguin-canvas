@@ -222,6 +222,7 @@ import ProjectWorkbench from './ProjectWorkbench';
 import GenerationHistoryPanel from './GenerationHistoryPanel';
 import TerminalPanel from './TerminalPanel';
 import CreatorAgentPanel from './CreatorAgentEntry';
+import StartupPosterCarousel from './StartupPosterCarousel';
 import NodeActionBar from './NodeActionBar';
 import RadialNodeMenu from './RadialNodeMenu';
 import RadialMenuSettingsModal from './RadialMenuSettingsModal';
@@ -3915,6 +3916,8 @@ interface CanvasInnerProps {
   onInsertWorkflowRef?: React.MutableRefObject<InsertWorkflowFn | null>;
   persistenceRuntime: CanvasPersistenceRuntime;
   themeStyleOverride?: string;
+  apiSettingsRevision?: number;
+  onOpenApiSettings?: () => void;
 }
 
 type PersistableCanvasPatchState = {
@@ -4083,7 +4086,7 @@ function requireVersionedCanvasPatchDocument(value: unknown, canvasId: string): 
   return document as VersionedCanvasData;
 }
 
-function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, persistenceRuntime, themeStyleOverride }: CanvasInnerProps) {
+function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, persistenceRuntime, themeStyleOverride, apiSettingsRevision, onOpenApiSettings }: CanvasInnerProps) {
   const { t } = useTranslation(['canvas', 'common']);
   const { activeId, canvases, refreshCanvasMetadata, setActive } = useCanvasStore();
   const performanceFixtureSize = useMemo(
@@ -4261,6 +4264,7 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, persistenceRuntime, th
   const [loadedCanvasId, setLoadedCanvasId] = useState<string | null>(null);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
   const [activeCanvasRevision, setActiveCanvasRevision] = useState(0);
+  const [initializedFlowCanvasId, setInitializedFlowCanvasId] = useState<string | null>(null);
   const activeProjectIdRef = useRef<string | null>(activeProjectId);
   activeProjectIdRef.current = activeProjectId;
   const saveTimersByCanvasRef = useRef(persistenceRuntime.saveTimersByCanvas);
@@ -5211,6 +5215,7 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, persistenceRuntime, th
       cancelScheduledHistoryCapture();
       setActiveProjectId(null);
       setActiveCanvasRevision(0);
+      setInitializedFlowCanvasId(null);
       setCanvasPatchConflictMessage('');
       patchPreviewBaselinesRef.current.clear();
       const fixture = buildCanvasPerformanceFixture(performanceFixtureSize);
@@ -5251,6 +5256,7 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, persistenceRuntime, th
       setLoadedCanvasId(null);
       setActiveProjectId(null);
       setActiveCanvasRevision(0);
+      setInitializedFlowCanvasId(null);
       setCanvasPatchConflictMessage('');
       patchPreviewBaselinesRef.current.clear();
       skipInitialAutosaveCanvasIdsRef.current.clear();
@@ -5264,6 +5270,7 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, persistenceRuntime, th
     cancelScheduledHistoryCapture();
     setActiveProjectId(null);
     setActiveCanvasRevision(0);
+    setInitializedFlowCanvasId(null);
     setCanvasPatchConflictMessage('');
     setInitialCanvasViewport(null);
     skipInitialAutosaveCanvasIdsRef.current.delete(requestedCanvasId);
@@ -5405,6 +5412,7 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, persistenceRuntime, th
         setCanvasLoadFailure({ canvasId: requestedCanvasId, message });
         setActiveProjectId(null);
         setActiveCanvasRevision(0);
+        setInitializedFlowCanvasId(null);
         setLoadedCanvasId(null);
         setLoaded(false);
         logBus.warn('画布加载失败，已保持只读：' + message, '画布同步');
@@ -5422,6 +5430,15 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, persistenceRuntime, th
     replaceHydratedCanvasGraph,
     setCanvasRevision,
   ]);
+
+  const handleAuthoritativeFlowInit = useCallback(() => {
+    const canvasId = loadedCanvasIdRef.current;
+    if (!canvasId
+      || !loadedRef.current
+      || useCanvasStore.getState().activeId !== canvasId
+      || !canvasRevisionsRef.current.has(canvasId)) return;
+    setInitializedFlowCanvasId(canvasId);
+  }, []);
 
   useEffect(() => {
     if (!loaded || !loadedCanvasId || loadedCanvasId !== renderedCanvasId) return undefined;
@@ -13996,6 +14013,16 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, persistenceRuntime, th
     };
   }, [edgeMotionMode, heavyEdgeMotion, isDecorativeEdgeVisual]);
 
+  // Creator performs project/canvas-scoped reads as soon as it opens. Do not
+  // mount it from transport readiness alone: the authoritative document,
+  // revision, and ReactFlow viewport must all belong to the rendered canvas.
+  const creatorAgentCanvasReady = loaded
+    && loadedCanvasId === renderedCanvasId
+    && initializedFlowCanvasId === renderedCanvasId
+    && activeProjectId != null
+    && Number.isSafeInteger(activeCanvasRevision)
+    && activeCanvasRevision > 0;
+
   if (!renderedCanvasId) {
     return (
       <div
@@ -14518,17 +14545,29 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, persistenceRuntime, th
         onRetryRunAttempt={handleRetryProjectRunAttempt}
         onDoctorHighlightsChange={handleDoctorHighlightsChange}
       />
-      {loaded && loadedCanvasId === renderedCanvasId && activeProjectId && (
+      {creatorAgentCanvasReady && activeProjectId && (
         <CreatorAgentPanel
           projectId={activeProjectId}
           canvasId={renderedCanvasId}
           selectedNodeIds={nodes.filter((node) => node.selected).map((node) => node.id)}
+          selectedNodes={nodes.filter((node) => node.selected).map((node) => ({
+            id: node.id,
+            type: String(node.type || 'node'),
+            label: placementShelfNodeTitle(node),
+          }))}
+          availableNodeIds={nodes.map((node) => node.id)}
           visualStyle={visualStyle}
           themeMode={theme}
           themeTokens={themeTokens}
           onFocusNode={focusGenerationHistoryNode}
+          apiSettingsRevision={apiSettingsRevision}
+          onOpenApiSettings={onOpenApiSettings}
         />
       )}
+      <StartupPosterCarousel
+        ready={creatorAgentCanvasReady}
+        expectedNodeCount={renderedNodes.reduce((count, node) => count + (node.hidden ? 0 : 1), 0)}
+      />
       {isFarmStory && (
         <Suspense fallback={null}>
           <FarmStoryPanel
@@ -14680,6 +14719,7 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, persistenceRuntime, th
           nodes={renderedNodes}
           key={loadedCanvasId || 'canvas-loading'}
           edges={renderedEdges}
+          onInit={handleAuthoritativeFlowInit}
           nodeTypes={memoNodeTypes}
           edgeTypes={memoEdgeTypes}
           onNodesChange={onNodesChange}
@@ -15949,6 +15989,8 @@ interface CanvasProps {
   onAddNodeRef?: React.MutableRefObject<AddNodeFn | null>;
   onInsertWorkflowRef?: React.MutableRefObject<InsertWorkflowFn | null>;
   themeStyleOverride?: string;
+  apiSettingsRevision?: number;
+  onOpenApiSettings?: () => void;
 }
 
 export default function Canvas(props: CanvasProps) {

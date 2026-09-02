@@ -76,6 +76,22 @@ export const zhCN = {
       loadFailed: '画布暂时无法加载', readOnlyUntilLoaded: '加载成功前画布保持只读，不会创建空白内容或发送保存请求。',
       retryLoad: '重试加载', loadingAuthoritative: '正在读取权威画布…',
     },
+    startupPoster: {
+      title: '创作活动海报',
+      posterAlt: '免费版在线无限画布，点击开启创作之旅',
+      close: '关闭活动海报',
+      previous: '上一张海报',
+      next: '下一张海报',
+      multiHint: '可滚动、拖动、滑动或使用左右方向键切换海报。',
+      singleHint: '点击海报或立即体验按钮，在新窗口打开在线画布。',
+      gestureHint: '滚动 · 拖动 · 滑动切换',
+      suppressSevenDays: '7天内不再显示',
+      cta: '立即体验',
+      opening: '正在打开…',
+      openPoster: '打开第 {{index}} 张海报',
+      popupBlocked: '浏览器拦截了新页面，请允许本站弹窗后再试。',
+      openSystemFailed: '系统浏览器没有响应，请检查默认浏览器后再试。',
+    },
     controls: {
       doctorOn: '关闭工作流医生', doctorOff: '开启工作流医生', doctorOnDetail: '工作流医生：已开启（点击关闭运行前诊断）', doctorOffDetail: '工作流医生：已关闭（点击开启运行前诊断）',
       modelNotes: '模型注意事项', shelfExpand: '展开放置栏', shelfCollapse: '折叠放置栏', creativeDesk: '创作台背景', radialSettings: '中键圆盘设置',
@@ -441,6 +457,7 @@ export const zhCN = {
   },
   settings: {
     title: 'API Key 设置（通用 + 分类独立）', subtitle: '留空表示保持后端已存的 Key 不变 · 输入新值即覆盖 · 点眼睛可预览明文。',
+    creatorSetup: { title: '设置创作助手', subtitle: '保存后即可回到对话；首次发送时会验证 API Key。', providerTitle: '设置贞贞的平价AI小屋', providerHint: '输入一个 API Key，用于对话、图像和视频；当前输入和素材不会丢失。', endpointReady: '服务器地址已自动设置', connect: '保存并返回', keyRequired: '请先输入 API Key，当前输入和素材会继续保留。' },
     state: { configured: '已配置 {{configured}}/{{total}}', enabled: '已启用', disabled: '未启用', enabledCount: '已启用 {{enabled}}/{{total}}', configuredCount: '已配置 {{count}}', keysCount: '密钥 {{count}}', default: '默认', expand: '展开', collapse: '收起' },
     fonts: {
       title: '界面字体', hint: '· 缩小画布时提升中文小字号清晰度，立即生效', customStack: '自定义字体栈', restoreRecommended: '恢复推荐', previewTitle: '界面字体预览', previewText: '贞贞无限画布 · 节点文字 12px / 14px / 16px · 缩小时看边缘是否清楚',
@@ -601,6 +618,22 @@ export const enUS = {
       noCanvasTitle: "🐧 Zhenzhen's Infinite Canvas (Penguin Co-creation Edition)", noCanvas: 'Create or select a canvas from the sidebar.',
       loadFailed: 'Canvas could not be loaded', readOnlyUntilLoaded: 'The canvas remains read-only until loading succeeds. No blank content or save request will be created.',
       retryLoad: 'Retry loading', loadingAuthoritative: 'Loading authoritative canvas…',
+    },
+    startupPoster: {
+      title: 'Creator campaign posters',
+      posterAlt: 'Free online infinite canvas — click to start creating',
+      close: 'Close campaign posters',
+      previous: 'Previous poster',
+      next: 'Next poster',
+      multiHint: 'Scroll, drag, swipe, or use the left and right arrow keys to switch posters.',
+      singleHint: 'Select the poster or Get started to open the online canvas in a new window.',
+      gestureHint: 'Scroll · drag · swipe to switch',
+      suppressSevenDays: 'Do not show for 7 days',
+      cta: 'Get started',
+      opening: 'Opening…',
+      openPoster: 'Open poster {{index}}',
+      popupBlocked: 'The browser blocked the new page. Allow pop-ups for this site and try again.',
+      openSystemFailed: 'The system browser did not respond. Check the default browser and try again.',
     },
     controls: {
       doctorOn: 'Disable Workflow Doctor', doctorOff: 'Enable Workflow Doctor', doctorOnDetail: 'Workflow Doctor is enabled; click to disable pre-run diagnostics', doctorOffDetail: 'Workflow Doctor is disabled; click to enable pre-run diagnostics',
@@ -963,6 +996,7 @@ export const enUS = {
   },
   settings: {
     title: 'API key settings (shared + per category)', subtitle: 'Leave a field empty to keep the saved backend key · Enter a new value to replace it · Use the eye button to reveal it.',
+    creatorSetup: { title: 'Set up Creator Agent', subtitle: 'Save and return to your conversation. The API key is verified on first send.', providerTitle: 'Set up Zhenzhen Budget AI House', providerHint: 'Enter one API key for chat, image, and video. Your current text and media will stay in place.', endpointReady: 'Server address is already set', connect: 'Save and return', keyRequired: 'Enter an API key first. Your text and media will stay in place.' },
     state: { configured: '{{configured}}/{{total}} configured', enabled: 'Enabled', disabled: 'Disabled', enabledCount: '{{enabled}}/{{total}} enabled', configuredCount: '{{count}} configured', keysCount: '{{count}} keys', default: 'Default', expand: 'Expand', collapse: 'Collapse' },
     fonts: {
       title: 'Interface font', hint: '· Improve small Chinese text clarity when zoomed out; applies immediately', customStack: 'Custom font stack', restoreRecommended: 'Restore recommended', previewTitle: 'Interface font preview', previewText: "Zhenzhen's Infinite Canvas · node text 12px / 14px / 16px · inspect edges when zoomed out",

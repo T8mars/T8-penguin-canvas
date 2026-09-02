@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { localizeApiError } from '../i18n/apiErrors';
 import { ChevronDown, ChevronRight, CloudUpload, Download, ExternalLink, Eye, EyeOff, FileUp, Info, KeyRound, Loader2, Lock, Plus, Save, Settings2, TestTube2, Trash2, X, FolderOpen, ServerCog, Volume2 } from 'lucide-react';
@@ -39,6 +39,8 @@ import { LocalSettingsAddonSlot } from 'virtual:t8-local-extensions';
 interface ApiSettingsModalProps {
   open: boolean;
   onClose: () => void;
+  mode?: 'full' | 'creator';
+  returnFocusSelector?: string;
 }
 
 // 主 Key 字段名类型
@@ -224,7 +226,7 @@ function formatCloudError(error: string, data?: any) {
   return parts.join('；');
 }
 
-export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProps) {
+export default function ApiSettingsModal({ open, onClose, mode = 'full', returnFocusSelector }: ApiSettingsModalProps) {
   const { t, i18n } = useTranslation('settings');
   const advancedProviderLabel = (protocol: AdvancedProviderProtocol) => t(`providers.${protocol}.label` as any);
   const advancedProviderGuide = (protocol: AdvancedProviderProtocol) => {
@@ -291,6 +293,11 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
   const [taskSoundBusy, setTaskSoundBusy] = useState(false);
   const [taskSoundTesting, setTaskSoundTesting] = useState(false);
   const [customUiFontDraft, setCustomUiFontDraft] = useState<string>('');
+  const creatorMode = mode === 'creator';
+  const modalTitleId = useId();
+  const modalRef = useRef<HTMLDivElement | null>(null);
+  const closeButtonRef = useRef<HTMLButtonElement | null>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
   const backupFileInputRef = useRef<HTMLInputElement | null>(null);
   const taskCompletionSoundFileInputRef = useRef<HTMLInputElement | null>(null);
   // 眼睛预览拉取的明文（仅缓存，不提交）
@@ -299,6 +306,65 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
   useEffect(() => {
     if (open && !loaded) load();
   }, [open, loaded, load]);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    previousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    return () => {
+      const previous = previousFocusRef.current;
+      requestAnimationFrame(() => {
+        const previousIsVisible = Boolean(previous?.isConnected && previous.getClientRects().length);
+        const fallback = returnFocusSelector
+          ? document.querySelector<HTMLElement>(returnFocusSelector)
+          : null;
+        (previousIsVisible ? previous : fallback)?.focus();
+      });
+    };
+  }, [open, returnFocusSelector]);
+
+  useEffect(() => {
+    if (!open || !modalRef.current) return undefined;
+    const modal = modalRef.current;
+    const backgroundDialogs = Array.from(document.querySelectorAll<HTMLElement>('[role="dialog"]'))
+      .filter((dialog) => dialog !== modal && !modal.contains(dialog));
+    const snapshots = backgroundDialogs.map((dialog) => ({
+      dialog,
+      ariaHidden: dialog.getAttribute('aria-hidden'),
+      inert: dialog.inert,
+    }));
+    for (const { dialog } of snapshots) {
+      dialog.setAttribute('aria-hidden', 'true');
+      dialog.inert = true;
+    }
+    return () => {
+      for (const snapshot of snapshots) {
+        if (!snapshot.dialog.isConnected) continue;
+        if (snapshot.ariaHidden === null) snapshot.dialog.removeAttribute('aria-hidden');
+        else snapshot.dialog.setAttribute('aria-hidden', snapshot.ariaHidden);
+        snapshot.dialog.inert = snapshot.inert;
+      }
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    let secondFrame = 0;
+    const firstFrame = requestAnimationFrame(() => {
+      secondFrame = requestAnimationFrame(() => {
+        const creatorKeyInput = modalRef.current?.querySelector<HTMLInputElement>('[data-api-key-field="zhenzhenSd2ApiKey"]');
+        if (creatorMode && creatorKeyInput) {
+          creatorKeyInput.focus();
+          creatorKeyInput.scrollIntoView({ block: 'center' });
+          return;
+        }
+        closeButtonRef.current?.focus();
+      });
+    });
+    return () => {
+      cancelAnimationFrame(firstFrame);
+      if (secondFrame) cancelAnimationFrame(secondFrame);
+    };
+  }, [creatorMode, loaded, open]);
 
   // 重置表单(脱敏 Key 不直接填充,留空则保持后端原值)
   useEffect(() => {
@@ -342,6 +408,29 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
   }, [customUiFont, open, settings]);
 
   if (!open) return null;
+
+  const handleDialogKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      event.stopPropagation();
+      onClose();
+      return;
+    }
+    if (event.key !== 'Tab') return;
+    const focusable = Array.from(modalRef.current?.querySelectorAll<HTMLElement>(
+      'button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [href], [tabindex]:not([tabindex="-1"])',
+    ) || []).filter((element) => element.offsetParent !== null && element.getAttribute('aria-hidden') !== 'true');
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  };
 
   const uiFontPreviewSource = uiFontPreset === 'custom' ? customUiFontDraft : (customUiFontDraft || customUiFont);
   const activeUiFontStack = resolveUiFontStack(uiFontPreset, uiFontPreviewSource) || 'var(--t8-font-family)';
@@ -614,6 +703,15 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
     }
     if (cloudUploadDirty) {
       (patch as any).cloudUploadTargets = cloudUploadTargetsInput;
+    }
+    if (creatorMode
+      && !inputs.zhenzhenSd2ApiKey.trim()
+      && !String((settings as any)?.zhenzhenSd2ApiKey || '').trim()) {
+      setBackupMessage({ text: t('creatorSetup.keyRequired'), tone: 'error' });
+      requestAnimationFrame(() => modalRef.current
+        ?.querySelector<HTMLInputElement>('[data-api-key-field="zhenzhenSd2ApiKey"]')
+        ?.focus());
+      return;
     }
     if (Object.keys(patch).length === 0) {
       onClose();
@@ -2299,7 +2397,7 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
   };
 
   // 渲染单个 Key 表项
-  const renderKey = (spec: KeySpec, opts: { fallbackHint?: boolean; baseUrlNote?: string; clearable?: boolean }) => {
+  const renderKey = (spec: KeySpec, opts: { fallbackHint?: boolean; baseUrlNote?: string; clearable?: boolean; compact?: boolean }) => {
     const f = spec.field;
     const rawVal = (settings as any)[f] as string | undefined;
     const hasSaved = !!rawVal;
@@ -2312,7 +2410,7 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
         <label className={`text-sm font-medium flex items-center gap-2 flex-wrap ${labelCls}`}>
           <span className={`w-2 h-2 rounded-full ${spec.bullet}`} />
           {t(spec.labelKey as any)}
-          <span className={`text-[11px] font-normal ${hintCls}`}>{t(spec.descKey as any)}</span>
+          {!opts.compact && <span className={`text-[11px] font-normal ${hintCls}`}>{t(spec.descKey as any)}</span>}
           {pendingClear ? (
             <span className="t8-api-settings-badge text-[10px] font-bold px-1.5 py-0.5 rounded border" data-tone="muted">
               {t('keys.pendingClear')}
@@ -2330,9 +2428,13 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
         </label>
         <div className="flex items-center gap-2">
           <input
+            data-api-key-field={f}
             type={shows[f] ? 'text' : 'password'}
             value={inputs[f]}
-            onChange={(e) => setInputAt(f, e.target.value)}
+            onChange={(e) => {
+              setInputAt(f, e.target.value);
+              if (creatorMode && f === 'zhenzhenSd2ApiKey') setBackupMessage(null);
+            }}
             placeholder={pendingClear
               ? (opts.fallbackHint ? t('keys.clearFallbackPlaceholder') : t('keys.clearRemovePlaceholder'))
               : (hasSaved ? t('keys.keepPlaceholder') : (opts.fallbackHint ? t('keys.fallbackPlaceholder') : t('keys.inputPlaceholder')))}
@@ -2377,7 +2479,7 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
 
   return (
     <div
-      className={`fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm ${
+      className={`t8-api-settings-overlay fixed inset-0 z-[120] flex items-center justify-center backdrop-blur-sm ${
         isPixel ? 'px-modal-mask' : 'bg-black/60'
       }`}
       onMouseDown={(e) => {
@@ -2385,10 +2487,15 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
       }}
     >
       <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={modalTitleId}
+        onKeyDown={handleDialogKeyDown}
         className={
           isPixel
-            ? `t8-api-settings-modal w-full ${advancedOpen || cloudUploadOpen ? 'max-w-4xl' : 'max-w-2xl'} mx-4 px-card overflow-hidden flex flex-col max-h-[90vh]`
-            : `t8-api-settings-modal w-full ${advancedOpen || cloudUploadOpen ? 'max-w-4xl' : 'max-w-2xl'} mx-4 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] border`
+            ? `t8-api-settings-modal w-full ${creatorMode ? 'max-w-xl' : advancedOpen || cloudUploadOpen ? 'max-w-4xl' : 'max-w-2xl'} mx-4 px-card overflow-hidden flex flex-col max-h-[90vh]`
+            : `t8-api-settings-modal w-full ${creatorMode ? 'max-w-xl' : advancedOpen || cloudUploadOpen ? 'max-w-4xl' : 'max-w-2xl'} mx-4 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] border`
         }
       >
         {/* 头部 */}
@@ -2402,16 +2509,20 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
           <KeyRound size={18} className="t8-api-settings-icon" />
           <div className="flex-1">
             <h2
+              id={modalTitleId}
               className={`t8-api-settings-title text-base font-semibold ${isPixel ? 'px-title' : ''}`}
             >
-              {t('title')}
+              {creatorMode ? t('creatorSetup.title') : t('title')}
             </h2>
             <p className={`text-xs mt-0.5 ${hintCls}`}>
-              {t('subtitle')}
+              {creatorMode ? t('creatorSetup.subtitle') : t('subtitle')}
             </p>
           </div>
           <button
+            ref={closeButtonRef}
+            type="button"
             onClick={onClose}
+            aria-label={t('common:actions.close')}
             className={
               isPixel
                 ? 't8-api-settings-icon-btn px-btn px-btn--icon px-btn--ghost'
@@ -2424,6 +2535,23 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
 
         {/* 表单 */}
         <div className="t8-api-settings-body p-5 space-y-5 overflow-y-auto">
+          {creatorMode ? (
+            <section className={`t8-api-settings-section t8-api-settings-creator-setup p-4 space-y-4 border ${isPixel ? '' : 'rounded-xl'}`}>
+              <div className="space-y-1">
+                <strong className={`block text-sm ${labelCls}`}>{t('creatorSetup.providerTitle')}</strong>
+                <p className={`text-xs leading-relaxed ${hintCls}`}>{t('creatorSetup.providerHint')}</p>
+              </div>
+              {renderKey(COMMON_KEYS[1], {
+                baseUrlNote: t('creatorSetup.endpointReady'),
+                clearable: true,
+                compact: true,
+              })}
+              {backupMessage?.tone === 'error' && (
+                <div className="t8-api-settings-creator-error" role="alert">{backupMessage.text}</div>
+              )}
+            </section>
+          ) : (
+          <>
           <div className="t8-api-settings-divider pb-1" data-ui-font-settings="true">
             <label className={`text-sm font-medium flex items-center gap-2 flex-wrap ${labelCls}`}>
               <Settings2 size={14} className="t8-api-settings-icon" />
@@ -2960,6 +3088,8 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
               {backupMessage.text}
             </div>
           )}
+          </>
+          )}
         </div>
 
         {/* 底部按钮 */}
@@ -2970,39 +3100,43 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
               : ''
           }`}
         >
-          <input
-            ref={backupFileInputRef}
-            type="file"
-            accept="application/json,.json"
-            className="hidden"
-            onChange={(e) => handleImportFile(e.target.files?.[0] || null)}
-          />
-          <button
-            type="button"
-            onClick={() => backupFileInputRef.current?.click()}
-            className={
-              isPixel
-                ? 't8-api-settings-secondary-btn px-btn flex items-center gap-2'
-                : 't8-api-settings-secondary-btn px-3 py-2 text-sm rounded-md border flex items-center gap-2'
-            }
-            title={t('backup.importTitle')}
-          >
-            <FileUp size={14} />
-            {t('backup.import')}
-          </button>
-          <button
-            type="button"
-            onClick={handleExportSettings}
-            className={
-              isPixel
-                ? 't8-api-settings-secondary-btn px-btn flex items-center gap-2'
-                : 't8-api-settings-secondary-btn px-3 py-2 text-sm rounded-md border flex items-center gap-2'
-            }
-            title={t('backup.exportTitle')}
-          >
-            <Download size={14} />
-            {t('backup.export')}
-          </button>
+          {!creatorMode && (
+            <>
+              <input
+                ref={backupFileInputRef}
+                type="file"
+                accept="application/json,.json"
+                className="hidden"
+                onChange={(e) => handleImportFile(e.target.files?.[0] || null)}
+              />
+              <button
+                type="button"
+                onClick={() => backupFileInputRef.current?.click()}
+                className={
+                  isPixel
+                    ? 't8-api-settings-secondary-btn px-btn flex items-center gap-2'
+                    : 't8-api-settings-secondary-btn px-3 py-2 text-sm rounded-md border flex items-center gap-2'
+                }
+                title={t('backup.importTitle')}
+              >
+                <FileUp size={14} />
+                {t('backup.import')}
+              </button>
+              <button
+                type="button"
+                onClick={handleExportSettings}
+                className={
+                  isPixel
+                    ? 't8-api-settings-secondary-btn px-btn flex items-center gap-2'
+                    : 't8-api-settings-secondary-btn px-3 py-2 text-sm rounded-md border flex items-center gap-2'
+                }
+                title={t('backup.exportTitle')}
+              >
+                <Download size={14} />
+                {t('backup.export')}
+              </button>
+            </>
+          )}
           <button
             onClick={onClose}
             className={
@@ -3029,7 +3163,7 @@ export default function ApiSettingsModal({ open, onClose }: ApiSettingsModalProp
             ) : (
               <Save size={14} />
             )}
-            {!loading && !saved && t('common:actions.save')}
+            {!loading && !saved && (creatorMode ? t('creatorSetup.connect') : t('common:actions.save'))}
           </button>
         </div>
       </div>

@@ -1186,6 +1186,8 @@ export type HailuoModel =
   | 'hailuo-h3-global-t2v'
   | 'hailuo-h3-global-i2v'
   | 'hailuo-h3-global-multi'
+  | 'hailuo-h3-max-t2v'
+  | 'hailuo-h3-max-i2v'
   | 'minimax-h3-ow-t2v'
   | 'minimax-h3-ow-r2v'
   | 'minimax-h3-ow-i2v'
@@ -1203,7 +1205,7 @@ export interface HailuoSubmitRequest {
   prompt?: string;
   duration: HailuoDuration;
   ratio: string;
-  resolution: '480p' | '720p' | '768p' | '768P' | '1080p' | '2K';
+  resolution: '480p' | '480P' | '720p' | '768p' | '768P' | '1080p' | '2K';
   images?: string[];
   videos?: string[];
   audios?: string[];

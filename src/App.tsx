@@ -386,6 +386,8 @@ function App() {
   const themeCssApplyCoordinator = themeCssApplyCoordinatorRef.current;
   const [backendStatus, setBackendStatus] = useState<'checking' | 'ok' | 'error'>('checking');
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [apiSettingsMode, setApiSettingsMode] = useState<'full' | 'creator'>('full');
+  const [apiSettingsRevision, setApiSettingsRevision] = useState(0);
   const [resourceOpen, setResourceOpen] = useState(false);
   const [themeManagerOpen, setThemeManagerOpen] = useState(false);
   // 「在线画布」推广浮层开关 + 容器 ref(用于点击外部关闭)
@@ -2369,7 +2371,10 @@ function App() {
             </select>
           </label>
           <button
-            onClick={() => setSettingsOpen(true)}
+            onClick={() => {
+              setApiSettingsMode('full');
+              setSettingsOpen(true);
+            }}
             className={
               isPixel
                 ? 'px-btn px-btn--icon px-btn--ghost'
@@ -2411,14 +2416,27 @@ function App() {
         </button>
         <ErrorBoundary fallbackTitle={t('shell:canvasError')}>
           <Suspense fallback={<InfiniteCanvasBootLoading />}>
-            <Canvas onAddNodeRef={addNodeRef} onInsertWorkflowRef={insertWorkflowRef} themeStyleOverride={appliedThemeStyle} />
+            <Canvas
+              onAddNodeRef={addNodeRef}
+              onInsertWorkflowRef={insertWorkflowRef}
+              themeStyleOverride={appliedThemeStyle}
+              apiSettingsRevision={apiSettingsRevision}
+              onOpenApiSettings={() => {
+                setApiSettingsMode('creator');
+                setSettingsOpen(true);
+              }}
+            />
           </Suspense>
         </ErrorBoundary>
       </div>
 
       {/* API 设置弹窗 */}
       <Suspense fallback={null}>
-        {settingsOpen && <ApiSettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />}
+        {settingsOpen && <ApiSettingsModal open={settingsOpen} mode={apiSettingsMode} returnFocusSelector={apiSettingsMode === 'creator' ? '[data-canvas-floating-ui="creator-agent-launcher"]' : undefined} onClose={() => {
+          setSettingsOpen(false);
+          setApiSettingsMode('full');
+          setApiSettingsRevision((current) => current + 1);
+        }} />}
         <LocalModalSlot />
         {themeManagerOpen && (
           <ThemeTemplateManager open={themeManagerOpen} onClose={() => setThemeManagerOpen(false)} />

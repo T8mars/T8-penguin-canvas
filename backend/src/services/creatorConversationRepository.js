@@ -188,6 +188,8 @@ function mediaRefs(value) {
       title: bounded(item?.title, 240) || null,
       audioObservation: item?.audioObservation && typeof item.audioObservation === 'object'
         ? item.audioObservation : null,
+      documentObservation: item?.documentObservation && typeof item.documentObservation === 'object'
+        ? item.documentObservation : null,
     };
   });
 }
@@ -547,16 +549,26 @@ class CreatorConversationRepository {
     const rows = before?.id
       ? this.db.prepare(`SELECT * FROM creator_conversations
           WHERE project_id = ? AND canvas_id = ?
+            AND NOT (title = '未命名创作' AND NOT EXISTS (
+              SELECT 1 FROM creator_messages WHERE creator_messages.session_id = creator_conversations.id
+            ))
             AND (updated_at < ? OR (updated_at = ? AND id < ?))
           ORDER BY updated_at DESC, id DESC LIMIT ?`).all(
         projectId, canvasId, before.updatedAt, before.updatedAt, before.id, pageSize + 1,
       )
       : before
         ? this.db.prepare(`SELECT * FROM creator_conversations
-            WHERE project_id = ? AND canvas_id = ? AND updated_at < ?
+            WHERE project_id = ? AND canvas_id = ?
+              AND NOT (title = '未命名创作' AND NOT EXISTS (
+                SELECT 1 FROM creator_messages WHERE creator_messages.session_id = creator_conversations.id
+              ))
+              AND updated_at < ?
             ORDER BY updated_at DESC, id DESC LIMIT ?`).all(projectId, canvasId, before.updatedAt, pageSize + 1)
       : this.db.prepare(`SELECT * FROM creator_conversations
           WHERE project_id = ? AND canvas_id = ?
+            AND NOT (title = '未命名创作' AND NOT EXISTS (
+              SELECT 1 FROM creator_messages WHERE creator_messages.session_id = creator_conversations.id
+            ))
           ORDER BY updated_at DESC, id DESC LIMIT ?`).all(projectId, canvasId, pageSize + 1);
     const more = rows.length > pageSize;
     const page = rows.slice(0, pageSize);

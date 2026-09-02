@@ -22,6 +22,19 @@ test('creator canvas context stays bounded and excludes raw prompts and media re
 
 test('creator panel receives object summaries and shows a lightweight context receipt', () => {
   const canvas = source('src/components/Canvas.tsx');
+  const entry = source('src/components/CreatorAgentEntry.tsx');
+  if (/CreatorAgentPanelV2/.test(entry)) {
+    const panel = source('src/components/CreatorAgentPanelV2.tsx');
+    const routes = source('backend/src/routes/creatorAgentV2.js');
+    assert.match(canvas, /selectedNodes=\{nodes\.filter\(\(node\) => node\.selected\)/);
+    assert.match(canvas, /label: placementShelfNodeTitle\(node\)/);
+    assert.match(panel, /selectedNodes\?: Array<\{ id: string; type: string; label: string \}>/);
+    assert.match(panel, /selectedNodeIds: boundSelectionIds/);
+    assert.match(panel, /linkedSelectionText/);
+    assert.match(routes, /resolveTurnContext\(scope, req\.body \|\| \{\}\)/);
+    assert.match(routes, /turnSelectedNodes/);
+    return;
+  }
   const panel = source('src/components/CreatorAgentPanel.tsx');
   const service = source('src/services/creatorAgent.ts');
   const css = source('src/styles/index.css');

@@ -17,12 +17,14 @@ const {
   CreatorLlmRuntimeError,
   DEFAULT_MODELS,
   createCreatorLlmRuntimeV2,
+  isDocumentedVisionModel,
 } = require('../services/creatorLlmRuntimeV2');
 const {
   CreatorActionExecutor,
   CreatorActionExecutorError,
 } = require('../services/creatorActionExecutor');
 const { groundCreatorAudioAttachments } = require('../services/creatorAgentMediaGrounding');
+const { groundCreatorDocumentAttachments } = require('../services/creatorDocumentGrounding');
 const {
   AgentControlAssetError,
   createAgentControlAssetService,
@@ -63,6 +65,28 @@ function selectedNodeContent(data = {}) {
     if (parts.join('\n\n').length >= 6_000) break;
   }
   return parts.join('\n\n').slice(0, 6_000) || null;
+}
+
+function creatorTurnBody(input = {}, attachments = [], selectedNodes = []) {
+  const requested = bounded(input.text, 30_000);
+  if (requested) return requested;
+  const hasAttachments = Array.isArray(attachments) && attachments.length > 0;
+  const hasSelectedNodes = Array.isArray(selectedNodes) && selectedNodes.length > 0;
+  if (!hasAttachments && !hasSelectedNodes) return '';
+  const english = /^en(?:-|$)/iu.test(bounded(input.locale, 24));
+  if (hasAttachments && hasSelectedNodes) {
+    return english
+      ? 'Please review these materials and selected canvas nodes, then suggest the strongest creative direction.'
+      : '请先看看这些素材和画布节点，帮我判断最合适的创作方向。';
+  }
+  if (hasAttachments) {
+    return english
+      ? 'Please review these materials, then suggest the strongest creative direction.'
+      : '请先看看这些素材，帮我判断最合适的创作方向。';
+  }
+  return english
+    ? 'Please review the selected canvas nodes, then suggest the strongest creative direction.'
+    : '请先看看我选中的画布节点，帮我判断最合适的创作方向。';
 }
 
 function createCreatorAgentV2Router(options = {}) {
@@ -247,10 +271,23 @@ function createCreatorAgentV2Router(options = {}) {
         ? hydrateLlmAssetRefs(priorRequest.media)
         : hydrateLlmAssetRefs(turnContext.attachments);
       const turnSelectedNodes = priorRequest?.selectedNodes || turnContext.selected;
+      const turnBody = priorRequest?.body || creatorTurnBody(req.body || {}, turnAttachments, turnSelectedNodes);
+      if (!priorRequest && turnAttachments.some((item) => item.kind === 'file')) {
+        try {
+          const grounding = await groundCreatorDocumentAttachments(turnAttachments);
+          turnAttachments = grounding.attachments;
+        } catch (documentError) {
+          throw new CreatorConversationError(
+            bounded(documentError?.code, 120) || 'CREATOR_DOCUMENT_READ_FAILED',
+            bounded(documentError?.message, 500) || '文档正文没有读取成功，请重新选择文件',
+            422,
+          );
+        }
+      }
       if (!priorRequest && turnAttachments.some((item) => item.kind === 'audio')) {
         const settings = settingsProvider() || {};
         const apiKey = bounded(settings.zhenzhenSd2ApiKey, 4_000);
-        if (!apiKey) throw new CreatorConversationError('CREATOR_AUDIO_TRANSCRIBER_CREDENTIAL_REQUIRED', '需要先配置所选渠道，才能读取音频内容', 409);
+        if (!apiKey) throw new CreatorConversationError('CREATOR_AUDIO_TRANSCRIBER_CREDENTIAL_REQUIRED', '需要先配置贞贞的平价AI小屋，才能读取音频内容', 409);
         const grounding = await groundCreatorAudioAttachments(turnAttachments, {
           provider: 'seedance-nz',
           transcribeAudio: options.creatorAudioTranscriber || ((attachment) => seedanceNz.transcribeAudio({
@@ -261,10 +298,14 @@ function createCreatorAgentV2Router(options = {}) {
         });
         turnAttachments = grounding.attachments;
       }
+      const preferences = repository.getPreferences(scope);
+      const llmSnapshot = llm.modelSnapshot('llm', preferences, {
+        requiresVision: turnAttachments.some((item) => ['image', 'video'].includes(item.kind)),
+      });
       const appended = priorRequest ? { duplicate: true, message: priorRequest }
         : repository.appendUserMessage(req.params.sessionId, {
           ...scope,
-          body: req.body?.text,
+          body: turnBody,
           attachments: turnAttachments,
           selectedNodes: turnSelectedNodes,
           clientRequestId: req.body?.clientRequestId,
@@ -279,8 +320,6 @@ function createCreatorAgentV2Router(options = {}) {
         }
       }
       responseId = `response-${req.body.clientRequestId}`;
-      const preferences = repository.getPreferences(scope);
-      const llmSnapshot = llm.modelSnapshot('llm', preferences);
       const startedResponse = repository.startAssistantResponse(req.params.sessionId, {
         ...scope,
         responseId,
@@ -472,8 +511,10 @@ function createCreatorAgentV2Router(options = {}) {
           modelId: item.model,
           label: item.label || item.model,
           providerLabel: item.platformLabel || item.provider,
+          family: item.family || 'other',
           configured: providerReady[item.provider] === true,
           recommended: item.provider === 'seedance-nz' && item.model === DEFAULT_MODELS[kind],
+          visionCapable: kind !== 'llm' || isDocumentedVisionModel(item.provider, item.model),
         }));
       const providers = [...new Map(['image', 'video'].flatMap((kind) => projection(kind))
         .map((item) => [item.providerId, { id: item.providerId, label: item.providerLabel, configured: item.configured }])).values()];

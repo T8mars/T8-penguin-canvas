@@ -131,7 +131,7 @@ import {
  *   - Grok Video(kind=grok)     — Zhenzhen Grok 1.5 New / Grok Video 1.5 FAL / 旧版 FAL / grok-video-3 / images
  *   - Sora2    (kind=sora)      — Zhenzhen API + FAL 双渠道 / Base64 参考图(≤1)
  *   - HappyHorse(kind=happyhorse)— api.seedance.nz 文生/图生/参考图生视频(≤9 图)
- *   - Hailuo   (kind=hailuo)    — api.seedance.nz Hailuo 2.3 / H3 + MiniMax H3 OW
+ *   - Hailuo   (kind=hailuo)    — api.seedance.nz Hailuo 2.3 / H3 / H3 Max + MiniMax H3 OW
  *   - Flux3    (kind=flux3)     — api.seedance.nz FLUX 3 国内/海外 T2V/I2V/V2V/Draft Enhance
  *   - Seedance 2.5(kind=seedance25)— api.seedance.nz 六个 Standard 文生/图生/多模态模型
  *   - Vidu     (kind=vidu)      — api.seedance.nz Vidu Q3 文生/图生/首尾帧/参考/短剧成片(≤14 图)
@@ -297,7 +297,8 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
       : 'text';
   const apimartOmniLowpriceNsfwCheck = d?.apimartOmniLowpriceNsfwCheck === true;
   const happyHorseMode = apiModel.endsWith('-i2v') ? 'i2v' : apiModel.endsWith('-r2v') ? 'r2v' : 't2v';
-  const isHailuoH3 = isHailuo && apiModel.startsWith('hailuo-h3-');
+  const isHailuoH3Max = isHailuo && apiModel.startsWith('hailuo-h3-max-');
+  const isHailuoH3 = isHailuo && apiModel.startsWith('hailuo-h3-') && !isHailuoH3Max;
   const isMinimaxH3Ow = isHailuo && apiModel.startsWith('minimax-h3-ow-');
   const isMinimaxH3OwFast = isMinimaxH3Ow && apiModel.endsWith('-fast');
   const isMinimaxH3OwAudioDrive = isMinimaxH3Ow && apiModel.includes('-audio-drive-');
@@ -359,7 +360,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
         : isApimartBudgetVideo ? rawResolution.toLowerCase() : rawResolution;
   const hailuoDuration: HailuoDuration = isMinimaxH3Ow
     ? ([5, 10, 15].includes(Number(duration)) ? Number(duration) : 5) as HailuoDuration
-    : isHailuoH3
+    : isHailuoH3 || isHailuoH3Max
       ? Math.max(5, Math.min(15, Number(duration) || 5)) as HailuoDuration
     : resolution === '1080p' ? 6 : Number(duration) === 10 ? 10 : 6;
   const flux3Duration = Math.max(5, Math.min(20, Number(duration) || 5));
@@ -441,7 +442,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
     ? Array.from({ length: 25 }, (_, index) => index + 6)
     : isGrok15New
     ? []
-    : isHailuo && !isHailuoH3 && resolution === '1080p'
+    : isHailuo && !isHailuoH3 && !isHailuoH3Max && resolution === '1080p'
     ? [6]
     : activeModelOption?.durations || modelDef.durations || [];
   const resolutionOptions = isJimengSeedanceSelected
@@ -580,7 +581,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
       : isHailuo
       ? isMinimaxH3Ow
         ? hailuoMode === 't2v' ? 0 : isMinimaxH3OwFast && hailuoMode === 'r2v' ? 9 : 1
-        : isHailuoH3
+        : isHailuoH3 || isHailuoH3Max
         ? hailuoMode === 't2v' ? 0 : hailuoMode === 'i2v' ? 2 : 9
         : hailuoMode === 't2v' ? 0 : 1
       : isHappyHorse
@@ -1088,7 +1089,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
       && !(isWan && (!isWan30 || wan30Mode === 'i2v'))
       && !isUpscaler
       && !(isHappyHorse && happyHorseMode !== 't2v')
-      && !(isHailuo && hailuoMode === 'i2v')
+      && !(isHailuo && hailuoMode === 'i2v' && !isHailuoH3Max)
       && !isMinimaxH3OwAudioDrive
       && !(isSeedance25 && seedance25Mode === 'i2v')
       && !(isFlux3 && flux3Mode === 'draft-enhance')
@@ -1134,7 +1135,9 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
       return;
     }
     if (isHailuo && hailuoMode === 'i2v' && imageUrls.length === 0) {
-      const hailuoLabel = isMinimaxH3Ow ? 'MiniMax H3 OW' : isHailuoH3 ? 'Hailuo H3' : 'Hailuo 2.3';
+      const hailuoLabel = isMinimaxH3Ow
+        ? 'MiniMax H3 OW'
+        : isHailuoH3Max ? 'MiniMax H3 Max' : isHailuoH3 ? 'Hailuo H3' : 'Hailuo 2.3';
       setError(`${hailuoLabel} 图生视频必须连接或拖入第 1 张首帧图`);
       logBus.error(`生成中止: ${hailuoLabel} 图生视频缺少首帧图`, src);
       return;
@@ -1690,7 +1693,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
 
       if (isHailuo) {
         const hailuoImages = hailuoMode === 'i2v' || hailuoMode === 'r2v' || hailuoMode === 'audio-drive'
-          ? imageUrls.slice(0, isHailuoH3 ? 2 : isMinimaxH3OwFast && hailuoMode === 'r2v' ? 9 : 1)
+          ? imageUrls.slice(0, isHailuoH3 || isHailuoH3Max ? 2 : isMinimaxH3OwFast && hailuoMode === 'r2v' ? 9 : 1)
           : hailuoMode === 'multi' ? imageUrls.slice(0, 9) : [];
         const hailuoVideos = isHailuoH3 && hailuoMode === 'multi' ? videoUrls.slice(0, 3) : [];
         const hailuoAudios = isMinimaxH3OwAudioDrive
@@ -1698,8 +1701,11 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
           : isHailuoH3 && hailuoMode === 'multi' ? audioUrls.slice(0, 3) : [];
         const hailuoResolution = isMinimaxH3Ow
           ? resolution === '720p' ? '720p' : '480p'
+          : isHailuoH3Max ? resolution === '768P' ? '768P' : '480P'
           : isHailuoH3 ? resolution === '768P' ? '768P' : '2K' : resolution === '1080p' ? '1080p' : '768p';
-        const hailuoLabel = isMinimaxH3Ow ? 'MiniMax H3 OW' : isHailuoH3 ? 'Hailuo H3' : 'Hailuo 2.3';
+        const hailuoLabel = isMinimaxH3Ow
+          ? 'MiniMax H3 OW'
+          : isHailuoH3Max ? 'MiniMax H3 Max' : isHailuoH3 ? 'Hailuo H3' : 'Hailuo 2.3';
         logBus.info(
           `提交 ${hailuoLabel}: ${apiModel} · ${hailuoDuration}s · ${hailuoResolution} · ${ratio} · 图${hailuoImages.length}/视${hailuoVideos.length}/音${hailuoAudios.length}`,
           src,
@@ -2428,7 +2434,9 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
                      || nextModel === ZHENZHEN_VIDEO_V31_LITE_MODEL
                      ? { ratio: '16:9', duration: 8, resolution: '720p' }
                      : {}),
-                   ...(nextModel.startsWith('hailuo-h3-')
+                   ...(nextModel.startsWith('hailuo-h3-max-')
+                     ? { ratio: '16:9', duration: 5, resolution: '480P' }
+                     : nextModel.startsWith('hailuo-h3-')
                      ? { ratio: '16:9', duration: 5, resolution: '768P' }
                      : nextModel.startsWith('minimax-h3-ow-')
                        ? { ratio: '16:9', duration: 5, resolution: '480p' }
@@ -2855,6 +2863,10 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
                   : isMinimaxH3OwFast
                     ? 'MiniMax H3 OW Fast 图生视频必须且只能使用排序后的第 1 张首帧图，提示词可选。'
                     : 'MiniMax H3 OW 图生视频必须使用排序后的第 1 张首帧图，提示词可选。'
+              : isHailuoH3Max
+                ? hailuoMode === 't2v'
+                  ? 'H3 Max 文生视频必须填写提示词，不发送参考素材；比例会随请求提交。'
+                  : 'H3 Max 图生视频必须填写提示词并使用第 1 张首帧图，可选第 2 张尾帧图；比例跟随输入图片且不会发送。'
               : isHailuoH3
               ? hailuoMode === 't2v'
                 ? 'H3 文生视频必须填写提示词，不发送参考素材；比例会随请求提交。'
@@ -2867,11 +2879,13 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
             <div className="mt-1 text-white/35">
               {isMinimaxH3Ow
                 ? '贞贞的平价AI小屋 API · 5 / 10 / 15 秒 · 480p / 720p'
+                : isHailuoH3Max
+                  ? '贞贞的平价AI小屋 API · 5-15 秒 · 480P / 768P'
                 : isHailuoH3
                   ? '贞贞的平价AI小屋 API · 按次计费 · 5-15 秒 · 768P / 2K'
                 : '贞贞的平价AI小屋 API · 按次计费 · 6 / 10 秒 · 768p / 1080p（1080p 仅 6 秒）'}
             </div>
-            {!isHailuoH3 && hailuoMode === 'i2v' && (
+            {!isHailuoH3 && !isHailuoH3Max && hailuoMode === 'i2v' && (
               <div className="mt-1 text-white/35">首帧图短边需大于 300px，宽高比需在 2:5 到 5:2 之间。</div>
             )}
           </div>
@@ -3172,12 +3186,12 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
                     const requested = Number(e.target.value);
                     const nextDuration = (isMinimaxH3Ow
                       ? ([5, 10, 15].includes(requested) ? requested : 5)
-                      : isHailuoH3
+                      : isHailuoH3 || isHailuoH3Max
                         ? Math.max(5, Math.min(15, requested || 5))
                       : requested === 10 ? 10 : 6) as HailuoDuration;
                     update({
                       duration: nextDuration,
-                      ...(!isHailuoH3 && nextDuration === 10 && resolution === '1080p' ? { resolution: '768p' } : {}),
+                      ...(!isHailuoH3 && !isHailuoH3Max && nextDuration === 10 && resolution === '1080p' ? { resolution: '768p' } : {}),
                     });
                   }}
                   className="w-full rounded bg-white/5 border border-white/10 px-2 py-1 text-xs text-white outline-none focus:border-cyan-300/40"
@@ -3193,8 +3207,13 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
               <select
                 value={isMinimaxH3Ow
                   ? resolution === '720p' ? '720p' : '480p'
+                  : isHailuoH3Max ? resolution === '768P' ? '768P' : '480P'
                   : isHailuoH3 ? resolution === '768P' ? '768P' : '2K' : resolution === '1080p' ? '1080p' : '768p'}
                 onChange={(e) => {
+                  if (isHailuoH3Max) {
+                    update({ resolution: e.target.value === '768P' ? '768P' : '480P' });
+                    return;
+                  }
                   if (isHailuoH3) {
                     update({ resolution: e.target.value === '768P' ? '768P' : '2K' });
                     return;

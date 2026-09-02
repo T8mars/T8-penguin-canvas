@@ -1,0 +1,45 @@
+{
+  "schema": "t8-workflow-fragment",
+  "version": 1,
+  "title": "MiniMax H3 Max 文生视频（贞贞的平价AI小屋 · 480P）",
+  "nodes": [
+    {
+      "id": "hailuo-h3-max-t2v",
+      "type": "video",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "data": {
+        "label": "MiniMax H3 Max 文生视频",
+        "mainId": "hailuo-2.3",
+        "model": "hailuo-h3-max-t2v",
+        "videoBuiltinSource": "seedance-nz",
+        "ratio": "16:9",
+        "duration": 5,
+        "resolution": "480P",
+        "localPrompt": "纸飞机穿过洒满晨光的安静工作室，镜头平滑跟随，材质与光影保持稳定",
+        "reuseResult": false
+      }
+    }
+  ],
+  "edges": [],
+  "nodeCount": 1,
+  "edgeCount": 0,
+  "nodeTypes": [
+    "video"
+  ],
+  "topologyPreview": {
+    "nodes": [
+      {
+        "id": "hailuo-h3-max-t2v",
+        "type": "video",
+        "label": "MiniMax H3 Max 文生视频",
+        "x": 50,
+        "y": 50
+      }
+    ],
+    "edges": []
+  },
+  "savedAt": "2026-09-01T00:00:00.000Z"
+}

@@ -278,6 +278,18 @@ test('creator Agent shows source-bound reference breakdown results and recovery 
 });
 
 test('creator Agent preview uses the Canvas baseline callback and never directly applies a plan', () => {
+  const entry = source('src/components/CreatorAgentEntry.tsx');
+  if (/CreatorAgentPanelV2/.test(entry)) {
+    const panelV2 = source('src/components/CreatorAgentPanelV2.tsx');
+    const serviceV2 = source('src/services/creatorAgentV2.ts');
+    assert.match(panelV2, /sendCreatorAssetToCanvasV2\(/);
+    assert.match(panelV2, /sentNodes\[asset\.assetId\]/);
+    assert.match(panelV2, /copy\('发送到画布', 'Send to canvas'\)/);
+    assert.match(serviceV2, /\/media\/\$\{encodeURIComponent\(assetId\)\}\/send-to-canvas/);
+    assert.match(serviceV2, /JSON\.stringify\(\{ projectId, canvasId, actionId \}\)/);
+    assert.doesNotMatch(panelV2, /onPreviewPatch|applyCanvasPatch|applyPlan/);
+    return;
+  }
   const panel = source('src/components/CreatorAgentPanel.tsx');
   const canvas = source('src/components/Canvas.tsx');
   assert.match(panel, /props\.onPreviewPatch\(prepared\.patch\)/);
@@ -646,6 +658,19 @@ test('creator Agent composer is IME safe and receives focus after opening', () =
 
 test('creator Agent context includes bounded canvas, viewport, output and failed Run summaries', () => {
   const canvas = source('src/components/Canvas.tsx');
+  const entry = source('src/components/CreatorAgentEntry.tsx');
+  if (/CreatorAgentPanelV2/.test(entry)) {
+    const panelV2 = source('src/components/CreatorAgentPanelV2.tsx');
+    const routesV2 = source('backend/src/routes/creatorAgentV2.js');
+    assert.match(canvas, /selectedNodeIds=\{nodes\.filter\(\(node\) => node\.selected\)/);
+    assert.match(canvas, /selectedNodes=\{nodes\.filter\(\(node\) => node\.selected\)/);
+    assert.match(panelV2, /const selectedIds = props\.selectedNodeIds\.slice\(0, 24\)/);
+    assert.match(panelV2, /setBoundSelectionIds\(selectedIds\)/);
+    assert.match(panelV2, /selectedNodeIds: boundSelectionIds/);
+    assert.match(routesV2, /resolveTurnContext\(scope, req\.body \|\| \{\}\)/);
+    assert.match(routesV2, /selectedNodes: turnSelectedNodes/);
+    return;
+  }
   const panel = source('src/components/CreatorAgentPanel.tsx');
   const backend = source('backend/src/services/creatorAgentSessions.js');
   assert.match(canvas, /nodeTypeCounts=\{nodes\.reduce/);

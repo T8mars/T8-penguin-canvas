@@ -330,6 +330,14 @@ export const VIDEO_EDIT_VISIBLE_CATALOG = defineVisibleCatalog([
 ] as const);
 
 export const CREATOR_AGENT_VISIBLE_CATALOG = defineVisibleCatalog([
+  ['创作', 'Create'], ['打开 Creator Agent，开始创作', 'Open Creator Agent and start creating'],
+  ['告诉我你想做什么，我会帮你一步步推进；也可以上传素材，或先在画布上选中内容。', 'Tell me what you want to make and I’ll help move it forward step by step. You can also attach media or select something on the canvas first.'],
+  ['例如：把这张产品图做成 15 秒电影感广告…', 'For example: Turn this product photo into a cinematic 15-second ad…'],
+  ['下一步只需选一个', 'Choose one next step'], ['也可以直接输入你的想法', 'Or type your own direction'],
+  ['未开始的创作', 'New creation'], ['收起到标题栏', 'Minimize'], ['展开', 'Restore'],
+  ['收起 Creator Agent', 'Minimize Creator Agent'], ['展开 Creator Agent', 'Restore Creator Agent'],
+  ['显示全部模型', 'Show all models'], ['收起模型列表', 'Show fewer models'],
+  ['一次最多引用 24 个节点，已引用当前选区中的前 24 个。', 'Up to 24 nodes can be linked at once. The first 24 selected nodes are linked.'],
   ['核验中', 'Verifying'], ['定位节点', 'Locate node'], ['可编辑计划', 'Editable plan'],
   ['创作前期文档', 'Pre-production documents'],
   ['只识别原文明示结构，模型调用 0 次，推断事实 0 项。', 'Only explicit source structure is recognized: 0 model calls and 0 inferred facts.'],

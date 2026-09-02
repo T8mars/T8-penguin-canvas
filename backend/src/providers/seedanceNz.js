@@ -295,6 +295,9 @@ const HAILUO_H3_MULTI_MODEL = 'hailuo-h3-multi';
 const HAILUO_H3_GLOBAL_T2V_MODEL = 'hailuo-h3-global-t2v';
 const HAILUO_H3_GLOBAL_I2V_MODEL = 'hailuo-h3-global-i2v';
 const HAILUO_H3_GLOBAL_MULTI_MODEL = 'hailuo-h3-global-multi';
+const HAILUO_H3_MAX_T2V_MODEL = 'hailuo-h3-max-t2v';
+const HAILUO_H3_MAX_I2V_MODEL = 'hailuo-h3-max-i2v';
+const HAILUO_H3_MAX_MODELS = new Set([HAILUO_H3_MAX_T2V_MODEL, HAILUO_H3_MAX_I2V_MODEL]);
 const HAILUO_H3_T2V_MODELS = new Set([HAILUO_H3_T2V_MODEL, HAILUO_H3_GLOBAL_T2V_MODEL]);
 const HAILUO_H3_I2V_MODELS = new Set([HAILUO_H3_I2V_MODEL, HAILUO_H3_GLOBAL_I2V_MODEL]);
 const HAILUO_H3_MULTI_MODELS = new Set([HAILUO_H3_MULTI_MODEL, HAILUO_H3_GLOBAL_MULTI_MODEL]);
@@ -370,9 +373,16 @@ const MINIMAX_H3_OW_RESOLUTIONS = new Set(['480p', '720p']);
 const MINIMAX_H3_OW_RATIOS = new Set([
   '1:1', '2:3', '3:2', '3:4', '4:3', '9:16', '16:9', '21:9',
 ]);
-const HAILUO_MODELS = new Set([...HAILUO23_MODELS, ...HAILUO_H3_MODELS, ...MINIMAX_H3_OW_MODELS]);
+const HAILUO_MODELS = new Set([
+  ...HAILUO23_MODELS,
+  ...HAILUO_H3_MODELS,
+  ...HAILUO_H3_MAX_MODELS,
+  ...MINIMAX_H3_OW_MODELS,
+]);
 const HAILUO_H3_SECONDS = new Set(Array.from({ length: 11 }, (_, index) => String(index + 5)));
 const HAILUO_H3_RESOLUTIONS = new Set(['768P', '2K']);
+const HAILUO_H3_MAX_RESOLUTIONS = new Set(['480P', '768P']);
+const HAILUO_H3_MAX_RATIOS = new Set(['21:9', '16:9', '4:3', '1:1', '3:4', '9:16']);
 const HAILUO_H3_PROMPT_MAX_LENGTH = 20480;
 const HAILUO_H3_MAX_REFERENCE_IMAGES = 9;
 const HAILUO_H3_MAX_REFERENCE_VIDEOS = 3;
@@ -3459,6 +3469,53 @@ async function buildHailuoPayload(request, apiKey, options = {}) {
     return { payload, model, taskType };
   }
 
+  if (HAILUO_H3_MAX_MODELS.has(model)) {
+    const prompt = String(request.prompt || '').trim();
+    if (!prompt) throw new Error('MiniMax H3 Max 必须填写提示词');
+    if (prompt.length > HAILUO_H3_PROMPT_MAX_LENGTH) {
+      throw new Error(`MiniMax H3 Max 提示词不能超过 ${HAILUO_H3_PROMPT_MAX_LENGTH} 字符`);
+    }
+    const seconds = String(request.duration ?? request.seconds ?? '5').trim();
+    if (!HAILUO_H3_SECONDS.has(seconds)) throw new Error('MiniMax H3 Max 时长只支持 5-15 秒');
+    const resolution = String(request.resolution || '480P').trim().toUpperCase();
+    if (!HAILUO_H3_MAX_RESOLUTIONS.has(resolution)) {
+      throw new Error('MiniMax H3 Max 分辨率只支持 480P 或 768P');
+    }
+
+    const taskType = model === HAILUO_H3_MAX_T2V_MODEL ? 't2v' : 'i2v';
+    const imageSources = normalizeList(request.images || request.refImages);
+    const videoSources = normalizeList(request.videos || request.videoUrls || request.video_url);
+    const audioSources = normalizeList(request.audios || request.audioUrls || request.audio_url);
+    const payload = { model, prompt, seconds, metadata: { resolution } };
+
+    if (taskType === 't2v') {
+      if (imageSources.length || videoSources.length || audioSources.length) {
+        throw new Error('MiniMax H3 Max 文生视频不接受图片、视频或音频素材');
+      }
+      const ratio = String(request.ratio || '16:9').trim();
+      if (!HAILUO_H3_MAX_RATIOS.has(ratio)) throw new Error(`MiniMax H3 Max 不支持比例 ${ratio}`);
+      payload.metadata.ratio = ratio;
+      return { payload, model, taskType };
+    }
+
+    if (videoSources.length || audioSources.length) {
+      throw new Error('MiniMax H3 Max 图生视频只接受首帧与可选尾帧图片');
+    }
+    if (imageSources.length < 1 || imageSources.length > 2) {
+      throw new Error('MiniMax H3 Max 图生视频必须提供 1-2 张首尾帧图片');
+    }
+    payload.images = [];
+    for (const source of imageSources) {
+      payload.images.push(await uploadMedia(source, 'image', apiKey, {
+        ...options,
+        maxBytes: 30 * 1024 * 1024,
+        allowedMimes: ['image/jpeg', 'image/png', 'image/webp'],
+        cacheVariant: 'hailuo-h3-max-i2v-image-v1',
+      }));
+    }
+    return { payload, model, taskType };
+  }
+
   if (HAILUO_H3_MODELS.has(model)) {
     const prompt = String(request.prompt || '').trim();
     if (prompt.length > HAILUO_H3_PROMPT_MAX_LENGTH) {
@@ -5372,6 +5429,9 @@ module.exports = {
   HAILUO_H3_MULTI_MODELS,
   HAILUO_H3_RESOLUTIONS,
   HAILUO_H3_SECONDS,
+  HAILUO_H3_MAX_MODELS,
+  HAILUO_H3_MAX_RATIOS,
+  HAILUO_H3_MAX_RESOLUTIONS,
   HAILUO_H3_T2V_MODEL,
   HAILUO_H3_T2V_MODELS,
   HAILUO_MODELS,

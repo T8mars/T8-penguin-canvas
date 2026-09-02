@@ -125,6 +125,45 @@ test('ApiSettings exposes an independent fixed seedance.nz main API key', () => 
   assert.ok(enUS.settings.keys.zhenzhenBudget.label.length > 0);
 });
 
+test('Creator opens a focused minimal API connection dialog instead of the global settings surface', () => {
+  assert.match(appSource, /const \[apiSettingsMode, setApiSettingsMode\] = useState<'full' \| 'creator'>\('full'\)/);
+  assert.match(appSource, /onOpenApiSettings=\{\(\) => \{\s*setApiSettingsMode\('creator'\)/);
+  assert.match(apiSettingsSource, /mode\?: 'full' \| 'creator'/);
+  assert.match(apiSettingsSource, /role="dialog"/);
+  assert.match(apiSettingsSource, /aria-modal="true"/);
+  assert.match(apiSettingsSource, /aria-labelledby=\{modalTitleId\}/);
+  assert.match(apiSettingsSource, /aria-label=\{t\('common:actions.close'\)\}/);
+  assert.match(apiSettingsSource, /event\.key === 'Escape'/);
+  assert.match(apiSettingsSource, /event\.stopPropagation\(\)/);
+  assert.match(apiSettingsSource, /event\.key !== 'Tab'/);
+  assert.match(apiSettingsSource, /previous\.getClientRects\(\)\.length/);
+  assert.match(apiSettingsSource, /document\.querySelectorAll<HTMLElement>\('\[role="dialog"\]'\)/);
+  assert.match(apiSettingsSource, /dialog\.setAttribute\('aria-hidden', 'true'\)/);
+  assert.match(apiSettingsSource, /dialog\.inert = true/);
+  assert.match(apiSettingsSource, /dialog\.removeAttribute\('aria-hidden'\)/);
+  assert.match(apiSettingsSource, /dialog\.inert = snapshot\.inert/);
+  assert.match(appSource, /returnFocusSelector=\{apiSettingsMode === 'creator' \? '\[data-canvas-floating-ui="creator-agent-launcher"\]'/);
+  assert.match(apiSettingsSource, /data-api-key-field="zhenzhenSd2ApiKey"/);
+  assert.match(apiSettingsSource, /creatorSetup\.keyRequired/);
+  assert.match(apiSettingsSource, /t8-api-settings-creator-error/);
+  assert.match(indexCss, /\.t8-api-settings-creator-error/);
+  assert.match(apiSettingsSource, /creatorMode \? \([\s\S]*renderKey\(COMMON_KEYS\[1\]/);
+  assert.match(apiSettingsSource, /!creatorMode && \([\s\S]*backupFileInputRef/);
+  assert.match(apiSettingsSource, /z-\[120\]/);
+  assert.equal(zhCN.settings.creatorSetup.title, '设置创作助手');
+  assert.equal(enUS.settings.creatorSetup.title, 'Set up Creator Agent');
+  assert.equal(zhCN.settings.creatorSetup.connect, '保存并返回');
+  assert.equal(enUS.settings.creatorSetup.connect, 'Save and return');
+  assert.match(zhCN.settings.creatorSetup.subtitle, /首次发送时会验证 API Key/);
+  assert.match(zhCN.settings.creatorSetup.keyRequired, /API Key/);
+  assert.equal(zhCN.settings.creatorSetup.endpointReady, '服务器地址已自动设置');
+  assert.equal(enUS.settings.creatorSetup.endpointReady, 'Server address is already set');
+  const creatorSetup = apiSettingsSource.slice(apiSettingsSource.indexOf('creatorMode ? ('), apiSettingsSource.indexOf(') : (', apiSettingsSource.indexOf('creatorMode ? (')));
+  assert.match(creatorSetup, /compact: true/);
+  assert.match(creatorSetup, /creatorSetup\.endpointReady/);
+  assert.doesNotMatch(creatorSetup, /keys\.lockedBase/);
+});
+
 test('ApiSettings cloud upload panels link to vendor consoles and secret key reminders', () => {
   assert.match(apiSettingsSource, /https:\/\/console\.cloud\.tencent\.com\/cam\/capi/);
   assert.match(apiSettingsSource, /https:\/\/console\.cloud\.tencent\.com\/lighthouse\/cos\/index\?rid=5/);

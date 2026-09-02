@@ -36,6 +36,8 @@ const catalogModels = [
   'hailuo-h3-global-t2v',
   'hailuo-h3-global-i2v',
   'hailuo-h3-global-multi',
+  'hailuo-h3-max-t2v',
+  'hailuo-h3-max-i2v',
   'flux-3-video-t2v',
   'flux-3-video-i2v',
   'flux-3-video-v2v',
@@ -144,7 +146,8 @@ function draftSourceModel(model) {
 function requestFor(model, fixtures, state) {
   if (!isFlux(model)) {
     const isMinimaxFast = model.startsWith('minimax-h3-ow-') && model.endsWith('-fast');
-    const common = { model, duration: 5, resolution: isMinimaxFast ? '480p' : '768P' };
+    const isHailuoH3Max = model.startsWith('hailuo-h3-max-');
+    const common = { model, duration: 5, resolution: isMinimaxFast ? '480p' : isHailuoH3Max ? '480P' : '768P' };
     if (model.includes('-audio-drive-')) {
       return {
         ...common,
@@ -328,11 +331,18 @@ function downloadAndValidate(model, url) {
     height: Number(video?.height || 0),
   };
   if (!media.duration || !media.codec || !media.width || !media.height) throw new Error(`${model} video decode failed`);
+  run(ffmpeg, [
+    '-hide_banner', '-loglevel', 'error',
+    '-i', file,
+    '-map', '0:v:0',
+    '-f', 'null', '-',
+  ], `${model} full video decode`, { timeout: 920_000 });
   return {
     file: path.relative(root, file).replace(/\\/g, '/'),
     bytes: buffer.length,
     sha256: crypto.createHash('sha256').update(buffer).digest('hex'),
     media,
+    fullDecodeVerified: true,
   };
 }
 
@@ -344,8 +354,8 @@ function writeSanitizedReport(ok, status, blocker = null) {
     provider: 'seedance-nz',
     officialDocs: {
       url: 'https://api.seedance.nz/docs/llms.txt',
-      sha256: '69cfc3bc22504b57b88119dc8d50fca52288a8ccc73a6dba72f5230b2d3b32c0',
-      lastModified: 'Thu, 13 Aug 2026 17:24:14 GMT',
+      sha256: '25f9f103297de3ed88a55e39b828e4f57470af10707e5042251f62551e657580',
+      lastModified: 'Mon, 31 Aug 2026 23:54:18 GMT',
     },
     taskCount: liveResults.length,
     catalogTaskCount: catalogModels.length,

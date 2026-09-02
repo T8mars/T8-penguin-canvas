@@ -318,6 +318,16 @@ html[data-ui-font]:not([data-ui-font="theme"]) .react-flow__node {
   background: color-mix(in srgb, var(--t8-bg-panel-elevated, #1f2937) 84%, transparent) !important;
 }
 
+.t8-api-settings-creator-error {
+  padding: 8px 10px;
+  color: var(--t8-danger, #ef4444);
+  border: 1px solid color-mix(in srgb, var(--t8-danger, #ef4444) 42%, var(--t8-border, transparent));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--t8-danger, #ef4444) 8%, transparent);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
 .t8-api-settings-guide {
   background: color-mix(in srgb, var(--t8-warning, #f59e0b) 11%, var(--t8-bg-panel-elevated, #1f2937)) !important;
   color: var(--t8-text-muted, rgba(248, 250, 252, 0.72)) !important;
@@ -10691,8 +10701,8 @@ html[data-theme-visual="saint-seiya"] .t8-generation-target-icon {
   font-size: 9px;
   font-weight: 950;
   line-height: 1;
-  letter-spacing: 0.12em;
-  text-indent: 0.12em;
+  letter-spacing: 0.02em;
+  text-indent: 0;
   opacity: 0.88;
 }
 
@@ -10897,15 +10907,15 @@ html[data-theme-visual="saint-seiya"] .t8-generation-target-icon {
     4px 5px 0 color-mix(in srgb, var(--creator-border-strong) 82%, transparent);
 }
 
-/* The Creator Agent entry belongs to the primary canvas control rail.
- * Keeping it in the same 32px footprint prevents MiniMap/theme decorations
- * from being covered while preserving a lightweight visible status. */
+/* Creator is a primary workflow, not a decorative rail utility. Keep a clear
+ * 44px target on desktop as well as touch layouts so first-time users can find
+ * and activate it without pixel hunting. */
 .t8-control-rail-creator-slot {
   position: relative;
   display: grid;
-  flex: 0 0 var(--t8-theme-music-size, 32px);
-  width: var(--t8-theme-music-size, 32px);
-  height: var(--t8-theme-music-size, 32px);
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
   place-items: center;
   pointer-events: all;
 }
@@ -10917,12 +10927,12 @@ html[data-theme-visual="saint-seiya"] .t8-generation-target-icon {
   bottom: auto;
   z-index: auto;
   box-sizing: border-box;
-  width: var(--t8-theme-music-size, 32px);
-  height: var(--t8-theme-music-size, 32px);
-  min-width: var(--t8-theme-music-size, 32px);
-  min-height: var(--t8-theme-music-size, 32px);
-  padding: 3px 2px 2px;
-  gap: 0;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 4px 3px 3px;
+  gap: 1px;
   color: var(--t8-flow-controls-fg);
   background:
     radial-gradient(
@@ -10960,29 +10970,29 @@ html[data-theme-visual="saint-seiya"] .t8-generation-target-icon {
 }
 
 .t8-control-rail-creator-slot .t8-creator-agent-launcher__label {
-  font-size: 7px;
-  line-height: 8px;
-  letter-spacing: 0.08em;
-  text-indent: 0.08em;
+  font-size: 9px;
+  line-height: 10px;
+  letter-spacing: 0.02em;
+  text-indent: 0;
   opacity: 0.9;
 }
 
 .t8-control-rail-creator-slot .t8-creator-agent-launcher__glyph {
-  width: 15px;
-  height: 15px;
+  width: 18px;
+  height: 18px;
 }
 
 .t8-control-rail-creator-slot .t8-creator-agent-launcher__glyph svg {
-  width: 12px;
-  height: 12px;
+  width: 16px;
+  height: 16px;
   stroke-width: 2.25;
 }
 
 .t8-control-rail-creator-slot .t8-creator-agent-launcher__status {
-  top: 3px;
-  right: 3px;
-  width: 5px;
-  height: 5px;
+  top: 4px;
+  right: 4px;
+  width: 6px;
+  height: 6px;
   border-width: 1px;
 }
 
@@ -10994,6 +11004,59 @@ html[data-theme-visual="saint-seiya"] .t8-generation-target-icon {
 
 .t8-control-rail-creator-slot .t8-creator-agent-launcher::after {
   display: none;
+}
+
+.t8-creator-agent-launcher-hint {
+  position: absolute;
+  z-index: 3;
+  left: 54px;
+  top: 50%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: max-content;
+  max-width: min(230px, calc(100vw - 82px));
+  min-height: 36px;
+  padding: 7px 7px 7px 10px;
+  color: var(--creator-text);
+  border: 1px solid color-mix(in srgb, var(--creator-accent) 58%, var(--creator-border));
+  border-radius: 10px;
+  background: var(--creator-surface);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.2);
+  font: 650 11px/1.35 var(--creator-font);
+  transform: translateY(-50%);
+  white-space: nowrap;
+}
+
+.t8-creator-agent-launcher-hint::before {
+  position: absolute;
+  left: -5px;
+  width: 8px;
+  height: 8px;
+  content: '';
+  border-left: 1px solid color-mix(in srgb, var(--creator-accent) 58%, var(--creator-border));
+  border-bottom: 1px solid color-mix(in srgb, var(--creator-accent) 58%, var(--creator-border));
+  background: var(--creator-surface);
+  transform: rotate(45deg);
+}
+
+.t8-creator-agent-launcher-hint button {
+  display: grid;
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  place-items: center;
+  color: var(--creator-muted);
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+}
+
+.t8-creator-agent-launcher-hint button:hover,
+.t8-creator-agent-launcher-hint button:focus-visible {
+  color: var(--creator-text);
+  background: var(--creator-surface-alt);
 }
 
 @keyframes t8-creator-agent-aura {
@@ -14366,7 +14429,7 @@ html[data-theme-visual="saint-seiya"] .t8-generation-target-icon {
   bottom: 22px;
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr) auto auto auto;
-  width: min(440px, calc(100vw - 44px));
+  width: min(clamp(660px, 56vw, 760px), calc(100vw - 44px));
   min-height: min(440px, calc(100dvh - 90px));
   max-height: calc(100dvh - 90px);
   overflow: hidden;
@@ -14377,6 +14440,27 @@ html[data-theme-visual="saint-seiya"] .t8-generation-target-icon {
   border-radius: 18px;
   box-shadow: 0 24px 72px rgba(0, 0, 0, 0.24);
   animation: t8-creator-v2-enter 150ms ease-out;
+}
+
+.t8-creator-v2-panel.is-minimized {
+  top: 160px;
+  bottom: auto;
+  width: min(260px, calc(100vw - 44px));
+  min-height: 0;
+  max-height: none;
+  grid-template-rows: auto;
+}
+
+.t8-creator-v2-panel.is-minimized > :not(.t8-creator-v2-header) {
+  display: none;
+}
+
+.t8-creator-v2-panel.is-minimized .t8-creator-v2-header nav button:not(.t8-creator-v2-minimize):not(.t8-creator-v2-close) {
+  display: none;
+}
+
+.t8-creator-v2-panel.is-loading-shell .t8-creator-v2-composer {
+  opacity: 0.58;
 }
 
 @keyframes t8-creator-v2-enter {
@@ -14441,13 +14525,29 @@ html[data-theme-visual="saint-seiya"] .t8-generation-target-icon {
   white-space: nowrap;
 }
 .t8-creator-v2-header nav { gap: 3px; }
+.t8-creator-v2-button-label { display: none; }
+
+.t8-creator-v2-header button.has-touch-label,
+.t8-creator-v2-composer button.has-touch-label {
+  display: inline-flex;
+  width: auto;
+  min-width: 44px;
+  gap: 5px;
+  padding-inline: 9px;
+}
+
+.t8-creator-v2-header button.has-touch-label .t8-creator-v2-button-label,
+.t8-creator-v2-composer button.has-touch-label .t8-creator-v2-button-label {
+  display: inline;
+  font-size: 11px;
+}
 
 .t8-creator-v2-header button,
 .t8-creator-v2-composer button,
 .t8-creator-v2-attachments button {
   display: inline-grid;
-  width: 34px;
-  height: 34px;
+  width: 44px;
+  height: 44px;
   padding: 0;
   place-items: center;
   border: 1px solid transparent;
@@ -14476,21 +14576,23 @@ html[data-theme-visual="saint-seiya"] .t8-generation-target-icon {
   background: var(--creator-bg);
 }
 
+.t8-creator-v2-phase-summary { display: none; }
+
 .t8-creator-v2-phases li {
   position: relative;
   display: grid;
   justify-items: center;
   gap: 3px;
   color: var(--creator-muted);
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .t8-creator-v2-phases li:not(:last-child)::after {
   content: "";
   position: absolute;
-  top: 8px;
-  left: calc(50% + 10px);
-  width: calc(100% - 20px);
+  top: 10px;
+  left: calc(50% + 11px);
+  width: calc(100% - 22px);
   height: 1px;
   background: var(--creator-border);
 }
@@ -14498,13 +14600,13 @@ html[data-theme-visual="saint-seiya"] .t8-generation-target-icon {
 .t8-creator-v2-phases i {
   z-index: 1;
   display: grid;
-  width: 17px;
-  height: 17px;
+  width: 20px;
+  height: 20px;
   place-items: center;
   border: 1px solid var(--creator-border);
   border-radius: 50%;
   background: var(--creator-surface);
-  font-size: 9px;
+  font-size: 10px;
   font-style: normal;
 }
 
@@ -14520,10 +14622,10 @@ html[data-theme-visual="saint-seiya"] .t8-generation-target-icon {
 .t8-creator-v2-popover {
   position: absolute;
   z-index: 4;
-  top: 51px;
+  top: 122px;
   right: 10px;
-  width: min(330px, calc(100% - 20px));
-  max-height: min(430px, calc(100dvh - 90px), calc(100% - 61px));
+  width: min(480px, calc(100% - 20px));
+  max-height: min(430px, calc(100dvh - 150px), calc(100% - 132px));
   padding: 10px;
   overflow: auto;
   border: 1px solid var(--creator-border);
@@ -14531,11 +14633,13 @@ html[data-theme-visual="saint-seiya"] .t8-generation-target-icon {
   background: var(--creator-surface);
   box-shadow: 0 18px 48px rgba(0, 0, 0, 0.22);
 }
+.t8-creator-v2-popover:focus { outline: none; }
+.t8-creator-v2-popover:focus-visible { box-shadow: 0 0 0 2px var(--creator-accent), 0 18px 48px rgba(0, 0, 0, 0.22); }
 
 .t8-creator-v2-popover.is-history > button {
   display: grid;
   width: 100%;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr);
   gap: 8px;
   min-height: 40px;
   padding: 9px 10px;
@@ -14547,12 +14651,80 @@ html[data-theme-visual="saint-seiya"] .t8-generation-target-icon {
 
 .t8-creator-v2-popover.is-history > button:hover,
 .t8-creator-v2-popover.is-history > button.is-current { background: var(--creator-surface-alt); }
-.t8-creator-v2-popover.is-history strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.t8-creator-v2-popover small { color: var(--creator-muted); }
+.t8-creator-v2-popover.is-history strong {
+  display: -webkit-box;
+  overflow: hidden;
+  line-height: 1.35;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.t8-creator-v2-popover small { color: var(--creator-muted); font-size: 11px; }
 
-.t8-creator-v2-popover.is-settings { display: grid; gap: 9px; }
+.t8-creator-v2-history-search {
+  position: sticky;
+  z-index: 1;
+  top: -10px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 7px;
+  margin: -2px 0 5px;
+  padding: 7px 9px;
+  color: var(--creator-muted);
+  border: 1px solid var(--creator-border);
+  border-radius: 9px;
+  background: var(--creator-bg);
+}
+.t8-creator-v2-history-search input {
+  min-width: 0;
+  width: 100%;
+  color: var(--creator-text);
+  border: 0;
+  outline: 0;
+  background: transparent;
+}
+
+.t8-creator-v2-popover.is-settings {
+  display: grid;
+  gap: 9px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
 .t8-creator-v2-popover.is-settings label { display: grid; gap: 5px; }
 .t8-creator-v2-popover.is-settings label span { color: var(--creator-muted); font-size: 11px; }
+.t8-creator-v2-settings-readiness {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 9px;
+  padding: 8px 9px;
+  color: var(--creator-text);
+  border: 1px solid color-mix(in srgb, var(--creator-accent) 34%, var(--creator-border));
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--creator-accent) 7%, var(--creator-bg));
+  font-size: 11px;
+  line-height: 1.4;
+}
+.t8-creator-v2-settings-readiness span { min-width: 0; }
+.t8-creator-v2-settings-readiness button {
+  flex: 0 0 auto;
+  min-height: 36px;
+  padding: 6px 9px;
+  color: var(--creator-accent);
+  border: 1px solid var(--creator-border);
+  border-radius: 8px;
+  background: var(--creator-surface);
+}
+.t8-creator-v2-auto-model {
+  display: block;
+  min-width: 0;
+  color: var(--creator-muted);
+  font-size: 10px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
 .t8-creator-v2-popover.is-settings select {
   width: 100%;
   min-height: 38px;
@@ -14561,9 +14733,42 @@ html[data-theme-visual="saint-seiya"] .t8-generation-target-icon {
   border-radius: 9px;
   background: var(--creator-bg);
 }
-.t8-creator-v2-popover footer { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 7px; padding-top: 3px; }
+.t8-creator-v2-model-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  justify-self: start;
+  min-height: 34px;
+  padding: 6px 9px;
+  color: var(--creator-muted);
+  border: 1px solid var(--creator-border);
+  border-radius: 9px;
+  background: var(--creator-bg);
+}
+.t8-creator-v2-model-toggle:hover { color: var(--creator-text); background: var(--creator-surface-alt); }
+.t8-creator-v2-popover footer {
+  position: sticky;
+  z-index: 1;
+  bottom: -10px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 7px;
+  margin: 0 -10px -10px;
+  padding: 9px 10px 10px;
+  border-top: 1px solid var(--creator-border);
+  background: var(--creator-surface);
+}
+
+.t8-creator-v2-transcript {
+  position: relative;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  min-height: 0;
+}
 
 .t8-creator-v2-messages {
+  height: auto;
   min-height: 0;
   padding: 14px;
   overflow: auto;
@@ -14583,16 +14788,19 @@ html[data-theme-visual="saint-seiya"] .t8-generation-target-icon {
 .t8-creator-v2-load-older:hover { color: var(--creator-text); background: var(--creator-surface-alt); }
 
 .t8-creator-v2-empty {
-  max-width: 270px;
-  margin: 26vh auto 0;
+  display: grid;
+  max-width: 520px;
+  gap: 8px;
+  margin: clamp(64px, 16vh, 120px) auto 0;
   color: var(--creator-muted);
   text-align: center;
   line-height: 1.6;
 }
+.t8-creator-v2-empty strong { color: var(--creator-text); font-weight: 650; }
 
 .t8-creator-v2-message {
   width: fit-content;
-  max-width: 88%;
+  max-width: min(92%, 650px);
   margin: 0 0 12px;
   padding: 9px 11px;
   white-space: pre-wrap;
@@ -14604,6 +14812,7 @@ html[data-theme-visual="saint-seiya"] .t8-generation-target-icon {
 }
 
 .t8-creator-v2-message.is-user {
+  max-width: min(82%, 570px);
   margin-left: auto;
   color: var(--creator-accent-text);
   border-color: var(--creator-accent);
@@ -14612,12 +14821,57 @@ html[data-theme-visual="saint-seiya"] .t8-generation-target-icon {
 }
 
 .t8-creator-v2-message[data-status="failed"] { border-color: var(--creator-danger); }
-.t8-creator-v2-message button { min-height: 34px; margin-top: 7px; padding: 4px 8px; border: 0; border-radius: 7px; }
+.t8-creator-v2-message.is-resolved-retry {
+  max-width: 100%;
+  margin: 0 auto 10px;
+  padding: 5px 9px;
+  color: var(--creator-muted);
+  border-color: transparent;
+  border-radius: 999px;
+  background: var(--creator-surface-alt);
+  font-size: 11px;
+}
+.t8-creator-v2-message > button { min-height: 44px; margin-top: 7px; padding: 8px 12px; border: 0; border-radius: 9px; }
+.t8-creator-v2-message > .t8-creator-v2-recovery-action {
+  color: var(--creator-accent);
+  border: 1px solid color-mix(in srgb, var(--creator-accent) 62%, var(--creator-border));
+  background: color-mix(in srgb, var(--creator-accent) 8%, var(--creator-surface));
+  font-weight: 700;
+}
+.t8-creator-v2-message > .t8-creator-v2-recovery-action:hover,
+.t8-creator-v2-message > .t8-creator-v2-recovery-action:focus-visible {
+  background: color-mix(in srgb, var(--creator-accent) 15%, var(--creator-surface));
+}
+.t8-creator-v2-operation-status {
+  display: flex;
+  width: fit-content;
+  max-width: min(92%, 650px);
+  align-items: center;
+  gap: 7px;
+  margin: 2px 0 12px;
+  padding: 8px 10px;
+  color: var(--creator-muted);
+  border: 1px solid var(--creator-border);
+  border-radius: 11px;
+  background: var(--creator-surface-alt);
+  font-size: 12px;
+  line-height: 1.4;
+}
+.t8-creator-v2-operation-status svg { flex: 0 0 auto; color: var(--creator-accent); }
+.t8-creator-v2-latest-turn {
+  display: block;
+  width: fit-content;
+  margin: -2px 0 5px;
+  color: var(--creator-muted);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+}
 .t8-creator-v2-message-media { margin-top: 8px; }
 .t8-creator-v2-message-media :is(img, video) {
   display: block;
-  width: min(100%, 270px);
-  max-height: 240px;
+  width: min(100%, 440px);
+  max-height: 360px;
   object-fit: contain;
   border-radius: 9px;
   background: #000;
@@ -14641,6 +14895,31 @@ html[data-theme-visual="saint-seiya"] .t8-generation-target-icon {
 
 .t8-creator-v2-decision.is-error { border-color: var(--creator-danger); }
 .t8-creator-v2-decision p { margin: 0; }
+.t8-creator-v2-decision__prompt {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--creator-text);
+  font-weight: 620;
+  line-height: 1.45;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.t8-creator-v2-decision__prompt.is-expanded {
+  display: block;
+  max-height: min(34vh, 280px);
+  overflow: auto;
+  white-space: pre-wrap;
+  -webkit-line-clamp: unset;
+}
+.t8-creator-v2-decision .t8-creator-v2-prompt-toggle {
+  min-height: 32px;
+  margin-top: 4px;
+  padding: 3px 0;
+  color: var(--creator-accent);
+  border: 0;
+  background: transparent;
+}
+.t8-creator-v2-decision .t8-creator-v2-prompt-toggle:hover { text-decoration: underline; }
 .t8-creator-v2-decision small { display: block; margin-top: 4px; color: var(--creator-muted); }
 .t8-creator-v2-decision footer,
 .t8-creator-v2-result footer { flex-wrap: wrap; justify-content: flex-end; gap: 7px; margin-top: 10px; }
@@ -14663,10 +14942,17 @@ html[data-theme-visual="saint-seiya"] .t8-generation-target-icon {
   background: var(--creator-accent);
 }
 
+.t8-creator-v2-composer button.is-send:disabled {
+  color: var(--creator-muted);
+  border-color: var(--creator-border);
+  background: var(--creator-surface-alt);
+  opacity: 0.62;
+}
+
 .t8-creator-v2-result :is(img, video) {
   display: block;
   width: 100%;
-  max-height: min(48vh, 420px);
+  max-height: min(52vh, 480px);
   object-fit: contain;
   border-radius: 10px;
   background: #000;
@@ -14674,19 +14960,139 @@ html[data-theme-visual="saint-seiya"] .t8-generation-target-icon {
 
 .t8-creator-v2-suggestions {
   display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 7px;
-  margin-top: 12px;
+  margin: 0 12px 7px;
+  padding-top: 8px;
+  border-top: 1px solid var(--creator-border);
 }
-.t8-creator-v2-suggestions button { width: 100%; text-align: left; background: var(--creator-surface); }
+.t8-creator-v2-suggestions__heading {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0;
+  color: var(--creator-text);
+  font-size: 12px;
+  line-height: 1.3;
+}
+.t8-creator-v2-suggestions__heading strong { font-weight: 760; }
+.t8-creator-v2-suggestions__heading small { color: var(--creator-muted); font-size: 10px; }
+.t8-creator-v2-suggestions button {
+  display: grid;
+  width: 100%;
+  gap: 2px;
+  text-align: left;
+  background: var(--creator-surface);
+}
+.t8-creator-v2-suggestions button strong {
+  overflow: hidden;
+  color: var(--creator-text);
+  font-size: 13px;
+  font-weight: 680;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.t8-creator-v2-suggestions button small {
+  display: block;
+  margin: 0;
+  color: var(--creator-muted);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
 .t8-creator-v2-suggestions button:hover { border-color: var(--creator-accent); }
 .t8-creator-v2-suggestions button[data-role="recommended"] { border-color: color-mix(in srgb, var(--creator-accent) 58%, var(--creator-border)); }
 
-.t8-creator-v2-error {
+.t8-creator-v2-new-reply {
+  position: static;
+  justify-self: center;
+  margin: 7px 12px 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 34px;
+  padding: 6px 10px;
+  color: var(--creator-accent-text);
+  border: 1px solid var(--creator-accent);
+  border-radius: 999px;
+  background: var(--creator-accent);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.18);
+}
+
+.t8-creator-v2-error,
+.t8-creator-v2-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   margin: 0 12px 7px;
   padding: 7px 9px;
   color: var(--creator-danger);
   border-radius: 8px;
+}
+.t8-creator-v2-error {
   background: color-mix(in srgb, var(--creator-danger) 9%, transparent);
+}
+.t8-creator-v2-notice {
+  color: var(--creator-text);
+  background: var(--creator-surface-alt);
+}
+.t8-creator-v2-error span,
+.t8-creator-v2-notice span { min-width: 0; }
+.t8-creator-v2-error > div {
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 2px;
+}
+.t8-creator-v2-error button,
+.t8-creator-v2-notice button {
+  display: inline-grid;
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  place-items: center;
+  color: inherit;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+}
+.t8-creator-v2-error button:hover { background: color-mix(in srgb, var(--creator-danger) 12%, transparent); }
+.t8-creator-v2-notice button:hover { background: color-mix(in srgb, var(--creator-text) 8%, transparent); }
+
+.t8-creator-v2-readiness {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0 12px 7px;
+  padding: 9px 10px;
+  color: var(--creator-text);
+  border: 1px solid color-mix(in srgb, var(--creator-accent) 42%, var(--creator-border));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--creator-accent) 8%, var(--creator-surface));
+}
+.t8-creator-v2-readiness > span {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+.t8-creator-v2-readiness strong { font-size: 12px; }
+.t8-creator-v2-readiness small { color: var(--creator-muted); font-size: 10px; line-height: 1.35; }
+.t8-creator-v2-readiness button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  gap: 5px;
+  min-height: 44px;
+  padding: 7px 10px;
+  border: 1px solid var(--creator-accent);
+  border-radius: 9px;
 }
 
 .t8-creator-v2-attachments {
@@ -14700,16 +15106,62 @@ html[data-theme-visual="saint-seiya"] .t8-generation-target-icon {
   align-items: center;
   flex: 0 0 auto;
   gap: 4px;
-  max-width: 150px;
-  padding: 3px 5px 3px 8px;
-  overflow: hidden;
+  max-width: min(360px, calc(100vw - 40px));
+  min-height: 44px;
+  padding: 0 0 0 10px;
   color: var(--creator-muted);
-  text-overflow: ellipsis;
-  white-space: nowrap;
   border-radius: 999px;
   background: var(--creator-surface-alt);
 }
-.t8-creator-v2-attachments button { width: 20px; height: 20px; }
+.t8-creator-v2-attachment-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.t8-creator-v2-attachments button {
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+}
+
+.t8-creator-v2-upload-status {
+  display: grid;
+  gap: 5px;
+  padding: 8px 12px 0;
+  color: var(--creator-muted);
+  font-size: 12px;
+}
+.t8-creator-v2-upload-status > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.t8-creator-v2-upload-status span {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.t8-creator-v2-upload-status button {
+  min-height: 30px;
+  flex: 0 0 auto;
+  padding: 3px 9px;
+  color: var(--creator-accent);
+  border: 1px solid var(--creator-border);
+  border-radius: 8px;
+  background: var(--creator-surface);
+}
+.t8-creator-v2-upload-status progress {
+  width: 100%;
+  height: 4px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 999px;
+  accent-color: var(--creator-accent);
+}
 
 .t8-creator-v2-composer {
   display: grid;
@@ -14724,9 +15176,11 @@ html[data-theme-visual="saint-seiya"] .t8-generation-target-icon {
 .t8-creator-v2-composer textarea {
   width: 100%;
   min-height: 46px;
-  max-height: 150px;
+  max-height: 210px;
   padding: 3px;
-  resize: vertical;
+  height: auto;
+  overflow-y: hidden;
+  resize: none;
   border: 0;
   outline: 0;
   background: transparent;
@@ -14747,16 +15201,73 @@ html[data-theme-visual="saint-seiya"] .t8-generation-target-icon {
     min-height: 0;
     max-height: none;
   }
+  .t8-creator-v2-panel.is-minimized {
+    inset: 108px 10px auto auto;
+    width: min(260px, calc(100vw - 20px));
+  }
 }
 
 @media (max-width: 520px) {
   .t8-creator-v2-panel { inset: 0; border: 0; border-radius: 0; }
   .t8-creator-v2-phases span { display: none; }
-  .t8-creator-v2-phases { padding-block: 6px; }
-  .t8-creator-v2-popover { top: 50px; right: 8px; width: calc(100% - 16px); }
+  .t8-creator-v2-phases { padding: 6px 10px 3px; border-bottom: 0; }
+  .t8-creator-v2-phase-summary {
+    display: block;
+    margin: 0;
+    padding: 0 10px 6px;
+    color: var(--creator-muted);
+    text-align: center;
+    font-size: 11px;
+    border-bottom: 1px solid var(--creator-border);
+  }
+  .t8-creator-v2-popover { top: 151px; right: 8px; width: calc(100% - 16px); max-height: min(42dvh, 320px, calc(100% - 159px)); }
+  .t8-creator-v2-popover.is-history { max-height: min(42dvh, 320px); }
   .t8-creator-v2-message { max-width: 94%; }
-  .t8-creator-v2-header { padding-left: 10px; }
-  .t8-creator-v2-header nav { flex: 0 0 auto; }
+  .t8-creator-v2-header { flex-wrap: wrap; gap: 2px; padding-left: 10px; }
+  .t8-creator-v2-header nav { width: 100%; flex: 0 0 auto; justify-content: flex-end; }
+  .t8-creator-v2-header button.has-touch-label,
+  .t8-creator-v2-composer button.has-touch-label {
+    display: inline-flex;
+    width: auto;
+    min-width: 44px;
+    gap: 5px;
+    padding-inline: 9px;
+  }
+  .t8-creator-v2-composer { grid-template-columns: minmax(0, 1fr); }
+  .t8-creator-v2-composer > div { justify-content: flex-end; }
+  .t8-creator-v2-button-label { display: inline; font-size: 11px; }
+  .t8-creator-v2-readiness { align-items: stretch; flex-direction: column; }
+  .t8-creator-v2-readiness button { width: 100%; }
+}
+
+@media (max-width: 420px) {
+  .t8-creator-v2-header {
+    flex-wrap: nowrap;
+    gap: 4px;
+    padding: 4px 4px 4px 8px;
+  }
+  .t8-creator-v2-header > div {
+    flex: 1 1 auto;
+    gap: 5px;
+  }
+  .t8-creator-v2-header nav {
+    width: auto;
+    flex: 0 0 auto;
+    gap: 0;
+  }
+  .t8-creator-v2-header button.has-touch-label {
+    width: 44px;
+    min-width: 44px;
+    gap: 0;
+    padding-inline: 0;
+  }
+  .t8-creator-v2-header button.has-touch-label .t8-creator-v2-button-label {
+    display: none;
+  }
+}
+
+@media (max-width: 620px) {
+  .t8-creator-v2-suggestions { grid-template-columns: minmax(0, 1fr); }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -14785,8 +15296,16 @@ html[data-theme-visual="saint-seiya"] .t8-generation-target-icon {
     flex-basis: 44px;
   }
 
+  .t8-creator-agent-launcher-hint {
+    left: 50px;
+    max-width: min(200px, calc(100vw - 76px));
+    white-space: normal;
+  }
+
   .t8-creator-v2-header button,
-  .t8-creator-v2-composer button {
+  .t8-creator-v2-composer button,
+  .t8-creator-v2-error button,
+  .t8-creator-v2-notice button {
     width: 44px;
     height: 44px;
   }
@@ -14798,7 +15317,8 @@ html[data-theme-visual="saint-seiya"] .t8-generation-target-icon {
   .t8-creator-v2-decision button,
   .t8-creator-v2-result button,
   .t8-creator-v2-popover footer button,
-  .t8-creator-v2-suggestions button {
+  .t8-creator-v2-suggestions button,
+  .t8-creator-v2-new-reply {
     min-height: 44px;
   }
 

@@ -26,6 +26,16 @@ const suggestionSet = (labels = ['直接生成', '再暗一点', '换成清晨']
   inputAssetIds: [],
 }));
 
+const responseEnvelope = (overrides = {}) => ({
+  schema: CREATOR_LLM_RESPONSE_SCHEMA,
+  replyMarkdown: '我先把作品方向收紧到一个清楚、可继续推进的版本。',
+  workingBrief,
+  phaseDecision,
+  suggestions: suggestionSet(),
+  proposedAction: null,
+  ...overrides,
+});
+
 test('Creator LLM v2 uses one real provider call and binds a versioned image action', async () => {
   let calls = 0;
   let capturedProvider = null;
@@ -78,6 +88,16 @@ test('Creator LLM v2 never silently falls back when credentials or provider call
   });
   await assert.rejects(() => failed.respond({ prompt: '写一个短片' }), (error) => (
     error instanceof CreatorLlmRuntimeError && error.code === 'CREATOR_LLM_FAILED'
+  ));
+
+  const rejectedCredential = createCreatorLlmRuntimeV2({
+    settingsProvider,
+    generateChat: async () => ({ ok: false, code: 'http_error', upstreamHttpStatus: 401, error: 'Unauthorized' }),
+  });
+  await assert.rejects(() => rejectedCredential.respond({ prompt: '写一个短片' }), (error) => (
+    error instanceof CreatorLlmRuntimeError
+      && error.code === 'CREATOR_LLM_CREDENTIAL_INVALID'
+      && error.status === 401
   ));
 });
 
@@ -146,6 +166,22 @@ test('Creator LLM v2 rejects invalid suggestion/action contracts and any cost te
     proposedAction: null,
   }), (error) => error?.code === 'CREATOR_LLM_SUGGESTIONS_INVALID');
 
+  await assert.rejects(() => invoke({
+    replyMarkdown: '我会让雨夜里的暖灯成为画面重点。',
+    workingBrief,
+    phaseDecision,
+    suggestions: suggestionSet(['这是一个明显超过十四个汉字的建议标签', '改用清晨逆光', '锁定当前方向']),
+    proposedAction: null,
+  }), (error) => error?.code === 'CREATOR_LLM_SUGGESTIONS_POLICY_INVALID');
+
+  await assert.rejects(() => invoke({
+    replyMarkdown: '我会让雨夜里的暖灯成为画面重点。',
+    workingBrief,
+    phaseDecision,
+    suggestions: suggestionSet().map((item, index) => index === 0 ? { ...item, sendText: '镜头'.repeat(141) } : item),
+    proposedAction: null,
+  }), (error) => error?.code === 'CREATOR_LLM_SUGGESTIONS_INVALID');
+
   const normalizedLayout = await invoke({
     replyMarkdown: '### 画面方向\n\n- **主体**：雨夜站台上的独行人\n- `光线`：列车暖灯切开冷蓝雨幕',
     workingBrief,
@@ -194,7 +230,7 @@ test('Creator LLM v2 honors explicit model preferences without switching provide
   assert.match(observed.systemPrompt, /execute 也必须沿用正文的明确倾向，表示不再讨论/u);
   assert.match(observed.systemPrompt, /不能重新比较用户原来的 A\/B/u);
   assert.match(observed.systemPrompt, /不得写成“先不定、暂时留白/u);
-  assert.match(observed.systemPrompt, /alternative 可以改变表现方法/u);
+  assert.match(observed.systemPrompt, /alternative 必须用“改成\/换成\/换个视角”/u);
   assert.match(observed.systemPrompt, /不能只是复述新结尾后再要求写完整脚本/u);
 });
 
@@ -213,6 +249,75 @@ test('Creator LLM v2 rejects explicit non-vision models before sending visual me
     attachments: [{ assetId: 'asset-image-1', kind: 'image', mediaUrl: 'C:\\media\\image.png' }],
   }), (error) => error?.code === 'CREATOR_LLM_VISION_REQUIRED' && error?.status === 409);
   assert.equal(calls, 0);
+});
+
+test('Creator LLM v2 automatic selection chooses the documented vision model for visual media', async () => {
+  let observedProvider = null;
+  let observedModel = null;
+  const runtime = createCreatorLlmRuntimeV2({
+    settingsProvider,
+    generateChat: async (provider, input) => {
+      observedProvider = provider.id;
+      observedModel = input.model;
+      return { ok: true, text: JSON.stringify(responseEnvelope({
+        replyMarkdown: '我看到主体位于画面中央，冷蓝背景里有一处暖色高光，可以沿这个关系继续。',
+      })) };
+    },
+  });
+  const result = await runtime.respond({
+    prompt: '参考这张图继续，不要反问',
+    preferences: { providerId: 'auto', llm: null },
+    attachments: [{ assetId: 'asset-image-auto', kind: 'image', previewUrl: '/api/project-assets/asset-image-auto/media' }],
+  });
+  assert.equal(observedProvider, 'seedance-nz');
+  assert.equal(observedModel, 'zhenzhen/gk-4.6');
+  assert.equal(result.evidence.modelId, 'zhenzhen/gk-4.6');
+});
+
+test('Creator LLM v2 performs at most one full-response repair and fails closed when both outputs are invalid', async () => {
+  let calls = 0;
+  const runtime = createCreatorLlmRuntimeV2({
+    settingsProvider,
+    generateChat: async () => {
+      calls += 1;
+      return { ok: true, text: JSON.stringify({ schema: 'wrong-schema' }) };
+    },
+  });
+  await assert.rejects(
+    () => runtime.respond({ prompt: '给我一个自然的创作建议' }),
+    (error) => error?.code === 'CREATOR_LLM_SCHEMA_INVALID',
+  );
+  assert.equal(calls, 2);
+});
+
+test('Creator LLM v2 quickly retries one empty provider response without exceeding two calls', async () => {
+  let calls = 0;
+  const runtime = createCreatorLlmRuntimeV2({
+    settingsProvider,
+    generateChat: async () => {
+      calls += 1;
+      if (calls === 1) return { ok: false, code: 'empty_text', error: '扩展 LLM 没有返回文本。' };
+      return { ok: true, text: JSON.stringify(responseEnvelope()) };
+    },
+  });
+  const result = await runtime.respond({ prompt: '给我一个自然的创作判断' });
+  assert.equal(calls, 2);
+  assert.equal(result.evidence.providerCalls, 2);
+
+  let invalidCalls = 0;
+  const invalidAfterEmpty = createCreatorLlmRuntimeV2({
+    settingsProvider,
+    generateChat: async () => {
+      invalidCalls += 1;
+      if (invalidCalls === 1) return { ok: false, code: 'empty_text', error: '扩展 LLM 没有返回文本。' };
+      return { ok: true, text: JSON.stringify({ schema: 'wrong-schema' }) };
+    },
+  });
+  await assert.rejects(
+    () => invalidAfterEmpty.respond({ prompt: '给我一个自然的创作判断' }),
+    (error) => error?.code === 'CREATOR_LLM_SCHEMA_INVALID',
+  );
+  assert.equal(invalidCalls, 2);
 });
 
 test('Creator LLM v2 binds real media parts, selection evidence and working brief in the same single call', async () => {
@@ -285,29 +390,37 @@ test('Creator LLM v2 excludes interrupted assistant system copy from later creat
 });
 
 test('Creator LLM v2 treats “你决定” as zero-question delegation', async () => {
-  let captured = null;
+  let calls = 0;
+  let firstRequest = null;
+  let repairRequest = null;
   const runtime = createCreatorLlmRuntimeV2({
     settingsProvider,
     generateChat: async (_provider, input) => {
-      captured = input;
+      calls += 1;
+      if (calls === 1) firstRequest = input;
+      else repairRequest = input;
       return {
         ok: true,
-        text: JSON.stringify({
-          schema: CREATOR_LLM_RESPONSE_SCHEMA,
-          replyMarkdown: '你更喜欢冷色还是暖色？我直接采用冷蓝环境配暖色主体光，画面会更有层次。',
-          workingBrief: { ...workingBrief, openQuestion: '你更喜欢冷色还是暖色？' },
-          phaseDecision,
-          suggestions: suggestionSet(),
-          proposedAction: null,
-        }),
+        text: JSON.stringify(calls === 1
+          ? responseEnvelope({
+            replyMarkdown: '你更喜欢冷色还是暖色？我直接采用冷蓝环境配暖色主体光，画面会更有层次。',
+            workingBrief: { ...workingBrief, openQuestion: '你更喜欢冷色还是暖色？' },
+          })
+          : responseEnvelope({
+            replyMarkdown: '我直接采用冷蓝环境配暖色主体光，让主体从雨夜里自然跳出来，层次会更稳。',
+            workingBrief: { ...workingBrief, openQuestion: '' },
+          })),
       };
     },
   });
   const result = await runtime.respond({ prompt: '你决定吧，直接给我最好的方案', workingBrief });
+  assert.equal(calls, 2);
   assert.equal(/[?？]/u.test(result.replyMarkdown), false);
   assert.equal(result.workingBrief.openQuestion, '');
   assert.match(result.replyMarkdown, /直接采用冷蓝/u);
-  assert.match(captured.messages.at(-1).content[0].text, /"delegated":true/u);
+  assert.match(firstRequest.messages.at(-1).content[0].text, /"delegated":true/u);
+  assert.match(JSON.stringify(repairRequest.messages), /CREATOR_LLM_QUESTION_CONTRACT_INVALID/u);
+  assert.equal(repairRequest.model, firstRequest.model);
 });
 
 test('Creator turn policy does not mistake explicit negation for delegation or ending-only scope', () => {
@@ -326,53 +439,183 @@ test('Creator turn policy captures language, no-question, no-generation and styl
   assert.deepEqual(styleOnly.scopedBriefFields, ['style']);
   assert.equal(styleOnly.maxQuestions, 0);
 
+  assert.equal(turnPolicy('结尾和解还是分开我还没想好').criticalChoiceUnresolved, true);
+
   const english = turnPolicy('Keep this in restrained English and do not ask me another question.');
   assert.equal(english.replyLanguage, 'English');
   assert.equal(english.maxQuestions, 0);
 });
 
 test('Creator LLM v2 prevents generation when the user explicitly says not to generate', async () => {
+  let noGenerationCalls = 0;
   const runtime = createCreatorLlmRuntimeV2({
     settingsProvider,
-    generateChat: async () => ({
-      ok: true,
-      text: JSON.stringify({
-        schema: CREATOR_LLM_RESPONSE_SCHEMA,
-        replyMarkdown: '先把人物动机和最后一个镜头收紧，画面方案保持在可审阅状态。',
-        workingBrief,
-        phaseDecision,
-        suggestions: suggestionSet(['精修人物动机', '改用主观视角', '保留当前方案']),
-        proposedAction: {
-          type: 'image',
-          prompt: '不应执行的图片动作',
-          parameters: { ratio: '16:9', count: 1 },
-          inputAssetIds: [],
-        },
-      }),
-    }),
+    generateChat: async () => {
+      noGenerationCalls += 1;
+      return {
+        ok: true,
+        text: JSON.stringify(noGenerationCalls === 1
+          ? responseEnvelope({
+            replyMarkdown: '先把人物动机和最后一个镜头收紧，画面方案保持在可审阅状态。',
+            suggestions: suggestionSet(['精修人物动机', '改用主观视角', '保留当前方案']),
+            proposedAction: {
+              type: 'image',
+              prompt: '不应执行的图片动作',
+              parameters: { ratio: '16:9', count: 1 },
+              inputAssetIds: [],
+            },
+          })
+          : responseEnvelope({
+            replyMarkdown: '先把人物动机和最后一个镜头收紧，画面方案保持在可审阅状态。',
+            suggestions: suggestionSet(['精修人物动机', '改用主观视角', '保留当前方案']),
+          })),
+      };
+    },
   });
   const result = await runtime.respond({ prompt: '先不要生成图片或视频，只把方案改好，不要反问', workingBrief });
+  assert.equal(noGenerationCalls, 1);
   assert.equal(result.proposedAction, null);
   assert.equal(/[?？]/u.test(result.replyMarkdown), false);
 
+  let suggestionRepairCalls = 0;
+  let suggestionRepairInput = null;
   const suggestionViolation = createCreatorLlmRuntimeV2({
     settingsProvider,
-    generateChat: async () => ({
-      ok: true,
-      text: JSON.stringify({
-        schema: CREATOR_LLM_RESPONSE_SCHEMA,
-        replyMarkdown: '先把方案停在文字审阅阶段。',
-        workingBrief,
-        phaseDecision,
-        suggestions: suggestionSet(['精修文字方案', '换个叙事视角', '直接生成图片']),
-        proposedAction: null,
-      }),
-    }),
+    generateChat: async (_provider, request) => {
+      suggestionRepairCalls += 1;
+      if (suggestionRepairCalls === 2) {
+        suggestionRepairInput = request;
+        return {
+          ok: true,
+          text: JSON.stringify(responseEnvelope({
+            replyMarkdown: '先把方案停在文字审阅阶段；人物动机和镜头节奏是最值得看的两处。',
+            suggestions: [
+              { label: '判断能否继续', sendText: '只评价当前方案能否进入下一阶段，给出明确结论和最大风险，不提出修改也不生成。', intentKind: 'review-readiness', role: 'recommended', inputAssetIds: [] },
+              { label: '看镜头节奏', sendText: '只从镜头节奏和情绪递进评价当前方案，不修改也不生成。', intentKind: 'review-shot-rhythm', role: 'alternative', inputAssetIds: [] },
+              { label: '评价到此为止', sendText: '评价到此为止，保持现有方案，不修改也不生成。', intentKind: 'finish-review', role: 'execute', inputAssetIds: [] },
+            ],
+          })),
+        };
+      }
+      return {
+        ok: true,
+        text: JSON.stringify({
+          schema: CREATOR_LLM_RESPONSE_SCHEMA,
+          replyMarkdown: '先把方案停在文字审阅阶段。',
+          workingBrief,
+          phaseDecision,
+          suggestions: suggestionSet(['精修文字方案', '换个叙事视角', '直接生成图片']),
+          proposedAction: null,
+        }),
+      };
+    },
   });
   const repaired = await suggestionViolation.respond({ prompt: '只评价方案，不要生成', workingBrief });
+  assert.equal(suggestionRepairCalls, 2);
+  assert.match(JSON.stringify(suggestionRepairInput.messages), /只评价方案/u);
+  assert.match(JSON.stringify(suggestionRepairInput.messages), /CREATOR_LLM_SUGGESTIONS_POLICY_INVALID/u);
   assert.equal(repaired.proposedAction, null);
-  assert.equal(/(?:生成|出图|出视频|渲染)/u.test(repaired.suggestions.map((item) => item.sendText).join('\n')), false);
+  assert.equal(repaired.evidence.providerCalls, 2);
+  assert.equal(repaired.suggestions.some((item) => /(?:直接|开始|立即|马上)(?:生成|出图|出视频|渲染)/u.test(item.sendText)), false);
   assert.match(repaired.suggestions[0].sendText, /只评价/u);
+});
+
+test('Creator LLM v2 asks the selected LLM to repair the full response instead of substituting fixed templates', () => {
+  const runtimeSource = require('node:fs').readFileSync(
+    require('node:path').join(__dirname, '../backend/src/services/creatorLlmRuntimeV2.js'),
+    'utf8',
+  );
+  assert.match(runtimeSource, /function responseRepairSystemPrompt\(\)/);
+  assert.match(runtimeSource, /userRequest: prompt/);
+  assert.match(runtimeSource, /rejectedOutput: bounded\(result\.text/);
+  assert.match(runtimeSource, /rejectionCode: responseError\.code/);
+  assert.match(runtimeSource, /rejectionReason: responseError\.message/);
+  assert.match(runtimeSource, /providerCalls \+= 1/);
+  assert.match(runtimeSource, /必须重写全部三条/);
+  assert.doesNotMatch(runtimeSource, /const fallbacks = english/);
+});
+
+test('Creator LLM v2 accepts English choices that repeat locked facts but perform three different jobs', async () => {
+  let calls = 0;
+  const runtime = createCreatorLlmRuntimeV2({
+    settingsProvider,
+    generateChat: async () => {
+      calls += 1;
+      return {
+        ok: true,
+        text: JSON.stringify(responseEnvelope({
+          replyMarkdown: 'Keep the camera almost still. She crosses the empty platform before dawn and leaves without looking back. Hold the final beats on the vacant station.',
+          workingBrief: {
+            goal: 'A restrained 20-second station film', format: '20-second film', audience: '',
+            style: 'Still, restrained, pre-dawn blue', story: 'A woman leaves an empty station before dawn.',
+            assets: '', constraints: 'No dialogue. Do not generate yet.', decisions: 'End on the empty platform.', openQuestion: '',
+          },
+          suggestions: [
+            { label: 'Draft timed beats', sendText: 'Write a revisable 20-second beat sheet for the still wide version: her walk, the exit, then a hold on the empty platform.', intentKind: 'recommended-next-step', role: 'recommended', inputAssetIds: [] },
+            { label: 'Follow her coat close', sendText: 'Drop the still wide. Stay tight on her coat and breath as she leaves, so the station is only glimpsed around her.', intentKind: 'alternative-direction', role: 'alternative', inputAssetIds: [] },
+            { label: 'Lock the empty ending', sendText: 'Lock the still-wide, no-dialogue, hold-on-emptiness plan and move to the next stage without generating.', intentKind: 'execute-or-confirm', role: 'execute', inputAssetIds: [] },
+          ],
+        })),
+      };
+    },
+  });
+  const result = await runtime.respond({
+    prompt: 'Plan a restrained 20-second station film in natural English. Do not ask questions, and do not generate yet.',
+  });
+  assert.equal(calls, 1);
+  assert.deepEqual(result.suggestions.map((item) => item.role), ['recommended', 'alternative', 'execute']);
+});
+
+test('Creator LLM v2 still rejects English paraphrases that do not change suggestion jobs', async () => {
+  let calls = 0;
+  const runtime = createCreatorLlmRuntimeV2({
+    settingsProvider,
+    generateChat: async () => {
+      calls += 1;
+      return {
+        ok: true,
+        text: JSON.stringify(responseEnvelope({
+          replyMarkdown: 'Keep the film restrained and hold on the empty platform.',
+          suggestions: [
+            { label: 'Draft timed beats', sendText: 'Write the 20-second shot list for the empty platform now.', intentKind: 'recommended-next-step', role: 'recommended', inputAssetIds: [] },
+            { label: 'Try the same draft', sendText: 'Write the same 20-second shot list for the empty platform with a little more detail.', intentKind: 'alternative-direction', role: 'alternative', inputAssetIds: [] },
+            { label: 'Do it now', sendText: 'Write the 20-second shot list for the empty platform immediately.', intentKind: 'execute-or-confirm', role: 'execute', inputAssetIds: [] },
+          ],
+        })),
+      };
+    },
+  });
+  await assert.rejects(
+    () => runtime.respond({ prompt: 'Plan the film in English.' }),
+    (error) => error?.code === 'CREATOR_LLM_SUGGESTIONS_POLICY_INVALID',
+  );
+  assert.equal(calls, 2);
+});
+
+test('Creator LLM v2 rejects generic English shortcut labels even when their send text is specific', async () => {
+  let calls = 0;
+  const runtime = createCreatorLlmRuntimeV2({
+    settingsProvider,
+    generateChat: async () => {
+      calls += 1;
+      return {
+        ok: true,
+        text: JSON.stringify(responseEnvelope({
+          replyMarkdown: 'Keep the camera wide and let the empty platform carry the final beat.',
+          suggestions: [
+            { label: 'Draft the 20s beats', sendText: 'Write a revisable timed beat sheet for the empty-platform version.', intentKind: 'recommended-next-step', role: 'recommended', inputAssetIds: [] },
+            { label: 'Follow her coat close', sendText: 'Change to a close viewpoint that follows her coat and footsteps to the exit.', intentKind: 'alternative-direction', role: 'alternative', inputAssetIds: [] },
+            { label: 'Lock this approach', sendText: 'Lock the restrained empty-platform ending and move to the script stage.', intentKind: 'execute-or-confirm', role: 'execute', inputAssetIds: [] },
+          ],
+        })),
+      };
+    },
+  });
+  await assert.rejects(
+    () => runtime.respond({ prompt: 'Plan this film in natural English.' }),
+    (error) => error?.code === 'CREATOR_LLM_SUGGESTIONS_POLICY_INVALID',
+  );
+  assert.equal(calls, 2);
 });
 
 test('Creator LLM v2 preserves the brief for feedback-only turns', async () => {
@@ -390,7 +633,11 @@ test('Creator LLM v2 preserves the brief for feedback-only turns', async () => {
         replyMarkdown: '这一版最强的是冷暖光关系，主要问题是人物动机还没有通过动作落到画面里。',
         workingBrief: { ...workingBrief, goal: '被模型误改', style: '治愈明亮', openQuestion: '要继续吗？' },
         phaseDecision,
-        suggestions: suggestionSet(['看人物动机', '看镜头节奏', '保留这版判断']),
+        suggestions: [
+          { label: '还不值得进分镜', sendText: '评价结论：这一版还不值得进入分镜，光线规则强，品牌落点弱。只下结论，不改也不生成。', intentKind: 'review-readiness', role: 'recommended', inputAssetIds: [] },
+          { label: '看受众理解', sendText: '只从年轻通勤者能否读懂品牌意义的角度评价，不要改也不要生成。', intentKind: 'review-audience', role: 'alternative', inputAssetIds: [] },
+          { label: '评价到此为止', sendText: '评价结束并保持现状，不修改剧本和设定，不生成任何内容。', intentKind: 'end-review', role: 'execute', inputAssetIds: [] },
+        ],
         proposedAction: null,
       }),
     }),
@@ -399,6 +646,35 @@ test('Creator LLM v2 preserves the brief for feedback-only turns', async () => {
   assert.deepEqual(result.workingBrief, original);
   assert.equal(/[?？]/u.test(result.replyMarkdown), false);
   assert.equal(result.proposedAction, null);
+});
+
+test('Creator LLM v2 accepts a natural feedback verdict with words between worth and advance', async () => {
+  let calls = 0;
+  const original = {
+    goal: '完成雨夜品牌短片', format: '30 秒 16:9', audience: '年轻通勤者', style: '冷蓝电影感',
+    story: '女主在雨夜站台等车后上车离开', assets: '女主参考图', constraints: '不要字幕', decisions: '列车灯是唯一暖色', openQuestion: '',
+  };
+  const runtime = createCreatorLlmRuntimeV2({
+    settingsProvider,
+    generateChat: async () => {
+      calls += 1;
+      return {
+        ok: true,
+        text: JSON.stringify(responseEnvelope({
+          replyMarkdown: '最强的是冷蓝雨夜里唯一的暖色列车灯，最弱的是人物动机仍然偏薄。只看现在这一版，视觉骨架已经成立。',
+          workingBrief: original,
+          suggestions: [
+            { label: '值得进下一阶段', sendText: '只评价不修改：视觉已经够撑，值得按现有方向进入下一阶段。', intentKind: 'review-verdict', role: 'recommended', inputAssetIds: [] },
+            { label: '换品牌视角再评', sendText: '不要改也不要生成，只从品牌记忆点的视角评价这一版。', intentKind: 'review-brand', role: 'alternative', inputAssetIds: [] },
+            { label: '评价到此为止', sendText: '评价结束，保持现状，不修改也不生成任何内容。', intentKind: 'end-review', role: 'execute', inputAssetIds: [] },
+          ],
+        })),
+      };
+    },
+  });
+  const result = await runtime.respond({ prompt: '只评价这一版最强和最弱，不要改，也不要生成。', workingBrief: original });
+  assert.equal(calls, 1);
+  assert.deepEqual(result.workingBrief, original);
 });
 
 test('Creator LLM v2 changes only style for an explicit style-only correction', async () => {
@@ -446,7 +722,7 @@ test('Creator LLM v2 follows the latest user language and rejects a mismatched e
           replyMarkdown: 'Keep the camera restrained and let the final empty frame carry the emotional turn.',
           workingBrief,
           phaseDecision,
-          suggestions: suggestionSet(['Refine the opening beat', 'Try a tighter viewpoint', 'Lock this direction']),
+          suggestions: suggestionSet(['Refine the opening beat', 'Try a tighter viewpoint', 'Lock the empty ending']),
           proposedAction: null,
         }),
       };
@@ -502,25 +778,48 @@ test('Creator LLM v2 keeps every unrelated brief field when the user says only c
     decisions: '暖色列车灯是唯一高光',
     openQuestion: '',
   };
+  let scopedSuggestionCalls = 0;
   const runtime = createCreatorLlmRuntimeV2({
     settingsProvider,
-    generateChat: async () => ({
-      ok: true,
-      text: JSON.stringify({
-        schema: CREATOR_LLM_RESPONSE_SCHEMA,
-        replyMarkdown: '结尾改为列车驶过后，女主在空站台上看见晨光。',
-        workingBrief: {
-          goal: '另做一张海报', format: '1:1', audience: '所有人', style: '卡通',
-          story: '人物在雨夜等车；结尾是列车驶过后，她在空站台上看见晨光。',
-          assets: '', constraints: '', decisions: '', openQuestion: '',
-        },
-        phaseDecision,
-        suggestions: suggestionSet(),
-        proposedAction: null,
-      }),
-    }),
+    generateChat: async () => {
+      scopedSuggestionCalls += 1;
+      if (scopedSuggestionCalls === 2) {
+        return {
+          ok: true,
+          text: JSON.stringify(responseEnvelope({
+            replyMarkdown: '结尾改为列车驶过后，女主独自站在空站台上，看见第一束晨光。',
+            workingBrief: {
+              ...original,
+              story: '人物在雨夜等车；结尾是列车驶过后，她在空站台上看见晨光。',
+            },
+            suggestions: [
+              { label: '细化结尾节奏', sendText: '只细化晨光结尾的镜头、节奏、表演、声音和转场，其他设定不动。', intentKind: 'refine-ending-craft', role: 'recommended', inputAssetIds: [] },
+              { label: '换个结尾镜头', sendText: '保留晨光结论，改用站台远景和列车尾灯消失的镜头语言呈现。', intentKind: 'alternative-ending-shot', role: 'alternative', inputAssetIds: [] },
+              { label: '锁定这个结尾', sendText: '锁定当前晨光结尾并进入下一环节，不再改动其他设定。', intentKind: 'lock-ending', role: 'execute', inputAssetIds: [] },
+            ],
+          })),
+        };
+      }
+      return {
+        ok: true,
+        text: JSON.stringify({
+          schema: CREATOR_LLM_RESPONSE_SCHEMA,
+          replyMarkdown: '结尾改为列车驶过后，女主在空站台上看见晨光。',
+          workingBrief: {
+            goal: '另做一张海报', format: '1:1', audience: '所有人', style: '卡通',
+            story: '人物在雨夜等车；结尾是列车驶过后，她在空站台上看见晨光。',
+            assets: '', constraints: '', decisions: '', openQuestion: '',
+          },
+          phaseDecision,
+          suggestions: suggestionSet(),
+          proposedAction: null,
+        }),
+      };
+    },
   });
   const result = await runtime.respond({ prompt: '只改结尾，其他设定和约束全部不变', workingBrief: original });
+  assert.equal(scopedSuggestionCalls, 2);
+  assert.equal(result.evidence.providerCalls, 2);
   assert.match(result.workingBrief.story, /晨光/u);
   assert.match(result.suggestions[0].sendText, /镜头|节奏|表演|声音|转场/u);
   assert.doesNotMatch(result.suggestions[0].sendText, /完整.{0,8}(?:脚本|分镜)/u);
@@ -530,23 +829,60 @@ test('Creator LLM v2 keeps every unrelated brief field when the user says only c
 });
 
 test('Creator LLM v2 reduces a critical ambiguity to one visible question', async () => {
+  let calls = 0;
   const runtime = createCreatorLlmRuntimeV2({
     settingsProvider,
-    generateChat: async () => ({
-      ok: true,
-      text: JSON.stringify({
-        schema: CREATOR_LLM_RESPONSE_SCHEMA,
-        replyMarkdown: '你希望主角最终离开吗？还是留下来？结尾要开放式吗？',
-        workingBrief: { ...workingBrief, openQuestion: '主角离开吗？还是留下来？' },
-        phaseDecision,
-        suggestions: suggestionSet(),
-        proposedAction: null,
-      }),
-    }),
+    generateChat: async () => {
+      calls += 1;
+      return {
+        ok: true,
+        text: JSON.stringify(calls === 1
+          ? responseEnvelope({
+            replyMarkdown: '你希望主角最终离开吗？还是留下来？结尾要开放式吗？',
+            workingBrief: { ...workingBrief, openQuestion: '主角离开吗？还是留下来？' },
+          })
+          : responseEnvelope({
+            replyMarkdown: '我倾向让主角离开，因为这能把前面的犹豫收成一个真正的决定。主角决定离开的那一刻，哪件事最不能被牺牲？',
+            workingBrief: { ...workingBrief, openQuestion: '主角决定离开的那一刻，哪件事最不能被牺牲？' },
+            suggestions: [
+              { label: '先试离开那一幕', sendText: '不要写完整大纲或脚本，先只写主角决定离开的一个最小样段，用这个小样验证告别的分量是否成立。', intentKind: 'test-leaving-moment', role: 'recommended', inputAssetIds: [] },
+              { label: '保留未完成动作', sendText: '不直接解释去留，换成一个未完成的动作来承载关系的余温。', intentKind: 'alternate-open-action', role: 'alternative', inputAssetIds: [] },
+              { label: '锁定离开结局', sendText: '锁定主角最终离开的方向，不再讨论结局，进入下一环节。', intentKind: 'lock-leaving-ending', role: 'execute', inputAssetIds: [] },
+            ],
+          })),
+      };
+    },
   });
   const result = await runtime.respond({ prompt: '我还没想好主角最终是否离开', workingBrief });
+  assert.equal(calls, 2);
   assert.equal((result.replyMarkdown.match(/[?？]/gu) || []).length, 1);
   assert.equal((result.workingBrief.openQuestion.match(/[?？]/gu) || []).length, 1);
-  assert.equal(result.workingBrief.openQuestion, '这支作品最终必须让观众留下怎样的情绪和理解？');
-  assert.match(result.replyMarkdown, /怎样的情绪和理解/u);
+  assert.equal(result.workingBrief.openQuestion, '主角决定离开的那一刻，哪件事最不能被牺牲？');
+  assert.match(result.replyMarkdown, /主角决定离开/u);
+  assert.match(result.suggestions[0].sendText, /验证/u);
+});
+
+test('Creator LLM v2 recognizes one explicitly bounded key scene as a valid critical-choice probe', async () => {
+  let calls = 0;
+  const runtime = createCreatorLlmRuntimeV2({
+    settingsProvider,
+    generateChat: async () => {
+      calls += 1;
+      return {
+        ok: true,
+        text: JSON.stringify(responseEnvelope({
+          replyMarkdown: '我倾向让他们彻底分开，因为和解会抹平已经发生的伤害。对门口停住的两个人来说，哪件已经发生的事最不能被结尾改写？',
+          workingBrief: { ...workingBrief, openQuestion: '对门口停住的两个人来说，哪件已经发生的事最不能被结尾改写？' },
+          suggestions: [
+            { label: '先写门口那场戏', sendText: '按彻底分开的倾向，先只写他们最后一次在门口停住的那场关键戏，先不要完整短片大纲，这场戏我还要继续改。', intentKind: 'test-doorway-scene', role: 'recommended', inputAssetIds: [] },
+            { label: '换成单人视角', sendText: '换个视角，只贴着那个不再追问的人来讲，看他何时停止替对方补完半句话。', intentKind: 'single-view-alternative', role: 'alternative', inputAssetIds: [] },
+            { label: '锁定分开往下', sendText: '锁定彻底分开这个结尾，不再讨论和解，按这个方向进入下一步。', intentKind: 'lock-separation', role: 'execute', inputAssetIds: [] },
+          ],
+        })),
+      };
+    },
+  });
+  const result = await runtime.respond({ prompt: '结尾和解还是分开我还没想好，这会改变整支片。', workingBrief });
+  assert.equal(calls, 1);
+  assert.match(result.suggestions[0].sendText, /那场关键戏/u);
 });

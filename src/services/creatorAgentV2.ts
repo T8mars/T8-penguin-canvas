@@ -124,8 +124,10 @@ export interface CreatorPreferencesV2 {
 export interface CreatorCatalogItemV2 extends CreatorChoiceV2 {
   label: string;
   providerLabel: string;
+  family: string;
   configured: boolean;
   recommended: boolean;
+  visionCapable: boolean;
 }
 
 export interface CreatorCatalogV2 {
@@ -161,6 +163,41 @@ export function formatCreatorModelLabel(item: CreatorCatalogItemV2, isChinese = 
   if (!providerLabel || item.providerId === 'seedance-nz') return label;
   if (label.toLocaleLowerCase().startsWith(providerLabel.toLocaleLowerCase())) return label;
   return `${providerLabel} · ${label}`;
+}
+
+/**
+ * Model families come from the signed capability catalog. Localizing this
+ * exact catalog field makes a long native select scannable without guessing
+ * at, shortening, or otherwise changing the billable model id.
+ */
+export function formatCreatorModelFamily(family: string, isChinese = true) {
+  const normalized = String(family || '').trim().toLowerCase();
+  const known: Record<string, readonly [string, string]> = {
+    llm: ['语言模型', 'Language models'],
+    'minimax-h3-context-ir': ['MiniMax H3 官方增强', 'Official MiniMax H3'],
+    'qwen-image-3.0': ['Qwen Image 3.0', 'Qwen Image 3.0'],
+    'grok-image': ['Grok Image', 'Grok Image'],
+    'grok-image-tools': ['Grok Image 工具', 'Grok Image tools'],
+    'seedream-v5-pro': ['Seedream 5 Pro', 'Seedream 5 Pro'],
+    'seedream-layer-decomposition': ['Seedream 分层', 'Seedream layers'],
+    'gpt-image-2': ['GPT Image 2', 'GPT Image 2'],
+    'wan-image': ['Wan Image', 'Wan Image'],
+    'nano-banana-2': ['Nano Banana 2', 'Nano Banana 2'],
+    'nano-banana-pro': ['Nano Banana Pro', 'Nano Banana Pro'],
+    'hailuo-2.3': ['Hailuo / MiniMax H3', 'Hailuo / MiniMax H3'],
+    'kling-v3.0': ['Kling 3.0', 'Kling 3.0'],
+    'vidu-q3': ['Vidu Q3', 'Vidu Q3'],
+    'wan-2.7-spicy': ['Wan Video', 'Wan Video'],
+    'seedance-2.0': ['Seedance 2.0', 'Seedance 2.0'],
+    'seedance-2.5': ['Seedance 2.5', 'Seedance 2.5'],
+    'veo3.1': ['Veo', 'Veo'],
+    'happyhorse-1.1': ['HappyHorse 1.1', 'HappyHorse 1.1'],
+    'grok-video-3': ['Grok Video', 'Grok Video'],
+    'fashvsr-video-upscale': ['FlashVSR 视频超分', 'FlashVSR video upscale'],
+    'zhenzhen-upscaler': ['视频超分', 'Video upscale'],
+  };
+  const localized = known[normalized];
+  return localized ? localized[isChinese ? 0 : 1] : (family || (isChinese ? '其他模型' : 'Other models'));
 }
 
 interface Envelope<T> {
@@ -215,6 +252,7 @@ export async function sendCreatorMessageV2(sessionId: string, input: {
   projectId: string;
   canvasId: string;
   text: string;
+  locale?: 'zh-CN' | 'en';
   clientRequestId: string;
   attachments?: CreatorMediaRef[];
   selectedNodeIds?: string[];

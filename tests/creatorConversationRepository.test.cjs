@@ -61,6 +61,34 @@ test('Creator v2 repository stores scoped conversations and paginates messages',
   }
 });
 
+test('Creator history hides only legacy untitled blank conversations without deleting them', () => {
+  const repository = new CreatorConversationRepository();
+  try {
+    const hidden = repository.createConversation({
+      id: 'creator-blank-hidden', projectId: 'project-local', canvasId: 'canvas-local',
+    });
+    const titled = repository.createConversation({
+      id: 'creator-blank-titled', projectId: 'project-local', canvasId: 'canvas-local', title: '等待素材的广告',
+    });
+    const active = repository.createConversation({
+      id: 'creator-blank-started', projectId: 'project-local', canvasId: 'canvas-local',
+    });
+    repository.appendUserMessage(active.id, {
+      body: '做一支十五秒产品广告', clientRequestId: 'request-history-visible-001',
+    });
+
+    const listed = repository.listConversations({
+      projectId: 'project-local', canvasId: 'canvas-local', limit: 20,
+    });
+    assert.equal(listed.items.some((item) => item.id === hidden.id), false);
+    assert.equal(listed.items.some((item) => item.id === titled.id), true);
+    assert.equal(listed.items.some((item) => item.id === active.id), true);
+    assert.equal(repository.getConversation(hidden.id).conversation.id, hidden.id);
+  } finally {
+    repository.close();
+  }
+});
+
 test('Creator message idempotency rejects a reused request identity with different content', () => {
   const { repository, conversation } = fixture();
   try {
