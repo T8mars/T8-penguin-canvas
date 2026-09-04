@@ -1,14 +1,17 @@
 {
   "$schema": "本文件为 T8-penguin-canvas 节点清单防丢失锁,任何节点删减都需要在 roadmap.md 中说明并更新本文件。",
   "version": "3.1.4",
-  "lastUpdated": "2026-09-04-v3.1.4-release-authorized-evidence-deferred",
+  "lastUpdated": "2026-09-04-v3.1.4-dual-platform-release-verified",
   "electronReleaseV314": {
-    "status": "release-authorized-technical-gates-pending",
+    "status": "released-v3.1.4-dual-platform-verified",
     "date": "2026-09-04",
     "releaseIncluded": true,
     "version": "3.1.4",
     "tag": "v3.1.4",
-    "latest": false,
+    "latest": true,
+    "sourceCommit": "eaaad33456582adf9fc26714c0aaa69b7a13b0ff",
+    "publishedAt": "2026-09-04T08:53:33Z",
+    "url": "https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.1.4",
     "scope": [
       "Creator Agent 在输入框内提供唯一轻量逐场创作入口；短想法与完整长剧本都由真实 LLM 逐场推进，保留人物、地点、关系、离场状态和全剧风格连续性，并继续只给三个当前可执行建议。",
       "启动链使用同一 projectRuntime、当前文档权威 revision、ReactFlow 与 renderer-interactive 收据判断可交互状态；5000 条画布完整保留，首屏只取 50 条并继续分页，不设置 400 条硬上限。",
@@ -19,8 +22,42 @@
     "verification": [
       "Creator 逐场模式已由真实 qwen/qwen3.7-max 生成 600 字可拍单场，并由 qwen/qwen3.8-max 独立严格评审为 9.0/10；长剧本另由 zhenzhen/gk-4.6 完成四回合连续性与重启恢复验收。",
       "Hailuo H3 Max Turbo 两模型各首次提交一次并完成终态、下载、FFprobe 与 FFmpeg 全片解码；T2V 为 832x480 / 5.184s，I2V 为 480x480 / 5.184s。",
-      "Windows、真实 macOS arm64、自动更新清单、固定 Tag/target、远端完整下载和最终资产摘要必须在正式发布完成后据实回填，不得提前标记通过。"
+      "低资源串行门禁通过：Creator 185/185、启动与 projectRuntime 19/19、ProjectDatabase writer/lifecycle 84/84、Hailuo/生成路由 11/11、Electron/自动更新/macOS/运行时/发布合同 36/36；TypeScript、39 actions / 282 runtime / 83/83 nodes、4437 个双语 Key、公开目录、RH 15 tools / 12 categories、MiniMax Music3 1022 文件、依赖树和 2952 模块 production build 全部通过。",
+      "Windows 正式链通过 172 个后端源与 4 个私有文件加密、双运行时、native rebuild、NSIS、7 文件 app.asar 启动合同、provenance、sealed recovery、上传与完整回下载；恢复记录已清除。真实 macOS arm64 workflow 33855661758 从同一固定源码构建，通过原生依赖、ad-hoc 签名、DMG/ZIP/更新清单、追加上传与 runner 回下载；本机独立再次完整下载三项 Mac 资产。",
+      "双平台六资产并存后再次完整下载并核对 Windows 三件套；GitHub Release 为非草稿、非预发布 Latest，Tag、Release target、macSource、六项 GitHub digest/size 与两套更新清单一致。"
     ],
+    "artifacts": {
+      "windows": {
+        "T8-PenguinCanvas-Setup-3.1.4.exe": {
+          "bytes": 1340099930,
+          "sha256": "73eb75a00a259033207c644147477a3abbdb54a5c131419f21bdbe70dd0754e4"
+        },
+        "T8-PenguinCanvas-Setup-3.1.4.exe.blockmap": {
+          "bytes": 1395270,
+          "sha256": "3085f6ead82bbaeb6577af22110626e84a71ca552652da4685c3db391a4c05d7"
+        },
+        "latest.yml": {
+          "bytes": 362,
+          "sha256": "ef9db20eae5099dc94fb94e588eedd2bc7e12399c6c89ee2141f3e650bbde071"
+        }
+      },
+      "macosArm64": {
+        "signing": "ad-hoc unsigned preview; no Apple Developer ID notarization",
+        "workflowRun": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/33855661758",
+        "T8-PenguinCanvas-3.1.4-mac-arm64.dmg": {
+          "bytes": 514089332,
+          "sha256": "41ccb1cb369014df9c666428a038e1fda0cfb3d43133d766697d5150dd50d280"
+        },
+        "T8-PenguinCanvas-3.1.4-mac-arm64.zip": {
+          "bytes": 506099328,
+          "sha256": "2b367577c0aba884d18b01314cd876f15e5af183f115936a81b98e243ae0ffaf"
+        },
+        "latest-mac.yml": {
+          "bytes": 536,
+          "sha256": "2b9d48fc75f18adc32b3a44e97695b979223f7e2d1e92583ef01bda68f243d84"
+        }
+      }
+    },
     "evidenceBoundary": {
       "technicalGates": "must-pass-before-release",
       "affectedUserInstallF8F10AndInstalledUpgrade": "deferred-not-passed",
@@ -29,7 +66,7 @@
     }
   },
   "creatorSceneMode20260904": {
-    "status": "release-authorized-v3.1.4-live-verified",
+    "status": "released-v3.1.4-live-verified",
     "date": "2026-09-04",
     "releaseIncluded": true,
     "interaction": [
@@ -46,7 +83,7 @@
     "verification": [
       "真实短提示由 qwen/qwen3.7-max 经两次有界调用输出 600 字可拍场稿，只落一场、只使用一杯热豆浆且未创建媒体动作；qwen/qwen3.8-max 独立严格评审 9.0/10，子项为意图 10、场景 9、可拍性 9、自然度 9、新手可用性 9。",
       "脱敏证据：artifacts/creator-agent-scene-mode-live/1788502499244.json；API Key、Provider 原始响应与签名信息未写入证据；此前 8.0 分稿明确保留为 rejected 证据，没有冒充通过。",
-      "Creator 十套 Electron ABI 回归 178/178、TypeScript、能力同步 39 actions / 280 runtime / 83/83 nodes、中英文 4437 Key 与 production build 通过；真实 Chrome 已核验入口、激活态、短输入、生成中反馈、单场落库及首次会话后模式不复位。"
+      "Creator 十套 Electron ABI 回归、TypeScript、能力同步 39 actions / 282 runtime / 83/83 nodes、中英文 4437 Key 与 production build 通过；真实 Chrome 已核验入口、激活态、短输入、生成中反馈、单场落库及首次会话后模式不复位；已随 v3.1.4 双平台正式发布。"
     ]
   },
   "startupPosterCarousel": {
@@ -86,7 +123,7 @@
     "releaseIncluded": true,
     "version": "3.1.3",
     "tag": "v3.1.3",
-    "latest": true,
+    "latest": false,
     "sourceCommit": "ed7e9e71c0b45e732eac89fcc6e4324ac5a7a1e9",
     "publishedAt": "2026-09-02T09:00:24Z",
     "url": "https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.1.3",
@@ -147,7 +184,7 @@
     }
   },
   "hailuoH3MaxTurboVideoModels20260904": {
-    "status": "release-authorized-v3.1.4-live-verified",
+    "status": "released-v3.1.4-live-verified",
     "date": "2026-09-04",
     "releaseIncluded": true,
     "provider": "seedance-nz",
@@ -15111,7 +15148,7 @@
     ]
   },
   "creatorAgentLongScriptSceneContinuityAndStartupReadiness": {
-    "status": "release-authorized-v3.1.4-development-verified",
+    "status": "released-v3.1.4-dual-platform-verified",
     "date": "2026-09-04",
     "releaseIncluded": true,
     "scope": {
@@ -15156,7 +15193,7 @@
     "boundaries": [
       "本轮 UI/启动验收只使用系统临时目录中的隔离 userData 和画布数据库；长剧本另完成 4 回合真实 LLM 验收，仍只使用临时 SQLite、禁止媒体生成、结束即清理且不保存 API Key；全程不读取或改写保留的生产项目数据库。",
       "当前 Windows 主机为 100% DPI且未安装 NVDA，没有可确认的真实触控设备；CDP 触控和 devicePixelRatio=2 证据不冒充物理设备，独立新手五秒测试、真人自然语言盲评、NVDA、VoiceOver、真实触控及真实 OS 200% 浅深主题仍是外部设备/人员验收项。",
-      "本开发检查点已完成普通 production build；现已按用户明确授权纳入 v3.1.4，正式 Electron、固定 Tag、Windows/macOS 自动更新资产与远端完整性仍须通过发布门禁。"
+      "已随 v3.1.4 从固定源码 eaaad33456582adf9fc26714c0aaa69b7a13b0ff 完成 Windows 与真实 macOS arm64 双平台正式发布、两套自动更新资产和远端完整下载；外部人员与物理设备证据继续按延期边界后补，不视为通过。"
     ]
   }
 }
