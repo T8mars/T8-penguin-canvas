@@ -1,0 +1,109 @@
+{
+  "schema": "t8-workflow-fragment",
+  "version": 1,
+  "title": "MiniMax H3 Max Turbo 首尾帧图生视频（贞贞的平价AI小屋 · 480p）",
+  "nodes": [
+    {
+      "id": "hailuo-h3-max-turbo-i2v-first-frame",
+      "type": "upload",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "data": {
+        "label": "上传首帧图（必填）",
+        "uploadType": "image",
+        "lockedUploadType": "image"
+      }
+    },
+    {
+      "id": "hailuo-h3-max-turbo-i2v-last-frame",
+      "type": "upload",
+      "position": {
+        "x": 0,
+        "y": 220
+      },
+      "data": {
+        "label": "上传尾帧图（可选）",
+        "uploadType": "image",
+        "lockedUploadType": "image"
+      }
+    },
+    {
+      "id": "hailuo-h3-max-turbo-i2v",
+      "type": "video",
+      "position": {
+        "x": 440,
+        "y": 40
+      },
+      "data": {
+        "label": "MiniMax H3 Max Turbo 首尾帧图生视频",
+        "mainId": "hailuo-2.3",
+        "model": "hailuo-h3-max-turbo-i2v",
+        "videoBuiltinSource": "seedance-nz",
+        "ratio": "16:9",
+        "duration": 5,
+        "resolution": "480p",
+        "localPrompt": "保持主体、服装和场景一致，从首帧自然过渡到尾帧，动作连贯，镜头轻缓推进",
+        "reuseResult": false
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "hailuo-h3-max-turbo-i2v-first-edge",
+      "source": "hailuo-h3-max-turbo-i2v-first-frame",
+      "target": "hailuo-h3-max-turbo-i2v"
+    },
+    {
+      "id": "hailuo-h3-max-turbo-i2v-last-edge",
+      "source": "hailuo-h3-max-turbo-i2v-last-frame",
+      "target": "hailuo-h3-max-turbo-i2v"
+    }
+  ],
+  "nodeCount": 3,
+  "edgeCount": 2,
+  "nodeTypes": [
+    "upload",
+    "upload",
+    "video"
+  ],
+  "topologyPreview": {
+    "nodes": [
+      {
+        "id": "hailuo-h3-max-turbo-i2v-first-frame",
+        "type": "upload",
+        "label": "上传首帧图（必填）",
+        "x": 50,
+        "y": 50
+      },
+      {
+        "id": "hailuo-h3-max-turbo-i2v-last-frame",
+        "type": "upload",
+        "label": "上传尾帧图（可选）",
+        "x": 50,
+        "y": 270
+      },
+      {
+        "id": "hailuo-h3-max-turbo-i2v",
+        "type": "video",
+        "label": "MiniMax H3 Max Turbo 首尾帧图生视频",
+        "x": 490,
+        "y": 90
+      }
+    ],
+    "edges": [
+      {
+        "id": "hailuo-h3-max-turbo-i2v-first-edge",
+        "source": "hailuo-h3-max-turbo-i2v-first-frame",
+        "target": "hailuo-h3-max-turbo-i2v"
+      },
+      {
+        "id": "hailuo-h3-max-turbo-i2v-last-edge",
+        "source": "hailuo-h3-max-turbo-i2v-last-frame",
+        "target": "hailuo-h3-max-turbo-i2v"
+      }
+    ]
+  },
+  "savedAt": "2026-09-04T00:00:00.000Z"
+}

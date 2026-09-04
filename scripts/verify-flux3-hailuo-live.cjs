@@ -38,6 +38,8 @@ const catalogModels = [
   'hailuo-h3-global-multi',
   'hailuo-h3-max-t2v',
   'hailuo-h3-max-i2v',
+  'hailuo-h3-max-turbo-t2v',
+  'hailuo-h3-max-turbo-i2v',
   'flux-3-video-t2v',
   'flux-3-video-i2v',
   'flux-3-video-v2v',
@@ -147,7 +149,12 @@ function requestFor(model, fixtures, state) {
   if (!isFlux(model)) {
     const isMinimaxFast = model.startsWith('minimax-h3-ow-') && model.endsWith('-fast');
     const isHailuoH3Max = model.startsWith('hailuo-h3-max-');
-    const common = { model, duration: 5, resolution: isMinimaxFast ? '480p' : isHailuoH3Max ? '480P' : '768P' };
+    const isHailuoH3MaxTurbo = model.startsWith('hailuo-h3-max-turbo-');
+    const common = {
+      model,
+      duration: 5,
+      resolution: isMinimaxFast || isHailuoH3MaxTurbo ? '480p' : isHailuoH3Max ? '480P' : '768P',
+    };
     if (model.includes('-audio-drive-')) {
       return {
         ...common,
@@ -354,8 +361,8 @@ function writeSanitizedReport(ok, status, blocker = null) {
     provider: 'seedance-nz',
     officialDocs: {
       url: 'https://api.seedance.nz/docs/llms.txt',
-      sha256: '25f9f103297de3ed88a55e39b828e4f57470af10707e5042251f62551e657580',
-      lastModified: 'Mon, 31 Aug 2026 23:54:18 GMT',
+      sha256: '9da7fb9abf0f87b2c6041d1f7ddcb6c8c90f24bde0a05eb9b5aa875a5bc3c033',
+      lastModified: 'Thu, 03 Sep 2026 15:44:49 GMT',
     },
     taskCount: liveResults.length,
     catalogTaskCount: catalogModels.length,

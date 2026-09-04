@@ -297,7 +297,24 @@ const HAILUO_H3_GLOBAL_I2V_MODEL = 'hailuo-h3-global-i2v';
 const HAILUO_H3_GLOBAL_MULTI_MODEL = 'hailuo-h3-global-multi';
 const HAILUO_H3_MAX_T2V_MODEL = 'hailuo-h3-max-t2v';
 const HAILUO_H3_MAX_I2V_MODEL = 'hailuo-h3-max-i2v';
-const HAILUO_H3_MAX_MODELS = new Set([HAILUO_H3_MAX_T2V_MODEL, HAILUO_H3_MAX_I2V_MODEL]);
+const HAILUO_H3_MAX_TURBO_T2V_MODEL = 'hailuo-h3-max-turbo-t2v';
+const HAILUO_H3_MAX_TURBO_I2V_MODEL = 'hailuo-h3-max-turbo-i2v';
+const HAILUO_H3_MAX_T2V_MODELS = new Set([
+  HAILUO_H3_MAX_T2V_MODEL,
+  HAILUO_H3_MAX_TURBO_T2V_MODEL,
+]);
+const HAILUO_H3_MAX_I2V_MODELS = new Set([
+  HAILUO_H3_MAX_I2V_MODEL,
+  HAILUO_H3_MAX_TURBO_I2V_MODEL,
+]);
+const HAILUO_H3_MAX_TURBO_MODELS = new Set([
+  HAILUO_H3_MAX_TURBO_T2V_MODEL,
+  HAILUO_H3_MAX_TURBO_I2V_MODEL,
+]);
+const HAILUO_H3_MAX_MODELS = new Set([
+  ...HAILUO_H3_MAX_T2V_MODELS,
+  ...HAILUO_H3_MAX_I2V_MODELS,
+]);
 const HAILUO_H3_T2V_MODELS = new Set([HAILUO_H3_T2V_MODEL, HAILUO_H3_GLOBAL_T2V_MODEL]);
 const HAILUO_H3_I2V_MODELS = new Set([HAILUO_H3_I2V_MODEL, HAILUO_H3_GLOBAL_I2V_MODEL]);
 const HAILUO_H3_MULTI_MODELS = new Set([HAILUO_H3_MULTI_MODEL, HAILUO_H3_GLOBAL_MULTI_MODEL]);
@@ -381,7 +398,12 @@ const HAILUO_MODELS = new Set([
 ]);
 const HAILUO_H3_SECONDS = new Set(Array.from({ length: 11 }, (_, index) => String(index + 5)));
 const HAILUO_H3_RESOLUTIONS = new Set(['768P', '2K']);
-const HAILUO_H3_MAX_RESOLUTIONS = new Set(['480P', '768P']);
+const HAILUO_H3_MAX_STANDARD_RESOLUTIONS = new Set(['480P', '768P']);
+const HAILUO_H3_MAX_TURBO_RESOLUTIONS = new Set(['480p', '768p']);
+const HAILUO_H3_MAX_RESOLUTIONS = new Set([
+  ...HAILUO_H3_MAX_STANDARD_RESOLUTIONS,
+  ...HAILUO_H3_MAX_TURBO_RESOLUTIONS,
+]);
 const HAILUO_H3_MAX_RATIOS = new Set(['21:9', '16:9', '4:3', '1:1', '3:4', '9:16']);
 const HAILUO_H3_PROMPT_MAX_LENGTH = 20480;
 const HAILUO_H3_MAX_REFERENCE_IMAGES = 9;
@@ -3470,19 +3492,24 @@ async function buildHailuoPayload(request, apiKey, options = {}) {
   }
 
   if (HAILUO_H3_MAX_MODELS.has(model)) {
+    const isTurbo = HAILUO_H3_MAX_TURBO_MODELS.has(model);
+    const modelLabel = isTurbo ? 'MiniMax H3 Max Turbo' : 'MiniMax H3 Max';
     const prompt = String(request.prompt || '').trim();
-    if (!prompt) throw new Error('MiniMax H3 Max 必须填写提示词');
+    if (!prompt) throw new Error(`${modelLabel} 必须填写提示词`);
     if (prompt.length > HAILUO_H3_PROMPT_MAX_LENGTH) {
-      throw new Error(`MiniMax H3 Max 提示词不能超过 ${HAILUO_H3_PROMPT_MAX_LENGTH} 字符`);
+      throw new Error(`${modelLabel} 提示词不能超过 ${HAILUO_H3_PROMPT_MAX_LENGTH} 字符`);
     }
     const seconds = String(request.duration ?? request.seconds ?? '5').trim();
-    if (!HAILUO_H3_SECONDS.has(seconds)) throw new Error('MiniMax H3 Max 时长只支持 5-15 秒');
-    const resolution = String(request.resolution || '480P').trim().toUpperCase();
-    if (!HAILUO_H3_MAX_RESOLUTIONS.has(resolution)) {
-      throw new Error('MiniMax H3 Max 分辨率只支持 480P 或 768P');
+    if (!HAILUO_H3_SECONDS.has(seconds)) throw new Error(`${modelLabel} 时长只支持 5-15 秒`);
+    const resolution = String(request.resolution || (isTurbo ? '480p' : '480P')).trim();
+    const allowedResolutions = isTurbo
+      ? HAILUO_H3_MAX_TURBO_RESOLUTIONS
+      : HAILUO_H3_MAX_STANDARD_RESOLUTIONS;
+    if (!allowedResolutions.has(resolution)) {
+      throw new Error(`${modelLabel} 分辨率只支持 ${isTurbo ? '480p 或 768p' : '480P 或 768P'}`);
     }
 
-    const taskType = model === HAILUO_H3_MAX_T2V_MODEL ? 't2v' : 'i2v';
+    const taskType = HAILUO_H3_MAX_T2V_MODELS.has(model) ? 't2v' : 'i2v';
     const imageSources = normalizeList(request.images || request.refImages);
     const videoSources = normalizeList(request.videos || request.videoUrls || request.video_url);
     const audioSources = normalizeList(request.audios || request.audioUrls || request.audio_url);
@@ -3490,19 +3517,19 @@ async function buildHailuoPayload(request, apiKey, options = {}) {
 
     if (taskType === 't2v') {
       if (imageSources.length || videoSources.length || audioSources.length) {
-        throw new Error('MiniMax H3 Max 文生视频不接受图片、视频或音频素材');
+        throw new Error(`${modelLabel} 文生视频不接受图片、视频或音频素材`);
       }
       const ratio = String(request.ratio || '16:9').trim();
-      if (!HAILUO_H3_MAX_RATIOS.has(ratio)) throw new Error(`MiniMax H3 Max 不支持比例 ${ratio}`);
+      if (!HAILUO_H3_MAX_RATIOS.has(ratio)) throw new Error(`${modelLabel} 不支持比例 ${ratio}`);
       payload.metadata.ratio = ratio;
       return { payload, model, taskType };
     }
 
     if (videoSources.length || audioSources.length) {
-      throw new Error('MiniMax H3 Max 图生视频只接受首帧与可选尾帧图片');
+      throw new Error(`${modelLabel} 图生视频只接受首帧与可选尾帧图片`);
     }
     if (imageSources.length < 1 || imageSources.length > 2) {
-      throw new Error('MiniMax H3 Max 图生视频必须提供 1-2 张首尾帧图片');
+      throw new Error(`${modelLabel} 图生视频必须提供 1-2 张首尾帧图片`);
     }
     payload.images = [];
     for (const source of imageSources) {
@@ -3510,7 +3537,7 @@ async function buildHailuoPayload(request, apiKey, options = {}) {
         ...options,
         maxBytes: 30 * 1024 * 1024,
         allowedMimes: ['image/jpeg', 'image/png', 'image/webp'],
-        cacheVariant: 'hailuo-h3-max-i2v-image-v1',
+        cacheVariant: isTurbo ? 'hailuo-h3-max-turbo-i2v-image-v1' : 'hailuo-h3-max-i2v-image-v1',
       }));
     }
     return { payload, model, taskType };
@@ -5432,6 +5459,11 @@ module.exports = {
   HAILUO_H3_MAX_MODELS,
   HAILUO_H3_MAX_RATIOS,
   HAILUO_H3_MAX_RESOLUTIONS,
+  HAILUO_H3_MAX_STANDARD_RESOLUTIONS,
+  HAILUO_H3_MAX_TURBO_RESOLUTIONS,
+  HAILUO_H3_MAX_TURBO_MODELS,
+  HAILUO_H3_MAX_T2V_MODELS,
+  HAILUO_H3_MAX_I2V_MODELS,
   HAILUO_H3_T2V_MODEL,
   HAILUO_H3_T2V_MODELS,
   HAILUO_MODELS,

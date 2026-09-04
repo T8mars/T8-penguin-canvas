@@ -1,0 +1,45 @@
+{
+  "schema": "t8-workflow-fragment",
+  "version": 1,
+  "title": "MiniMax H3 Max Turbo 文生视频（贞贞的平价AI小屋 · 480p）",
+  "nodes": [
+    {
+      "id": "hailuo-h3-max-turbo-t2v",
+      "type": "video",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "data": {
+        "label": "MiniMax H3 Max Turbo 文生视频",
+        "mainId": "hailuo-2.3",
+        "model": "hailuo-h3-max-turbo-t2v",
+        "videoBuiltinSource": "seedance-nz",
+        "ratio": "16:9",
+        "duration": 5,
+        "resolution": "480p",
+        "localPrompt": "清晨薄雾笼罩湖面，小木船平稳穿行，镜头缓慢向前推进，电影光线自然连续",
+        "reuseResult": false
+      }
+    }
+  ],
+  "edges": [],
+  "nodeCount": 1,
+  "edgeCount": 0,
+  "nodeTypes": [
+    "video"
+  ],
+  "topologyPreview": {
+    "nodes": [
+      {
+        "id": "hailuo-h3-max-turbo-t2v",
+        "type": "video",
+        "label": "MiniMax H3 Max Turbo 文生视频",
+        "x": 50,
+        "y": 50
+      }
+    ],
+    "edges": []
+  },
+  "savedAt": "2026-09-04T00:00:00.000Z"
+}

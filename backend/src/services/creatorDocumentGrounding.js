@@ -8,6 +8,7 @@ const CREATOR_DOCUMENT_OBSERVATION_SCHEMA = 't8-creator-document-observation-v1'
 const MAX_DOCUMENT_BYTES = 8 * 1024 * 1024;
 const DEFAULT_TOTAL_CHARACTER_BUDGET = 96_000;
 const DEFAULT_PER_DOCUMENT_CHARACTER_BUDGET = 30_000;
+const MAX_LONG_SCRIPT_CHARACTERS = 2_000_000;
 const DIGEST_RE = /^[a-f0-9]{64}$/u;
 
 function boundedText(value, maximum = 2_000) {
@@ -180,6 +181,53 @@ async function extractPdfText(filename, maximumCharacters) {
   };
 }
 
+async function readCreatorLongScriptDocument(attachment, options = {}) {
+  const type = documentType(attachment);
+  if (!type) return null;
+  const filename = path.resolve(String(attachment.mediaUrl || ''));
+  const maximumCharacters = Math.max(1_000, Math.min(
+    MAX_LONG_SCRIPT_CHARACTERS,
+    Number(options.maximumCharacters) || MAX_LONG_SCRIPT_CHARACTERS,
+  ));
+  let source = '';
+  let truncated = false;
+  if (type === 'pdf') {
+    const extracted = await extractPdfText(filename, maximumCharacters + 1);
+    source = extracted.text;
+    truncated = extracted.truncated || source.length > maximumCharacters;
+  } else {
+    const { buffer, byteTruncated } = await readBoundedFile(filename);
+    const nulBytes = [...buffer.subarray(0, Math.min(buffer.length, 32_768))]
+      .filter((byte) => byte === 0).length;
+    if (nulBytes > 8) throw new Error('文本文件编码无法可靠识别');
+    source = buffer.toString('utf8').replace(/^\uFEFF/u, '').replace(/\r\n?/gu, '\n');
+    truncated = byteTruncated || source.length > maximumCharacters;
+  }
+  if (truncated) {
+    const error = new Error('长剧本文档超过 2,000,000 字符或 8 MiB，请拆成同一项目内的多个剧本卷后再导入');
+    error.code = 'CREATOR_LONG_SCRIPT_TOO_LARGE';
+    error.status = 413;
+    throw error;
+  }
+  if (!source.trim()) throw new Error('文档中没有可读取的文本');
+  const actualHash = await hashFile(filename);
+  const expectedHash = normalizedContentHash(
+    attachment.contentHash || attachment.documentObservation?.contentHash,
+  );
+  if (expectedHash && expectedHash !== actualHash) {
+    const error = new Error('长剧本文档内容已经变化，请重新选择文件');
+    error.code = 'CREATOR_DOCUMENT_CHANGED';
+    error.status = 409;
+    throw error;
+  }
+  return {
+    source,
+    documentType: type,
+    contentHash: actualHash,
+    characterCount: source.length,
+  };
+}
+
 async function createCreatorDocumentObservation(attachment, options = {}) {
   const type = documentType(attachment);
   if (!type) return null;
@@ -270,4 +318,5 @@ module.exports = {
   documentType,
   groundCreatorDocumentAttachments,
   normalizeCreatorDocumentObservation,
+  readCreatorLongScriptDocument,
 };

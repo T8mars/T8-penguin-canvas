@@ -8,6 +8,8 @@ import {
   HAILUO_H3_MAX_VIDEO_MODELS,
   HAILUO_H3_MAX_VIDEO_RATIOS,
   HAILUO_H3_MAX_VIDEO_RESOLUTIONS,
+  HAILUO_H3_MAX_STANDARD_VIDEO_RESOLUTIONS,
+  HAILUO_H3_MAX_TURBO_VIDEO_RESOLUTIONS,
   VIDEO_MODELS,
   videoModelOptionsForSource,
 } from '../src/providers/models.ts';
@@ -23,10 +25,17 @@ const uploadFetch = async () => new Response(JSON.stringify({ url: 'https://cdn.
   headers: { 'Content-Type': 'application/json' },
 });
 
-test('Hailuo tab exposes the exact documented H3 Max models and controls', () => {
-  assert.deepEqual(HAILUO_H3_MAX_VIDEO_MODELS, ['hailuo-h3-max-t2v', 'hailuo-h3-max-i2v']);
+test('Hailuo tab exposes the exact documented H3 Max and Max Turbo models and controls', () => {
+  assert.deepEqual(HAILUO_H3_MAX_VIDEO_MODELS, [
+    'hailuo-h3-max-t2v',
+    'hailuo-h3-max-i2v',
+    'hailuo-h3-max-turbo-t2v',
+    'hailuo-h3-max-turbo-i2v',
+  ]);
   assert.deepEqual(HAILUO_H3_MAX_VIDEO_DURATIONS, Array.from({ length: 11 }, (_, index) => index + 5));
-  assert.deepEqual(HAILUO_H3_MAX_VIDEO_RESOLUTIONS, ['480P', '768P']);
+  assert.deepEqual(HAILUO_H3_MAX_STANDARD_VIDEO_RESOLUTIONS, ['480P', '768P']);
+  assert.deepEqual(HAILUO_H3_MAX_TURBO_VIDEO_RESOLUTIONS, ['480p', '768p']);
+  assert.deepEqual(HAILUO_H3_MAX_VIDEO_RESOLUTIONS, ['480P', '768P', '480p', '768p']);
   assert.deepEqual(HAILUO_H3_MAX_VIDEO_RATIOS, ['21:9', '16:9', '4:3', '1:1', '3:4', '9:16']);
 
   const hailuo = VIDEO_MODELS.find((item) => item.id === 'hailuo-2.3');
@@ -34,12 +43,20 @@ test('Hailuo tab exposes the exact documented H3 Max models and controls', () =>
   const options = videoModelOptionsForSource(hailuo, 'seedance-nz');
   const t2v = options.find((item) => item.value === 'hailuo-h3-max-t2v');
   const i2v = options.find((item) => item.value === 'hailuo-h3-max-i2v');
+  const turboT2v = options.find((item) => item.value === 'hailuo-h3-max-turbo-t2v');
+  const turboI2v = options.find((item) => item.value === 'hailuo-h3-max-turbo-i2v');
   assert.ok(t2v);
   assert.ok(i2v);
+  assert.ok(turboT2v);
+  assert.ok(turboI2v);
   assert.deepEqual(t2v.ratios, HAILUO_H3_MAX_VIDEO_RATIOS);
   assert.deepEqual(i2v.ratios, []);
   assert.equal(t2v.maxRefImages, 0);
   assert.equal(i2v.maxRefImages, 2);
+  assert.deepEqual(turboT2v.resolutions, ['480p', '768p']);
+  assert.deepEqual(turboI2v.resolutions, ['480p', '768p']);
+  assert.equal(turboT2v.maxRefImages, 0);
+  assert.equal(turboI2v.maxRefImages, 2);
 });
 
 test('H3 Max T2V payload includes the required ratio and rejects undocumented values', async () => {
@@ -91,7 +108,48 @@ test('H3 Max I2V requires prompt and 1-2 frames and never sends ratio', async ()
   }, 'opaque-test-key'), /1-2 张首尾帧/);
 });
 
-test('both H3 Max workflows are saved, key-free, and mode-correct', () => {
+test('H3 Max Turbo uses lowercase resolution and keeps T2V/I2V payloads isolated', async () => {
+  const t2v = await provider.buildHailuoPayload({
+    model: 'hailuo-h3-max-turbo-t2v',
+    prompt: 'A paper airplane glides through a sunlit studio',
+    duration: 5,
+    resolution: '480p',
+    ratio: '16:9',
+  }, 'opaque-test-key');
+  assert.deepEqual(t2v, {
+    model: 'hailuo-h3-max-turbo-t2v',
+    taskType: 't2v',
+    payload: {
+      model: 'hailuo-h3-max-turbo-t2v',
+      prompt: 'A paper airplane glides through a sunlit studio',
+      seconds: '5',
+      metadata: { resolution: '480p', ratio: '16:9' },
+    },
+  });
+
+  provider.resetCachesForTests();
+  const i2v = await provider.buildHailuoPayload({
+    model: 'hailuo-h3-max-turbo-i2v',
+    prompt: 'The subject turns naturally toward the camera',
+    duration: 5,
+    resolution: '768p',
+    ratio: '9:16',
+    images: [IMAGE],
+  }, 'opaque-test-key', { fetchImpl: uploadFetch, uploadIntervalMs: 0 });
+  assert.equal(i2v.taskType, 'i2v');
+  assert.deepEqual(i2v.payload.metadata, { resolution: '768p' });
+  assert.equal('ratio' in i2v.payload.metadata, false);
+  assert.equal(i2v.payload.images.length, 1);
+
+  await assert.rejects(() => provider.buildHailuoPayload({
+    model: 'hailuo-h3-max-turbo-t2v', prompt: 'x', duration: 5, resolution: '480P', ratio: '16:9',
+  }, 'opaque-test-key'), /480p 或 768p/);
+  await assert.rejects(() => provider.buildHailuoPayload({
+    model: 'hailuo-h3-max-t2v', prompt: 'x', duration: 5, resolution: '480p', ratio: '16:9',
+  }, 'opaque-test-key'), /480P 或 768P/);
+});
+
+test('all H3 Max workflows are saved, key-free, and mode-correct', () => {
   for (const model of HAILUO_H3_MAX_VIDEO_MODELS) {
     const doc = JSON.parse(readFileSync(join(root, 'docs', 'workflows', `${model}.json`), 'utf8'));
     assert.equal(doc.schema, 't8-workflow-fragment');
@@ -101,7 +159,7 @@ test('both H3 Max workflows are saved, key-free, and mode-correct', () => {
     assert.equal(generation.data.mainId, 'hailuo-2.3');
     assert.equal(generation.data.videoBuiltinSource, 'seedance-nz');
     assert.equal(generation.data.duration, 5);
-    assert.equal(generation.data.resolution, '480P');
+    assert.equal(generation.data.resolution, model.includes('-max-turbo-') ? '480p' : '480P');
     assert.ok(String(generation.data.localPrompt).trim());
     const uploads = doc.nodes.filter((node: any) => node.type === 'upload');
     assert.equal(uploads.length, model.endsWith('-i2v') ? 2 : 0);
@@ -111,14 +169,19 @@ test('both H3 Max workflows are saved, key-free, and mode-correct', () => {
 test('Video node keeps H3 Max separate from ordinary H3 UI defaults', () => {
   const ui = readFileSync(join(root, 'src', 'components', 'nodes', 'VideoNode.tsx'), 'utf8');
   assert.match(ui, /const isHailuoH3Max = isHailuo && apiModel\.startsWith\('hailuo-h3-max-'\)/);
-  assert.match(ui, /isHailuoH3Max \? resolution === '768P' \? '768P' : '480P'/);
-  assert.match(ui, /H3 Max 图生视频必须填写提示词/);
+  assert.match(ui, /const isHailuoH3MaxTurbo = isHailuoH3Max && apiModel\.includes\('-max-turbo-'\)/);
+  assert.match(ui, /isHailuoH3MaxTurbo \? resolution === '768p' \? '768p' : '480p'/);
+  assert.match(ui, /\$\{isHailuoH3MaxTurbo \? 'H3 Max Turbo' : 'H3 Max'\} 图生视频必须填写提示词/);
 });
 
 test('H3 Max labels and guidance stay English in the English canvas locale', () => {
   assert.equal(
     localizeNodeDynamicText('hailuo-h3-max-t2v（H3 Max 文生视频）'),
     'hailuo-h3-max-t2v (H3 Max text-to-video)',
+  );
+  assert.equal(
+    localizeNodeDynamicText('hailuo-h3-max-turbo-i2v（H3 Max Turbo 首尾帧图生视频）'),
+    'hailuo-h3-max-turbo-i2v (H3 Max Turbo first/last-frame video)',
   );
   assert.equal(
     NODE_VISIBLE_CATALOG.englishByChinese['H3 Max 图生视频必须填写提示词并使用第 1 张首帧图，可选第 2 张尾帧图；比例跟随输入图片且不会发送。'],

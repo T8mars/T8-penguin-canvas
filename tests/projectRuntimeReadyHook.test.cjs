@@ -91,3 +91,58 @@ test('storage-ready maintenance and requested backup run exactly once after firs
     if (previousRuntime) require.cache[runtimePath] = previousRuntime;
   }
 });
+
+test('a database opened through a legacy route is adopted and releases deferred startup work', async () => {
+  const originalLoad = Module._load;
+  const previousRuntime = require.cache[runtimePath];
+  let readyListener = null;
+  let backupCalls = 0;
+  const database = { marker: Symbol('legacy-route-database') };
+
+  Module._load = function patchedLoad(request, parent, isMain) {
+    if (request === './projectDatabase' && parent?.filename === runtimePath) {
+      return {
+        getProjectDatabase() {
+          throw new Error('the runtime factory must not run after legacy singleton adoption');
+        },
+        onProjectDatabaseReady(listener) {
+          readyListener = listener;
+          return () => { readyListener = null; };
+        },
+        startProjectDatabaseStartupBackup() {
+          backupCalls += 1;
+          return Promise.resolve({ ok: true });
+        },
+      };
+    }
+    return originalLoad.call(this, request, parent, isMain);
+  };
+
+  delete require.cache[runtimePath];
+  try {
+    const runtime = require(runtimePath);
+    let hookCalls = 0;
+    runtime.onProjectStorageReady((value) => {
+      hookCalls += 1;
+      assert.equal(value.database, database);
+    });
+    const backupIntent = runtime.requestProjectStorageStartupBackup();
+    assert.equal(runtime.getProjectStorageRuntimeStatus().status, 'idle');
+    assert.equal(typeof readyListener, 'function');
+
+    readyListener(database);
+    await afterImmediate();
+    await afterImmediate();
+
+    assert.equal(runtime.getProjectStorageRuntimeStatus().status, 'ready');
+    assert.equal(runtime.peekProjectStorageRuntime().database, database);
+    assert.equal(hookCalls, 1);
+    assert.equal(backupCalls, 1);
+    assert.equal(runtime.getProjectStorageRuntimeStatus().startupBackupStarted, true);
+    assert.deepEqual(await backupIntent, { ok: true });
+  } finally {
+    Module._load = originalLoad;
+    delete require.cache[runtimePath];
+    if (previousRuntime) require.cache[runtimePath] = previousRuntime;
+  }
+});

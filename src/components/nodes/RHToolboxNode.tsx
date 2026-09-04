@@ -263,7 +263,7 @@ const RHToolboxNode = ({ id, data, selected }: NodeProps) => {
       };
       const loadManifest = async () => {
         const base = getRhToolboxManifest();
-        const persisted = await getRhToolboxPersistentManifest();
+        const persisted = await getRhToolboxPersistentManifest(Boolean(event));
         const baseWithPersistent = persisted.success && persisted.data?.manifest
           ? mergeRhToolboxManifests(base, persisted.data.manifest)
           : normalizeRhToolboxManifest(base);
@@ -285,11 +285,16 @@ const RHToolboxNode = ({ id, data, selected }: NodeProps) => {
     };
     refreshManifest();
     window.addEventListener('penguin:rh-toolbox-manifest-updated', refreshManifest);
-    const intervalId = import.meta.env.DEV ? window.setInterval(() => refreshManifest(), 1500) : undefined;
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === 'visible') refreshManifest();
+    };
+    document.addEventListener('visibilitychange', refreshWhenVisible);
+    window.addEventListener('focus', refreshWhenVisible);
     return () => {
       disposed = true;
-      if (intervalId) window.clearInterval(intervalId);
       window.removeEventListener('penguin:rh-toolbox-manifest-updated', refreshManifest);
+      document.removeEventListener('visibilitychange', refreshWhenVisible);
+      window.removeEventListener('focus', refreshWhenVisible);
     };
   }, [activeToolId, update]);
 

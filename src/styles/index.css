@@ -483,6 +483,241 @@ body,
   --t8-sidebar-collapsed-content-left: calc(var(--t8-sidebar-toggle-left) + var(--t8-sidebar-toggle-size) + var(--t8-sidebar-toggle-gap));
 }
 
+.t8-canvas-readiness-chip {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border: 1px solid color-mix(in srgb, var(--t8-border, rgba(255, 255, 255, 0.16)) 78%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--t8-bg-panel, #18181b) 86%, transparent);
+  color: var(--t8-text-muted, #a1a1aa);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+
+.t8-canvas-readiness-chip[data-state="ready"] {
+  border-color: color-mix(in srgb, #10b981 52%, var(--t8-border, transparent));
+  color: color-mix(in srgb, #10b981 78%, var(--t8-text-main, #f8fafc));
+}
+
+.t8-canvas-readiness-chip[data-state="loading"] {
+  border-color: color-mix(in srgb, #f59e0b 42%, var(--t8-border, transparent));
+  color: color-mix(in srgb, #f59e0b 72%, var(--t8-text-main, #f8fafc));
+}
+
+.t8-canvas-readiness-chip[data-state="error"] {
+  border-color: color-mix(in srgb, #ef4444 58%, var(--t8-border, transparent));
+  color: color-mix(in srgb, #ef4444 78%, var(--t8-text-main, #f8fafc));
+}
+
+.t8-canvas-startup-feedback {
+  position: absolute;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.t8-canvas-startup-feedback:is(
+  [data-canvas-startup-stage="connecting"],
+  [data-canvas-startup-stage="backend-error"],
+  [data-canvas-startup-stage="catalog"],
+  [data-canvas-startup-stage="catalog-error"],
+  [data-canvas-startup-stage="document"],
+  [data-canvas-startup-stage="flow"]
+) {
+  background: color-mix(in srgb, var(--t8-bg-canvas, var(--t8-bg-app, #09090b)) 88%, transparent);
+  backdrop-filter: blur(2px);
+}
+
+.t8-main-layout[data-sidebar-collapsed="false"] .t8-canvas-startup-feedback {
+  left: var(--t8-sidebar-width);
+}
+
+.t8-canvas-startup-live {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.t8-canvas-startup-card {
+  width: min(360px, calc(100% - 40px));
+  padding: 18px;
+  border: 1px solid color-mix(in srgb, var(--t8-border-strong, var(--t8-border, rgba(255, 255, 255, 0.18))) 72%, var(--t8-accent, #38bdf8) 28%);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--t8-bg-panel, #18181b) 94%, transparent);
+  color: var(--t8-text-main, #f8fafc);
+  box-shadow: 0 20px 55px rgba(0, 0, 0, 0.28), 0 0 0 4px color-mix(in srgb, var(--t8-accent, #38bdf8) 7%, transparent);
+  backdrop-filter: blur(14px);
+}
+
+.t8-canvas-startup-card__title {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--t8-text-main, #f8fafc);
+  font-size: 14px;
+}
+
+.t8-canvas-startup-card__title > svg {
+  color: var(--t8-accent, #38bdf8);
+}
+
+.t8-canvas-startup-steps {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.t8-canvas-startup-step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 22px;
+  color: var(--t8-text-muted, #a1a1aa);
+  font-size: 12px;
+}
+
+.t8-canvas-startup-step > svg {
+  flex: 0 0 auto;
+}
+
+.t8-canvas-startup-step[data-state="done"] {
+  color: color-mix(in srgb, #10b981 74%, var(--t8-text-main, #f8fafc));
+}
+
+.t8-canvas-startup-step[data-state="active"] {
+  color: var(--t8-text-main, #f8fafc);
+  font-weight: 700;
+}
+
+.t8-canvas-startup-step[data-state="active"] > svg {
+  color: var(--t8-accent, #38bdf8);
+}
+
+.t8-canvas-startup-step[data-state="error"],
+.t8-canvas-startup-card__error {
+  color: #ef4444;
+}
+
+.t8-canvas-startup-card__error,
+.t8-canvas-startup-card__hint {
+  margin: 12px 0 0;
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.t8-canvas-startup-card__hint {
+  color: var(--t8-text-muted, #a1a1aa);
+}
+
+.t8-canvas-startup-retry {
+  pointer-events: auto;
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 14px;
+  padding: 7px 13px;
+  border: 1px solid color-mix(in srgb, var(--t8-accent, #38bdf8) 54%, var(--t8-border, transparent));
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--t8-accent, #38bdf8) 18%, var(--t8-bg-panel, #18181b));
+  color: var(--t8-text-main, #f8fafc);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.t8-canvas-startup-retry:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.t8-canvas-startup-toast,
+.t8-canvas-startup-ready {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  display: flex;
+  max-width: min(520px, calc(100% - 40px));
+  align-items: center;
+  gap: 7px;
+  padding: 8px 12px;
+  transform: translateX(-50%);
+  border: 1px solid color-mix(in srgb, #f59e0b 52%, var(--t8-border, transparent));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--t8-bg-panel, #18181b) 95%, transparent);
+  color: var(--t8-text-main, #f8fafc);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.24);
+  font-size: 11px;
+  font-weight: 700;
+  animation: t8-canvas-startup-receipt-in 180ms ease-out both;
+}
+
+.t8-canvas-startup-ready {
+  border-color: color-mix(in srgb, #10b981 58%, var(--t8-border, transparent));
+}
+
+@keyframes t8-canvas-startup-receipt-in {
+  from { opacity: 0; transform: translate(-50%, -6px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+.t8-sidebar-readiness {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 8px 0;
+  padding: 7px 8px;
+  border: 1px solid color-mix(in srgb, #f59e0b 38%, var(--t8-border, transparent));
+  border-radius: 8px;
+  background: color-mix(in srgb, #f59e0b 9%, var(--t8-bg-panel, transparent));
+  color: var(--t8-text-muted, #a1a1aa);
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.t8-sidebar-node[aria-disabled="true"] {
+  cursor: wait !important;
+  filter: saturate(0.55);
+  opacity: 0.5 !important;
+}
+
+.t8-sidebar [data-canvas-create-ready="false"] {
+  cursor: wait;
+  opacity: 0.62;
+}
+
+@media (max-width: 720px) {
+  .t8-canvas-startup-card {
+    width: min(330px, calc(100% - 24px));
+    padding: 15px;
+  }
+
+  .t8-canvas-readiness-chip {
+    width: 26px;
+    justify-content: center;
+    padding-inline: 0;
+    font-size: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .t8-canvas-startup-toast,
+  .t8-canvas-startup-ready {
+    animation: none;
+  }
+}
+
 .t8-main-layout > .t8-canvas-shell {
   min-width: 0;
 }
@@ -14424,14 +14659,14 @@ html[data-theme-visual="saint-seiya"] .t8-generation-target-icon {
 .t8-creator-v2-panel {
   position: absolute;
   z-index: 86;
-  top: 68px;
+  top: var(--creator-panel-safe-top, 86px);
   right: 22px;
   bottom: 22px;
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr) auto auto auto;
   width: min(clamp(660px, 56vw, 760px), calc(100vw - 44px));
-  min-height: min(440px, calc(100dvh - 90px));
-  max-height: calc(100dvh - 90px);
+  min-height: min(440px, calc(100dvh - var(--creator-panel-safe-top, 86px) - 22px));
+  max-height: calc(100dvh - var(--creator-panel-safe-top, 86px) - 22px);
   overflow: hidden;
   color: var(--creator-text);
   font-family: var(--creator-font);
@@ -14443,12 +14678,17 @@ html[data-theme-visual="saint-seiya"] .t8-generation-target-icon {
 }
 
 .t8-creator-v2-panel.is-minimized {
-  top: 160px;
+  top: var(--creator-panel-safe-top, 86px);
   bottom: auto;
   width: min(260px, calc(100vw - 44px));
   min-height: 0;
   max-height: none;
   grid-template-rows: auto;
+}
+
+.t8-creator-v2-panel.is-first-screen:not(.is-minimized) {
+  bottom: auto;
+  height: min(500px, calc(100dvh - var(--creator-panel-safe-top, 86px) - 22px));
 }
 
 .t8-creator-v2-panel.is-minimized > :not(.t8-creator-v2-header) {
@@ -14617,6 +14857,171 @@ html[data-theme-visual="saint-seiya"] .t8-generation-target-icon {
   color: var(--creator-accent-text);
   border-color: var(--creator-accent);
   background: var(--creator-accent);
+}
+
+.t8-creator-v2-scene-nav {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 7px;
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--creator-border);
+  background: var(--creator-surface-alt);
+}
+
+.t8-creator-v2-scene-current {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+}
+
+.t8-creator-v2-scene-current > strong {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--creator-text);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.t8-creator-v2-scene-switcher { position: relative; }
+.t8-creator-v2-scene-switcher > summary {
+  display: inline-flex;
+  height: 30px;
+  padding: 0 9px;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid var(--creator-border);
+  border-radius: 9px;
+  color: var(--creator-muted);
+  background: var(--creator-surface);
+  cursor: pointer;
+  font-size: 12px;
+  list-style: none;
+}
+
+.t8-creator-v2-scene-switcher > summary::-webkit-details-marker { display: none; }
+.t8-creator-v2-scene-switcher[open] > summary {
+  color: var(--creator-accent-strong);
+  border-color: var(--creator-accent);
+}
+
+.t8-creator-v2-scene-menu {
+  position: absolute;
+  z-index: 7;
+  top: calc(100% + 7px);
+  right: 0;
+  display: grid;
+  width: min(360px, calc(100vw - 44px));
+  gap: 7px;
+  padding: 9px;
+  border: 1px solid var(--creator-border);
+  border-radius: 12px;
+  background: var(--creator-surface);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.24);
+}
+
+.t8-creator-v2-scene-search {
+  display: flex;
+  height: 34px;
+  padding: 0 9px;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid var(--creator-border);
+  border-radius: 9px;
+  color: var(--creator-muted);
+  background: var(--creator-bg);
+}
+
+.t8-creator-v2-scene-search input {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  outline: 0;
+  color: var(--creator-text);
+  background: transparent;
+}
+
+.t8-creator-v2-scene-step {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.t8-creator-v2-scene-step button,
+.t8-creator-v2-scene-results button {
+  display: flex;
+  min-width: 0;
+  min-height: 32px;
+  padding: 5px 9px;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: 1px solid var(--creator-border);
+  border-radius: 8px;
+  color: var(--creator-text);
+  background: var(--creator-bg);
+}
+
+.t8-creator-v2-scene-step button:disabled,
+.t8-creator-v2-scene-results button:disabled { opacity: 0.46; }
+.t8-creator-v2-scene-results {
+  display: grid;
+  max-height: 188px;
+  gap: 4px;
+  overflow: auto;
+}
+
+.t8-creator-v2-scene-results button {
+  justify-content: flex-start;
+  text-align: left;
+}
+
+.t8-creator-v2-scene-results button[aria-selected='true'] {
+  color: var(--creator-accent-strong);
+  border-color: var(--creator-accent);
+  background: var(--creator-accent-soft);
+}
+
+.t8-creator-v2-scene-results p {
+  margin: 8px 0;
+  color: var(--creator-muted);
+  text-align: center;
+  font-size: 12px;
+}
+
+.t8-creator-v2-scene-source {
+  color: var(--creator-muted);
+  font-size: 12px;
+}
+
+.t8-creator-v2-scene-source > summary {
+  width: max-content;
+  max-width: 100%;
+  cursor: pointer;
+}
+
+.t8-creator-v2-scene-source p {
+  max-height: 120px;
+  margin: 6px 0 1px;
+  padding: 8px 10px;
+  overflow: auto;
+  border: 1px solid var(--creator-border);
+  border-radius: 9px;
+  color: var(--creator-text);
+  background: var(--creator-bg);
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.t8-creator-v2-scene-nav > .t8-creator-v2-scene-confirm {
+  width: 100%;
+  height: 36px;
+  color: var(--creator-accent-text);
+  border-color: var(--creator-accent);
+  background: var(--creator-accent);
+  font-weight: 700;
 }
 
 .t8-creator-v2-popover {
@@ -14935,6 +15340,41 @@ html[data-theme-visual="saint-seiya"] .t8-generation-target-icon {
   background: var(--creator-bg);
 }
 
+/* At 200% Windows scaling Chromium exposes a narrower CSS viewport. Keep the
+   persistent language/settings/theme controls reachable instead of silently
+   clipping the tail of a promotion-heavy top bar. Icon-only compacting is
+   visual only: every affected control keeps its title/accessibility name. */
+@media (max-width: 1600px) {
+  .t8-topbar {
+    gap: 8px;
+    padding-inline: 8px;
+  }
+
+  .t8-topbar-brand-status {
+    min-width: 0;
+    flex: 0 1 auto;
+    gap: 6px;
+  }
+
+  .t8-topbar-actions {
+    min-width: 0;
+    flex: 1 1 auto;
+    justify-content: flex-end;
+  }
+
+  .t8-topbar-actions > button[title] > span,
+  .t8-topbar-actions > div > button[title] > span {
+    display: none;
+  }
+
+  .t8-topbar-actions > button[title],
+  .t8-topbar-actions > div > button[title] {
+    min-width: 32px;
+    justify-content: center;
+    padding-inline: 7px;
+  }
+}
+
 .t8-creator-v2-panel button.is-primary,
 .t8-creator-v2-composer button.is-send {
   color: var(--creator-accent-text);
@@ -15195,20 +15635,25 @@ html[data-theme-visual="saint-seiya"] .t8-generation-target-icon {
 @media (max-width: 900px), (max-height: 620px) {
   .t8-creator-v2-panel {
     position: fixed;
-    inset: 10px;
+    inset: var(--creator-panel-safe-top, 86px) 10px 14px;
     z-index: 200;
     width: auto;
     min-height: 0;
     max-height: none;
   }
   .t8-creator-v2-panel.is-minimized {
-    inset: 108px 10px auto auto;
+    inset: var(--creator-panel-safe-top, 86px) 10px auto auto;
     width: min(260px, calc(100vw - 20px));
+  }
+  .t8-creator-v2-panel.is-first-screen:not(.is-minimized) {
+    inset: var(--creator-panel-safe-top, 86px) 10px auto;
+    height: min(500px, calc(100dvh - var(--creator-panel-safe-top, 86px) - 14px));
   }
 }
 
 @media (max-width: 520px) {
-  .t8-creator-v2-panel { inset: 0; border: 0; border-radius: 0; }
+  .t8-creator-v2-panel { inset: var(--creator-panel-safe-top, 86px) 0 0; border: 0; border-radius: 0; }
+  .t8-creator-v2-panel.is-first-screen:not(.is-minimized) { inset: var(--creator-panel-safe-top, 86px) 0 auto; }
   .t8-creator-v2-phases span { display: none; }
   .t8-creator-v2-phases { padding: 6px 10px 3px; border-bottom: 0; }
   .t8-creator-v2-phase-summary {
@@ -15313,11 +15758,18 @@ html[data-theme-visual="saint-seiya"] .t8-generation-target-icon {
   .t8-creator-v2-popover.is-history > button,
   .t8-creator-v2-popover.is-settings select,
   .t8-creator-v2-load-older,
+  .t8-creator-v2-scene-switcher > summary,
+  .t8-creator-v2-scene-search,
+  .t8-creator-v2-scene-step button,
+  .t8-creator-v2-scene-results button,
+  .t8-creator-v2-scene-source > summary,
+  .t8-creator-v2-scene-nav > .t8-creator-v2-scene-confirm,
   .t8-creator-v2-message button,
   .t8-creator-v2-decision button,
   .t8-creator-v2-result button,
   .t8-creator-v2-popover footer button,
   .t8-creator-v2-suggestions button,
+  .t8-creator-v2-upload-status button,
   .t8-creator-v2-new-reply {
     min-height: 44px;
   }

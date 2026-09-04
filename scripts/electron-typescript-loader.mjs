@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import ts from 'typescript';
 
 const TYPESCRIPT_MODULE_PATTERN = /\.[cm]?tsx?$/i;
+const JSON_MODULE_PATTERN = /\.json$/i;
 
 export async function resolve(specifier, context, nextResolve) {
   try {
@@ -27,6 +28,14 @@ export async function resolve(specifier, context, nextResolve) {
 }
 
 export async function load(url, context, nextLoad) {
+  if (url.startsWith('file:') && JSON_MODULE_PATTERN.test(new URL(url).pathname)) {
+    const source = await readFile(new URL(url), 'utf8');
+    return {
+      format: 'module',
+      shortCircuit: true,
+      source: `export default ${source.trim()};\n`,
+    };
+  }
   if (!url.startsWith('file:') || !TYPESCRIPT_MODULE_PATTERN.test(new URL(url).pathname)) {
     return nextLoad(url, context);
   }

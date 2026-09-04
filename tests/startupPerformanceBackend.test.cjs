@@ -18,6 +18,21 @@ const PROJECT_DB_SOURCE = path.join(ROOT, 'backend', 'src', 'services', 'project
 const SETTINGS_SOURCE = path.join(ROOT, 'backend', 'src', 'routes', 'settings.js');
 const SERVER_SOURCE = path.join(ROOT, 'backend', 'src', 'server.js');
 const ELECTRON_SOURCE = path.join(ROOT, 'electron', 'main.cjs');
+const mib = (value) => value * 1024 * 1024;
+const TEST_PROJECT_DATABASE_STORAGE_POLICY_32 = Object.freeze({
+  mainMaxBytes: mib(64),
+  walCheckpointTargetBytes: mib(1),
+  maximumSingleTransactionWalBytes: mib(4),
+  walPressureBytes: mib(8),
+  walReserveBytes: mib(16),
+  walResidualLimitBytes: mib(0.5),
+  shmReserveBytes: mib(4),
+  hotJournalReserveBytes: mib(8),
+  sqliteTempReserveBytes: mib(16),
+  minimumFilesystemFreeBytes: mib(64),
+  backupCandidateReserveBytes: mib(80),
+  recoveryEvidenceReserveBytes: mib(96),
+});
 
 function makeTempDatabase(prefix) {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
@@ -28,7 +43,10 @@ function makeTempDatabase(prefix) {
 }
 
 async function seedDatabase(filename) {
-  const database = new ProjectDatabase(filename, { autoBackup: false });
+  const database = new ProjectDatabase(filename, {
+    autoBackup: false,
+    projectDatabaseStoragePolicy32: TEST_PROJECT_DATABASE_STORAGE_POLICY_32,
+  });
   try {
     database.ensureCanvas('seed-canvas', {
       name: 'Seed canvas',
@@ -101,6 +119,60 @@ test('canvas list fast path is stable, bounded, and parses only requested pages'
   }
 });
 
+test('five thousand canvases stay available without hydrating the whole catalog at startup', async () => {
+  const database = new ProjectDatabase(':memory:', { autoBackup: false });
+  try {
+    const insert = database.db.prepare(`
+      INSERT INTO canvas_documents(
+        canvas_id, project_id, schema_version, revision,
+        snapshot_json, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?)
+    `);
+    database.db.transaction(() => {
+      for (let index = 0; index < 5_000; index += 1) {
+        const canvasId = `canvas-${String(index).padStart(5, '0')}`;
+        const timestamp = index + 1;
+        insert.run(
+          canvasId,
+          'project-large-catalog',
+          1,
+          1,
+          JSON.stringify({
+            canvasId,
+            projectId: 'project-large-catalog',
+            schemaVersion: 1,
+            revision: 1,
+            name: `Canvas ${index}`,
+            nodeCount: index % 17,
+            nodes: [],
+            edges: [],
+            createdAt: timestamp,
+            updatedAt: timestamp,
+          }),
+          timestamp,
+          timestamp,
+        );
+      }
+    })();
+
+    const startedAt = performance.now();
+    const firstPage = database.listCanvasesPage('project-large-catalog', { limit: 50 });
+    const elapsedMs = performance.now() - startedAt;
+
+    assert.equal(database.db.prepare(`
+      SELECT COUNT(*) AS count FROM canvas_documents WHERE project_id = ?
+    `).get('project-large-catalog').count, 5_000);
+    assert.equal(firstPage.items.length, 50);
+    assert.equal(firstPage.hasMore, true);
+    assert.ok(firstPage.nextCursor);
+    assert.equal(firstPage.items[0].id, 'canvas-04999');
+    assert.equal(firstPage.items.at(-1).id, 'canvas-04950');
+    assert.ok(elapsedMs < 500, `first catalog page took ${elapsedMs.toFixed(1)}ms`);
+  } finally {
+    await database.close();
+  }
+});
+
 test('clean current database skips only duplicate isolated preflight and still runs active checks', async () => {
   const fixture = makeTempDatabase('t8-startup-clean-');
   try {
@@ -108,6 +180,7 @@ test('clean current database skips only duplicate isolated preflight and still r
     let preflightCalls = 0;
     const database = new ProjectDatabase(fixture.filename, {
       autoBackup: false,
+      projectDatabaseStoragePolicy32: TEST_PROJECT_DATABASE_STORAGE_POLICY_32,
       beforeStartupPreflight: () => { preflightCalls += 1; },
     });
     try {
@@ -133,6 +206,7 @@ test('source state changes between active open and validation force isolated pre
     let preflightCalls = 0;
     assert.throws(() => new ProjectDatabase(fixture.filename, {
       autoBackup: false,
+      projectDatabaseStoragePolicy32: TEST_PROJECT_DATABASE_STORAGE_POLICY_32,
       afterStartupFastPathOpen: () => {
         activeOpenCalls += 1;
         const stat = fs.statSync(fixture.filename);
@@ -160,6 +234,7 @@ test('non-empty WAL state cannot enter the clean active fast path', async () => 
     let preflightCalls = 0;
     assert.throws(() => new ProjectDatabase(fixture.filename, {
       autoBackup: false,
+      projectDatabaseStoragePolicy32: TEST_PROJECT_DATABASE_STORAGE_POLICY_32,
       afterStartupFastPathOpen: () => { activeOpenCalls += 1; },
       beforeStartupPreflight: () => {
         preflightCalls += 1;
@@ -189,6 +264,7 @@ test('older schema state cannot skip isolated preflight or migration safety gate
     let preflightCalls = 0;
     assert.throws(() => new ProjectDatabase(fixture.filename, {
       autoBackup: false,
+      projectDatabaseStoragePolicy32: TEST_PROJECT_DATABASE_STORAGE_POLICY_32,
       afterStartupFastPathOpen: () => { activeOpenCalls += 1; },
       beforeStartupPreflight: () => {
         preflightCalls += 1;
@@ -208,6 +284,7 @@ test('startup backup can be deferred until the frontend is interactive', async (
   const database = new ProjectDatabase(fixture.filename, {
     backupFilename,
     deferStartupBackup: true,
+    projectDatabaseStoragePolicy32: TEST_PROJECT_DATABASE_STORAGE_POLICY_32,
   });
   try {
     database.ensureCanvas('backup-canvas', { name: 'Backup', nodes: [], edges: [] });
@@ -225,9 +302,11 @@ test('no-argument project database access stays lazy and preserves singleton com
   const runtimeConfig = require('../backend/src/config');
   const previousDatabaseFile = runtimeConfig.PROJECT_DB_FILE;
   const previousBackupFile = runtimeConfig.PROJECT_DB_BACKUP_FILE;
+  const previousStoragePolicy = runtimeConfig.PROJECT_DB_STORAGE_POLICY_32;
   try {
     runtimeConfig.PROJECT_DB_FILE = fixture.filename;
     runtimeConfig.PROJECT_DB_BACKUP_FILE = path.join(fixture.directory, 'projects.backup.sqlite3');
+    runtimeConfig.PROJECT_DB_STORAGE_POLICY_32 = TEST_PROJECT_DATABASE_STORAGE_POLICY_32;
     const first = getProjectDatabase();
     const second = getProjectDatabase();
     assert.strictEqual(second, first);
@@ -236,6 +315,7 @@ test('no-argument project database access stays lazy and preserves singleton com
     await closeProjectDatabase();
     runtimeConfig.PROJECT_DB_FILE = previousDatabaseFile;
     runtimeConfig.PROJECT_DB_BACKUP_FILE = previousBackupFile;
+    runtimeConfig.PROJECT_DB_STORAGE_POLICY_32 = previousStoragePolicy;
     fs.rmSync(fixture.directory, { recursive: true, force: true });
   }
 });
@@ -300,6 +380,10 @@ test('Electron paints a local shell before requiring the synchronous backend', (
   assert.match(source, /ELECTRON_FRONTEND_LOAD_RETRY_ATTEMPTS/);
   assert.match(source, /development frontend unavailable; falling back to packaged backend UI/);
   assert.match(source, /const ELECTRON_MAIN_WINDOW_REVEAL_DEADLINE_MS = 15_000/);
+  assert.match(source, /const ELECTRON_MAIN_WINDOW_LOAD_HARD_DEADLINE_MS = 60_000/);
+  assert.match(source, /frontend-load-still-in-progress/);
+  assert.match(source, /startup-shell-kept-visible/);
+  assert.match(source, /frontend-load-hard-deadline/);
   assert.match(source, /showMainWindowStartupFailure/);
   assert.match(source, /main-window-local-error/);
   assert.match(source, /MAIN_WINDOW_STARTUP_RETRY_URL/);
@@ -333,6 +417,12 @@ test('backend maintenance waits for frontend readiness or bounded fallback', () 
   assert.match(source, /markFrontendInteractive,/);
   assert.match(source, /startupReadinessSnapshot,/);
   assert.ok(source.includes('readiness: startupReadinessSnapshot()'));
+  assert.match(source, /app\.post\('\/api\/status\/interactive'/);
+  assert.match(source, /markFrontendInteractive\('renderer-http'\)/);
+  assert.ok(
+    source.indexOf("app.post('/api/status/interactive'") < source.indexOf("app.use('/api', (req, res) => sendApiError"),
+    'renderer readiness route must be registered before the API 404 boundary',
+  );
   assert.ok(maintenanceBlock.includes('signal: figmaStartupAbortController.signal'));
   const readinessBlock = source.slice(
     source.indexOf('function publishBackgroundMaintenanceReadiness'),

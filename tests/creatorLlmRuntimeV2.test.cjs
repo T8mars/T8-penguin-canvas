@@ -320,6 +320,29 @@ test('Creator LLM v2 quickly retries one empty provider response without exceedi
   assert.equal(invalidCalls, 2);
 });
 
+test('Creator LLM v2 retries one fast transient provider overload but not a long timeout loop', async () => {
+  let calls = 0;
+  const runtime = createCreatorLlmRuntimeV2({
+    settingsProvider,
+    retryDelayMs: 0,
+    generateChat: async () => {
+      calls += 1;
+      if (calls === 1) {
+        return {
+          ok: false,
+          code: 'http_error',
+          upstreamHttpStatus: 503,
+          error: 'system cpu overloaded',
+        };
+      }
+      return { ok: true, text: JSON.stringify(responseEnvelope()) };
+    },
+  });
+  const result = await runtime.respond({ prompt: '写一个短片' });
+  assert.equal(calls, 2);
+  assert.equal(result.evidence.providerCalls, 2);
+});
+
 test('Creator LLM v2 binds real media parts, selection evidence and working brief in the same single call', async () => {
   let captured = null;
   const runtime = createCreatorLlmRuntimeV2({
@@ -885,4 +908,654 @@ test('Creator LLM v2 recognizes one explicitly bounded key scene as a valid crit
   const result = await runtime.respond({ prompt: '结尾和解还是分开我还没想好，这会改变整支片。', workingBrief });
   assert.equal(calls, 1);
   assert.match(result.suggestions[0].sendText, /那场关键戏/u);
+});
+
+test('Creator LLM v2 sends only the authoritative current-scene pack and binds its ScenePatch', async () => {
+  let capturedRequest = null;
+  const sceneContext = {
+    schema: 't8-creator-scene-context-pack-v1',
+    scriptId: 'script_test',
+    workId: 'cw_test',
+    baseWorkRevision: 7,
+    baseWorkDigest: 'a'.repeat(64),
+    sceneId: 'scene_current_001',
+    scenePartId: 'scene_part_current_001',
+    scenePartIndex: 1,
+    scenePartCount: 4,
+    baseSceneRevision: 3,
+    sourceRef: { documentVersionId: 'source_test', span: { start: 0, end: 40 }, digest: 'b'.repeat(64) },
+    userIntent: '只细化当前场',
+    allowedPaths: ['purpose', 'objective', 'activeEntityIds', 'exitState', 'status'],
+    scene: { title: '雨夜车站', sourceText: '林溪握着旧车票等车。', purpose: '', objective: '', status: 'draft' },
+    activeEntities: [],
+    styleCanon: { palette: '冷蓝，唯一暖光来自列车' },
+    unknowns: [],
+    contextDigest: 'c'.repeat(64),
+  };
+  const runtime = createCreatorLlmRuntimeV2({
+    settingsProvider,
+    generateChat: async (_provider, request) => {
+      capturedRequest = request;
+      return {
+        ok: true,
+        text: JSON.stringify(responseEnvelope({
+          replyMarkdown: '这一场只收紧林溪等车的目标，让旧车票成为她是否离开的最后阻力。',
+          suggestions: suggestionSet(['细化等车动作', '换成周野视角', '锁定车票阻力']),
+          scenePatch: {
+            schema: 't8-creator-scene-patch-v1',
+            sceneId: sceneContext.sceneId,
+            scenePartId: sceneContext.scenePartId,
+            baseWorkRevision: sceneContext.baseWorkRevision,
+            baseSceneRevision: sceneContext.baseSceneRevision,
+            contextDigest: sceneContext.contextDigest,
+            patch: { purpose: '建立离开与留下的选择', objective: '等到最后一班列车', status: 'draft' },
+            entityProposals: [],
+            conflicts: [],
+          },
+        })),
+      };
+    },
+  });
+  const result = await runtime.respond({
+    prompt: '只细化当前场',
+    history: [
+      { role: 'user', body: '另一场发生在清晨天台。', status: 'completed' },
+      { role: 'assistant', body: '另一场出现了周野。', status: 'completed' },
+    ],
+    sceneContext,
+  });
+  assert.equal(result.scenePatch.sceneId, sceneContext.sceneId);
+  assert.equal(result.scenePatch.scenePartId, sceneContext.scenePartId);
+  assert.equal(result.scenePatch.baseWorkRevision, 7);
+  assert.equal(result.evidence.sceneContextDigest, sceneContext.contextDigest);
+  assert.equal(capturedRequest.messages.length, 2);
+  assert.equal(capturedRequest.max_tokens, 2_200);
+  assert.equal(capturedRequest.temperature, 0.35);
+  assert.equal(capturedRequest.stream, true);
+  const sceneSystem = String(capturedRequest.messages[0]?.content || '');
+  assert.match(sceneSystem, /Creator Agent 的逐场创作搭档/u);
+  assert.match(sceneSystem, /当前长剧本场次上下文是本轮唯一权威来源/u);
+  assert.match(sceneSystem, /只处理当前 scenePartId/u);
+  assert.match(sceneSystem, /恰好三个不同建议/u);
+  assert.doesNotMatch(sceneSystem, /你会收到实际图片或视频抽帧/u);
+  assert.ok(sceneSystem.length < 6_500, `scene system prompt should stay concise, got ${sceneSystem.length} chars`);
+  const serialized = JSON.stringify(capturedRequest.messages);
+  assert.match(serialized, /雨夜车站/u);
+  assert.doesNotMatch(serialized, /清晨天台/u);
+  assert.doesNotMatch(serialized, /另一场出现了周野/u);
+});
+
+test('Creator LLM v2 scene mode returns one complete persisted draft for a short idea in one provider call', async () => {
+  let capturedRequest = null;
+  const draftText = '外景·末班车站·雨夜\n\n雨水沿站牌往下淌。林夏站在唯一亮着的路灯下，鞋边积水被风吹出细纹。她攥着一张已经发软的单程票，手机屏幕一次次亮起，“妈”的名字把她的指节照得发白。\n\n广播：开往北城的末班车即将进站。\n\n林夏按下接听，却没有说话。听筒里传来碗筷碰撞声，母亲问她什么时候回家。林夏望向街口，父亲那辆旧摩托停在雨里，车上没有人。\n\n她说：我今晚不回去了。\n\n电话那头安静下来。远处铁轨震动，积水里的灯影被切成两半。林夏把想说的话咽回去，挂断电话，又立刻重新拨出。\n\n她说：等我安顿好，会给你地址。\n\n车灯穿过雨幕。列车还没有完全停稳，林夏便提起箱子走向车门。她在黄线前停了一秒，把返程车票从夹层抽出来，撕成两半，纸片被雨水压在站台上。\n\n车门打开。她跨过黄线，没有回头。手机在口袋里再次亮起，这一次她没有关机。';
+  const sceneContext = {
+    schema: 't8-creator-scene-context-pack-v1',
+    mode: 'scene-draft',
+    scriptId: 'script_short_scene',
+    workId: null,
+    baseWorkRevision: 0,
+    baseWorkDigest: null,
+    sceneId: 'scene_short_001',
+    scenePartId: 'scene_part_short_001',
+    scenePartIndex: 0,
+    scenePartCount: 1,
+    baseSceneRevision: 1,
+    sourceRef: { documentVersionId: 'source_short', span: { start: 0, end: 24 }, digest: 'b'.repeat(64) },
+    sourcePartRef: { scenePartId: 'scene_part_short_001', index: 0, total: 1, span: { start: 0, end: 24 }, digest: 'd'.repeat(64) },
+    userIntent: '一个女孩在雨夜末班车站，终于决定离开家乡。',
+    allowedPaths: ['draftText', 'purpose', 'status', 'activeEntityIds'],
+    requiredPaths: ['draftText'],
+    requiredContinuityTerms: [],
+    requiredContinuitySubjectNames: [],
+    requiredContinuityBySubject: [],
+    scene: { title: '雨夜末班车站', sourceText: '一个女孩在雨夜末班车站，终于决定离开家乡。', draftText: '', status: 'draft' },
+    activeEntities: [],
+    mentionedEntities: [],
+    relationships: [],
+    styleCanon: null,
+    unknowns: [],
+    contextDigest: 'c'.repeat(64),
+  };
+  const runtime = createCreatorLlmRuntimeV2({
+    settingsProvider,
+    generateChat: async (_provider, request) => {
+      capturedRequest = request;
+      return {
+        ok: true,
+        text: JSON.stringify(responseEnvelope({
+          replyMarkdown: draftText,
+          phaseDecision: { phase: 'script', transition: 'stay', reason: '正在完成当前场' },
+          suggestions: suggestionSet(['细化离站动作', '改成车内视角', '锁定雨夜场稿']),
+          scenePatch: {
+            schema: 't8-creator-scene-patch-v1',
+            sceneId: sceneContext.sceneId,
+            scenePartId: sceneContext.scenePartId,
+            baseWorkRevision: 0,
+            baseSceneRevision: 1,
+            contextDigest: sceneContext.contextDigest,
+            patch: {
+              draftText,
+              purpose: '让离开成为不可逆的动作',
+              status: 'draft',
+              activeEntityIds: ['char_001'],
+              // Some OpenAI-compatible models place these beside draft fields
+              // even though the public contract makes them scenePatch peers.
+              // Runtime canonicalization keeps the user's valid draft instead
+              // of spending a second provider call on a mechanical JSON repair.
+              entityProposals: [{
+                tempId: 'char_001',
+                kind: 'character',
+                name: '林夏',
+                description: '在雨夜赶末班车的年轻女孩',
+                baseline: { name: '林夏' },
+              }],
+            },
+            entityProposals: [],
+            relationshipProposals: [],
+            conflicts: [],
+          },
+        })),
+      };
+    },
+  });
+  const result = await runtime.respond({ prompt: sceneContext.userIntent, sceneContext });
+  assert.equal(result.evidence.providerCalls, 1);
+  assert.equal(result.replyMarkdown, draftText);
+  assert.equal(result.scenePatch.patch.draftText, draftText);
+  assert.equal(result.scenePatch.entityProposals.length, 1);
+  assert.equal(Object.prototype.hasOwnProperty.call(result.scenePatch.patch, 'entityProposals'), false);
+  assert.equal(result.evidence.modelId, 'qwen/qwen3.7-max');
+  assert.equal(capturedRequest.model, 'qwen/qwen3.7-max');
+  assert.equal(capturedRequest.max_tokens, 4_000);
+  assert.equal(capturedRequest.temperature, 0.45);
+  const sceneDraftSystem = String(capturedRequest.messages[0]?.content || '');
+  assert.match(sceneDraftSystem, /无论想法多短/u);
+  assert.match(sceneDraftSystem, /明确的人物关系、事件、结果方向、数量、时长、先后关系和否定约束都是硬条件/u);
+  assert.match(sceneDraftSystem, /不能为了制造反转而改成相反结果/u);
+  assert.match(sceneDraftSystem, /不能额外增加同类人物或物品改变明确计数/u);
+  assert.match(sceneDraftSystem, /换成盒、瓶等近义量词也不等于可以再拿第二个/u);
+  assert.match(sceneDraftSystem, /全文搜索“第二、另一、又一、再拿、各自、每人”/u);
+  assert.match(sceneDraftSystem, /双方共同接受一个很小但清楚的下一步/u);
+  assert.match(sceneDraftSystem, /通常不再增加第二个象征道具/u);
+  assert.match(sceneDraftSystem, /不要堆叠象征道具、刻意摆拍/u);
+  assert.match(sceneDraftSystem, /常见机位/u);
+});
+
+test('Creator LLM v2 repairs a scene draft that expands an explicitly single physical prop', async () => {
+  const requestText = '一名夜班护士偶遇弟弟，只用一杯热豆浆把关系往前推一步。不要生成图片或视频。';
+  const badDraft = [
+    '凌晨便利店只剩收银台上方一盏灯。姐姐推门进来，看见弟弟站在热饮柜旁，先把最后一杯热豆浆放到两人中间。',
+    '弟弟把手缩回袖口，盯着杯盖冒出的白气。姐姐没问他为什么回来，只把吸管拆开，沿着桌面推过去。',
+    '他没有接。姐姐转身去拿第二盒，放进微波炉加热。机器的转盘响了三十秒，两个人仍隔着货架。',
+    '弟弟终于拿起第一杯，低声问她几点下班。姐姐把胸牌翻到背面，说还有一个小时。',
+    '门外送货车倒车，白光扫过玻璃。弟弟把杯子往她那边推回一点，给她留出喝的位置。',
+    '姐姐扶住杯底，没有推开。两人的手隔着纸杯停了一秒，随后并肩站到窗边，看着天色慢慢发白。',
+  ].join('\n\n');
+  const repairedDraft = [
+    '凌晨便利店只剩收银台上方一盏灯。姐姐推门进来，看见弟弟站在热饮柜旁，便把最后一杯热豆浆放到两人中间。',
+    '弟弟把手缩回袖口，盯着杯盖冒出的白气。姐姐没问他为什么回来，只把吸管拆开，沿着桌面推过去。',
+    '他没有接。微波炉在柜台后空转着报时，机器响了三十秒，两个人仍隔着货架。姐姐把那杯豆浆又往前推了一寸。',
+    '弟弟终于拿起来，低声问她几点下班。姐姐把胸牌翻到背面，说还有一个小时。他喝了一口，把杯沿擦干净。',
+    '门外送货车倒车，白光扫过玻璃。弟弟把同一杯豆浆往她那边推回一点，给她留出喝的位置。',
+    '姐姐扶住杯底，没有推开。两人的手隔着纸杯停了一秒，随后并肩站到窗边，轮流喝着那杯豆浆，看天色慢慢发白。',
+  ].join('\n\n');
+  const sceneContext = {
+    schema: 't8-creator-scene-context-pack-v1', mode: 'scene-draft', scriptId: 'script_single_prop', workId: null,
+    baseWorkRevision: 0, baseWorkDigest: null, sceneId: 'scene_single_prop', scenePartId: 'scene_part_single_prop',
+    scenePartIndex: 0, scenePartCount: 1, baseSceneRevision: 1,
+    sourceRef: { documentVersionId: 'source_single_prop', span: { start: 0, end: requestText.length }, digest: 'b'.repeat(64) },
+    sourcePartRef: { scenePartId: 'scene_part_single_prop', index: 0, total: 1, span: { start: 0, end: requestText.length }, digest: 'd'.repeat(64) },
+    userIntent: requestText, allowedPaths: ['draftText'], requiredPaths: ['draftText'],
+    requiredContinuityTerms: [], requiredContinuitySubjectNames: [], requiredContinuityBySubject: [],
+    scene: { title: '便利店重逢', sourceText: requestText, draftText: '', status: 'draft' },
+    activeEntities: [], mentionedEntities: [], relationships: [], styleCanon: null, unknowns: [], contextDigest: 'c'.repeat(64),
+  };
+  const requests = [];
+  const runtime = createCreatorLlmRuntimeV2({
+    settingsProvider,
+    generateChat: async (_provider, request) => {
+      requests.push(request);
+      const replyMarkdown = requests.length === 1 ? badDraft : repairedDraft;
+      return {
+        ok: true,
+        text: JSON.stringify(responseEnvelope({
+          replyMarkdown,
+          phaseDecision: { phase: 'script', transition: 'stay', reason: '完成当前场' },
+          suggestions: suggestionSet(['细化沉默动作', '换成弟弟视角', '锁定豆浆结尾']),
+          scenePatch: {
+            schema: 't8-creator-scene-patch-v1', sceneId: sceneContext.sceneId, scenePartId: sceneContext.scenePartId,
+            baseWorkRevision: 0, baseSceneRevision: 1, contextDigest: sceneContext.contextDigest,
+            patch: { draftText: replyMarkdown }, entityProposals: [], relationshipProposals: [], conflicts: [],
+          },
+        })),
+      };
+    },
+  });
+  const result = await runtime.respond({ prompt: requestText, sceneContext });
+  assert.equal(result.evidence.providerCalls, 2);
+  assert.equal(result.replyMarkdown, repairedDraft);
+  assert.doesNotMatch(result.replyMarkdown, /第二盒/u);
+  assert.match(JSON.stringify(requests[1].messages), /用户明确限定整场只使用一个实物/u);
+
+  const unrelatedPluralDraft = repairedDraft.replace(
+    '弟弟把手缩回袖口，盯着杯盖冒出的白气。',
+    '弟弟把手缩回袖口，盯着杯盖冒出的白气。旁边顾客拿着两盒泡面走向收银台。',
+  );
+  let unrelatedCalls = 0;
+  const unrelatedRuntime = createCreatorLlmRuntimeV2({
+    settingsProvider,
+    generateChat: async () => {
+      unrelatedCalls += 1;
+      return {
+        ok: true,
+        text: JSON.stringify(responseEnvelope({
+          replyMarkdown: unrelatedPluralDraft,
+          phaseDecision: { phase: 'script', transition: 'stay', reason: '完成当前场' },
+          suggestions: suggestionSet(['细化沉默动作', '换成弟弟视角', '锁定豆浆结尾']),
+          scenePatch: {
+            schema: 't8-creator-scene-patch-v1', sceneId: sceneContext.sceneId, scenePartId: sceneContext.scenePartId,
+            baseWorkRevision: 0, baseSceneRevision: 1, contextDigest: sceneContext.contextDigest,
+            patch: { draftText: unrelatedPluralDraft }, entityProposals: [], relationshipProposals: [], conflicts: [],
+          },
+        })),
+      };
+    },
+  });
+  const unrelatedResult = await unrelatedRuntime.respond({ prompt: requestText, sceneContext });
+  assert.equal(unrelatedCalls, 1);
+  assert.match(unrelatedResult.replyMarkdown, /两盒泡面/u);
+});
+
+test('Creator LLM v2 locks an explicit whole-work style and prevents scene-level style drift', () => {
+  const imported = mergeWorkingBrief(
+    {},
+    { ...workingBrief, style: '' },
+    { sceneScoped: true },
+    '全剧风格固定为潮湿冷蓝现实主义。只处理当前场。',
+  );
+  assert.equal(imported.style, '潮湿冷蓝现实主义');
+
+  const retained = mergeWorkingBrief(
+    imported,
+    { ...workingBrief, style: '暖橙轻喜剧' },
+    { sceneScoped: true },
+    '只细化当前场的动作，不要改其他内容。',
+  );
+  assert.equal(retained.style, '潮湿冷蓝现实主义');
+
+  const explicitlyChanged = mergeWorkingBrief(
+    retained,
+    { ...workingBrief, style: '' },
+    { sceneScoped: true },
+    '把全剧风格改成黑白纪实。',
+  );
+  assert.equal(explicitlyChanged.style, '黑白纪实');
+});
+
+test('Creator LLM v2 keeps import preview read-only and repairs an eager scene patch', async () => {
+  const requests = [];
+  const sceneContext = {
+    schema: 't8-creator-scene-context-pack-v1',
+    mode: 'import-preview',
+    scriptId: 'script_import_preview',
+    workId: null,
+    baseWorkRevision: 0,
+    baseWorkDigest: null,
+    sceneId: 'scene_import_preview',
+    baseSceneRevision: 1,
+    sourceRef: { documentVersionId: 'source_import', span: { start: 0, end: 20 }, digest: 'b'.repeat(64) },
+    userIntent: '导入两场剧本，先不要修改场次。',
+    allowedPaths: ['purpose', 'status'],
+    requiredPaths: [],
+    requiredContinuityTerms: [],
+    requiredContinuitySubjectNames: [],
+    scene: { title: '雨夜车站', sourceText: '林溪等待列车。', status: 'draft' },
+    activeEntities: [],
+    mentionedEntities: [],
+    styleCanon: null,
+    unknowns: [],
+    contextDigest: 'c'.repeat(64),
+  };
+  const runtime = createCreatorLlmRuntimeV2({
+    settingsProvider,
+    generateChat: async (_provider, request) => {
+      requests.push(request);
+      return {
+        ok: true,
+        text: JSON.stringify(responseEnvelope({
+          replyMarkdown: '剧本已按原顺序整理好，先从雨夜车站开始。',
+          suggestions: suggestionSet(['细化雨夜目标', '换个场内视角', '锁定顺序继续']),
+          scenePatch: requests.length === 1 ? {
+            schema: 't8-creator-scene-patch-v1',
+            sceneId: sceneContext.sceneId,
+            baseWorkRevision: 0,
+            baseSceneRevision: 1,
+            contextDigest: sceneContext.contextDigest,
+            patch: { purpose: '提前修改' },
+            entityProposals: [],
+            conflicts: [],
+          } : null,
+        })),
+      };
+    },
+  });
+  const result = await runtime.respond({ prompt: sceneContext.userIntent, sceneContext });
+  assert.equal(result.scenePatch, null);
+  assert.equal(result.evidence.providerCalls, 2);
+  assert.match(String(requests[1].messages[2]?.content || ''), /首次导入预览，scenePatch 必须为 null/u);
+});
+
+test('Creator LLM v2 repairs a missing explicitly requested scene exit state before commit', async () => {
+  const requests = [];
+  const sceneContext = {
+    schema: 't8-creator-scene-context-pack-v1',
+    scriptId: 'script_exit_state',
+    workId: 'cw_exit_state',
+    baseWorkRevision: 3,
+    baseWorkDigest: 'a'.repeat(64),
+    sceneId: 'scene_exit_state',
+    baseSceneRevision: 1,
+    sourceRef: { documentVersionId: 'source_exit', span: { start: 0, end: 20 }, digest: 'b'.repeat(64) },
+    userIntent: '本场结束时林溪仍穿黑色风衣并握着旧车票。',
+    allowedPaths: ['activeEntityIds', 'exitState', 'status'],
+    requiredPaths: ['exitState'],
+    requiredContinuityTerms: ['黑色风衣', '旧车票'],
+    requiredContinuitySubjectNames: ['林溪'],
+    scene: { title: '雨夜车站', sourceText: '林溪等待列车。', status: 'draft' },
+    activeEntities: [{ entityId: 'entity-linxi', baseline: { name: '林溪' }, entry: null }],
+    mentionedEntities: [],
+    styleCanon: null,
+    unknowns: [],
+    contextDigest: 'c'.repeat(64),
+  };
+  const runtime = createCreatorLlmRuntimeV2({
+    settingsProvider,
+    generateChat: async (_provider, request) => {
+      requests.push(request);
+      const scenePatch = {
+        schema: 't8-creator-scene-patch-v1',
+        sceneId: sceneContext.sceneId,
+        baseWorkRevision: sceneContext.baseWorkRevision,
+        baseSceneRevision: sceneContext.baseSceneRevision,
+        contextDigest: sceneContext.contextDigest,
+        patch: {
+          activeEntityIds: ['entity-linxi'],
+          exitState: requests.length === 1
+            ? { 'entity-linxi': '仍穿黑色风衣并握着旧车票' }
+            : { 'entity-linxi': { wardrobe: '黑色风衣', prop: '旧车票' } },
+          status: 'draft',
+        },
+        entityProposals: [],
+        conflicts: [],
+      };
+      return {
+        ok: true,
+        text: JSON.stringify(responseEnvelope({
+          replyMarkdown: '林溪离场时仍保留黑色风衣和旧车票，这两项会继续约束后续重现。',
+          suggestions: suggestionSet(['细化离场动作', '换成车内目送', '锁定离场状态']),
+          scenePatch,
+        })),
+      };
+    },
+  });
+  const result = await runtime.respond({
+    prompt: sceneContext.userIntent,
+    sceneContext,
+  });
+  assert.equal(result.evidence.providerCalls, 2);
+  assert.match(JSON.stringify(result.scenePatch.patch.exitState), /黑色风衣/u);
+  assert.match(String(requests[1].messages[2]?.content || ''), /每个实体值必须是 JSON 对象/u);
+});
+
+test('Creator LLM v2 keeps the requested transport mode for scene repair', async () => {
+  const streams = [];
+  const runtime = createCreatorLlmRuntimeV2({
+    settingsProvider,
+    stream: false,
+    generateChat: async (_provider, request) => {
+      streams.push(request.stream);
+      if (streams.length === 1) {
+        return { ok: true, text: '{"schema":"wrong"}' };
+      }
+      return {
+        ok: true,
+        text: JSON.stringify(responseEnvelope({
+          replyMarkdown: '这一场先明确人物必须在列车到站前作出选择。',
+          suggestions: suggestionSet(['细化到站选择', '换成车内视角', '锁定这场继续']),
+          scenePatch: null,
+        })),
+      };
+    },
+  });
+  const sceneContext = {
+    schema: 't8-creator-scene-context-pack-v1',
+    scriptId: 'script_test',
+    workId: 'cw_test',
+    baseWorkRevision: 7,
+    baseWorkDigest: 'a'.repeat(64),
+    sceneId: 'scene_current_001',
+    baseSceneRevision: 3,
+    sourceRef: { documentVersionId: 'source_test', span: { start: 0, end: 40 }, digest: 'b'.repeat(64) },
+    userIntent: '只细化当前场',
+    allowedPaths: ['purpose', 'objective', 'status'],
+    scene: { title: '雨夜车站', sourceText: '林溪握着旧车票等车。', status: 'draft' },
+    activeEntities: [],
+    styleCanon: { palette: '冷蓝，唯一暖光来自列车' },
+    unknowns: [],
+    contextDigest: 'c'.repeat(64),
+  };
+  const result = await runtime.respond({ prompt: '只细化当前场', sceneContext });
+  assert.deepEqual(streams, [false, false]);
+  assert.equal(result.evidence.providerCalls, 2);
+});
+
+test('Creator LLM v2 rejects final generation prompts that leak internal scene state', async () => {
+  const runtime = createCreatorLlmRuntimeV2({
+    settingsProvider,
+    generateChat: async () => ({
+      ok: true,
+      text: JSON.stringify(responseEnvelope({
+        replyMarkdown: '雨夜站台的动作已经收紧，可以生成这一镜。',
+        suggestions: suggestionSet(['细化雨夜动作', '换成车内视角', '锁定当前镜头']),
+        proposedAction: {
+          type: 'video',
+          prompt: '雨夜站台，scene_current_001，沿用 entryRefs 和 exitState 生成视频',
+          parameters: { ratio: '16:9', duration: 6, resolution: '720p' },
+          inputAssetIds: [],
+        },
+      })),
+    }),
+  });
+  await assert.rejects(
+    () => runtime.respond({ prompt: '生成这一镜视频' }),
+    (error) => error?.code === 'CREATOR_LLM_ACTION_CONTEXT_LEAK',
+  );
+});
+
+test('Creator LLM v2 binds a current-scene generation to its exact private work context', async () => {
+  const sceneContext = {
+    schema: 't8-creator-scene-context-pack-v1',
+    scriptId: 'script_action_binding',
+    workId: 'work_action_binding',
+    baseWorkRevision: 12,
+    baseWorkDigest: 'd'.repeat(64),
+    sceneId: 'scene_action_binding',
+    scenePartId: 'scene_part_action_binding',
+    scenePartIndex: 0,
+    scenePartCount: 1,
+    baseSceneRevision: 5,
+    sourceRef: { documentVersionId: 'source_action_binding', span: { start: 0, end: 20 }, digest: 'e'.repeat(64) },
+    userIntent: '生成当前场的一张关键帧图片。',
+    allowedPaths: ['purpose', 'status'],
+    requiredPaths: [],
+    requiredContinuityTerms: [],
+    requiredContinuitySubjectNames: [],
+    requiredContinuityBySubject: [],
+    scene: { title: '雨夜车站', sourceText: '林溪站在最后一班列车前。', status: 'draft' },
+    activeEntities: [], mentionedEntities: [], relationships: [], styleCanon: null, unknowns: [],
+    contextDigest: 'f'.repeat(64),
+  };
+  const runtime = createCreatorLlmRuntimeV2({
+    settingsProvider,
+    generateChat: async () => ({
+      ok: true,
+      text: JSON.stringify(responseEnvelope({
+        replyMarkdown: '关键帧只保留雨夜站台、林溪和最后一班列车，画面会更集中。',
+        suggestions: suggestionSet(['细化站台动作', '换成车内视角', '锁定关键帧']),
+        scenePatch: null,
+        proposedAction: {
+          type: 'image', prompt: '雨夜站台，林溪站在最后一班列车前，冷蓝环境，暖色车灯',
+          parameters: { ratio: '16:9', count: 1 }, inputAssetIds: [],
+        },
+      })),
+    }),
+  });
+  const result = await runtime.respond({ prompt: sceneContext.userIntent, sceneContext });
+  assert.deepEqual(result.proposedAction.workBinding, {
+    schema: 't8-creator-scene-action-binding-v1',
+    workId: sceneContext.workId,
+    workRevision: sceneContext.baseWorkRevision,
+    workDigest: sceneContext.baseWorkDigest,
+    sceneId: sceneContext.sceneId,
+    scenePartId: sceneContext.scenePartId,
+    sceneRevision: sceneContext.baseSceneRevision,
+    contextDigest: sceneContext.contextDigest,
+  });
+  assert.equal(result.proposedAction.prompt.includes(sceneContext.sceneId), false);
+});
+
+test('Creator LLM v2 normalizes five current-scene shots and only accepts existing stable shot IDs', async () => {
+  const sceneContext = {
+    schema: 't8-creator-scene-context-pack-v1',
+    scriptId: 'script_five_shots', workId: 'work_five_shots',
+    baseWorkRevision: 8, baseWorkDigest: 'a'.repeat(64),
+    sceneId: 'scene_five_shots', scenePartId: 'scene_part_five_shots',
+    scenePartIndex: 0, scenePartCount: 1, baseSceneRevision: 3,
+    sourceRef: { documentVersionId: 'source_five_shots', span: { start: 0, end: 20 }, digest: 'b'.repeat(64) },
+    userIntent: '把当前场生成五个连续视频镜头。',
+    allowedPaths: ['purpose', 'status'], requiredPaths: [],
+    requiredContinuityTerms: [], requiredContinuitySubjectNames: [], requiredContinuityBySubject: [],
+    scene: { title: '雨夜车站', sourceText: '林溪看见最后一班列车进站。', status: 'draft' },
+    activeEntities: [], mentionedEntities: [], relationships: [], styleCanon: null, unknowns: [],
+    currentShotPlan: {
+      schema: 't8-creator-scene-production-v1', planDigest: 'c'.repeat(64),
+      shots: [
+        { shotId: 'shot_existing_wide', ordinal: 1, title: '站台全景', prompt: '旧全景' },
+        { shotId: 'shot_existing_face', ordinal: 2, title: '人物近景', prompt: '旧近景' },
+      ],
+    },
+    contextDigest: 'd'.repeat(64),
+  };
+  const proposedShots = Array.from({ length: 5 }, (_, index) => ({
+    shotId: index === 0 ? 'shot_existing_wide' : index === 1 ? 'shot_existing_face' : null,
+    sourceKey: `beat-${index + 1}`,
+    title: `镜头 ${index + 1}`,
+    purpose: `完成节拍 ${index + 1}`,
+    prompt: `雨夜站台第 ${index + 1} 镜，林溪与列车保持连续。`,
+    parameters: { ratio: '16:9', duration: 6, resolution: '720p' },
+    inputAssetIds: [],
+  }));
+  const runtime = createCreatorLlmRuntimeV2({
+    settingsProvider,
+    generateChat: async () => ({
+      ok: true,
+      text: JSON.stringify(responseEnvelope({
+        replyMarkdown: '这场拆成五个连续镜头，从站台空间推进到人物决定。',
+        suggestions: suggestionSet(['细化列车进站', '换成车内视角', '锁定五镜继续']),
+        proposedAction: {
+          type: 'video', prompt: '雨夜站台五镜连续段落',
+          parameters: { ratio: '16:9', duration: 6, resolution: '720p' },
+          inputAssetIds: [], shots: proposedShots,
+        },
+      })),
+    }),
+  });
+  const result = await runtime.respond({ prompt: sceneContext.userIntent, sceneContext });
+  assert.equal(result.proposedAction.shots.length, 5);
+  assert.deepEqual(result.proposedAction.shots.slice(0, 2).map((shot) => shot.shotId), [
+    'shot_existing_wide', 'shot_existing_face',
+  ]);
+  assert.ok(result.proposedAction.shots.slice(2).every((shot) => shot.shotId === null));
+  assert.ok(result.proposedAction.shots.every((shot) => shot.parameters.resolution === '720p'));
+
+  const rejectingRuntime = createCreatorLlmRuntimeV2({
+    settingsProvider,
+    generateChat: async () => ({
+      ok: true,
+      text: JSON.stringify(responseEnvelope({
+        replyMarkdown: '这场仍按五镜推进。',
+        suggestions: suggestionSet(['细化列车进站', '换成车内视角', '锁定五镜继续']),
+        proposedAction: {
+          type: 'video', prompt: '雨夜站台五镜连续段落',
+          parameters: { ratio: '16:9', duration: 6, resolution: '720p' },
+          inputAssetIds: [],
+          shots: [{ ...proposedShots[0], shotId: 'shot_invented_by_model' }],
+        },
+      })),
+    }),
+  });
+  await assert.rejects(
+    () => rejectingRuntime.respond({ prompt: sceneContext.userIntent, sceneContext }),
+    (error) => error?.code === 'CREATOR_LLM_ACTION_INVALID',
+  );
+});
+
+test('Creator LLM v2 uses selected-model defaults and rejects a model switch that would lose references', async () => {
+  const preferences = {
+    video: { providerId: 'seedance-nz', modelId: 'hailuo-h3-max-t2v' },
+  };
+  const validRuntime = createCreatorLlmRuntimeV2({
+    settingsProvider,
+    generateChat: async () => ({
+      ok: true,
+      text: JSON.stringify(responseEnvelope({
+        replyMarkdown: '镜头会从空站台缓慢推进到列车灯光。',
+        suggestions: suggestionSet(['细化列车入站', '换成高位俯拍', '锁定这个镜头']),
+        proposedAction: {
+          type: 'video',
+          prompt: '雨夜空站台，列车暖光由远及近，缓慢推进镜头',
+          parameters: {},
+          inputAssetIds: [],
+        },
+      })),
+    }),
+  });
+  const valid = await validRuntime.respond({ prompt: '生成这一镜视频', preferences });
+  assert.deepEqual(valid.proposedAction.parameters, {
+    ratio: '16:9',
+    duration: 5,
+    resolution: '480P',
+  });
+
+  const lossyPreferences = {
+    video: { providerId: 'seedance-nz', modelId: 'hailuo-h3-i2v' },
+  };
+  const lossyRuntime = createCreatorLlmRuntimeV2({
+    settingsProvider,
+    generateChat: async () => ({
+      ok: true,
+      text: JSON.stringify(responseEnvelope({
+        replyMarkdown: '会保留现有素材的动作和声音继续生成。',
+        suggestions: suggestionSet(['细化动作节奏', '换成侧面跟拍', '锁定当前镜头']),
+        proposedAction: {
+          type: 'video',
+          prompt: '角色在雨夜站台奔跑，镜头平稳跟随',
+          parameters: { duration: 5, resolution: '768P' },
+          inputAssetIds: ['asset-image', 'asset-video', 'asset-audio'],
+        },
+      })),
+    }),
+  });
+  await assert.rejects(
+    () => lossyRuntime.respond({
+      prompt: '用这些素材生成视频',
+      preferences: lossyPreferences,
+      attachments: [
+        { assetId: 'asset-image', kind: 'image', title: '首帧' },
+        { assetId: 'asset-video', kind: 'video', title: '动作参考' },
+        { assetId: 'asset-audio', kind: 'audio', title: '对白参考' },
+      ],
+    }),
+    (error) => error?.code === 'CREATOR_LLM_ACTION_MODEL_MISMATCH',
+  );
 });

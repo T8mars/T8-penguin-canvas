@@ -550,6 +550,16 @@ app.get('/api/status', (_req, res) => {
   });
 });
 
+// The browser/dev renderer cannot call the in-process Electron hook. Keep the
+// transport health check read-only and accept one explicit, idempotent signal
+// once the visible shell is interactive.
+app.post('/api/status/interactive', (_req, res) => {
+  res.json({
+    ok: true,
+    readiness: markFrontendInteractive('renderer-http'),
+  });
+});
+
 // ========== 业务路由 ==========
 const canvasRouter = require('./routes/canvas');
 const settingsRouter = require('./routes/settings');
@@ -639,6 +649,7 @@ app.use((error, req, res, next) => {
     error: safeStatus >= 500 ? 'Internal server error' : error?.message,
   });
 });
+
 markBackendStartupStage('routes-mounted', {
   storageReadReady: false,
   storageWriteReady: false,

@@ -43,6 +43,7 @@ const ELECTRON_STARTUP_SHELL_PAINT_DEADLINE_MS = 2_500;
 const ELECTRON_FRONTEND_LOAD_RETRY_DELAY_MS = 250;
 const ELECTRON_FRONTEND_LOAD_RETRY_ATTEMPTS = 40;
 const ELECTRON_MAIN_WINDOW_REVEAL_DEADLINE_MS = 15_000;
+const ELECTRON_MAIN_WINDOW_LOAD_HARD_DEADLINE_MS = 60_000;
 const ELECTRON_MAIN_WINDOW_ERROR_PAGE_LOAD_DEADLINE_MS = 1_000;
 const MAIN_WINDOW_STARTUP_RETRY_URL = 'https://t8pc.startup.local/retry';
 const MAIN_WINDOW_STARTUP_BACKEND_URL = 'https://t8pc.startup.local/backend';
@@ -2368,7 +2369,7 @@ function createMainWindow() {
   };
   beginMainWindowLoad(url, { allowBackendFallback: true, source: 'initial' });
 
-  revealDeadlineTimer = setTimeout(() => {
+  const handleRevealDeadline = (hard = false) => {
     revealDeadlineTimer = null;
     if (electronQuitRequested || pendingMainWindow.isDestroyed() || mainWindowRevealed) return;
     if (mainFrontendLoaded) {
@@ -2376,11 +2377,26 @@ function createMainWindow() {
       revealMainWindowWhenReady({ force: true, reason: 'ready-to-show-deadline' });
       return;
     }
+    // A cold Vite compile can legitimately keep the first loadURL pending for
+    // longer than the 15 s shell-feedback deadline. Replacing that in-flight
+    // page with the local error document aborts the load that is about to
+    // succeed. Keep the already-visible startup shell and wait to the bounded
+    // hard deadline; real load failures still reach showMainWindowStartupFailure
+    // immediately through beginMainWindowLoad().catch().
+    if (!hard && frontendLoadInFlight) {
+      markElectronStartupStage('frontend-load-still-in-progress', 'startup-shell-kept-visible');
+      revealDeadlineTimer = setTimeout(
+        () => handleRevealDeadline(true),
+        Math.max(0, ELECTRON_MAIN_WINDOW_LOAD_HARD_DEADLINE_MS - ELECTRON_MAIN_WINDOW_REVEAL_DEADLINE_MS),
+      );
+      return;
+    }
     void showMainWindowStartupFailure(
       lastFrontendLoadError || new Error(electronT('startup.frontendTimeout')),
-      'frontend-reveal-deadline',
+      hard ? 'frontend-load-hard-deadline' : 'frontend-reveal-deadline',
     );
-  }, ELECTRON_MAIN_WINDOW_REVEAL_DEADLINE_MS);
+  };
+  revealDeadlineTimer = setTimeout(() => handleRevealDeadline(false), ELECTRON_MAIN_WINDOW_REVEAL_DEADLINE_MS);
 
   mainWindow.webContents.setWindowOpenHandler(({ url: targetUrl }) => {
     if (isVibeXRhLoginUrl(targetUrl)) {

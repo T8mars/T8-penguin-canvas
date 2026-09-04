@@ -13,6 +13,31 @@ export interface CreatorMediaRef {
   ref?: string | null;
   previewUrl?: string | null;
   title?: string | null;
+  reviewStatus?: 'pending' | 'reviewed';
+  adoptionStatus?: 'pending' | 'adopted';
+  placementStatus?: 'pending' | 'completed';
+  sentToCanvas?: boolean;
+  canvasNodeId?: string | null;
+  canvasRevision?: number | null;
+  shotId?: string | null;
+  shotOrdinal?: number | null;
+  outputIndex?: number;
+}
+
+export interface CreatorShotV2 {
+  shotId: string;
+  ordinal: number;
+  title: string;
+  prompt: string;
+  parameters: { ratio?: string; count?: number; duration?: number; resolution?: string };
+  inputAssetIds: string[];
+  status: 'pending' | 'running' | 'ambiguous' | 'completed' | 'failed' | 'cancelled';
+  resultAssets: CreatorMediaRef[];
+  runId: string | null;
+  nodeRunId: string | null;
+  attemptId: string | null;
+  errorCode: string | null;
+  errorMessage: string | null;
 }
 
 export interface CreatorSelectedNodeRefV2 {
@@ -58,6 +83,19 @@ export interface CreatorActionV2 {
   parameters: { ratio?: string; count?: number; duration?: number; resolution?: string };
   modelSnapshot: { kind: 'image' | 'video'; providerId: string; modelId: string; catalogDigest: string };
   inputAssetIds: string[];
+  workBinding: {
+    schema: 't8-creator-scene-action-binding-v1';
+    workId: string | null;
+    workRevision: number;
+    workDigest: string | null;
+    sceneId: string;
+    scenePartId: string | null;
+    sceneRevision: number;
+    contextDigest: string;
+    shotIds: string[];
+    shotPlanDigest: string | null;
+  } | null;
+  shots: CreatorShotV2[];
   status: 'pending' | 'running' | 'ambiguous' | 'completed' | 'failed' | 'cancelled';
   runIntentId: string | null;
   runId: string | null;
@@ -96,14 +134,56 @@ export interface CreatorConversationV2 {
     reason: string;
     at: number;
   };
+  currentSceneId: string | null;
   createdAt: number;
   updatedAt: number;
+}
+
+export interface CreatorLongScriptSceneV2 {
+  sceneId: string;
+  orderKey: string;
+  title: string;
+  sourceText: string;
+  sourcePartId: string | null;
+  sourcePartIndex: number;
+  sourcePartCount: number;
+  sourcePartHasDraft: boolean;
+  draftText: string;
+  sourceIntegrity: boolean;
+  status: 'draft' | 'confirmed' | 'stale';
+  purpose: string;
+  objective: string;
+  obstacle: string;
+  turn: string;
+  valueChange: string;
+  activeEntityIds: string[];
+  locationId: string | null;
+  recordRevision: number;
+}
+
+export interface CreatorLongScriptNavigationV2 {
+  schema: 't8-creator-long-script-navigation-v1';
+  scriptId: string | null;
+  title: string;
+  currentSceneId: string | null;
+  currentScene: CreatorLongScriptSceneV2 | null;
+  scenes: Array<{
+    sceneId: string;
+    index: number;
+    number: number;
+    title: string;
+    status: string;
+    recordRevision: number;
+  }>;
+  total: number;
+  work: { revision: number; digest: string | null };
 }
 
 export interface CreatorSnapshotV2 {
   conversation: CreatorConversationV2;
   messages: CreatorMessageV2[];
   pendingAction: CreatorActionV2 | null;
+  work?: { snapshot: { revision: number; workDigest: string } | null; artifacts: unknown[] };
   nextBeforeSequence: number | null;
 }
 
@@ -248,6 +328,38 @@ export async function getCreatorConversationV2(sessionId: string, projectId: str
   return request<CreatorSnapshotV2>(`/sessions/${encodeURIComponent(sessionId)}?${query}`);
 }
 
+export async function getCreatorLongScriptScenesV2(sessionId: string, projectId: string, canvasId: string) {
+  return request<CreatorLongScriptNavigationV2>(
+    `/sessions/${encodeURIComponent(sessionId)}/scenes?${scopeQuery(projectId, canvasId)}`,
+  );
+}
+
+export async function setCreatorCurrentSceneV2(
+  sessionId: string,
+  sceneId: string,
+  projectId: string,
+  canvasId: string,
+) {
+  return request<{ navigation: CreatorLongScriptNavigationV2 }>(
+    `/sessions/${encodeURIComponent(sessionId)}/current-scene`,
+    { method: 'PUT', body: JSON.stringify({ projectId, canvasId, sceneId }) },
+  );
+}
+
+export async function confirmCreatorCurrentSceneV2(
+  sessionId: string,
+  sceneId: string,
+  projectId: string,
+  canvasId: string,
+  clientRequestId: string,
+  scenePartId?: string | null,
+) {
+  return request<{ navigation: CreatorLongScriptNavigationV2 }>(
+    `/sessions/${encodeURIComponent(sessionId)}/current-scene/confirm`,
+    { method: 'POST', body: JSON.stringify({ projectId, canvasId, sceneId, scenePartId, clientRequestId }) },
+  );
+}
+
 export async function sendCreatorMessageV2(sessionId: string, input: {
   projectId: string;
   canvasId: string;
@@ -256,6 +368,8 @@ export async function sendCreatorMessageV2(sessionId: string, input: {
   clientRequestId: string;
   attachments?: CreatorMediaRef[];
   selectedNodeIds?: string[];
+  currentSceneId?: string | null;
+  creationMode?: 'auto' | 'scene';
 }) {
   return request<CreatorSnapshotV2 & { assistant: CreatorMessageV2; evidence: { providerCalls: number } }>(
     `/sessions/${encodeURIComponent(sessionId)}/messages`,
@@ -284,10 +398,48 @@ export async function cancelCreatorActionV2(sessionId: string, actionId: string,
   });
 }
 
+export async function retryCreatorActionV2(sessionId: string, actionId: string, projectId: string, canvasId: string) {
+  return request<{ action: CreatorActionV2 }>(`/sessions/${encodeURIComponent(sessionId)}/actions/${encodeURIComponent(actionId)}/retry`, {
+    method: 'POST',
+    body: JSON.stringify({
+      projectId,
+      canvasId,
+      clientRequestId: `creator-action-retry:${actionId}`,
+    }),
+  });
+}
+
 export async function sendCreatorAssetToCanvasV2(sessionId: string, actionId: string, assetId: string, projectId: string, canvasId: string) {
   return request<{ nodeId: string; duplicate: boolean; canvasRevision: number }>(
     `/sessions/${encodeURIComponent(sessionId)}/media/${encodeURIComponent(assetId)}/send-to-canvas`,
-    { method: 'POST', body: JSON.stringify({ projectId, canvasId, actionId }) },
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        projectId, canvasId, actionId,
+        clientRequestId: `creator-media-send:${actionId}:${assetId}`,
+      }),
+    },
+  );
+}
+
+export async function markCreatorAssetReviewedV2(
+  sessionId: string,
+  actionId: string,
+  assetId: string,
+  kind: 'image' | 'video',
+  projectId: string,
+  canvasId: string,
+) {
+  return request<{ action: CreatorActionV2 }>(
+    `/sessions/${encodeURIComponent(sessionId)}/media/${encodeURIComponent(assetId)}/reviewed`,
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        projectId, canvasId, actionId,
+        clientRequestId: `creator-media-review:${actionId}:${assetId}`,
+        evidenceKind: kind === 'video' ? 'video-frame-visible' : 'image-visible',
+      }),
+    },
   );
 }
 
@@ -310,6 +462,7 @@ export function subscribeCreatorEventsV2(sessionId: string, projectId: string, c
   onMessage: (message: CreatorMessageV2) => void;
   onAction: (action: CreatorActionV2) => void;
   onConversation?: (conversation: CreatorConversationV2) => void;
+  onWork?: () => void;
   onCursor?: (sequence: number) => void;
   onError?: () => void;
 }) {
@@ -335,6 +488,10 @@ export function subscribeCreatorEventsV2(sessionId: string, projectId: string, c
   source.addEventListener('conversation', (event) => {
     const value = parse<CreatorConversationV2>(event as MessageEvent<string>);
     if (value) handlers.onConversation?.(value);
+  });
+  source.addEventListener('work', (event) => {
+    parse<unknown>(event as MessageEvent<string>);
+    handlers.onWork?.();
   });
   source.onerror = () => handlers.onError?.();
   return () => source.close();

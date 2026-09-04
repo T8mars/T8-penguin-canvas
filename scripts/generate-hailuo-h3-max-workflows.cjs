@@ -5,9 +5,10 @@ const path = require('node:path');
 
 const root = path.resolve(__dirname, '..');
 const outputDir = path.join(root, 'docs', 'workflows');
-const savedAt = '2026-09-01T00:00:00.000Z';
+const standardSavedAt = '2026-09-01T00:00:00.000Z';
+const turboSavedAt = '2026-09-04T00:00:00.000Z';
 
-function writeWorkflow(model, title, nodes, edges) {
+function writeWorkflow(model, title, nodes, edges, savedAt = standardSavedAt) {
   const doc = {
     schema: 't8-workflow-fragment',
     version: 1,
@@ -32,7 +33,7 @@ function writeWorkflow(model, title, nodes, edges) {
   fs.writeFileSync(path.join(outputDir, `${model}.json`), `${JSON.stringify(doc, null, 2)}\n`);
 }
 
-function videoNode(model, label, prompt, position = { x: 0, y: 0 }) {
+function videoNode(model, label, prompt, resolution, position = { x: 0, y: 0 }) {
   return {
     id: model,
     type: 'video',
@@ -44,7 +45,7 @@ function videoNode(model, label, prompt, position = { x: 0, y: 0 }) {
       videoBuiltinSource: 'seedance-nz',
       ratio: '16:9',
       duration: 5,
-      resolution: '480P',
+      resolution,
       localPrompt: prompt,
       reuseResult: false,
     },
@@ -58,6 +59,7 @@ writeWorkflow(
     'hailuo-h3-max-t2v',
     'MiniMax H3 Max 文生视频',
     '纸飞机穿过洒满晨光的安静工作室，镜头平滑跟随，材质与光影保持稳定',
+    '480P',
   )],
   [],
 );
@@ -78,6 +80,7 @@ const i2v = videoNode(
   'hailuo-h3-max-i2v',
   'MiniMax H3 Max 首尾帧图生视频',
   '镜头缓慢推进，主体自然转身，保持身份、构图与材质稳定',
+  '480P',
   { x: 440, y: 40 },
 );
 writeWorkflow(
@@ -90,4 +93,47 @@ writeWorkflow(
   ],
 );
 
-console.log('generated 2 Hailuo H3 Max workflows');
+writeWorkflow(
+  'hailuo-h3-max-turbo-t2v',
+  'MiniMax H3 Max Turbo 文生视频（贞贞的平价AI小屋 · 480p）',
+  [videoNode(
+    'hailuo-h3-max-turbo-t2v',
+    'MiniMax H3 Max Turbo 文生视频',
+    '清晨薄雾笼罩湖面，小木船平稳穿行，镜头缓慢向前推进，电影光线自然连续',
+    '480p',
+  )],
+  [],
+  turboSavedAt,
+);
+
+const turboFirstFrame = {
+  id: 'hailuo-h3-max-turbo-i2v-first-frame',
+  type: 'upload',
+  position: { x: 0, y: 0 },
+  data: { label: '上传首帧图（必填）', uploadType: 'image', lockedUploadType: 'image' },
+};
+const turboLastFrame = {
+  id: 'hailuo-h3-max-turbo-i2v-last-frame',
+  type: 'upload',
+  position: { x: 0, y: 220 },
+  data: { label: '上传尾帧图（可选）', uploadType: 'image', lockedUploadType: 'image' },
+};
+const turboI2v = videoNode(
+  'hailuo-h3-max-turbo-i2v',
+  'MiniMax H3 Max Turbo 首尾帧图生视频',
+  '保持主体、服装和场景一致，从首帧自然过渡到尾帧，动作连贯，镜头轻缓推进',
+  '480p',
+  { x: 440, y: 40 },
+);
+writeWorkflow(
+  'hailuo-h3-max-turbo-i2v',
+  'MiniMax H3 Max Turbo 首尾帧图生视频（贞贞的平价AI小屋 · 480p）',
+  [turboFirstFrame, turboLastFrame, turboI2v],
+  [
+    { id: 'hailuo-h3-max-turbo-i2v-first-edge', source: turboFirstFrame.id, target: turboI2v.id },
+    { id: 'hailuo-h3-max-turbo-i2v-last-edge', source: turboLastFrame.id, target: turboI2v.id },
+  ],
+  turboSavedAt,
+);
+
+console.log('generated 4 Hailuo H3 Max workflows');

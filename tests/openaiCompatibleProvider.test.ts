@@ -249,6 +249,72 @@ test('OpenAI compatible chat consumes upstream SSE deltas without replaying or t
   assert.equal(calls[0].body.stream, true);
   assert.equal(calls[0].init.headers.Accept, 'text/event-stream');
 });
+
+test('OpenAI compatible chat bounds a stream that returns headers but never finishes', async () => {
+  const provider = {
+    id: 'custom-openai',
+    protocol: 'openai-compatible',
+    baseUrl: 'https://api.example.com/v1',
+    apiKey: 'sk-secret',
+    chatModels: ['gpt-stream'],
+  };
+  let cancelled = false;
+  const startedAt = Date.now();
+  const result = await openaiCompatible.generateChat(provider, {
+    prompt: 'stream forever',
+    model: 'gpt-stream',
+    stream: true,
+  }, {
+    timeoutMs: 40,
+    fetchImpl: async () => new Response(new ReadableStream<Uint8Array>({
+      cancel() {
+        cancelled = true;
+      },
+    }), {
+      status: 200,
+      headers: { 'content-type': 'text/event-stream' },
+    }),
+  });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.code, 'timeout');
+  assert.equal(cancelled, true);
+  assert.ok(Date.now() - startedAt < 1_000, 'stream timeout did not stop promptly');
+});
+
+test('OpenAI compatible chat preserves parent cancellation after stream headers arrive', async () => {
+  const provider = {
+    id: 'custom-openai',
+    protocol: 'openai-compatible',
+    baseUrl: 'https://api.example.com/v1',
+    apiKey: 'sk-secret',
+    chatModels: ['gpt-stream'],
+  };
+  const controller = new AbortController();
+  let cancelled = false;
+  const pending = openaiCompatible.generateChat(provider, {
+    prompt: 'stop after headers',
+    model: 'gpt-stream',
+    stream: true,
+  }, {
+    signal: controller.signal,
+    timeoutMs: 5_000,
+    fetchImpl: async () => new Response(new ReadableStream<Uint8Array>({
+      cancel() {
+        cancelled = true;
+      },
+    }), {
+      status: 200,
+      headers: { 'content-type': 'text/event-stream' },
+    }),
+  });
+  setTimeout(() => controller.abort(new Error('test-client-stop-after-headers')), 20);
+  const result = await pending;
+
+  assert.equal(result.ok, false);
+  assert.equal(result.code, 'request_aborted');
+  assert.equal(cancelled, true);
+});
 test('OpenAI compatible image generation normalizes url and b64_json results', async () => {
   const calls: any[] = [];
   const provider = {

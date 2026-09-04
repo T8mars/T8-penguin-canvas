@@ -148,6 +148,7 @@ export const useCanvasStore = create<CanvasStoreState>((set, get) => ({
     if (!force && get().bootstrapped) return;
     if (!recoveryPollInFlight) clearRecoveryPoll();
     if (bootstrapFlight) return bootstrapFlight;
+    const hadBootstrappedCatalog = get().bootstrapped;
     bootstrapFlight = (async () => {
       if (!get().bootstrapped) set({ loading: true, error: null });
       const persistedId = readPersistedActiveId();
@@ -186,7 +187,10 @@ export const useCanvasStore = create<CanvasStoreState>((set, get) => ({
         clearRecoveryPoll();
         set({
           loading: false,
-          bootstrapped: true,
+          // A failed first request must not make the empty state look
+          // authoritative. A later recovery refresh may fail without taking
+          // an already usable catalog offline.
+          bootstrapped: hadBootstrappedCatalog,
           error: error?.message || '加载画布列表失败',
         });
       }
@@ -310,6 +314,7 @@ export const useCanvasStore = create<CanvasStoreState>((set, get) => ({
     return flight;
   },
   async createCanvas(name) {
+    set({ error: null });
     try {
       const item = await api.createCanvas(name);
       set((state) => {
@@ -321,6 +326,7 @@ export const useCanvasStore = create<CanvasStoreState>((set, get) => ({
           total: state.total == null
             ? (state.hasMore ? null : canvases.length)
             : state.total + (existed ? 0 : 1),
+          error: null,
           completionNoticeCanvasIds: state.completionNoticeCanvasIds.filter((noticeId) => noticeId !== item.id),
         };
       });

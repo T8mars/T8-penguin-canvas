@@ -686,9 +686,16 @@ export const HAILUO_H3_GLOBAL_VIDEO_MODELS = [
 export const HAILUO_H3_MAX_VIDEO_MODELS = [
   'hailuo-h3-max-t2v',
   'hailuo-h3-max-i2v',
+  'hailuo-h3-max-turbo-t2v',
+  'hailuo-h3-max-turbo-i2v',
 ] as const;
 export const HAILUO_H3_MAX_VIDEO_DURATIONS = Array.from({ length: 11 }, (_, index) => index + 5);
-export const HAILUO_H3_MAX_VIDEO_RESOLUTIONS = ['480P', '768P'] as const;
+export const HAILUO_H3_MAX_STANDARD_VIDEO_RESOLUTIONS = ['480P', '768P'] as const;
+export const HAILUO_H3_MAX_TURBO_VIDEO_RESOLUTIONS = ['480p', '768p'] as const;
+export const HAILUO_H3_MAX_VIDEO_RESOLUTIONS = [
+  ...HAILUO_H3_MAX_STANDARD_VIDEO_RESOLUTIONS,
+  ...HAILUO_H3_MAX_TURBO_VIDEO_RESOLUTIONS,
+] as const;
 export const HAILUO_H3_MAX_VIDEO_RATIOS = ['21:9', '16:9', '4:3', '1:1', '3:4', '9:16'] as const;
 export const MINIMAX_H3_OW_VIDEO_MODELS = [
   'minimax-h3-ow-t2v',
@@ -1008,18 +1015,23 @@ export const VIDEO_MODELS: VideoModelDef[] = [
       }),
       ...HAILUO_H3_MAX_VIDEO_MODELS.map((value) => {
         const mode = value.endsWith('-i2v') ? 'i2v' : 't2v';
+        const turbo = value.includes('-max-turbo-');
+        const modelName = turbo ? 'H3 Max Turbo' : 'H3 Max';
+        const resolutions = turbo
+          ? HAILUO_H3_MAX_TURBO_VIDEO_RESOLUTIONS
+          : HAILUO_H3_MAX_STANDARD_VIDEO_RESOLUTIONS;
         return {
           value,
-          label: `${value}${mode === 't2v' ? '（H3 Max 文生视频）' : '（H3 Max 首尾帧图生视频）'}`,
+          label: `${value}${mode === 't2v' ? `（${modelName} 文生视频）` : `（${modelName} 首尾帧图生视频）`}`,
           description: mode === 't2v'
-            ? 'MiniMax H3 Max 文生视频；提示词必填，5-15 秒，480P/768P，使用六种固定比例。'
-            : 'MiniMax H3 Max 图生视频；提示词与首帧必填，可选尾帧，5-15 秒，480P/768P。',
+            ? `MiniMax ${modelName} 文生视频；提示词必填，5-15 秒，${resolutions.join('/')}，使用六种固定比例。`
+            : `MiniMax ${modelName} 图生视频；提示词与首帧必填，可选尾帧，5-15 秒，${resolutions.join('/')}。`,
           ratios: mode === 'i2v' ? [] : [...HAILUO_H3_MAX_VIDEO_RATIOS],
           defaultRatio: '16:9',
           durations: HAILUO_H3_MAX_VIDEO_DURATIONS,
           defaultDuration: 5,
-          resolutions: [...HAILUO_H3_MAX_VIDEO_RESOLUTIONS],
-          defaultResolution: '480P',
+          resolutions: [...resolutions],
+          defaultResolution: resolutions[0],
           supportImages: mode === 'i2v',
           supportVideos: false,
           supportAudios: false,

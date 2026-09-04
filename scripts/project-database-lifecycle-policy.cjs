@@ -81,10 +81,10 @@ const LIFECYCLE_METHOD_CONTRACTS = deepFreeze([
   lifecycleContract('constructor', {
     kind: 'constructor',
     calledProjectDatabaseMethods: [
-      'createBackup',
       'initializeDatabase',
       'preflightExistingDatabase',
       'recoverDatabase',
+      'startStartupBackup',
     ],
     calledProjectDatabaseMethodCallCount: 5,
     hasDirectPersistentMutationCandidate: true,
@@ -107,13 +107,14 @@ const LIFECYCLE_METHOD_CONTRACTS = deepFreeze([
       '_assertCanvasPermanentLedgerAccounting',
       '_assertCanvasSnapshotPins',
       '_assertDurableLedgerAccounting',
+      '_reconcileTerminalRunSnapshotPins',
       'bootstrapRecoveryGeneration',
       'configure',
       'migrate',
       'recoverInterruptedRuns',
       'withProjectDatabaseReadSnapshot',
     ],
-    calledProjectDatabaseMethodCallCount: 11,
+    calledProjectDatabaseMethodCallCount: 12,
   }),
   lifecycleContract('bootstrapRecoveryGeneration', {
     calledProjectDatabaseMethods: [
@@ -195,6 +196,10 @@ const LIFECYCLE_METHOD_CONTRACTS = deepFreeze([
       writePragmas: ['journal_mode = WAL', 'foreign_keys = ON', 'busy_timeout = 5000'],
     },
   }),
+  lifecycleContract('startStartupBackup', {
+    calledProjectDatabaseMethods: ['createBackup'],
+    calledProjectDatabaseMethodCallCount: 1,
+  }),
   lifecycleContract('createBackup', {
     calledProjectDatabaseMethods: ['_createBackupAtomically'],
     calledProjectDatabaseMethodCallCount: 1,
@@ -248,6 +253,20 @@ const LIFECYCLE_METHOD_CONTRACTS = deepFreeze([
       storageCapacityTranslationCount: 1,
     },
   }),
+  lifecycleContract('_reconcileTerminalRunSnapshotPins', {
+    visibility: 'internal',
+    calledProjectDatabaseMethods: [
+      '_assertCanvasHistoryAccounting',
+      '_assertProjectDatabaseMutationTransaction',
+      '_compactCanvasSnapshotHistory',
+      '_releaseTerminalRunSnapshotPins',
+    ],
+    calledProjectDatabaseMethodCallCount: 4,
+    direct: {
+      transactionFactoryCount: 1,
+      transactionTypes: ['immediate'],
+    },
+  }),
 ]);
 
 const LIFECYCLE_METHOD_NAMES = Object.freeze(LIFECYCLE_METHOD_CONTRACTS.map((entry) => entry.name));
@@ -258,17 +277,19 @@ const EXPECTED_INTERNAL_LIFECYCLE_CALLS = deepFreeze([
   { caller: '_migrateSchema31To32', callee: '_writeRecoveryGenerationState', count: 1 },
   { caller: 'bootstrapRecoveryGeneration', callee: '_writeRecoveryGenerationState', count: 4 },
   { caller: 'close', callee: 'waitForBackup', count: 1 },
-  { caller: 'constructor', callee: 'createBackup', count: 1 },
   { caller: 'constructor', callee: 'initializeDatabase', count: 2 },
   { caller: 'constructor', callee: 'preflightExistingDatabase', count: 1 },
   { caller: 'constructor', callee: 'recoverDatabase', count: 1 },
+  { caller: 'constructor', callee: 'startStartupBackup', count: 1 },
   { caller: 'createBackup', callee: '_createBackupAtomically', count: 1 },
+  { caller: 'initializeDatabase', callee: '_reconcileTerminalRunSnapshotPins', count: 1 },
   { caller: 'initializeDatabase', callee: 'bootstrapRecoveryGeneration', count: 2 },
   { caller: 'initializeDatabase', callee: 'configure', count: 1 },
   { caller: 'preflightExistingDatabase', callee: '_assertProjectDatabaseHistoryCandidate', count: 2 },
   { caller: 'recoverDatabase', callee: '_copyRecoveryEvidence', count: 2 },
   { caller: 'recoverDatabase', callee: 'validateRecoveryCandidate', count: 2 },
   { caller: 'rotateRecoveryGeneration', callee: '_writeRecoveryGenerationState', count: 2 },
+  { caller: 'startStartupBackup', callee: 'createBackup', count: 1 },
 ]);
 const CONTRACT_FINGERPRINT = crypto.createHash('sha256')
   .update(JSON.stringify(LIFECYCLE_METHOD_CONTRACTS), 'utf8')

@@ -298,6 +298,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
   const apimartOmniLowpriceNsfwCheck = d?.apimartOmniLowpriceNsfwCheck === true;
   const happyHorseMode = apiModel.endsWith('-i2v') ? 'i2v' : apiModel.endsWith('-r2v') ? 'r2v' : 't2v';
   const isHailuoH3Max = isHailuo && apiModel.startsWith('hailuo-h3-max-');
+  const isHailuoH3MaxTurbo = isHailuoH3Max && apiModel.includes('-max-turbo-');
   const isHailuoH3 = isHailuo && apiModel.startsWith('hailuo-h3-') && !isHailuoH3Max;
   const isMinimaxH3Ow = isHailuo && apiModel.startsWith('minimax-h3-ow-');
   const isMinimaxH3OwFast = isMinimaxH3Ow && apiModel.endsWith('-fast');
@@ -1701,6 +1702,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
           : isHailuoH3 && hailuoMode === 'multi' ? audioUrls.slice(0, 3) : [];
         const hailuoResolution = isMinimaxH3Ow
           ? resolution === '720p' ? '720p' : '480p'
+          : isHailuoH3MaxTurbo ? resolution === '768p' ? '768p' : '480p'
           : isHailuoH3Max ? resolution === '768P' ? '768P' : '480P'
           : isHailuoH3 ? resolution === '768P' ? '768P' : '2K' : resolution === '1080p' ? '1080p' : '768p';
         const hailuoLabel = isMinimaxH3Ow
@@ -2434,7 +2436,9 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
                      || nextModel === ZHENZHEN_VIDEO_V31_LITE_MODEL
                      ? { ratio: '16:9', duration: 8, resolution: '720p' }
                      : {}),
-                   ...(nextModel.startsWith('hailuo-h3-max-')
+                   ...(nextModel.startsWith('hailuo-h3-max-turbo-')
+                     ? { ratio: '16:9', duration: 5, resolution: '480p' }
+                     : nextModel.startsWith('hailuo-h3-max-')
                      ? { ratio: '16:9', duration: 5, resolution: '480P' }
                      : nextModel.startsWith('hailuo-h3-')
                      ? { ratio: '16:9', duration: 5, resolution: '768P' }
@@ -2865,8 +2869,8 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
                     : 'MiniMax H3 OW 图生视频必须使用排序后的第 1 张首帧图，提示词可选。'
               : isHailuoH3Max
                 ? hailuoMode === 't2v'
-                  ? 'H3 Max 文生视频必须填写提示词，不发送参考素材；比例会随请求提交。'
-                  : 'H3 Max 图生视频必须填写提示词并使用第 1 张首帧图，可选第 2 张尾帧图；比例跟随输入图片且不会发送。'
+                  ? `${isHailuoH3MaxTurbo ? 'H3 Max Turbo' : 'H3 Max'} 文生视频必须填写提示词，不发送参考素材；比例会随请求提交。`
+                  : `${isHailuoH3MaxTurbo ? 'H3 Max Turbo' : 'H3 Max'} 图生视频必须填写提示词并使用第 1 张首帧图，可选第 2 张尾帧图；比例跟随输入图片且不会发送。`
               : isHailuoH3
               ? hailuoMode === 't2v'
                 ? 'H3 文生视频必须填写提示词，不发送参考素材；比例会随请求提交。'
@@ -2880,7 +2884,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
               {isMinimaxH3Ow
                 ? '贞贞的平价AI小屋 API · 5 / 10 / 15 秒 · 480p / 720p'
                 : isHailuoH3Max
-                  ? '贞贞的平价AI小屋 API · 5-15 秒 · 480P / 768P'
+                  ? `贞贞的平价AI小屋 API · 5-15 秒 · ${isHailuoH3MaxTurbo ? '480p / 768p' : '480P / 768P'}`
                 : isHailuoH3
                   ? '贞贞的平价AI小屋 API · 按次计费 · 5-15 秒 · 768P / 2K'
                 : '贞贞的平价AI小屋 API · 按次计费 · 6 / 10 秒 · 768p / 1080p（1080p 仅 6 秒）'}
@@ -3207,11 +3211,16 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
               <select
                 value={isMinimaxH3Ow
                   ? resolution === '720p' ? '720p' : '480p'
+                  : isHailuoH3MaxTurbo ? resolution === '768p' ? '768p' : '480p'
                   : isHailuoH3Max ? resolution === '768P' ? '768P' : '480P'
                   : isHailuoH3 ? resolution === '768P' ? '768P' : '2K' : resolution === '1080p' ? '1080p' : '768p'}
                 onChange={(e) => {
                   if (isHailuoH3Max) {
-                    update({ resolution: e.target.value === '768P' ? '768P' : '480P' });
+                    update({
+                      resolution: isHailuoH3MaxTurbo
+                        ? e.target.value === '768p' ? '768p' : '480p'
+                        : e.target.value === '768P' ? '768P' : '480P',
+                    });
                     return;
                   }
                   if (isHailuoH3) {

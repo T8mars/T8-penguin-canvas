@@ -12,6 +12,7 @@ const {
   documentType,
   groundCreatorDocumentAttachments,
   normalizeCreatorDocumentObservation,
+  readCreatorLongScriptDocument,
 } = require('../backend/src/services/creatorDocumentGrounding.js');
 
 function escapePdfText(value) {
@@ -116,6 +117,33 @@ test('Creator document grounding reports truncation instead of pretending it rea
   assert.equal(observation.truncated, true);
   assert.ok(observation.text.length <= 1_000);
   assert.match(observation.limitation, /只使用了前部内容/u);
+});
+
+test('Creator long-script import rereads the verified full managed document beyond the 30k LLM window', async (t) => {
+  const directory = await withTempDirectory(t);
+  const filename = path.join(directory, 'full-long-script.txt');
+  const source = [
+    '第一场：长夜',
+    '甲'.repeat(31_000),
+    '第二场：黎明',
+    '最后一句必须被导入。',
+  ].join('\n');
+  await fs.promises.writeFile(filename, source, 'utf8');
+  const sourceAttachment = attachment(filename);
+  const observation = await createCreatorDocumentObservation(sourceAttachment);
+  assert.equal(observation.truncated, true);
+  assert.ok(observation.text.length <= 30_000);
+  assert.doesNotMatch(observation.text, /第二场：黎明/u);
+
+  const full = await readCreatorLongScriptDocument({
+    ...sourceAttachment,
+    contentHash: observation.contentHash,
+    documentObservation: observation,
+  });
+  assert.equal(full.source, source);
+  assert.equal(full.characterCount, source.length);
+  assert.match(full.source, /第二场：黎明/u);
+  assert.match(full.source, /最后一句必须被导入/u);
 });
 
 test('Creator document grounding reuses a valid cached observation without reopening the file', async (t) => {

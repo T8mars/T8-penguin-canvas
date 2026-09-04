@@ -1,6 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Moon, Settings, Sun, Wifi, WifiOff, Sparkles, Cloud, ExternalLink, Copy, Check, Gift, Heart, Youtube, PlayCircle, Bell, Wand2, Globe, MessageCircle, CalendarDays, Rocket, Library, Palette, Skull, Sailboat, BookOpen, Shield, Crown, PanelLeftClose, PanelLeftOpen, Puzzle, KeyRound } from 'lucide-react';
+import { Moon, Settings, Sun, Wifi, WifiOff, Sparkles, Cloud, ExternalLink, Copy, Check, Gift, Heart, Youtube, PlayCircle, Bell, Wand2, Globe, MessageCircle, CalendarDays, Rocket, Library, Palette, Skull, Sailboat, BookOpen, Shield, Crown, PanelLeftClose, PanelLeftOpen, Puzzle, KeyRound, Loader2, TriangleAlert } from 'lucide-react';
 import { useThemeStore } from './stores/theme';
 import { seedDragonBallRadarForShenronTest, useDragonBallRadarStore } from './stores/dragonBallRadar';
 import { seedSaintSeiyaGoldClothsForHadesTest, useSaintSeiyaSanctuaryStore } from './stores/saintSeiyaSanctuary';
@@ -10,6 +10,7 @@ import { useShortcutStore } from './stores/shortcuts';
 import { useUiLocaleStore } from './stores/locale';
 import { stopCanvasCatalogRecoveryPolling, useCanvasStore } from './stores/canvas';
 import Sidebar from './components/Sidebar';
+import CanvasStartupFeedback from './components/CanvasStartupFeedback';
 import type { AddNodeFn, InsertWorkflowFn } from './components/Canvas';
 import AppUpdaterButton from './components/AppUpdaterButton';
 import AgentControlPairingModal from './components/AgentControlPairingModal';
@@ -36,6 +37,11 @@ import { portraitResourceToNodeData } from './utils/portraitResource';
 import { createUploadDataFromItems, type MediaKind } from './utils/mediaCollection';
 import { applyUiFontPreference } from './utils/uiFont';
 import { markCanvasPerformance } from './utils/canvasPerformanceProbe';
+import {
+  deriveCanvasStartupReadiness,
+  INITIAL_CANVAS_SURFACE_READINESS,
+  type CanvasSurfaceReadiness,
+} from './utils/canvasStartupReadiness';
 import { localizeThemeName } from './i18n/themeCatalog';
 import { LocalModalSlot, LocalTopbarSlot } from 'virtual:t8-local-extensions';
 
@@ -367,6 +373,10 @@ function App() {
   } = useThemeStore();
   const { load: loadSettings, save: saveSettings, settings } = useApiKeysStore();
   const bootstrapCanvases = useCanvasStore((state) => state.bootstrapCanvases);
+  const canvasCatalogBootstrapped = useCanvasStore((state) => state.bootstrapped);
+  const canvasCatalogLoading = useCanvasStore((state) => state.loading);
+  const canvasCatalogError = useCanvasStore((state) => state.error);
+  const activeCanvasId = useCanvasStore((state) => state.activeId);
   const shortcuts = useShortcutStore((s) => s.shortcuts);
   const currentTemplate = useMemo(
     () => resolveThemeTemplate(templateId, customTemplates),
@@ -385,6 +395,11 @@ function App() {
   }
   const themeCssApplyCoordinator = themeCssApplyCoordinatorRef.current;
   const [backendStatus, setBackendStatus] = useState<'checking' | 'ok' | 'error'>('checking');
+  const [canvasSurfaceReadiness, setCanvasSurfaceReadiness] = useState<CanvasSurfaceReadiness>(
+    INITIAL_CANVAS_SURFACE_READINESS,
+  );
+  const [startupNotice, setStartupNotice] = useState<{ id: number; text: string } | null>(null);
+  const [startupRetrying, setStartupRetrying] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [apiSettingsMode, setApiSettingsMode] = useState<'full' | 'creator'>('full');
   const [apiSettingsRevision, setApiSettingsRevision] = useState(0);
@@ -422,6 +437,59 @@ function App() {
   // 画布接收节点添加的 ref(从 Sidebar -> Canvas)
   const addNodeRef = useRef<AddNodeFn | null>(null);
   const insertWorkflowRef = useRef<InsertWorkflowFn | null>(null);
+  const retryCanvasLoadRef = useRef<(() => void) | null>(null);
+
+  const canvasStartupReadiness = useMemo(() => deriveCanvasStartupReadiness({
+    backendStatus,
+    catalogBootstrapped: canvasCatalogBootstrapped,
+    catalogLoading: canvasCatalogLoading,
+    catalogError: canvasCatalogError,
+    activeCanvasId,
+    surface: canvasSurfaceReadiness,
+  }), [
+    activeCanvasId,
+    backendStatus,
+    canvasCatalogBootstrapped,
+    canvasCatalogError,
+    canvasCatalogLoading,
+    canvasSurfaceReadiness,
+  ]);
+
+  const canvasStartupHint = useMemo(() => {
+    switch (canvasStartupReadiness.stage) {
+      case 'empty': return t('shell:startup.nodeNeedsCanvas');
+      case 'backend-error': return t('shell:startup.backendError');
+      case 'catalog-error': return t('shell:startup.catalogError');
+      case 'canvas-error': return t('shell:startup.canvasError');
+      case 'document': return t('shell:startup.steps.document');
+      case 'flow': return t('shell:startup.steps.flow');
+      default: return t('shell:startup.preparing');
+    }
+  }, [canvasStartupReadiness.stage, t]);
+
+  const showStartupNotice = useCallback((text: string) => {
+    setStartupNotice({ id: Date.now(), text });
+  }, []);
+
+  useEffect(() => {
+    if (!startupNotice) return undefined;
+    const timer = window.setTimeout(() => setStartupNotice(null), 2_800);
+    return () => window.clearTimeout(timer);
+  }, [startupNotice]);
+
+  const handleStartupBlocked = useCallback((action: 'create' | 'node', message?: string) => {
+    if (message) {
+      showStartupNotice(message);
+      return;
+    }
+    if (action === 'create') {
+      showStartupNotice(t('shell:startup.createBlocked'));
+      return;
+    }
+    showStartupNotice(canvasStartupReadiness.stage === 'empty'
+      ? t('shell:startup.nodeNeedsCanvas')
+      : t('shell:startup.nodeBlocked'));
+  }, [canvasStartupReadiness.stage, showStartupNotice, t]);
 
   const handleOpenZhaotutuTaggerTrainer = useCallback(async () => {
     setZhaotutuOpen(false);
@@ -757,22 +825,51 @@ function App() {
     return () => mo.disconnect();
   }, []);
 
+  const checkBackendNow = useCallback(async () => {
+    const ok = await api.checkBackendStatus();
+    setBackendStatus(ok ? 'ok' : 'error');
+    if (ok) void api.markBackendFrontendInteractive();
+    return ok;
+  }, []);
+
   // 启动探测后端
   useEffect(() => {
-    const check = async () => {
-      const ok = await api.checkBackendStatus();
-      setBackendStatus(ok ? 'ok' : 'error');
-    };
-    check();
-    const t = window.setInterval(check, 15_000);
-    return () => window.clearInterval(t);
-  }, []);
+    void checkBackendNow();
+    const timer = window.setInterval(() => void checkBackendNow(), 15_000);
+    return () => window.clearInterval(timer);
+  }, [checkBackendNow]);
 
   // 目录启动不依赖 Sidebar 是否挂载：即使侧栏被持久化为收起状态，也能恢复最后画布。
   useEffect(() => {
     if (backendStatus === 'ok') void bootstrapCanvases();
     return stopCanvasCatalogRecoveryPolling;
   }, [backendStatus, bootstrapCanvases]);
+
+  const handleRetryCanvasStartup = useCallback(async () => {
+    if (startupRetrying) return;
+    setStartupRetrying(true);
+    try {
+      const backendReady = await checkBackendNow();
+      if (!backendReady) return;
+      if (!canvasCatalogBootstrapped
+        || canvasStartupReadiness.stage === 'catalog'
+        || canvasStartupReadiness.stage === 'catalog-error') {
+        await bootstrapCanvases(true);
+      }
+      if (activeCanvasId && ['document', 'flow', 'canvas-error'].includes(canvasStartupReadiness.stage)) {
+        retryCanvasLoadRef.current?.();
+      }
+    } finally {
+      setStartupRetrying(false);
+    }
+  }, [
+    activeCanvasId,
+    bootstrapCanvases,
+    canvasCatalogBootstrapped,
+    canvasStartupReadiness.stage,
+    checkBackendNow,
+    startupRetrying,
+  ]);
 
   // 自定义主题先从轻量缓存恢复，避免首屏扫描主题目录。
   useEffect(() => {
@@ -961,7 +1058,11 @@ function App() {
   };
 
   const handleAddNode = (type: NodeType) => {
-    addNodeRef.current?.(type);
+    if (!canvasStartupReadiness.canAddNodes || !addNodeRef.current) {
+      handleStartupBlocked('node');
+      return;
+    }
+    addNodeRef.current(type);
   };
 
   const handleInsertResource = async (item: ResourceItem) => {
@@ -1047,7 +1148,7 @@ function App() {
               : 'bg-white border-black/10'
         }`}
       >
-        <div className="flex items-center gap-3">
+        <div className="t8-topbar-brand-status flex items-center gap-3">
           {isOp ? (
             <div className="t8-op-brand flex items-center gap-2">
               <span className="t8-op-brand__mark">
@@ -1246,8 +1347,31 @@ function App() {
               {backendStatus === 'checking' && t('shell:backend.checking')}
             </div>
           )}
+          <span
+            className="t8-canvas-readiness-chip"
+            data-state={canvasStartupReadiness.stage.endsWith('error')
+              ? 'error'
+              : canvasStartupReadiness.stage === 'ready' || canvasStartupReadiness.stage === 'empty'
+                ? 'ready'
+                : 'loading'}
+            data-canvas-startup-chip={canvasStartupReadiness.stage}
+            role="status"
+          >
+            {canvasStartupReadiness.stage.endsWith('error')
+              ? <TriangleAlert size={11} aria-hidden="true" />
+              : canvasStartupReadiness.stage === 'ready' || canvasStartupReadiness.stage === 'empty'
+                ? <Check size={11} aria-hidden="true" />
+                : <Loader2 size={11} className="animate-spin" aria-hidden="true" />}
+            {canvasStartupReadiness.stage === 'ready'
+              ? t('shell:startup.chipReady')
+              : canvasStartupReadiness.stage === 'empty'
+                ? t('shell:startup.chipCatalogReady')
+                : canvasStartupReadiness.stage.endsWith('error')
+                  ? t('shell:startup.chipError')
+                  : t('shell:startup.chipPreparing')}
+          </span>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="t8-topbar-actions flex items-center gap-1">
           {/* 「图图打标器」推广按钮: 放在插件安装左侧, 点击后展示说明与获取链接 */}
           <div ref={zhaotutuWrapRef} className="relative">
             <button
@@ -2403,7 +2527,15 @@ function App() {
         className={`t8-main-layout flex-1 flex overflow-hidden relative${sidebarCollapsed ? ' t8-main-layout--sidebar-collapsed' : ''}`}
         data-sidebar-collapsed={sidebarCollapsed ? 'true' : 'false'}
       >
-        {!sidebarCollapsed && <Sidebar onAddNode={handleAddNode} />}
+        {!sidebarCollapsed && (
+          <Sidebar
+            onAddNode={handleAddNode}
+            canCreateCanvas={canvasStartupReadiness.canCreateCanvas}
+            canAddNodes={canvasStartupReadiness.canAddNodes}
+            startupHint={canvasStartupHint}
+            onStartupBlocked={handleStartupBlocked}
+          />
+        )}
         <button
           type="button"
           className={`t8-sidebar-toggle t8-mini-icon-button${sidebarCollapsed ? ' is-collapsed' : ''}`}
@@ -2414,11 +2546,19 @@ function App() {
         >
           {sidebarCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
         </button>
+        <CanvasStartupFeedback
+          readiness={canvasStartupReadiness}
+          notice={startupNotice}
+          retrying={startupRetrying}
+          onRetry={() => void handleRetryCanvasStartup()}
+        />
         <ErrorBoundary fallbackTitle={t('shell:canvasError')}>
           <Suspense fallback={<InfiniteCanvasBootLoading />}>
             <Canvas
               onAddNodeRef={addNodeRef}
               onInsertWorkflowRef={insertWorkflowRef}
+              onReadinessChange={setCanvasSurfaceReadiness}
+              onRetryLoadRef={retryCanvasLoadRef}
               themeStyleOverride={appliedThemeStyle}
               apiSettingsRevision={apiSettingsRevision}
               onOpenApiSettings={() => {

@@ -138,9 +138,55 @@ function extractChatDelta(raw) {
   return textFromContent(content);
 }
 
+function chatStreamAbortError(message, code) {
+  const error = new Error(message);
+  error.name = 'AbortError';
+  error.code = code;
+  return error;
+}
+
+function readWithChatStreamDeadline(promise, deadlineAt, signal) {
+  if (signal?.aborted) {
+    return Promise.reject(chatStreamAbortError('扩展 LLM 流式读取已取消。', 'stream_aborted'));
+  }
+  const remainingMs = Math.max(0, deadlineAt - Date.now());
+  if (remainingMs <= 0) {
+    return Promise.reject(chatStreamAbortError('扩展 LLM 流式读取超时。', 'stream_timeout'));
+  }
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const finish = (callback, value) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      signal?.removeEventListener?.('abort', onAbort);
+      callback(value);
+    };
+    const onAbort = () => finish(
+      reject,
+      chatStreamAbortError('扩展 LLM 流式读取已取消。', 'stream_aborted'),
+    );
+    const timer = setTimeout(() => finish(
+      reject,
+      chatStreamAbortError('扩展 LLM 流式读取超时。', 'stream_timeout'),
+    ), remainingMs);
+    signal?.addEventListener?.('abort', onAbort, { once: true });
+    Promise.resolve(promise).then(
+      (value) => finish(resolve, value),
+      (error) => finish(reject, error),
+    );
+  });
+}
+
 async function readChatEventStream(response, options = {}) {
   const body = response?.body;
   if (!body) throw new Error('扩展 LLM 流式响应缺少响应体。');
+
+  const configuredTimeoutMs = Number(options.timeoutMs);
+  const streamTimeoutMs = Number.isFinite(configuredTimeoutMs) && configuredTimeoutMs > 0
+    ? configuredTimeoutMs
+    : DEFAULT_TIMEOUT_MS;
+  const streamDeadlineAt = Date.now() + streamTimeoutMs;
 
   const decoder = new TextDecoder();
   let buffer = '';
@@ -234,38 +280,71 @@ async function readChatEventStream(response, options = {}) {
 
   if (typeof body.getReader === 'function') {
     const reader = body.getReader();
+    let readFailed = false;
     try {
       while (!done && !stopped) {
         if (await shouldStop()) {
           stopped = true;
           break;
         }
-        const part = await reader.read();
+        const part = await readWithChatStreamDeadline(
+          reader.read(),
+          streamDeadlineAt,
+          options.signal,
+        );
         if (part.done) break;
         await acceptChunk(part.value);
       }
       buffer += decoder.decode();
       await drain(true);
+    } catch (error) {
+      readFailed = true;
+      throw error;
     } finally {
-      if ((done || stopped) && typeof reader.cancel === 'function') {
+      if ((done || stopped || readFailed) && typeof reader.cancel === 'function') {
         try {
-          await reader.cancel();
+          const cancellation = reader.cancel();
+          if (cancellation && typeof cancellation.catch === 'function') cancellation.catch(() => undefined);
         } catch {
           // Best-effort cancellation; the durable response state remains authoritative.
         }
       }
-      if (typeof reader.releaseLock === 'function') reader.releaseLock();
+      if (typeof reader.releaseLock === 'function') {
+        try { reader.releaseLock(); } catch { /* cancellation may still be settling */ }
+      }
     }
   } else if (typeof body[Symbol.asyncIterator] === 'function') {
-    for await (const chunk of body) {
-      if (done || stopped || await shouldStop()) {
-        stopped = !done;
-        break;
+    const iterator = body[Symbol.asyncIterator]();
+    let iteratorClosed = false;
+    try {
+      while (!done && !stopped) {
+        if (await shouldStop()) {
+          stopped = true;
+          break;
+        }
+        const part = await readWithChatStreamDeadline(
+          iterator.next(),
+          streamDeadlineAt,
+          options.signal,
+        );
+        if (part.done) {
+          iteratorClosed = true;
+          break;
+        }
+        await acceptChunk(part.value);
       }
-      await acceptChunk(chunk);
+      buffer += decoder.decode();
+      await drain(true);
+    } finally {
+      if (!iteratorClosed && typeof iterator.return === 'function') {
+        try {
+          const cancellation = iterator.return();
+          if (cancellation && typeof cancellation.catch === 'function') cancellation.catch(() => undefined);
+        } catch {
+          // Best-effort cancellation; the durable response state remains authoritative.
+        }
+      }
     }
-    buffer += decoder.decode();
-    await drain(true);
   } else {
     throw new Error('扩展 LLM 流式响应体不支持读取。');
   }

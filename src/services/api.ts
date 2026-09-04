@@ -203,13 +203,51 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
 }
 
 // ========== 状态 ==========
+let backendInstanceId = '';
+let frontendInteractiveSignalled = false;
+let frontendInteractiveRequest: Promise<boolean> | null = null;
+
 export async function checkBackendStatus(): Promise<boolean> {
   try {
     const res = await fetch(`${BASE}/status`);
+    if (!res.ok) return false;
+    try {
+      const status = await res.json() as {
+        instanceId?: unknown;
+        readiness?: { frontendInteractive?: unknown };
+      };
+      const nextInstanceId = typeof status.instanceId === 'string' ? status.instanceId : '';
+      if (nextInstanceId && nextInstanceId !== backendInstanceId) {
+        backendInstanceId = nextInstanceId;
+        frontendInteractiveSignalled = false;
+        frontendInteractiveRequest = null;
+      }
+      if (status.readiness?.frontendInteractive === true) frontendInteractiveSignalled = true;
+    } catch {
+      // Older compatible backends may return a non-JSON health response.
+    }
     return res.ok;
   } catch {
+    backendInstanceId = '';
+    frontendInteractiveSignalled = false;
+    frontendInteractiveRequest = null;
     return false;
   }
+}
+
+export function markBackendFrontendInteractive(): Promise<boolean> {
+  if (frontendInteractiveSignalled) return Promise.resolve(true);
+  if (frontendInteractiveRequest) return frontendInteractiveRequest;
+  frontendInteractiveRequest = fetch(`${BASE}/status/interactive`, { method: 'POST' })
+    .then((res) => {
+      frontendInteractiveSignalled = res.ok;
+      return res.ok;
+    })
+    .catch(() => false)
+    .finally(() => {
+      frontendInteractiveRequest = null;
+    });
+  return frontendInteractiveRequest;
 }
 
 // ========== 画布列表 ==========
@@ -3604,14 +3642,38 @@ export interface RhToolboxManifestPersistenceResult {
   toolCount: number;
 }
 
-export function getRhToolboxPersistentManifest() {
-  return safeRequest<RhToolboxManifestPersistenceResult>(`${BASE}/settings/rh-toolbox/manifest`);
+const RH_PERSISTENT_MANIFEST_CACHE_MS = 15_000;
+const RH_PERSISTENT_MANIFEST_FORCE_MIN_INTERVAL_MS = 1_000;
+let rhPersistentManifestCache: { value: Result<RhToolboxManifestPersistenceResult>; fetchedAt: number } | null = null;
+let rhPersistentManifestRequest: Promise<Result<RhToolboxManifestPersistenceResult>> | null = null;
+
+export function getRhToolboxPersistentManifest(force = false) {
+  const now = Date.now();
+  if (rhPersistentManifestCache) {
+    const ageMs = now - rhPersistentManifestCache.fetchedAt;
+    if (ageMs < RH_PERSISTENT_MANIFEST_FORCE_MIN_INTERVAL_MS || (!force && ageMs < RH_PERSISTENT_MANIFEST_CACHE_MS)) {
+      return Promise.resolve(rhPersistentManifestCache.value);
+    }
+  }
+  if (rhPersistentManifestRequest) return rhPersistentManifestRequest;
+  rhPersistentManifestRequest = safeRequest<RhToolboxManifestPersistenceResult>(`${BASE}/settings/rh-toolbox/manifest`)
+    .then((value) => {
+      rhPersistentManifestCache = { value, fetchedAt: Date.now() };
+      return value;
+    })
+    .finally(() => {
+      rhPersistentManifestRequest = null;
+    });
+  return rhPersistentManifestRequest;
 }
 
 export function saveRhToolboxPersistentManifest(manifest: RhToolboxManifest, source = 'maker') {
   return safeRequest<RhToolboxManifestPersistenceResult>(`${BASE}/settings/rh-toolbox/manifest`, {
     method: 'PUT',
     body: JSON.stringify({ manifest, source }),
+  }).then((value) => {
+    if (value.success) rhPersistentManifestCache = { value, fetchedAt: Date.now() };
+    return value;
   });
 }
 

@@ -1,6 +1,6 @@
 {
   "schema": "t8-creative-runtime-catalog-v1",
-  "sourceDigest": "22e4cba0a4e91936bbd22a6604bde13584c6abd0a1f39f5cc434a4fe1384a082",
+  "sourceDigest": "12edb10560d3871617fec742494fbcfdd1f3fe0d840099c57cedfb031217816a",
   "generatedFrom": [
     "src/providers/models.ts",
     "src/config/seedance.ts",
@@ -2814,6 +2814,101 @@
         "maxReferenceVideos": 0,
         "maxReferenceAudios": 0,
         "description": "MiniMax H3 Max 文生视频；提示词必填，5-15 秒，480P/768P，使用六种固定比例。"
+      }
+    },
+    {
+      "id": "video:seedance-nz:hailuo-h3-max-turbo-i2v",
+      "provider": "seedance-nz",
+      "platformLabel": "贞贞的平价AI小屋",
+      "model": "hailuo-h3-max-turbo-i2v",
+      "label": "hailuo-h3-max-turbo-i2v（H3 Max Turbo 首尾帧图生视频）",
+      "family": "hailuo-2.3",
+      "available": true,
+      "parameters": {
+        "label": "hailuo-h3-max-turbo-i2v（H3 Max Turbo 首尾帧图生视频）",
+        "platformLabel": "贞贞的平价AI小屋",
+        "family": "hailuo-2.3",
+        "available": true,
+        "nodeKind": "hailuo",
+        "ratios": [],
+        "defaultRatio": "16:9",
+        "durations": [
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "defaultDuration": 5,
+        "resolutions": [
+          "480p",
+          "768p"
+        ],
+        "defaultResolution": "480p",
+        "supportsImages": true,
+        "supportsVideos": false,
+        "supportsAudios": false,
+        "maxReferenceImages": 2,
+        "maxReferenceVideos": 0,
+        "maxReferenceAudios": 0,
+        "description": "MiniMax H3 Max Turbo 图生视频；提示词与首帧必填，可选尾帧，5-15 秒，480p/768p。"
+      }
+    },
+    {
+      "id": "video:seedance-nz:hailuo-h3-max-turbo-t2v",
+      "provider": "seedance-nz",
+      "platformLabel": "贞贞的平价AI小屋",
+      "model": "hailuo-h3-max-turbo-t2v",
+      "label": "hailuo-h3-max-turbo-t2v（H3 Max Turbo 文生视频）",
+      "family": "hailuo-2.3",
+      "available": true,
+      "parameters": {
+        "label": "hailuo-h3-max-turbo-t2v（H3 Max Turbo 文生视频）",
+        "platformLabel": "贞贞的平价AI小屋",
+        "family": "hailuo-2.3",
+        "available": true,
+        "nodeKind": "hailuo",
+        "ratios": [
+          "21:9",
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "9:16"
+        ],
+        "defaultRatio": "16:9",
+        "durations": [
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "defaultDuration": 5,
+        "resolutions": [
+          "480p",
+          "768p"
+        ],
+        "defaultResolution": "480p",
+        "supportsImages": false,
+        "supportsVideos": false,
+        "supportsAudios": false,
+        "maxReferenceImages": 0,
+        "maxReferenceVideos": 0,
+        "maxReferenceAudios": 0,
+        "description": "MiniMax H3 Max Turbo 文生视频；提示词必填，5-15 秒，480p/768p，使用六种固定比例。"
       }
     },
     {
@@ -9021,7 +9116,7 @@
   "counts": {
     "llm": 34,
     "image": 45,
-    "video": 126,
+    "video": 128,
     "audio": 17,
     "actions": 58
   }

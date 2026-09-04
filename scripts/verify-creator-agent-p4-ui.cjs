@@ -461,33 +461,25 @@ async function focusLauncherAndOpen(cdp) {
   const focused = await cdp.evaluate(`(() => {
     const button = document.querySelector('button[data-canvas-floating-ui="creator-agent-launcher"]');
     if (!button) return false;
-    const startedAt = performance.now();
-    window.__t8CreatorShellReady = new Promise((resolve) => {
-      let observer = null;
-      const finish = () => {
-        const panel = document.querySelector('[data-canvas-floating-ui="creator-agent-panel"]');
-        if (!panel) return false;
-        observer?.disconnect();
-        requestAnimationFrame(() => resolve({
-          elapsedMs: performance.now() - startedAt,
-          schema: panel.dataset.shellReadinessSchema || '',
-          commitMs: Number(panel.dataset.shellCommitMs || 0),
-          paintReadyMs: Number(panel.dataset.shellPaintReadyMs || 0),
-          targetMs: Number(panel.dataset.shellTargetMs || 0),
-          status: panel.dataset.shellReadinessStatus || '',
-        }));
-        return true;
-      };
-      observer = new MutationObserver(finish);
-      observer.observe(document.body, { childList: true, subtree: true });
-      finish();
-    });
+    window.__t8CreatorShellStartedAt = performance.now();
     button.focus();
     return document.activeElement === button;
   })()`);
   assert.equal(focused, true, 'Creator Agent 启动按钮无法取得键盘焦点');
   await pressKey(cdp, 'Enter');
-  const readiness = await cdp.evaluate('window.__t8CreatorShellReady');
+  const readiness = await waitForEvaluation(cdp, `(() => {
+    const panel = document.querySelector('[data-canvas-floating-ui="creator-agent-panel"]');
+    if (!panel || panel.dataset.shellReadinessStatus === 'pending-paint') return null;
+    return {
+      elapsedMs: performance.now() - Number(window.__t8CreatorShellStartedAt || 0),
+      schema: panel.dataset.shellReadinessSchema || '',
+      commitMs: Number(panel.dataset.shellCommitMs || 0),
+      paintReadyMs: Number(panel.dataset.shellPaintReadyMs || 0),
+      targetMs: Number(panel.dataset.shellTargetMs || 0),
+      status: panel.dataset.shellReadinessStatus || '',
+      surface: panel.classList.contains('is-loading-shell') ? 'fallback' : 'creator-v2',
+    };
+  })()`);
   assert.equal(readiness.schema, 't8-creator-agent-shell-readiness-receipt-v1');
   assert.equal(readiness.targetMs, 300);
   assert.equal(readiness.status, 'within-target');

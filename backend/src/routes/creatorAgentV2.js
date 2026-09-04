@@ -24,7 +24,23 @@ const {
   CreatorActionExecutorError,
 } = require('../services/creatorActionExecutor');
 const { groundCreatorAudioAttachments } = require('../services/creatorAgentMediaGrounding');
-const { groundCreatorDocumentAttachments } = require('../services/creatorDocumentGrounding');
+const {
+  groundCreatorDocumentAttachments,
+  readCreatorLongScriptDocument,
+} = require('../services/creatorDocumentGrounding');
+const {
+  applyScenePatchToLongScriptImport,
+  buildLongScriptStyleCanon,
+  buildSceneContextPack,
+  currentSceneSourcePart,
+  prepareLongScriptImport,
+  prepareLongScriptProductionBriefMutation,
+  prepareScenePartAdvanceMutation,
+  prepareScenePatchMutation,
+  readLongScriptWork,
+  splitLongScriptScenes,
+} = require('../services/creatorLongScriptWork');
+const { prepareSceneProductionMutation } = require('../services/creatorSceneProduction');
 const {
   AgentControlAssetError,
   createAgentControlAssetService,
@@ -40,6 +56,15 @@ function result(data = {}, message = '') {
 
 function bounded(value, maximum = 500) {
   return String(value == null ? '' : value).replace(/\r\n?/g, '\n').trim().slice(0, maximum);
+}
+
+function creatorCreationMode(value) {
+  const mode = bounded(value, 24).toLowerCase();
+  if (!mode) return 'auto';
+  if (!['auto', 'scene'].includes(mode)) {
+    throw new CreatorConversationError('CREATOR_CREATION_MODE_INVALID', '创作模式无效，请刷新后重试', 400);
+  }
+  return mode;
 }
 
 function readSettings(filename) {
@@ -118,6 +143,7 @@ function createCreatorAgentV2Router(options = {}) {
   });
   const assetService = options.assetService || createAgentControlAssetService({ config: runtimeConfig, database: database() });
   const activeResponses = options.activeResponses || new Map();
+  const faultInjector = typeof options.faultInjector === 'function' ? options.faultInjector : null;
 
   const requireScope = (input = {}) => {
     const projectId = bounded(input.projectId, 180);
@@ -246,15 +272,155 @@ function createCreatorAgentV2Router(options = {}) {
     } catch (error) { return next(error); }
   });
 
+  router.get('/sessions/:sessionId/scenes', (req, res, next) => {
+    try {
+      const scope = requireScope(req.query || {});
+      return res.json(result(repository.getLongScriptState(req.params.sessionId, scope)));
+    } catch (error) { return next(error); }
+  });
+
+  router.put('/sessions/:sessionId/current-scene', (req, res, next) => {
+    try {
+      const scope = scopeForSession(req.params.sessionId, req.body || {});
+      const navigation = repository.setCurrentScene(req.params.sessionId, req.body?.sceneId, scope);
+      return res.json(result({ navigation }, '已切换到这个场次'));
+    } catch (error) { return next(error); }
+  });
+
+  router.post('/sessions/:sessionId/current-scene/confirm', (req, res, next) => {
+    try {
+      const scope = scopeForSession(req.params.sessionId, req.body || {});
+      const navigation = repository.getLongScriptState(req.params.sessionId, scope);
+      const sceneId = bounded(req.body?.sceneId || navigation.currentSceneId, 180);
+      const sceneIndex = navigation.scenes.findIndex((scene) => scene.sceneId === sceneId);
+      if (sceneIndex < 0) {
+        throw new CreatorConversationError('CREATOR_SCENE_NOT_FOUND', '这个场次不存在或已经被移除', 404);
+      }
+      const workState = repository.getLongScriptContextState(req.params.sessionId, {
+        ...scope, sceneId,
+      });
+      const work = workState.work;
+      const currentScene = work.activeScenes.find((scene) => scene.sceneId === sceneId);
+      const nextSceneId = navigation.scenes[sceneIndex + 1]?.sceneId || sceneId;
+      if (currentScene?.status === 'confirmed') {
+        if (nextSceneId !== navigation.currentSceneId) {
+          repository.setCurrentScene(req.params.sessionId, nextSceneId, scope);
+        }
+        return res.json(result({
+          navigation: repository.getLongScriptState(req.params.sessionId, scope),
+        }, nextSceneId === sceneId ? '这一场已经定稿' : '继续下一场'));
+      }
+      const currentPart = currentSceneSourcePart(work, currentScene);
+      if (!currentPart) {
+        throw new CreatorConversationError(
+          'CREATOR_SCENE_SOURCE_INCOMPLETE',
+          '本场原文还没有完整恢复，请重新载入后再继续',
+          409,
+        );
+      }
+      const requestedPartId = bounded(req.body?.scenePartId, 180) || null;
+      if (currentPart.scenePartId && !requestedPartId) {
+        throw new CreatorConversationError(
+          'CREATOR_SCENE_PART_REQUIRED',
+          '当前段还没有恢复完成，请稍后重试',
+          409,
+        );
+      }
+      if (currentPart.scenePartId && requestedPartId !== currentPart.scenePartId) {
+        return res.json(result({
+          navigation: repository.getLongScriptState(req.params.sessionId, scope),
+        }, '这一段已经处理，继续当前段'));
+      }
+      if (currentPart.index < currentPart.total - 1) {
+        const planned = prepareScenePartAdvanceMutation({
+          work,
+          sceneId,
+          currentVersions: workState.currentVersions,
+          existingSnapshot: workState.snapshot,
+          expectedWorkRevision: workState.snapshot?.revision || 0,
+        });
+        if (!planned) {
+          throw new CreatorConversationError('CREATOR_SCENE_PART_STALE', '当前段已经变化，请恢复最新内容后重试', 409);
+        }
+        const committed = repository.commitWorkMutation(req.params.sessionId, {
+          ...planned,
+          currentSceneId: sceneId,
+          mutations: planned.mutations.map((mutation) => ({
+            ...mutation,
+            source: {
+              logicalRequestId: bounded(req.body?.clientRequestId, 180) || null,
+              proposalDigest: digest({
+                sceneId,
+                scenePartId: currentPart.scenePartId,
+                baseSceneRevision: currentScene.recordRevision,
+                action: 'advance-part',
+              }),
+              editor: 'creator-v2-scene-part-confirm',
+            },
+          })),
+        }, scope);
+        if (committed.status !== 'created') {
+          throw new CreatorConversationError('CREATOR_SCENE_PART_CONFIRM_FAILED', '这一段没有确认成功，请重试', 409);
+        }
+        return res.json(result({
+          navigation: repository.getLongScriptState(req.params.sessionId, scope),
+        }, `这一段已定，继续本场第 ${currentPart.index + 2}/${currentPart.total} 段`));
+      }
+      const contextPack = buildSceneContextPack({
+        work, sceneId, userIntent: '用户确认当前场', workSnapshot: workState.snapshot,
+      });
+      const scenePatch = {
+        schema: 't8-creator-scene-patch-v1',
+        sceneId,
+        scenePartId: contextPack.scenePartId,
+        baseWorkRevision: contextPack.baseWorkRevision,
+        baseSceneRevision: contextPack.baseSceneRevision,
+        contextDigest: contextPack.contextDigest,
+        patch: { status: 'confirmed' },
+        entityProposals: [],
+        conflicts: [],
+      };
+      const planned = prepareScenePatchMutation({
+        contextPack, scenePatch, work,
+        currentVersions: workState.currentVersions,
+        existingSnapshot: workState.snapshot,
+        allowConfirm: true,
+      });
+      if (!planned) {
+        throw new CreatorConversationError('CREATOR_SCENE_PATCH_STALE', '当前场已经变化，请恢复最新内容后重试', 409);
+      }
+      const committed = repository.commitWorkMutation(req.params.sessionId, {
+        ...planned,
+        currentSceneId: nextSceneId,
+        mutations: planned.mutations.map((mutation) => ({
+          ...mutation,
+          source: {
+            logicalRequestId: bounded(req.body?.clientRequestId, 180) || null,
+            proposalDigest: digest({ sceneId, baseSceneRevision: contextPack.baseSceneRevision, action: 'confirm' }),
+            editor: 'creator-v2-scene-confirm',
+          },
+        })),
+      }, scope);
+      if (committed.status !== 'created') {
+        throw new CreatorConversationError('CREATOR_SCENE_CONFIRM_FAILED', '这场没有确认成功，请重试', 409);
+      }
+      return res.json(result({
+        navigation: repository.getLongScriptState(req.params.sessionId, scope),
+      }, nextSceneId === sceneId ? '这一场已经定稿' : '这一场已定稿，继续下一场'));
+    } catch (error) { return next(error); }
+  });
+
   router.post('/sessions/:sessionId/messages', async (req, res, next) => {
     let responseId = '';
     let responseControl = null;
     try {
       const scope = scopeForSession(req.params.sessionId, req.body || {});
+      const creationMode = creatorCreationMode(req.body?.creationMode);
       const priorRequest = repository.findUserMessageByClientRequest(req.params.sessionId, {
         ...scope,
         body: req.body?.text,
         clientRequestId: req.body?.clientRequestId,
+        creationMode,
       });
       if (priorRequest) {
         const priorAssistant = repository.findAssistantResponseForUserMessage(
@@ -270,17 +436,37 @@ function createCreatorAgentV2Router(options = {}) {
       let turnAttachments = priorRequest
         ? hydrateLlmAssetRefs(priorRequest.media)
         : hydrateLlmAssetRefs(turnContext.attachments);
+      const longScriptDocumentSources = [];
       const turnSelectedNodes = priorRequest?.selectedNodes || turnContext.selected;
       const turnBody = priorRequest?.body || creatorTurnBody(req.body || {}, turnAttachments, turnSelectedNodes);
-      if (!priorRequest && turnAttachments.some((item) => item.kind === 'file')) {
+      if (turnAttachments.some((item) => item.kind === 'file')) {
         try {
           const grounding = await groundCreatorDocumentAttachments(turnAttachments);
           turnAttachments = grounding.attachments;
+          for (const item of turnAttachments) {
+            if (item.kind !== 'file' || !item.documentObservation?.text) continue;
+            if (!item.documentObservation.truncated) {
+              longScriptDocumentSources.push({
+                source: item.documentObservation.text,
+                sourceKind: 'asset', sourceAssetId: item.assetId, title: item.title,
+              });
+              continue;
+            }
+            // The 30k observation is deliberately bounded for ordinary LLM
+            // context. Long-script persistence must read the verified managed
+            // document itself or fail clearly; it must never import only the
+            // visible prefix while claiming the whole script was accepted.
+            const full = await readCreatorLongScriptDocument(item);
+            if (full?.source) longScriptDocumentSources.push({
+              source: full.source,
+              sourceKind: 'asset', sourceAssetId: item.assetId, title: item.title,
+            });
+          }
         } catch (documentError) {
           throw new CreatorConversationError(
             bounded(documentError?.code, 120) || 'CREATOR_DOCUMENT_READ_FAILED',
             bounded(documentError?.message, 500) || '文档正文没有读取成功，请重新选择文件',
-            422,
+            Math.max(400, Math.min(499, Math.trunc(Number(documentError?.status) || 422))),
           );
         }
       }
@@ -301,6 +487,9 @@ function createCreatorAgentV2Router(options = {}) {
       const preferences = repository.getPreferences(scope);
       const llmSnapshot = llm.modelSnapshot('llm', preferences, {
         requiresVision: turnAttachments.some((item) => ['image', 'video'].includes(item.kind)),
+        preferredModelId: creationMode === 'scene'
+          && !turnAttachments.some((item) => ['image', 'video'].includes(item.kind))
+          ? 'qwen/qwen3.7-max' : null,
       });
       const appended = priorRequest ? { duplicate: true, message: priorRequest }
         : repository.appendUserMessage(req.params.sessionId, {
@@ -309,12 +498,18 @@ function createCreatorAgentV2Router(options = {}) {
           attachments: turnAttachments,
           selectedNodes: turnSelectedNodes,
           clientRequestId: req.body?.clientRequestId,
+          creationMode,
         });
       if (appended.duplicate) {
         const priorAssistant = repository.findAssistantResponseForUserMessage(
           req.params.sessionId, appended.message.id, scope,
         );
         if (priorAssistant) {
+          if (priorAssistant.status === 'streaming') {
+            repository.recoverStagedAssistantResponse(
+              req.params.sessionId, priorAssistant.responseId, scope,
+            );
+          }
           const snapshot = conversationSnapshot(req.params.sessionId, scope, { limit: 24 });
           return res.json(result(snapshot, '已恢复这次创作'));
         }
@@ -344,6 +539,63 @@ function createCreatorAgentV2Router(options = {}) {
       const conversationBefore = repository.getConversation(req.params.sessionId, { ...scope, limit: 18 });
       const before = conversationBefore.messages
         .filter((message) => message.responseId !== responseId && message.id !== appended.message.id);
+      const sourceCandidates = [
+        {
+          source: priorRequest ? appended.message.body : String(req.body?.text == null ? '' : req.body.text),
+          sourceKind: 'message', sourceAssetId: null, title: null,
+        },
+        ...longScriptDocumentSources,
+      ];
+      const requestedSceneId = bounded(
+        req.body?.currentSceneId || conversationBefore.conversation.currentSceneId,
+        180,
+      );
+      const explicitImportCandidate = sourceCandidates.find((sourceCandidate) => {
+        const parsed = splitLongScriptScenes(sourceCandidate.source);
+        return parsed.explicitHeadings && parsed.scenes.length >= 2;
+      }) || null;
+      const forcedSingleSceneCandidate = creationMode === 'scene' && !requestedSceneId
+        ? ([...longScriptDocumentSources, sourceCandidates[0]]
+          .find((sourceCandidate) => String(sourceCandidate?.source || '').trim()) || null)
+        : null;
+      const importCandidate = explicitImportCandidate || forcedSingleSceneCandidate;
+      const singleSceneDraftImport = Boolean(importCandidate && !explicitImportCandidate);
+      const workStateBefore = importCandidate
+        ? repository.getWorkState(req.params.sessionId, {
+            ...scope,
+            includeCurrentVersions: true,
+          })
+        : repository.getLongScriptContextState(req.params.sessionId, {
+            ...scope,
+            sceneId: requestedSceneId,
+          });
+      const longScriptImport = importCandidate
+        ? prepareLongScriptImport({
+          sessionId: req.params.sessionId,
+          ...importCandidate,
+          currentVersions: workStateBefore.currentVersions,
+          existingSnapshot: workStateBefore.snapshot,
+          allowSingleScene: singleSceneDraftImport,
+        }) : null;
+      const longScriptWork = longScriptImport?.previewWork || workStateBefore.work || readLongScriptWork(
+        workStateBefore.currentVersions,
+        workStateBefore.snapshot,
+      );
+      const sceneContext = longScriptWork.activeScenes?.length
+        ? buildSceneContextPack({
+              work: longScriptWork,
+              sceneId: requestedSceneId || longScriptWork.currentSceneId,
+              mode: longScriptImport
+                ? singleSceneDraftImport ? 'scene-draft' : 'import-preview'
+                : creationMode === 'scene' ? 'scene-draft' : 'scene-edit',
+              userIntent: appended.message.body,
+            workSnapshot: workStateBefore.snapshot,
+            styleCanon: buildLongScriptStyleCanon({
+              currentVersions: workStateBefore.currentVersions,
+              workingBrief: conversationBefore.conversation.workingBrief,
+            }),
+          })
+        : null;
       const generated = await llm.respond({
         prompt: appended.message.body,
         history: before,
@@ -352,6 +604,7 @@ function createCreatorAgentV2Router(options = {}) {
         selectedNodes: turnSelectedNodes,
         workingBrief: conversationBefore.conversation.workingBrief,
         currentPhase: conversationBefore.conversation.phase,
+        sceneContext,
       }, {
         registerAbort: (handler) => {
           responseControl.abort = handler;
@@ -368,23 +621,134 @@ function createCreatorAgentV2Router(options = {}) {
       const proposedAction = generated.proposedAction ? {
         ...generated.proposedAction,
         inputAssetIds: generated.proposedAction.inputAssetIds.filter((assetId) => allowedAssetIds.has(assetId)),
+        ...(Array.isArray(generated.proposedAction.shots) ? {
+          shots: generated.proposedAction.shots.map((shot) => ({
+            ...shot,
+            inputAssetIds: (Array.isArray(shot.inputAssetIds) ? shot.inputAssetIds : [])
+              .filter((assetId) => allowedAssetIds.has(assetId)),
+          })),
+        } : {}),
       } : null;
-      const assistant = repository.completeAssistantResponse(req.params.sessionId, responseId, {
+      const scenePatchMutation = generated.scenePatch && sceneContext
+        ? longScriptImport && sceneContext.mode === 'scene-draft'
+          ? applyScenePatchToLongScriptImport({
+              importPlan: longScriptImport,
+              contextPack: sceneContext,
+              scenePatch: generated.scenePatch,
+              currentVersions: workStateBefore.currentVersions,
+              existingSnapshot: workStateBefore.snapshot,
+            })
+          : !longScriptImport ? prepareScenePatchMutation({
+            contextPack: sceneContext,
+            scenePatch: generated.scenePatch,
+            work: longScriptWork,
+            currentVersions: workStateBefore.currentVersions,
+            existingSnapshot: workStateBefore.snapshot,
+            allowConfirm: false,
+          }) : null
+        : null;
+      if (sceneContext?.mode !== 'import-preview' && generated.scenePatch && !scenePatchMutation) {
+        throw new CreatorConversationError(
+          'CREATOR_SCENE_PATCH_STALE',
+          '当前场已经变化，请恢复最新内容后重试',
+          409,
+        );
+      }
+      const productionBriefMutation = longScriptWork.activeScenes?.length
+        ? prepareLongScriptProductionBriefMutation({
+            currentVersions: workStateBefore.currentVersions,
+            workingBrief: generated.workingBrief,
+            title: longScriptWork.title,
+          })
+        : null;
+      const actionScene = proposedAction?.workBinding
+        ? scenePatchMutation?.scene
+          || longScriptWork.activeScenes.find((scene) => scene.sceneId === proposedAction.workBinding.sceneId)
+          || null
+        : null;
+      const sceneProductionPlan = actionScene ? prepareSceneProductionMutation({
+        scene: actionScene,
+        action: proposedAction,
+        currentVersions: workStateBefore.currentVersions,
+      }) : null;
+      if (proposedAction?.workBinding && !sceneProductionPlan) {
+        throw new CreatorConversationError(
+          'CREATOR_SCENE_PRODUCTION_INVALID',
+          '当前场镜头计划没有完整保存，请重试',
+          422,
+        );
+      }
+      const workMutationPlan = longScriptImport ? {
+        expectedWorkRevision: longScriptImport.expectedWorkRevision,
+        currentSceneId: scenePatchMutation?.currentSceneId || longScriptImport.previewWork.currentSceneId,
+        taskProfile: longScriptImport.taskProfile,
+        mutations: [
+          ...(scenePatchMutation?.importPlan?.mutations || longScriptImport.mutations),
+          ...(productionBriefMutation ? [productionBriefMutation] : []),
+        ],
+      } : scenePatchMutation || productionBriefMutation || sceneProductionPlan ? {
+        expectedWorkRevision: workStateBefore.snapshot?.revision || 0,
+        currentSceneId: scenePatchMutation?.currentSceneId || requestedSceneId || longScriptWork.currentSceneId,
+        taskProfile: scenePatchMutation?.taskProfile || workStateBefore.snapshot?.taskProfile,
+        mutations: [
+          ...(scenePatchMutation?.mutations || []),
+          ...(productionBriefMutation ? [productionBriefMutation] : []),
+          ...(sceneProductionPlan?.mutations || []),
+        ],
+      } : null;
+      const completionAction = proposedAction?.workBinding ? {
+        ...proposedAction,
+        shots: sceneProductionPlan.shots,
+        workBinding: {
+          ...proposedAction.workBinding,
+          sceneRevision: Math.max(1, Math.trunc(Number(
+            scenePatchMutation?.scene?.recordRevision
+              || proposedAction.workBinding.sceneRevision,
+          ) || 1)),
+          shotIds: sceneProductionPlan.shotIds,
+          shotPlanDigest: sceneProductionPlan.planDigest,
+        },
+      } : proposedAction;
+      const assistantCompletion = {
         ...scope,
         body: generated.replyMarkdown,
         suggestions: generated.suggestions,
-        action: proposedAction,
+        action: completionAction,
         conversationContext: {
           workingBrief: generated.workingBrief,
           phaseDecision: generated.phaseDecision,
           source: 'llm-turn',
         },
-      });
+        ...(workMutationPlan ? {
+          workMutation: {
+            expectedWorkRevision: workMutationPlan.expectedWorkRevision,
+            currentSceneId: workMutationPlan.currentSceneId,
+            taskProfile: workMutationPlan.taskProfile,
+            mutations: workMutationPlan.mutations.map((mutation) => ({
+              ...mutation,
+              source: {
+                responseId,
+                logicalRequestId: req.body?.clientRequestId,
+                proposalDigest: generated.evidence?.responseDigest,
+                editor: 'creator-v2-long-script-import',
+              },
+            })),
+          },
+        } : {}),
+      };
+      repository.stageAssistantResult(req.params.sessionId, responseId, assistantCompletion, scope);
+      const assistant = repository.completeAssistantResponse(
+        req.params.sessionId, responseId, assistantCompletion,
+      );
       const snapshot = conversationSnapshot(req.params.sessionId, scope, { limit: 24 });
       return res.status(201).json(result({ ...snapshot, assistant, evidence: generated.evidence }, '回复已完成'));
     } catch (error) {
       if (responseId) {
         try {
+          repository.discardAssistantDraft(req.params.sessionId, responseId, {
+            projectId: req.body?.projectId,
+            canvasId: req.body?.canvasId,
+          });
           repository.failAssistantResponse(req.params.sessionId, responseId, {
             projectId: req.body?.projectId,
             canvasId: req.body?.canvasId,
@@ -545,6 +909,34 @@ function createCreatorAgentV2Router(options = {}) {
     } catch (error) { return next(error); }
   });
 
+  router.post('/sessions/:sessionId/actions/:actionId/retry', (req, res, next) => {
+    try {
+      const scope = scopeForSession(req.params.sessionId, req.body || {});
+      const clientRequestId = bounded(req.body?.clientRequestId, 180)
+        || `action-retry-${digest({ actionId: req.params.actionId }).slice(0, 32)}`;
+      const action = repository.retryFailedAction(
+        req.params.actionId, req.params.sessionId, { clientRequestId }, scope,
+      );
+      const started = executor.start(req.params.sessionId, action.id, scope);
+      return res.status(202).json(result({ action: started }, '正在重新生成这一条'));
+    } catch (error) { return next(error); }
+  });
+
+  router.post('/sessions/:sessionId/media/:assetId/reviewed', (req, res, next) => {
+    try {
+      const scope = scopeForSession(req.params.sessionId, req.body || {});
+      const actionId = bounded(req.body?.actionId, 180);
+      const assetId = bounded(req.params.assetId, 180);
+      const clientRequestId = bounded(req.body?.clientRequestId, 180)
+        || `media-review-${digest({ actionId, assetId }).slice(0, 32)}`;
+      const action = repository.recordMediaReviewed(actionId, req.params.sessionId, assetId, {
+        clientRequestId,
+        evidenceKind: req.body?.evidenceKind,
+      }, scope);
+      return res.json(result({ action }, '结果已显示'));
+    } catch (error) { return next(error); }
+  });
+
   router.post('/sessions/:sessionId/media/:assetId/send-to-canvas', async (req, res, next) => {
     try {
       const scope = scopeForSession(req.params.sessionId, req.body || {});
@@ -554,6 +946,27 @@ function createCreatorAgentV2Router(options = {}) {
       if (!action.resultAssets.some((item) => item.assetId === assetId)) {
         throw new CreatorConversationError('CREATOR_ACTION_ASSET_MISMATCH', '这个素材不属于当前生成结果', 409);
       }
+      const operationId = bounded(req.body?.clientRequestId, 180)
+        || `media-send-${digest({
+          actionId, assetId, targetNodeId: bounded(req.body?.targetNodeId, 180) || null,
+          position: req.body?.position || null,
+        }).slice(0, 32)}`;
+      repository.adoptMediaCandidate(actionId, req.params.sessionId, assetId, {
+        clientRequestId: `${operationId}:adopt`,
+      }, scope);
+      const placement = repository.beginMediaPlacement(actionId, req.params.sessionId, assetId, {
+        clientRequestId: `${operationId}:place`,
+        targetNodeId: req.body?.targetNodeId,
+        position: req.body?.position,
+      }, scope);
+      const persistedAsset = placement.action.resultAssets.find((item) => item.assetId === assetId);
+      if (placement.status === 'completed' && persistedAsset?.canvasNodeId) {
+        return res.json(result({
+          nodeId: persistedAsset.canvasNodeId,
+          duplicate: true,
+          canvasRevision: persistedAsset.canvasRevision,
+        }, '已在画布中'));
+      }
       const document = database().getCanvas(scope.canvasId);
       const snapshot = await assetService.inspectPlace(assetId, document, {
         projectId: scope.projectId,
@@ -562,7 +975,13 @@ function createCreatorAgentV2Router(options = {}) {
       });
       const resolved = resolveAppliedAssetPlacement(database(), scope.canvasId, snapshot);
       if (resolved.status === 'applied') {
-        repository.updateConversationPhase(req.params.sessionId, 'delivery', scope);
+        repository.completeMediaPlacement(actionId, req.params.sessionId, assetId, {
+          clientRequestId: `${operationId}:place`,
+          nodeId: snapshot.placement.nodeId,
+          patchId: snapshot.patch.id,
+          patchRequestDigest: resolved.application.requestDigest,
+          canvasRevision: resolved.application.appliedRevision,
+        }, scope);
         return res.json(result({
           nodeId: snapshot.placement.nodeId,
           duplicate: true,
@@ -581,7 +1000,21 @@ function createCreatorAgentV2Router(options = {}) {
         confirmed: true,
         previewDigest: preview.previewDigest,
       });
-      repository.updateConversationPhase(req.params.sessionId, 'delivery', scope);
+      if (faultInjector) faultInjector('canvas-patch-applied', {
+        sessionId: req.params.sessionId,
+        actionId,
+        assetId,
+        patchId: snapshot.patch.id,
+        canvasRevision: applied.revision,
+      });
+      const recorded = resolveAppliedAssetPlacement(database(), scope.canvasId, snapshot);
+      repository.completeMediaPlacement(actionId, req.params.sessionId, assetId, {
+        clientRequestId: `${operationId}:place`,
+        nodeId: snapshot.placement.nodeId,
+        patchId: snapshot.patch.id,
+        patchRequestDigest: recorded.application.requestDigest,
+        canvasRevision: recorded.application.appliedRevision,
+      }, scope);
       return res.json(result({ nodeId: snapshot.placement.nodeId, duplicate: false, canvasRevision: applied.revision }, '已发送到画布'));
     } catch (error) { return next(error); }
   });

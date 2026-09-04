@@ -119,6 +119,7 @@ const INTERNAL_EXISTING_TRANSACTION_ASSERTED_METHODS = [
   '_insertCommonGraphEvidenceRow',
   '_putCanvasSnapshotPin',
   '_ensureRecoveryAnchorPin',
+  '_releaseTerminalRunSnapshotPins',
   '_createSnapshotPinOwnerIndex',
   '_dropSnapshotPinOwnerIndex',
   '_assertCanvasHistoryAccounting',
@@ -130,6 +131,7 @@ const INTERNAL_UNRESOLVED_METHODS = [
   '_copyRecoveryEvidence',
   '_writeRecoveryGenerationState',
   '_createBackupAtomically',
+  '_reconcileTerminalRunSnapshotPins',
 ];
 const STRICT_WRITER_INTERNAL_IMPLEMENTATIONS = new Map([
   ['reserveCommonOperationIdentities', '_reserveCommonOperationIdentities'],
@@ -379,26 +381,26 @@ test('B2 writer inventory classifies every ProjectDatabase method while policy s
   assert.equal(inventory.methodClassification.consistencyIssueCount, 0);
   assert.deepEqual(inventory.methodClassification.categories, [...METHOD_CLASSIFICATION_CATEGORIES]);
   assert.deepEqual(inventory.methodClassification.counts, {
-    read: 198,
-    write: 182,
-    maintenance: 43,
+    read: 201,
+    write: 184,
+    maintenance: 45,
     migration: 32,
     'test-only': 0,
     unclassified: 0,
   });
   assert.deepEqual(inventory.methodClassification.manifestCounts, {
-    read: 198,
-    write: 182,
-    maintenance: 43,
+    read: 201,
+    write: 184,
+    maintenance: 45,
     migration: 32,
     'test-only': 0,
   });
-  assert.equal(inventory.projectDatabase.methodCount, 455);
+  assert.equal(inventory.projectDatabase.methodCount, 462);
   assert.equal(inventory.writerPolicy.policyCompliant, false);
   assert.deepEqual(inventory.writerPolicy.methodCounts, {
-    compliant: 408,
-    noncompliant: 11,
-    unresolved: 4,
+    compliant: 413,
+    noncompliant: 12,
+    unresolved: 5,
     notApplicable: 32,
   });
   assert.deepEqual(
@@ -429,7 +431,7 @@ test('ProjectDatabase inventory freezes structure and selected known direct writ
   assert.equal(inventory.file, 'backend/src/services/projectDatabase.js');
   assert.equal(inventory.className, 'ProjectDatabase');
   assert.equal(inventory.methods.length, inventory.methodCount);
-  assert.equal(inventory.methodCount, 455);
+  assert.equal(inventory.methodCount, 462);
 
   for (const method of inventory.methods) {
     assert.equal(typeof method.name, 'string');

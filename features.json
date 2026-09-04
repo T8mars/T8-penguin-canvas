@@ -1,7 +1,54 @@
 {
   "$schema": "本文件为 T8-penguin-canvas 节点清单防丢失锁,任何节点删减都需要在 roadmap.md 中说明并更新本文件。",
-  "version": "3.1.3",
-  "lastUpdated": "2026-09-02-v3.1.3-released-dual-platform-verified",
+  "version": "3.1.4",
+  "lastUpdated": "2026-09-04-v3.1.4-release-authorized-evidence-deferred",
+  "electronReleaseV314": {
+    "status": "release-authorized-technical-gates-pending",
+    "date": "2026-09-04",
+    "releaseIncluded": true,
+    "version": "3.1.4",
+    "tag": "v3.1.4",
+    "latest": false,
+    "scope": [
+      "Creator Agent 在输入框内提供唯一轻量逐场创作入口；短想法与完整长剧本都由真实 LLM 逐场推进，保留人物、地点、关系、离场状态和全剧风格连续性，并继续只给三个当前可执行建议。",
+      "启动链使用同一 projectRuntime、当前文档权威 revision、ReactFlow 与 renderer-interactive 收据判断可交互状态；5000 条画布完整保留，首屏只取 50 条并继续分页，不设置 400 条硬上限。",
+      "Creator 首屏、顶部安全区、200% 布局、输入法与触控边界收口；后台轮询在隐藏或空闲时暂停/退避，RH 工具清单跨节点共享缓存，减少启动期无效请求和资源占用。",
+      "贞贞的平价AI小屋 Hailuo TAB 新增 hailuo-h3-max-turbo-t2v 与 hailuo-h3-max-turbo-i2v，严格执行文档规定的提示词、5-15 秒、小写 480p/768p、比例与首尾帧合同，并附两份无凭据工作流。",
+      "完整保留 v3.1.3 及更早全部节点、模型、工作流、Provider 协议、MiniMax Music3、Veo Omni 1.1、多语言本地化大师、默认渠道和旧画布字段。"
+    ],
+    "verification": [
+      "Creator 逐场模式已由真实 qwen/qwen3.7-max 生成 600 字可拍单场，并由 qwen/qwen3.8-max 独立严格评审为 9.0/10；长剧本另由 zhenzhen/gk-4.6 完成四回合连续性与重启恢复验收。",
+      "Hailuo H3 Max Turbo 两模型各首次提交一次并完成终态、下载、FFprobe 与 FFmpeg 全片解码；T2V 为 832x480 / 5.184s，I2V 为 480x480 / 5.184s。",
+      "Windows、真实 macOS arm64、自动更新清单、固定 Tag/target、远端完整下载和最终资产摘要必须在正式发布完成后据实回填，不得提前标记通过。"
+    ],
+    "evidenceBoundary": {
+      "technicalGates": "must-pass-before-release",
+      "affectedUserInstallF8F10AndInstalledUpgrade": "deferred-not-passed",
+      "deferralApproval": "owner-approved-post-release-v3.1.4",
+      "rule": "证据后补只适用于反馈用户安装、多端协作、F8-F10、真人自然语言体验、设备级读屏/触控/缩放与安装升级；测试、构建、加密、运行时、app.asar 启动合同、NSIS、provenance、sealed recovery、固定 Tag/target、Windows/Mac 自动更新资产与完整性验证不可延期。"
+    }
+  },
+  "creatorSceneMode20260904": {
+    "status": "release-authorized-v3.1.4-live-verified",
+    "date": "2026-09-04",
+    "releaseIncluded": true,
+    "interaction": [
+      "Creator 输入框内新增唯一轻量逐场创作开关；短想法与完整剧本均可显式进入高质量逐场链，不新增弹窗或独立工作台。",
+      "启用后原位显示逐场创作中并切换场景化占位提示；关闭面板、首次建立真实会话或重试后仍保留选择，进入已有长剧后保持逐场模式。",
+      "每轮回复仍由真实 LLM 生成并只显示可直接使用的场稿与三个下一步，不显示费用、内部 JSON、revision、Provider 原始响应或技术回执。"
+    ],
+    "runtime": [
+      "短想法先原子导入为单场，并在同一事务保存首版 draftText；原始输入 sourceText 与 LLM 场稿分离，刷新和重启可恢复。",
+      "纯文本逐场且用户没有显式选择模型时优先使用贞贞的平价AI小屋 qwen/qwen3.7-max；用户显式模型选择始终优先，图片或视频输入继续走 Vision 模型。",
+      "场稿质量门拒绝过短、抽象概述、空泛旁白、单数道具扩增与缺少可拍推进的正文；对明确关系结果要求可见的共同下一步，限制无关象征道具；模型补丁严格绑定当前场、当前段、work/scene revision 与 context digest，失败最多交给 LLM 定向修复一次。",
+      "相同 clientRequestId 与相同模式精确复用，不重复调用 Provider；相同请求 ID 改变模式失败关闭；429/500/502/503 或网络瞬断仅做一次 700ms 有界重试，504/524/长期超时不循环。"
+    ],
+    "verification": [
+      "真实短提示由 qwen/qwen3.7-max 经两次有界调用输出 600 字可拍场稿，只落一场、只使用一杯热豆浆且未创建媒体动作；qwen/qwen3.8-max 独立严格评审 9.0/10，子项为意图 10、场景 9、可拍性 9、自然度 9、新手可用性 9。",
+      "脱敏证据：artifacts/creator-agent-scene-mode-live/1788502499244.json；API Key、Provider 原始响应与签名信息未写入证据；此前 8.0 分稿明确保留为 rejected 证据，没有冒充通过。",
+      "Creator 十套 Electron ABI 回归 178/178、TypeScript、能力同步 39 actions / 280 runtime / 83/83 nodes、中英文 4437 Key 与 production build 通过；真实 Chrome 已核验入口、激活态、短输入、生成中反馈、单场落库及首次会话后模式不复位。"
+    ]
+  },
   "startupPosterCarousel": {
     "status": "released-v3.1.3-live-verified",
     "date": "2026-09-02",
@@ -97,6 +144,69 @@
       "affectedUserInstallF8F10AndInstalledUpgrade": "deferred-not-passed",
       "deferralApproval": "owner-approved-post-release-v3.1.3",
       "rule": "证据后补只适用于反馈用户安装、多端协作、F8-F10、真人自然语言体验、设备级读屏/触控/缩放与安装升级；测试、构建、加密、运行时、app.asar 启动合同、NSIS、provenance、sealed recovery、固定 Tag/target、Windows/Mac 自动更新资产与完整性验证不可延期。"
+    }
+  },
+  "hailuoH3MaxTurboVideoModels20260904": {
+    "status": "release-authorized-v3.1.4-live-verified",
+    "date": "2026-09-04",
+    "releaseIncluded": true,
+    "provider": "seedance-nz",
+    "platform": "贞贞的平价AI小屋",
+    "videoTab": "hailuo-2.3",
+    "models": [
+      "hailuo-h3-max-turbo-t2v",
+      "hailuo-h3-max-turbo-i2v"
+    ],
+    "sources": {
+      "officialDocs": {
+        "url": "https://api.seedance.nz/docs/llms.txt",
+        "checkedAt": "2026-09-04",
+        "lastModified": "Thu, 03 Sep 2026 15:44:49 GMT",
+        "sha256": "9da7fb9abf0f87b2c6041d1f7ddcb6c8c90f24bde0a05eb9b5aa875a5bc3c033"
+      },
+      "referenceProject": "F:\\AI-T8-video-onekey\\ComfyUI\\custom_nodes\\ComfyUI_Seedance",
+      "referenceFiles": [
+        "nodes.py",
+        "web/js/hailuo_h3_model_ui.js",
+        "tests/test_hailuo_h3_max.py",
+        "examples/海螺hailuo-h3-max-turbo文生视频.json",
+        "examples/海螺hailuo-h3-max-turbo图生视频首尾帧.json"
+      ]
+    },
+    "contract": {
+      "shared": "两个 Turbo 模型均强制非空提示词、5-15 秒整数时长和小写 480p/768p 分辨率；网关用 20480 字符作为保护上限，但不把它描述为上游模型能力。",
+      "t2v": "不接受图片、视频或音频参考；metadata.ratio 必填且仅允许 21:9、16:9、4:3、1:1、3:4、9:16。",
+      "i2v": "必须提供 1 张首帧，可选第 2 张尾帧；只发送顶层 images，不发送 metadata.ratio，也不接受视频或音频参考。",
+      "compatibility": "只在贞贞的平价AI小屋 Hailuo TAB 追加两个独立模型；既有 Hailuo 2.3、H3、H3 Max、MiniMax H3 OW、默认渠道和旧画布字段均保持不变。"
+    },
+    "workflows": [
+      "docs/workflows/hailuo-h3-max-turbo-t2v.json",
+      "docs/workflows/hailuo-h3-max-turbo-i2v.json"
+    ],
+    "verification": {
+      "offline": "模型目录、大小写分辨率隔离、T2V/I2V 请求体、素材边界、前端切换、双语文案、无凭据工作流和生成能力目录均通过。",
+      "live": [
+        {
+          "model": "hailuo-h3-max-turbo-t2v",
+          "attempts": 1,
+          "status": "succeeded",
+          "bytes": 1208275,
+          "sha256": "42c346143a0509bb63018a7904f8b2143b326af5e0fcab749d6c74d25f862bc8",
+          "media": "832x480 · 5.184s · H.264 MP4 · full decode passed"
+        },
+        {
+          "model": "hailuo-h3-max-turbo-i2v",
+          "attempts": 1,
+          "status": "succeeded",
+          "bytes": 814661,
+          "sha256": "4f7617a1ae4190d74fe39bf5a799e744dbccf7d2569e599633a41d1be6a2d171",
+          "media": "480x480 · 5.184s · H.264 MP4 · full decode passed"
+        }
+      ],
+      "sanitizedReport": "output/hailuo-h3-max-turbo-live-20260904/report.json",
+      "credentialsPersisted": false,
+      "submissionRule": "每个模型只提交一次；任务断点在测试期间复用，完成后不重复提交。",
+        "scope": "核心目录已完成开发与真实 Provider 验收；已纳入 v3.1.4 正式发布范围，Electron、固定 Tag、双平台自动更新资产与远端完整性仍须通过发布门禁。"
     }
   },
   "hailuoH3MaxVideoModels": {
@@ -2451,7 +2561,7 @@
   "versionSequencePolicy": {
     "status": "active",
     "date": "2026-07-30",
-    "currentVersion": "3.1.3",
+    "currentVersion": "3.1.4",
     "rules": [
       "版本号每一段只使用 0-9；v2.6.9 的下一正式版本固定为 v2.7.0。",
       "禁止创建、打包、推送、打 tag、发布或写入自动更新元数据为 v2.6.10。",
@@ -2483,6 +2593,7 @@
       "v2.9.6 的下一正式版本固定为 v2.9.7。",
       "v3.1.1 的下一正式版本固定为 v3.1.2。",
       "v3.1.2 的下一正式版本固定为 v3.1.3。",
+      "v3.1.3 的下一正式版本固定为 v3.1.4。",
       "后续改版本前必须同步核对 package.json、package-lock.json、README、features.json、项目 SKILL.md、Release notes、自动更新元数据和 Git tag。"
     ]
   },
@@ -14997,6 +15108,55 @@
       "真实 LLM、真实 Canvas Patch、真实媒体 Run 和物理交付已经有脱敏证据；未执行独立真人盲评，且未知素材许可证继续阻止 release-ready 结论。",
       "普通 Vite production build、真实 Chromium 验收和 v3.1.1 Windows/macOS arm64 同源 Electron 构建、打包、固定 Tag、远端完整回下载与发布技术门禁均已通过。",
       "高层工具只覆盖能力图中注册的受控入口；本地化阶段仍需用户在节点中明确运行，任意内部路由、凭据、原始 CanvasPatch 或 Worker 调用继续失败关闭。"
+    ]
+  },
+  "creatorAgentLongScriptSceneContinuityAndStartupReadiness": {
+    "status": "release-authorized-v3.1.4-development-verified",
+    "date": "2026-09-04",
+    "releaseIncluded": true,
+    "scope": {
+      "coreDirectory": "E:\\PenguinPravite\\T8-penguin-canvas",
+      "oneSceneAtATime": true,
+      "stableSceneAndPartIdentity": true,
+      "characterLocationRelationshipContinuity": true,
+      "wholeWorkStyleLock": true,
+      "exactlyOnceSceneAdvance": true,
+      "authoritativeCanvasReadinessGate": true,
+      "canvasCatalogHardLimit": null
+    },
+    "highlights": [
+      "显式分场长剧本按权威原文导入，模型每轮只读取当前场次、当前长场片段和所需连续性上下文；超过安全上限时失败关闭，不把 30k 观察窗口冒充全文。",
+      "场次、长场片段、镜头和实体使用稳定 ID、revision、digest、lineage 与 tombstone；重复确认不会跳场，局部修改不会重建未受影响身份。",
+      "人物、地点、关系、离场状态和全剧锁定风格沿当前场次继续；显式连续性重置只截断对应角色和依赖链。",
+      "画布外壳、目录、当前文档、权威 revision 和 ReactFlow 就绪保持不同状态；左侧节点只在当前画布真正可交互后解锁，空目录仍可立即新建画布。",
+      "画布目录启动首屏只读取 50 项并用窗口化列表继续分页；5000 条隔离画布完整保留，没有以 400 条上限换性能。",
+      "ProjectDatabase 即使先由旧画布路由打开，也会被统一 projectRuntime 直接接管；权威就绪、启动备份和后台维护复用同一实例，不再出现数据库已经可用但运行时仍显示 idle 的分裂状态。",
+      "浏览器开发态与 Electron 都会在首个健康状态响应后向后端发送一次幂等的 renderer-interactive 收据；接口位于 API 404 边界之前，后端不再固定等待 30 秒兜底。",
+      "VibeX、Photoshop 和协作待办轮询在页面隐藏时暂停，空闲或失败时从 1.8/2.2/2.5 秒有界退避到 15 秒；RH 工具清单改为跨节点共享缓存与并发合并，避免多个节点重复请求。",
+      "Creator 面板根据顶部控制条真实几何底边加 8px 安全区定位，窗口或控制条尺寸变化时同步更新，不再遮挡画布控制条。",
+      "纯空白首屏固定为最多 500px；模型状态读取重试耗尽后给出明确、单一且可操作的重新读取入口，不再静默禁用发送。",
+      "常见窗口与 200% Electron CSS 视口下，顶部动作按 1600px 响应式收紧，末端语言、设置和主题操作保持可达。",
+      "Creator 输入增加 composition ref、原生 isComposing/keyCode 229 与 140ms 输入法结束保护；长剧本场次切换、搜索、翻页、确认和上传取消在窄屏或粗指针下均至少 44px。"
+    ],
+    "verification": [
+      "Creator 长剧本、逐场生产、文档接地、会话、动作、LLM、Provider 与前端合同串行回归 184/184 通过。",
+      "画布启动、目录、就绪反馈、5000 条目录与 projectRuntime 接管专项串行回归 30/30 通过。",
+      "真实开发后端/Vite/Chrome 依次观察 connecting、backend-error、catalog、empty、document、flow、ready；73/73 节点只在 ready 后解锁，browserErrors=[]。",
+      "真实 Electron 100% 开发窗口中工具栏 bottom=106、Creator 面板 top=114，间距 8px、首屏高度 500px 且 overlapsToolbar=false；fallback 下一帧 paint-ready=10.4ms、外部 elapsed=17.2ms，冷 Vite 下真实 V2 约 2.955s 后接管。",
+      "项目锁定 Electron 的浅色 100%、浅色 200%、深色 200% 和 CDP 触控 200% 均无横向溢出、不遮挡控制条、17/17 顶部动作不裁切；实际 V2 的 8 个可见触控按钮全部至少 44×44px。",
+      "Chromium 可访问树包含具名 Creator dialog 和首屏核心控件，前 8 个 Tab 焦点无重复；四套布局证据可同时保留，不再互相覆盖。",
+      "CDP 阻断 Creator settings/catalog 请求的真实 Electron 故障注入显示明确重试界面且 browserErrors=[]，证据为 layout-report-light-100pct-settings-error.json。",
+      "贞贞平价AI小屋 zhenzhen/gk-4.6 串行完成 4 个真实 LLM 回合和 4 次 Provider 调用；三场导入、当前场局部修改、新人物稳定身份、隔场复用、离场状态/全剧风格连续性及重启恢复全部通过，脱敏摘要为 artifacts/creator-agent-long-script-live/report.json。",
+      "ProjectDatabase writer inventory 已同步当前 462 个方法和 201/184/45/32 分类；独立 lifecycle policy 精确覆盖 12 个公开与 5 个内部边界，Creator 自有 Better-SQLite3 close 不再误报为 ProjectDatabase 外泄，生产 lifecycle callsite 为 0；writer 81/81 与 lifecycle 3/3 通过。",
+      "MiniMax Music3 1022 个固定资源、RH 工具箱 15 tools / 12 categories、公开源码清洁门、顶层 npm 依赖树及核心目录 development/core 身份复核通过；没有切换当前分支。",
+      "真实冷开发启动中 storageRuntime=ready、attempts=0、startupBackupStarted=true、frontendInteractive=true/source=renderer-http；空闲轮询稳定退避到约 15 秒，RH 清单稳定态仅一次共享请求。",
+      "五轮只读审计发现的 Creator 输入法保护与长剧本操作触控目标两项 P1 已修复；同一审计 Agent 对修复后源码完成最终只读复核，轻量专项 37/37，通过且没有遗留或新增 P0/P1。",
+      "能力同步为 39 actions、280 runtime entries、83/83 nodes；中英文 4437 个 Key、TypeScript 和 2GB Node 堆上限 production build 均通过，Vite 转换 2952 个模块。"
+    ],
+    "boundaries": [
+      "本轮 UI/启动验收只使用系统临时目录中的隔离 userData 和画布数据库；长剧本另完成 4 回合真实 LLM 验收，仍只使用临时 SQLite、禁止媒体生成、结束即清理且不保存 API Key；全程不读取或改写保留的生产项目数据库。",
+      "当前 Windows 主机为 100% DPI且未安装 NVDA，没有可确认的真实触控设备；CDP 触控和 devicePixelRatio=2 证据不冒充物理设备，独立新手五秒测试、真人自然语言盲评、NVDA、VoiceOver、真实触控及真实 OS 200% 浅深主题仍是外部设备/人员验收项。",
+      "本开发检查点已完成普通 production build；现已按用户明确授权纳入 v3.1.4，正式 Electron、固定 Tag、Windows/macOS 自动更新资产与远端完整性仍须通过发布门禁。"
     ]
   }
 }

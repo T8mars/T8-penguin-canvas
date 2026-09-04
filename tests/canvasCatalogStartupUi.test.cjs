@@ -13,7 +13,7 @@ test('canvas bootstrap is independent from Sidebar mounting and restores persist
 
   assert.match(app, /useCanvasStore\(\(state\) => state\.bootstrapCanvases\)/);
   assert.match(app, /backendStatus === 'ok'\) void bootstrapCanvases\(\)/);
-  assert.match(app, /!sidebarCollapsed && <Sidebar/);
+  assert.match(app, /!sidebarCollapsed && \([\s\S]{0,160}<Sidebar/);
   assert.doesNotMatch(sidebar, /useEffect\([\s\S]{0,160}loadCanvases\(/);
 
   assert.match(store, /CANVAS_BOOTSTRAP_PAGE_SIZE = 50/);

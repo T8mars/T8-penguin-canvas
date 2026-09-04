@@ -7,9 +7,15 @@ const CREATOR_WORK_SNAPSHOT_SCHEMA = 't8-creator-work-snapshot-v1';
 const CREATOR_LLM_TURN_RECEIPT_SCHEMA = 't8-creator-llm-turn-receipt-v1';
 
 const MAX_ARTIFACTS_PER_TURN = 16;
-const MAX_ARTIFACT_VERSIONS = 240;
+// Legacy Creator sessions still keep their bounded history in one session
+// document.  Scoped long-form work uses the normalized V2 repository, but
+// this wider read window keeps a migrated 300/500-scene project from losing
+// current shard pointers while it is being normalized.
+const MAX_ARTIFACT_VERSIONS = 4_096;
 const MAX_TEXT = 16_000;
 const MAX_JSON_BYTES = 240_000;
+const MAX_SCOPED_MUTATIONS = 256;
+const ROOT_SCOPE_KEY = 'root';
 
 const COMMON_FIELDS = Object.freeze([
   'summary',
@@ -57,7 +63,7 @@ const ARTIFACT_FIELDS = Object.freeze({
   ],
   ScriptDoc: [
     'title', 'logline', 'theme', 'synopsis', 'characters', 'acts', 'scenes',
-    'dialogue', 'ending', ...COMMON_FIELDS,
+    'dialogue', 'ending', 'manifest', 'source', ...COMMON_FIELDS,
   ],
   WorldBible: [
     'premise', 'locations', 'rules', 'timeline', 'continuity', ...COMMON_FIELDS,
@@ -159,6 +165,17 @@ function validDigest(value) {
   return /^[a-f0-9]{64}$/u.test(String(value || '').toLowerCase());
 }
 
+function normalizeScopeKey(value) {
+  const scopeKey = boundedText(value || ROOT_SCOPE_KEY, 160);
+  return /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,159}$/u.test(scopeKey)
+    ? scopeKey
+    : ROOT_SCOPE_KEY;
+}
+
+function artifactLogicalKey(kind, scopeKey = ROOT_SCOPE_KEY) {
+  return `${boundedText(kind, 80)}\u0000${normalizeScopeKey(scopeKey)}`;
+}
+
 function normalizeFamily(value) {
   const family = boundedText(value, 32).toLowerCase();
   return Object.prototype.hasOwnProperty.call(REQUIRED_KINDS, family) ? family : 'mixed';
@@ -255,6 +272,7 @@ function normalizeProposalArtifact(value) {
     .slice(0, 12);
   return {
     kind,
+    scopeKey: normalizeScopeKey(value.scopeKey),
     title,
     operation: 'upsert',
     fields,
@@ -294,7 +312,8 @@ function createCreatorWorkProposal(input = {}) {
     .map(normalizeProposalArtifact);
   if (!artifacts.length || artifacts.some((artifact) => artifact == null)) return null;
   const kinds = artifacts.map((artifact) => artifact.kind);
-  if (new Set(kinds).size !== kinds.length) return null;
+  const logicalKeys = artifacts.map((artifact) => artifactLogicalKey(artifact.kind, artifact.scopeKey));
+  if (new Set(logicalKeys).size !== logicalKeys.length) return null;
   const missingKinds = requiredKinds.filter((kind) => !kinds.includes(kind));
   const unexpectedKinds = Array.isArray(input.requiredKinds)
     ? kinds.filter((kind) => !requiredKinds.includes(kind))
@@ -384,6 +403,9 @@ function versionPayload(value) {
     versionId: value.versionId,
     revision: value.revision,
     kind: value.kind,
+    ...(Object.prototype.hasOwnProperty.call(value, 'scopeKey')
+      ? { scopeKey: normalizeScopeKey(value.scopeKey) }
+      : {}),
     title: value.title,
     status: value.status,
     fields: value.fields,
@@ -403,6 +425,8 @@ function normalizeWorkArtifactVersion(value) {
   const versionId = boundedText(value.versionId, 80);
   const revision = Math.max(1, Math.trunc(Number(value.revision) || 0));
   const kind = boundedText(value.kind, 80);
+  const hasScopeKey = Object.prototype.hasOwnProperty.call(value, 'scopeKey');
+  const scopeKey = normalizeScopeKey(value.scopeKey);
   const title = boundedText(value.title, 200);
   const status = boundedText(value.status, 40);
   const fields = normalizeFields(kind, value.fields);
@@ -463,6 +487,7 @@ function normalizeWorkArtifactVersion(value) {
     versionId,
     revision,
     kind,
+    ...(hasScopeKey ? { scopeKey } : {}),
     title,
     status,
     fields,
@@ -492,7 +517,10 @@ function latestWorkArtifactVersions(value) {
     const previous = latest.get(version.artifactId);
     if (!previous || version.revision > previous.revision) latest.set(version.artifactId, version);
   }
-  return [...latest.values()].sort((left, right) => left.kind.localeCompare(right.kind));
+  return [...latest.values()].sort((left, right) => (
+    left.kind.localeCompare(right.kind)
+    || normalizeScopeKey(left.scopeKey).localeCompare(normalizeScopeKey(right.scopeKey))
+  ));
 }
 
 function creatorWorkMutationScope(prompt, existingVersions = []) {
@@ -540,6 +568,7 @@ function workArtifactSummaries(value) {
     versionId: version.versionId,
     revision: version.revision,
     kind: version.kind,
+    scopeKey: normalizeScopeKey(version.scopeKey),
     title: version.title,
     status: version.status,
     fieldCount: Object.keys(version.fields || {}).length,
@@ -726,6 +755,200 @@ function invalidationClosure(changedKinds) {
   return [...invalidated].sort();
 }
 
+/**
+ * Commit a bounded set of server-authoritative scoped artifacts without
+ * asking the model to rewrite every sibling shard.  This is used by Creator
+ * V2 long-form work after the LLM turn itself has succeeded.  The caller must
+ * persist createdVersions and snapshot in one database transaction.
+ */
+function createScopedWorkArtifactMutation(input = {}) {
+  const sessionId = boundedText(input.sessionId, 160);
+  const existing = normalizeWorkArtifactVersions(input.existingVersions);
+  const existingSnapshot = normalizeCreatorWorkSnapshot(input.existingSnapshot);
+  const expectedWorkRevision = input.expectedWorkRevision == null
+    ? existingSnapshot?.revision || 0
+    : Math.max(0, Math.trunc(Number(input.expectedWorkRevision) || 0));
+  if (!sessionId || expectedWorkRevision !== (existingSnapshot?.revision || 0)) {
+    return {
+      status: 'blocked', code: 'work-snapshot-stale', versions: existing,
+      createdVersions: [], snapshot: existingSnapshot,
+    };
+  }
+  const taskProfile = normalizeTaskProfile(
+    input.taskProfile || existingSnapshot?.taskProfile,
+    normalizeFamily(input.taskProfile?.family || existingSnapshot?.taskProfile?.family),
+    normalizeQualityMode(input.taskProfile?.qualityMode || existingSnapshot?.taskProfile?.qualityMode),
+  );
+  if (!taskProfile) {
+    return {
+      status: 'blocked', code: 'work-task-profile-invalid', versions: existing,
+      createdVersions: [], snapshot: existingSnapshot,
+    };
+  }
+  const requestedMutations = Array.isArray(input.mutations) ? input.mutations : [];
+  if (requestedMutations.length > MAX_SCOPED_MUTATIONS) {
+    return {
+      status: 'blocked', code: 'work-scoped-mutation-limit', versions: existing,
+      createdVersions: [], snapshot: existingSnapshot,
+    };
+  }
+  const mutations = requestedMutations;
+  if (!mutations.length) {
+    return {
+      status: 'reused', code: 'work-content-unchanged', versions: existing,
+      createdVersions: [], snapshot: existingSnapshot,
+    };
+  }
+  const latest = latestWorkArtifactVersions(existing);
+  const latestByLogicalKey = new Map(latest.map((version) => [
+    artifactLogicalKey(version.kind, version.scopeKey), version,
+  ]));
+  const normalizedMutations = mutations.map((mutation) => {
+    const kind = boundedText(mutation?.kind, 80);
+    const scopeKey = normalizeScopeKey(mutation?.scopeKey);
+    const title = boundedText(mutation?.title, 200);
+    const fields = normalizeFields(kind, mutation?.fields);
+    const status = ['model-draft', 'creator-edited', 'accepted', 'rejected']
+      .includes(boundedText(mutation?.status, 40))
+      ? boundedText(mutation.status, 40)
+      : 'creator-edited';
+    const baseVersionId = boundedText(mutation?.baseVersionId, 80) || null;
+    return kind && ARTIFACT_FIELDS[kind] && title && fields ? {
+      kind, scopeKey, title, fields, status, baseVersionId,
+      source: mutation?.source && typeof mutation.source === 'object' ? mutation.source : {},
+    } : null;
+  });
+  if (normalizedMutations.some((mutation) => mutation == null)) {
+    return {
+      status: 'blocked', code: 'work-scoped-mutation-invalid', versions: existing,
+      createdVersions: [], snapshot: existingSnapshot,
+    };
+  }
+  const logicalKeys = normalizedMutations.map((mutation) => artifactLogicalKey(
+    mutation.kind, mutation.scopeKey,
+  ));
+  if (new Set(logicalKeys).size !== logicalKeys.length) {
+    return {
+      status: 'blocked', code: 'work-scoped-mutation-duplicate', versions: existing,
+      createdVersions: [], snapshot: existingSnapshot,
+    };
+  }
+  const now = boundedText(input.createdAt, 80) || new Date().toISOString();
+  const createdVersions = [];
+  for (const mutation of normalizedMutations) {
+    const logicalKey = artifactLogicalKey(mutation.kind, mutation.scopeKey);
+    const previous = latestByLogicalKey.get(logicalKey) || null;
+    if ((previous?.versionId || null) !== mutation.baseVersionId) {
+      return {
+        status: 'blocked', code: 'work-artifact-stale', versions: existing,
+        createdVersions: [], snapshot: existingSnapshot,
+        blockedScopeKey: mutation.scopeKey,
+      };
+    }
+    const operations = diffFields(previous?.fields || {}, mutation.fields);
+    if (previous && previous.title !== mutation.title) {
+      operations.unshift({
+        op: 'replace', path: '/title', beforeDigest: digest(previous.title),
+        afterDigest: digest(mutation.title),
+      });
+    }
+    const lockedViolation = operations.find((operation) => previous?.fieldLocks?.includes(operation.path));
+    if (lockedViolation) {
+      return {
+        status: 'blocked', code: 'work-field-locked', versions: existing,
+        createdVersions: [], snapshot: existingSnapshot,
+        blockedScopeKey: mutation.scopeKey, blockedPath: lockedViolation.path,
+      };
+    }
+    if (previous && !operations.length && previous.status === mutation.status) continue;
+    const identityPayload = mutation.scopeKey === ROOT_SCOPE_KEY
+      ? { schema: 't8-creator-work-artifact-id-v1', sessionId, kind: mutation.kind }
+      : {
+          schema: 't8-creator-work-artifact-id-v1', sessionId,
+          kind: mutation.kind, scopeKey: mutation.scopeKey,
+        };
+    const artifactId = previous?.artifactId
+      || `cwa_${digest(identityPayload).slice(0, 32)}`;
+    const revision = (previous?.revision || 0) + 1;
+    const source = {
+      responseId: boundedText(mutation.source.responseId, 160) || null,
+      logicalRequestId: boundedText(mutation.source.logicalRequestId, 160) || null,
+      llmTurnReceiptDigest: validDigest(mutation.source.llmTurnReceiptDigest)
+        ? String(mutation.source.llmTurnReceiptDigest).toLowerCase() : null,
+      proposalDigest: validDigest(mutation.source.proposalDigest)
+        ? String(mutation.source.proposalDigest).toLowerCase() : null,
+      editor: boundedText(mutation.source.editor, 40) || 'creator-v2',
+    };
+    const versionId = `cwav_${digest({
+      schema: CREATOR_WORK_ARTIFACT_VERSION_SCHEMA,
+      artifactId, revision, scopeKey: mutation.scopeKey, fields: mutation.fields, source,
+    }).slice(0, 32)}`;
+    const next = {
+      schema: CREATOR_WORK_ARTIFACT_VERSION_SCHEMA,
+      artifactId,
+      versionId,
+      revision,
+      kind: mutation.kind,
+      ...(mutation.scopeKey === ROOT_SCOPE_KEY ? {} : { scopeKey: mutation.scopeKey }),
+      title: mutation.title,
+      status: mutation.status,
+      fields: mutation.fields,
+      fieldLocks: previous?.fieldLocks || [],
+      dependencies: previous?.dependencies || [],
+      invalidates: previous?.invalidates || [],
+      source,
+      diff: {
+        schema: CREATOR_WORK_ARTIFACT_DIFF_SCHEMA,
+        baseVersionId: previous?.versionId || null,
+        operations: operations.length ? operations : [{
+          op: 'replace', path: '/status',
+          ...(previous ? { beforeDigest: digest(previous.status) } : {}),
+          afterDigest: digest(mutation.status),
+        }],
+      },
+      createdAt: now,
+    };
+    next.versionDigest = digest(versionPayload(next));
+    const verified = normalizeWorkArtifactVersion(next);
+    if (!verified) {
+      return {
+        status: 'blocked', code: 'work-scoped-version-invalid', versions: existing,
+        createdVersions: [], snapshot: existingSnapshot,
+      };
+    }
+    createdVersions.push(verified);
+    latestByLogicalKey.set(logicalKey, verified);
+  }
+  if (!createdVersions.length) {
+    return {
+      status: 'reused', code: 'work-content-unchanged', versions: existing,
+      createdVersions: [], snapshot: existingSnapshot,
+    };
+  }
+  const currentVersions = [...latestByLogicalKey.values()].sort((left, right) => (
+    left.kind.localeCompare(right.kind)
+    || normalizeScopeKey(left.scopeKey).localeCompare(normalizeScopeKey(right.scopeKey))
+  ));
+  const nextVersions = normalizeWorkArtifactVersions([...existing, ...createdVersions]);
+  const snapshot = {
+    schema: CREATOR_WORK_SNAPSHOT_SCHEMA,
+    workId: existingSnapshot?.workId
+      || `cw_${digest({ schema: CREATOR_WORK_SNAPSHOT_SCHEMA, sessionId }).slice(0, 32)}`,
+    revision: (existingSnapshot?.revision || 0) + 1,
+    taskProfile,
+    artifactVersionIds: currentVersions.map((version) => version.versionId),
+    changedArtifactIds: createdVersions.map((version) => version.artifactId),
+    invalidatedKinds: [...new Set((Array.isArray(input.invalidatedKinds)
+      ? input.invalidatedKinds : []).map((kind) => boundedText(kind, 80)).filter(Boolean))].sort(),
+    updatedAt: now,
+  };
+  snapshot.workDigest = digest(snapshot);
+  return {
+    status: 'created', code: 'work-version-created', versions: nextVersions,
+    createdVersions, snapshot,
+  };
+}
+
 function compileCreatorWorkProposal(input = {}) {
   const proposal = normalizeCreatorWorkProposal(input.proposal);
   const evidence = input.responseEvidence;
@@ -757,15 +980,25 @@ function compileCreatorWorkProposal(input = {}) {
           .filter((item) => /^\/[A-Za-z][A-Za-z0-9]*\/fields\/(?:shots|frames|prompts)$/u.test(item)))],
       }
     : { restricted: false, allowedPaths: [], preserveArrayPrefixes: [] };
-  const latestByKind = new Map(latestWorkArtifactVersions(existing).map((version) => [version.kind, version]));
+  const latestVersions = latestWorkArtifactVersions(existing);
+  const latestByLogicalKey = new Map(latestVersions.map((version) => [
+    artifactLogicalKey(version.kind, version.scopeKey), version,
+  ]));
+  const latestRootByKind = new Map(latestVersions
+    .filter((version) => normalizeScopeKey(version.scopeKey) === ROOT_SCOPE_KEY)
+    .map((version) => [version.kind, version]));
   const now = boundedText(input.createdAt, 80) || new Date().toISOString();
   const prepared = [];
   const changedKinds = new Set();
   for (const artifact of proposal.artifacts) {
-    const artifactId = `cwa_${digest({
-      schema: 't8-creator-work-artifact-id-v1', sessionId, kind: artifact.kind,
-    }).slice(0, 32)}`;
-    const previous = latestByKind.get(artifact.kind) || null;
+    const scopeKey = normalizeScopeKey(artifact.scopeKey);
+    const identityPayload = scopeKey === ROOT_SCOPE_KEY
+      ? { schema: 't8-creator-work-artifact-id-v1', sessionId, kind: artifact.kind }
+      : {
+          schema: 't8-creator-work-artifact-id-v1', sessionId, kind: artifact.kind, scopeKey,
+        };
+    const artifactId = `cwa_${digest(identityPayload).slice(0, 32)}`;
+    const previous = latestByLogicalKey.get(artifactLogicalKey(artifact.kind, scopeKey)) || null;
     const familyRequiredKinds = REQUIRED_KINDS[proposal.taskProfile.family]
       || REQUIRED_KINDS.mixed;
     const incrementalProposal = Array.isArray(proposal.requiredKinds)
@@ -866,6 +1099,7 @@ function compileCreatorWorkProposal(input = {}) {
       versionId,
       revision,
       kind: artifact.kind,
+      ...(scopeKey === ROOT_SCOPE_KEY ? {} : { scopeKey }),
       title: artifact.title,
       status: 'model-draft',
       fields: nextFields,
@@ -889,21 +1123,27 @@ function compileCreatorWorkProposal(input = {}) {
       createdAt: now,
     });
   }
-  const currentByKind = new Map(latestByKind);
-  prepared.forEach((version) => currentByKind.set(version.kind, version));
+  const currentByLogicalKey = new Map(latestByLogicalKey);
+  prepared.forEach((version) => currentByLogicalKey.set(
+    artifactLogicalKey(version.kind, version.scopeKey), version,
+  ));
   const invalidates = invalidationClosure(changedKinds);
-  const finalizedByKind = new Map();
-  const finalizingKinds = new Set();
+  const finalizedByArtifactId = new Map();
+  const finalizingArtifactIds = new Set();
   const finalizeVersion = (value) => {
     if (value.versionDigest) return value;
-    if (finalizedByKind.has(value.kind)) return finalizedByKind.get(value.kind);
-    if (finalizingKinds.has(value.kind)) {
-      throw new Error(`work-dependency-cycle:${value.kind}`);
+    if (finalizedByArtifactId.has(value.artifactId)) return finalizedByArtifactId.get(value.artifactId);
+    if (finalizingArtifactIds.has(value.artifactId)) {
+      throw new Error(`work-dependency-cycle:${value.kind}:${normalizeScopeKey(value.scopeKey)}`);
     }
-    finalizingKinds.add(value.kind);
-    const artifact = proposal.artifacts.find((item) => item.kind === value.kind);
+    finalizingArtifactIds.add(value.artifactId);
+    const valueScopeKey = normalizeScopeKey(value.scopeKey);
+    const artifact = proposal.artifacts.find((item) => (
+      item.kind === value.kind && normalizeScopeKey(item.scopeKey) === valueScopeKey
+    ));
     const dependencies = (artifact?.dependsOnKinds || DEPENDENCY_KINDS[value.kind] || [])
-      .map((kind) => currentByKind.get(kind))
+      .map((kind) => currentByLogicalKey.get(artifactLogicalKey(kind, valueScopeKey))
+        || latestRootByKind.get(kind))
       .filter(Boolean)
       .map((dependency) => finalizeVersion(dependency))
       .map((dependency) => ({
@@ -918,8 +1158,8 @@ function compileCreatorWorkProposal(input = {}) {
       invalidates: invalidates.filter((kind) => kind !== value.kind),
     };
     normalized.versionDigest = digest(versionPayload(normalized));
-    finalizingKinds.delete(value.kind);
-    finalizedByKind.set(value.kind, normalized);
+    finalizingArtifactIds.delete(value.artifactId);
+    finalizedByArtifactId.set(value.artifactId, normalized);
     return normalized;
   };
   let created;
@@ -1114,12 +1354,14 @@ module.exports = {
   CREATOR_WORK_SNAPSHOT_SCHEMA,
   REQUIRED_KINDS,
   compileCreatorWorkProposal,
+  createScopedWorkArtifactMutation,
   creatorWorkMutationScope,
   createCreatorLlmTurnReceipt,
   createCreatorWorkProposal,
   latestWorkArtifactVersions,
   normalizeFamily,
   normalizeQualityMode,
+  normalizeScopeKey,
   normalizeWorkArtifactVersion,
   normalizeWorkArtifactVersions,
   normalizeCreatorWorkProposal,

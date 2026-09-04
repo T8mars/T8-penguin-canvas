@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useMemo, useState, type UIEvent } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type UIEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import * as Icons from 'lucide-react';
 import {
@@ -392,6 +392,10 @@ const FARM_STORY_ICON_BY_TYPE: Record<string, string> = {
 
 interface SidebarProps {
   onAddNode: (type: NodeType) => void;
+  canCreateCanvas: boolean;
+  canAddNodes: boolean;
+  startupHint: string;
+  onStartupBlocked: (action: 'create' | 'node', message?: string) => void;
 }
 
 const CANVAS_ROW_HEIGHT = 42;
@@ -543,10 +547,21 @@ const CanvasCatalogRow = memo(function CanvasCatalogRow({
   );
 });
 
-export default function Sidebar({ onAddNode }: SidebarProps) {
+export default function Sidebar({
+  onAddNode,
+  canCreateCanvas,
+  canAddNodes,
+  startupHint,
+  onStartupBlocked,
+}: SidebarProps) {
   const { t } = useTranslation('shell');
   const uiLocale = useUiLocaleStore((state) => state.locale);
-  useEffect(() => markCanvasPerformance('canvas-catalog-interactive'), []);
+  const catalogInteractiveMarkedRef = useRef(false);
+  useEffect(() => {
+    if (!canCreateCanvas || catalogInteractiveMarkedRef.current) return;
+    catalogInteractiveMarkedRef.current = true;
+    markCanvasPerformance('canvas-catalog-interactive');
+  }, [canCreateCanvas]);
   const { theme, style, templateId, customTemplates } = useThemeStore();
   const currentTemplate = useMemo(
     () => resolveThemeTemplate(templateId, customTemplates),
@@ -562,6 +577,8 @@ export default function Sidebar({ onAddNode }: SidebarProps) {
   const canvases = useCanvasStore((state) => state.canvases);
   const activeId = useCanvasStore((state) => state.activeId);
   const canvasLoading = useCanvasStore((state) => state.loading);
+  const canvasBootstrapped = useCanvasStore((state) => state.bootstrapped);
+  const canvasError = useCanvasStore((state) => state.error);
   const canvasLoadingMore = useCanvasStore((state) => state.loadingMore);
   const canvasTotal = useCanvasStore((state) => state.total);
   const canvasHasMore = useCanvasStore((state) => state.hasMore);
@@ -586,6 +603,8 @@ export default function Sidebar({ onAddNode }: SidebarProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [creatingCanvas, setCreatingCanvas] = useState(false);
+  const creatingCanvasRef = useRef(false);
   const completionNoticeSet = useMemo(() => new Set(completionNoticeCanvasIds), [completionNoticeCanvasIds]);
   const displayedCanvasTotal = canvasTotal ?? canvases.length;
   const displayedCanvases = canvasSearchQuery ? canvasSearchResults : canvases;
@@ -600,9 +619,22 @@ export default function Sidebar({ onAddNode }: SidebarProps) {
   );
 
   const handleCreateCanvas = useCallback(async () => {
+    if (!canCreateCanvas) {
+      onStartupBlocked('create');
+      return;
+    }
+    if (creatingCanvasRef.current) return;
+    creatingCanvasRef.current = true;
+    setCreatingCanvas(true);
     const name = t('catalog.defaultName', { index: displayedCanvasTotal + 1 });
-    await createCanvas(name);
-  }, [createCanvas, displayedCanvasTotal, t]);
+    try {
+      const created = await createCanvas(name);
+      if (!created) onStartupBlocked('create', useCanvasStore.getState().error || t('startup.createFailed'));
+    } finally {
+      creatingCanvasRef.current = false;
+      setCreatingCanvas(false);
+    }
+  }, [canCreateCanvas, createCanvas, displayedCanvasTotal, onStartupBlocked, t]);
 
   const startEdit = useCallback((id: string, name: string) => {
     setEditingId(id);
@@ -727,9 +759,17 @@ export default function Sidebar({ onAddNode }: SidebarProps) {
     return (
       <button
         key={n.type}
-        onClick={() => onAddNode(n.type)}
-        title={displayNode.description}
-        className={`t8-sidebar-node w-full text-left flex items-center gap-2 px-2 py-1.5 transition-colors text-xs ${
+        onClick={() => {
+          if (!canAddNodes) {
+            onStartupBlocked('node');
+            return;
+          }
+          onAddNode(n.type);
+        }}
+        title={canAddNodes ? displayNode.description : t('startup.nodeBlocked')}
+        aria-disabled={!canAddNodes}
+        data-canvas-node-ready={canAddNodes ? 'true' : 'false'}
+        className={`t8-sidebar-node${canAddNodes ? '' : ' t8-sidebar-node--waiting'} w-full text-left flex items-center gap-2 px-2 py-1.5 transition-colors text-xs ${
           isPixel
             ? 'px-row'
             : `rounded-md ${
@@ -811,7 +851,10 @@ export default function Sidebar({ onAddNode }: SidebarProps) {
             <span className="opacity-60 ml-1 normal-case">{displayedCanvasTotal}</span>
           </button>
           <button
-            onClick={handleCreateCanvas}
+            onClick={() => void handleCreateCanvas()}
+            disabled={creatingCanvas}
+            aria-disabled={!canCreateCanvas || creatingCanvas}
+            data-canvas-create-ready={canCreateCanvas ? 'true' : 'false'}
             className={
               isPixel
                 ? 'px-btn px-btn--icon px-btn--mint'
@@ -821,9 +864,11 @@ export default function Sidebar({ onAddNode }: SidebarProps) {
                       : 'hover:bg-black/10 text-zinc-700'
                   }`
             }
-            title={t('catalog.create')}
+            title={creatingCanvas
+              ? t('startup.creating')
+              : canCreateCanvas ? t('catalog.create') : t('startup.createBlocked')}
           >
-            <Plus size={13} />
+            {creatingCanvas ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
           </button>
         </div>
         {canvasPanelOpen && (
@@ -886,7 +931,13 @@ export default function Sidebar({ onAddNode }: SidebarProps) {
                 {canvasSearchError}
               </div>
             )}
+            {canvasError && !canvasLoading && (
+              <div className={`px-2 pb-1 text-[10px] ${isDark ? 'text-red-300/75' : 'text-red-700'}`} role="alert">
+                {canvasError}
+              </div>
+            )}
             {!canvasLoading
+              && canvasBootstrapped
               && canvases.length === 0
               && canvasRecovery?.status !== 'running' && (
               <div
@@ -896,14 +947,17 @@ export default function Sidebar({ onAddNode }: SidebarProps) {
               >
                 <p>{t('catalog.empty')}</p>
                 <button
-                  onClick={handleCreateCanvas}
+                  onClick={() => void handleCreateCanvas()}
+                  disabled={creatingCanvas}
+                  aria-disabled={!canCreateCanvas || creatingCanvas}
+                  data-canvas-create-ready={canCreateCanvas ? 'true' : 'false'}
                   className={
                     isPixel
                       ? 'mt-1.5 px-btn px-btn--sm px-btn--mint'
                       : 'mt-1.5 px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 text-[10px] hover:bg-emerald-500/30'
                   }
                 >
-                  {t('catalog.createFirst')}
+                  {creatingCanvas ? t('startup.creating') : t('catalog.createFirst')}
                 </button>
               </div>
             )}
@@ -987,6 +1041,13 @@ export default function Sidebar({ onAddNode }: SidebarProps) {
           </div>
         )}
       </div>
+
+      {!canAddNodes && (
+        <div className="t8-sidebar-readiness" role="status" aria-live="polite">
+          <Loader2 size={12} className={canCreateCanvas ? '' : 'animate-spin'} aria-hidden="true" />
+          <span>{startupHint}</span>
+        </div>
+      )}
 
       {/* 搜索框 */}
       <div

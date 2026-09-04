@@ -13,8 +13,8 @@ const {
 } = require('./collaboration-evidence-attestation.cjs');
 
 const CONTRACT_VERSION = 't8-collaboration-release-evidence-v2';
-const POST_RELEASE_DEFERRAL_VERSION = '3.1.3';
-const POST_RELEASE_DEFERRAL_APPROVAL = 'owner-approved-post-release-v3.1.3';
+const POST_RELEASE_DEFERRAL_VERSION = '3.1.4';
+const POST_RELEASE_DEFERRAL_APPROVAL = 'owner-approved-post-release-v3.1.4';
 const MAX_MANIFEST_BYTES = 1024 * 1024;
 const MAX_ARTIFACT_BYTES = 256 * 1024 * 1024;
 const MAX_TOTAL_ARTIFACT_BYTES = 512 * 1024 * 1024;

@@ -10,22 +10,33 @@ const express = require('express');
 
 const { createCreatorAgentV2Router } = require('../backend/src/routes/creatorAgentV2.js');
 const { CreatorConversationRepository, digest } = require('../backend/src/services/creatorConversationRepository.js');
-const { CreatorLlmRuntimeError } = require('../backend/src/services/creatorLlmRuntimeV2.js');
+const { CreatorLlmRuntimeError, createCreatorLlmRuntimeV2 } = require('../backend/src/services/creatorLlmRuntimeV2.js');
 const { canvasPatchRequestDigest } = require('../backend/src/services/canvasPatch.js');
+const { readLongScriptWork } = require('../backend/src/services/creatorLongScriptWork.js');
+const { readSceneProduction } = require('../backend/src/services/creatorSceneProduction.js');
 
 async function fixture(options = {}) {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 't8-creator-route-media-'));
   const managedImage = path.join(directory, 'result.png');
   fs.writeFileSync(managedImage, Buffer.from([0x89, 0x50, 0x4e, 0x47]));
+  const managedScript = path.join(directory, 'long-script.txt');
+  if (options.longScriptText) fs.writeFileSync(managedScript, options.longScriptText, 'utf8');
   const repository = new CreatorConversationRepository();
   const llmInputs = [];
   const document = { projectId: 'project-local', canvasId: 'canvas-local', revision: 1, nodes: [], edges: [] };
   const patchApplications = new Map();
   const database = {
     getCanvas: (canvasId) => canvasId === document.canvasId ? document : null,
-    getAsset: (assetId) => ['asset-result-001', 'asset-result-002'].includes(assetId)
-      ? { id: assetId, projectId: 'project-local', kind: 'image', filename: `${assetId}.png`, contentHash: (assetId.endsWith('2') ? 'b' : 'a').repeat(64), contentRevision: 1, mimeType: 'image/png', sizeBytes: 10, managedPath: managedImage, storageMode: 'managed' }
-      : null,
+    getAsset: (assetId) => {
+      if (assetId === 'asset-long-script' && options.longScriptText) return {
+        id: assetId, projectId: 'project-local', kind: 'file', filename: 'long-script.txt',
+        contentRevision: 1, mimeType: 'text/plain', sizeBytes: Buffer.byteLength(options.longScriptText),
+        managedPath: managedScript, storageMode: 'managed',
+      };
+      return ['asset-result-001', 'asset-result-002'].includes(assetId)
+        ? { id: assetId, projectId: 'project-local', kind: 'image', filename: `${assetId}.png`, contentHash: (assetId.endsWith('2') ? 'b' : 'a').repeat(64), contentRevision: 1, mimeType: 'image/png', sizeBytes: 10, managedPath: managedImage, storageMode: 'managed' }
+        : null;
+    },
     getCanvasPatchApplication: (_canvasId, patchId) => patchApplications.get(patchId) || null,
     previewCanvasPatch: (_canvasId, patch) => ({ patchId: patch.id, previewDigest: 'preview-digest' }),
     applyCanvasPatch: (_canvasId, patch) => {
@@ -90,6 +101,7 @@ async function fixture(options = {}) {
     llmRuntime,
     actionExecutor,
     assetService,
+    faultInjector: options.faultInjector,
     settingsProvider: () => ({ zhenzhenSd2ApiKey: 'configured-but-never-returned' }),
   });
   const app = express();
@@ -157,6 +169,526 @@ test('Creator v2 thin route completes one natural LLM turn with one pending deci
     assert.equal(turn.body.data.evidence.providerCalls, 1);
     assert.equal(JSON.stringify(turn.body).includes('configured-but-never-returned'), false);
     assert.equal(/价格|费用|余额|额度|账单/u.test(JSON.stringify(turn.body)), false);
+  } finally { await f.close(); }
+});
+
+test('Creator v2 explicit scene mode drafts one short idea atomically, restores it, and keeps retries idempotent', async () => {
+  let calls = 0;
+  const draftText = '外景·末班车站·雨夜\n\n林夏攥着单程票，等手机上的来电自行熄灭。末班车灯穿过雨幕，她关机，跨过黄线。';
+  const llmRuntime = {
+    modelSnapshot: () => ({
+      kind: 'llm', providerId: 'seedance-nz', modelId: 'zhenzhen/gk-4.6',
+      catalogDigest: '9ef6b59cec91b32595b0215c78f801d8c231de81062f64f68e06d772fb59d9c2',
+    }),
+    respond: async (input) => {
+      calls += 1;
+      assert.equal(input.sceneContext.mode, 'scene-draft');
+      assert.deepEqual(input.sceneContext.requiredPaths, ['draftText']);
+      return {
+        replyMarkdown: draftText,
+        workingBrief: { goal: '写成可拍摄的雨夜离乡场景', style: '克制现实主义' },
+        phaseDecision: { phase: 'script', transition: 'stay', reason: '当前场已形成初稿' },
+        suggestions: [
+          { label: '细化离站动作', sendText: '继续细化林夏跨过黄线前的动作。', intentKind: 'recommended-next-step', role: 'recommended', inputAssetIds: [] },
+          { label: '改成车内视角', sendText: '把这场改成从末班车内看林夏上车。', intentKind: 'alternative-direction', role: 'alternative', inputAssetIds: [] },
+          { label: '锁定雨夜场稿', sendText: '锁定这版雨夜场稿。', intentKind: 'execute-or-confirm', role: 'execute', inputAssetIds: [] },
+        ],
+        proposedAction: null,
+        scenePatch: {
+          schema: 't8-creator-scene-patch-v1',
+          sceneId: input.sceneContext.sceneId,
+          scenePartId: input.sceneContext.scenePartId,
+          baseWorkRevision: input.sceneContext.baseWorkRevision,
+          baseSceneRevision: input.sceneContext.baseSceneRevision,
+          contextDigest: input.sceneContext.contextDigest,
+          patch: { draftText, purpose: '把离开变成不可逆的动作', status: 'draft' },
+          entityProposals: [], relationshipProposals: [], conflicts: [],
+        },
+        evidence: {
+          providerCalls: 1, providerId: 'seedance-nz', modelId: 'zhenzhen/gk-4.6',
+          catalogDigest: '9ef6b59cec91b32595b0215c78f801d8c231de81062f64f68e06d772fb59d9c2',
+          responseDigest: digest({ draftText }),
+          sceneContextDigest: input.sceneContext.contextDigest,
+        },
+      };
+    },
+  };
+  const f = await fixture({ llmRuntime });
+  try {
+    await request(f.baseUrl, '/sessions', {
+      method: 'POST',
+      body: JSON.stringify({ sessionId: 'creator-route-short-scene', projectId: 'project-local', canvasId: 'canvas-local' }),
+    });
+    const body = {
+      projectId: 'project-local', canvasId: 'canvas-local',
+      clientRequestId: 'request-route-short-scene-001',
+      creationMode: 'scene',
+      text: '一个女孩在雨夜末班车站，终于决定离开家乡。',
+    };
+    const turn = await request(f.baseUrl, '/sessions/creator-route-short-scene/messages', {
+      method: 'POST', body: JSON.stringify(body),
+    });
+    assert.equal(turn.status, 201);
+    assert.equal(calls, 1);
+    assert.equal(turn.body.data.assistant.body, draftText);
+    assert.equal(turn.body.data.work.snapshot.revision, 1);
+
+    const navigation = await request(
+      f.baseUrl,
+      '/sessions/creator-route-short-scene/scenes?projectId=project-local&canvasId=canvas-local',
+    );
+    assert.equal(navigation.status, 200);
+    assert.equal(navigation.body.data.total, 1);
+    assert.equal(navigation.body.data.currentScene.sourceText, body.text);
+    assert.equal(navigation.body.data.currentScene.draftText, draftText);
+    assert.equal(navigation.body.data.currentScene.sourcePartHasDraft, true);
+
+    const replay = await request(f.baseUrl, '/sessions/creator-route-short-scene/messages', {
+      method: 'POST', body: JSON.stringify(body),
+    });
+    assert.equal(replay.status, 200);
+    assert.equal(calls, 1);
+
+    const conflict = await request(f.baseUrl, '/sessions/creator-route-short-scene/messages', {
+      method: 'POST', body: JSON.stringify({ ...body, creationMode: 'auto' }),
+    });
+    assert.equal(conflict.status, 409);
+    assert.equal(calls, 1);
+  } finally { await f.close(); }
+});
+
+test('Creator v2 imports an explicit long script once, navigates one scene at a time, and isolates LLM context', async () => {
+  const calls = [];
+  const llmRuntime = {
+    modelSnapshot: () => ({
+      kind: 'llm', providerId: 'seedance-nz', modelId: 'zhenzhen/gk-4.6',
+      catalogDigest: '9ef6b59cec91b32595b0215c78f801d8c231de81062f64f68e06d772fb59d9c2',
+    }),
+    respond: async (input) => {
+      calls.push(input);
+      return {
+        replyMarkdown: input.sceneContext
+          ? `我们只推进《${input.sceneContext.scene.title}》，不会改动其他场次。`
+          : '剧本已经收到。',
+        workingBrief: { goal: '逐场完成长剧本', style: '延续已锁定风格' },
+        phaseDecision: { phase: 'script', transition: 'advance', reason: '已导入分场剧本' },
+        suggestions: [
+          { label: '细化当前场', sendText: '只细化当前场的目标和转折。', intentKind: 'recommended-next-step', role: 'recommended', inputAssetIds: [] },
+          { label: '换个场内视角', sendText: '只把当前场改成主角视角。', intentKind: 'alternative-direction', role: 'alternative', inputAssetIds: [] },
+          { label: '锁定当前场', sendText: '锁定当前场并准备下一场。', intentKind: 'execute-or-confirm', role: 'execute', inputAssetIds: [] },
+        ],
+        proposedAction: null,
+        scenePatch: input.prompt.startsWith('只推进当前场') ? {
+          schema: 't8-creator-scene-patch-v1',
+          sceneId: input.sceneContext.sceneId,
+          scenePartId: input.sceneContext.scenePartId,
+          baseWorkRevision: input.sceneContext.baseWorkRevision,
+          baseSceneRevision: input.sceneContext.baseSceneRevision,
+          contextDigest: input.sceneContext.contextDigest,
+          patch: {
+            purpose: '让林溪主动交出旧车票',
+            objective: '在日出前完成告别',
+            activeEntityIds: ['new-linxi'],
+            exitState: { 'new-linxi': { wardrobe: '黑色风衣', knowledge: '决定离开' } },
+            status: 'draft',
+          },
+          entityProposals: [{
+            tempId: 'new-linxi', kind: 'character', name: '林溪',
+            description: '故事主角', baseline: { identity: '林溪' },
+          }],
+          conflicts: [],
+        } : null,
+        evidence: {
+          providerCalls: 1, providerId: 'seedance-nz', modelId: 'zhenzhen/gk-4.6',
+          catalogDigest: '9ef6b59cec91b32595b0215c78f801d8c231de81062f64f68e06d772fb59d9c2',
+          responseDigest: digest({ calls: calls.length }),
+          sceneContextDigest: input.sceneContext?.contextDigest || null,
+        },
+      };
+    },
+  };
+  const f = await fixture({ llmRuntime });
+  try {
+    await request(f.baseUrl, '/sessions', {
+      method: 'POST',
+      body: JSON.stringify({ sessionId: 'creator-route-long-script', projectId: 'project-local', canvasId: 'canvas-local' }),
+    });
+    const script = [
+      '第一场：雨夜车站',
+      '林溪在站台等最后一班列车，手里握着旧车票。',
+      '第二场：清晨天台',
+      '林溪在日出前把旧车票交给周野。',
+    ].join('\n');
+    const imported = await request(f.baseUrl, '/sessions/creator-route-long-script/messages', {
+      method: 'POST',
+      body: JSON.stringify({
+        projectId: 'project-local', canvasId: 'canvas-local',
+        clientRequestId: 'request-long-script-import', text: script,
+      }),
+    });
+    assert.equal(imported.status, 201);
+    assert.equal(imported.body.data.work.snapshot.revision, 1);
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].sceneContext.mode, 'import-preview');
+    assert.match(calls[0].sceneContext.scene.sourceText, /雨夜车站/u);
+    assert.doesNotMatch(calls[0].sceneContext.scene.sourceText, /清晨天台/u);
+    const importedWork = f.repository.getWorkState('creator-route-long-script', {
+      projectId: 'project-local', canvasId: 'canvas-local', includeCurrentVersions: true,
+    });
+    const persistedBrief = importedWork.currentVersions.find((version) => (
+      version.kind === 'ProductionBrief' && (!version.scopeKey || version.scopeKey === 'root')
+    ));
+    assert.equal(persistedBrief.fields.style, '延续已锁定风格');
+
+    const scenes = await request(f.baseUrl, '/sessions/creator-route-long-script/scenes?projectId=project-local&canvasId=canvas-local');
+    assert.equal(scenes.status, 200);
+    assert.equal(scenes.body.data.total, 2);
+    assert.equal(scenes.body.data.currentSceneId, scenes.body.data.scenes[0].sceneId);
+    assert.equal(imported.body.data.conversation.currentSceneId, scenes.body.data.currentSceneId);
+
+    const secondSceneId = scenes.body.data.scenes[1].sceneId;
+    const switched = await request(f.baseUrl, '/sessions/creator-route-long-script/current-scene', {
+      method: 'PUT',
+      body: JSON.stringify({
+        projectId: 'project-local', canvasId: 'canvas-local', sceneId: secondSceneId,
+      }),
+    });
+    assert.equal(switched.status, 200);
+    assert.equal(switched.body.data.navigation.currentSceneId, secondSceneId);
+
+    const continued = await request(f.baseUrl, '/sessions/creator-route-long-script/messages', {
+      method: 'POST',
+      body: JSON.stringify({
+        projectId: 'project-local', canvasId: 'canvas-local',
+        clientRequestId: 'request-long-script-scene-two', text: '只推进当前场，延续原有人设和风格。',
+      }),
+    });
+    assert.equal(continued.status, 201);
+    assert.equal(calls.length, 2);
+    assert.equal(calls[1].sceneContext.mode, 'scene-edit');
+    assert.equal(calls[1].sceneContext.sceneId, secondSceneId);
+    assert.equal(calls[1].sceneContext.styleCanon.style, '延续已锁定风格');
+    assert.match(calls[1].sceneContext.scene.sourceText, /清晨天台/u);
+    assert.doesNotMatch(calls[1].sceneContext.scene.sourceText, /雨夜车站/u);
+    assert.equal(continued.body.data.work.snapshot.revision, 2);
+    const afterPatch = await request(f.baseUrl, '/sessions/creator-route-long-script/scenes?projectId=project-local&canvasId=canvas-local');
+    assert.equal(afterPatch.body.data.currentScene.purpose, '让林溪主动交出旧车票');
+    assert.equal(afterPatch.body.data.currentScene.activeEntityIds.length, 1);
+    assert.equal(afterPatch.body.data.currentScene.recordRevision, 2);
+
+    const retried = await request(f.baseUrl, '/sessions/creator-route-long-script/messages', {
+      method: 'POST',
+      body: JSON.stringify({
+        projectId: 'project-local', canvasId: 'canvas-local',
+        clientRequestId: 'request-long-script-scene-two', text: '只推进当前场，延续原有人设和风格。',
+      }),
+    });
+    assert.equal(retried.status, 200);
+    assert.equal(calls.length, 2);
+    assert.equal(retried.body.data.work.snapshot.revision, 2);
+
+    const firstSceneId = scenes.body.data.scenes[0].sceneId;
+    const confirmed = await request(f.baseUrl, '/sessions/creator-route-long-script/current-scene/confirm', {
+      method: 'POST',
+      body: JSON.stringify({
+        projectId: 'project-local', canvasId: 'canvas-local', sceneId: firstSceneId,
+        scenePartId: scenes.body.data.currentScene.sourcePartId,
+        clientRequestId: 'confirm-first-scene',
+      }),
+    });
+    assert.equal(confirmed.status, 200);
+    assert.equal(confirmed.body.data.navigation.currentSceneId, secondSceneId);
+    assert.equal(confirmed.body.data.navigation.scenes[0].status, 'confirmed');
+    assert.equal(confirmed.body.data.navigation.work.revision, 3);
+    const confirmRetry = await request(f.baseUrl, '/sessions/creator-route-long-script/current-scene/confirm', {
+      method: 'POST',
+      body: JSON.stringify({
+        projectId: 'project-local', canvasId: 'canvas-local', sceneId: firstSceneId,
+        scenePartId: scenes.body.data.currentScene.sourcePartId,
+        clientRequestId: 'confirm-first-scene',
+      }),
+    });
+    assert.equal(confirmRetry.status, 200);
+    assert.equal(confirmRetry.body.data.navigation.work.revision, 3);
+  } finally { await f.close(); }
+});
+
+test('Creator v2 commits a five-shot action and its scoped ShotList/PromptPack together', async () => {
+  let calls = 0;
+  const llmRuntime = {
+    modelSnapshot: () => ({
+      kind: 'llm', providerId: 'seedance-nz', modelId: 'zhenzhen/gk-4.6',
+      catalogDigest: '9ef6b59cec91b32595b0215c78f801d8c231de81062f64f68e06d772fb59d9c2',
+    }),
+    respond: async (input) => {
+      calls += 1;
+      const action = input.prompt.startsWith('生成当前场五个镜头') ? {
+        id: 'action-route-five-shots',
+        type: 'video',
+        prompt: '雨夜站台五镜连续段落',
+        parameters: { ratio: '16:9', duration: 6, resolution: '720p' },
+        inputAssetIds: [],
+        modelSnapshot: {
+          kind: 'video', providerId: 'seedance-nz',
+          modelId: 'zhenzhen-video-g-omni-1.1-flash-lowprice',
+          catalogDigest: '9ef6b59cec91b32595b0215c78f801d8c231de81062f64f68e06d772fb59d9c2',
+        },
+        shots: Array.from({ length: 5 }, (_, index) => ({
+          shotId: null,
+          sourceKey: `beat-${index + 1}`,
+          title: `镜头 ${index + 1}`,
+          purpose: `推进节拍 ${index + 1}`,
+          prompt: `雨夜站台第 ${index + 1} 镜，人物和列车动作连续。`,
+          parameters: { ratio: '16:9', duration: 6, resolution: '720p' },
+          inputAssetIds: [],
+        })),
+        workBinding: {
+          schema: 't8-creator-scene-action-binding-v1',
+          workId: input.sceneContext.workId,
+          workRevision: input.sceneContext.baseWorkRevision,
+          workDigest: input.sceneContext.baseWorkDigest,
+          sceneId: input.sceneContext.sceneId,
+          scenePartId: input.sceneContext.scenePartId,
+          sceneRevision: input.sceneContext.baseSceneRevision,
+          contextDigest: input.sceneContext.contextDigest,
+        },
+      } : null;
+      return {
+        replyMarkdown: action ? '这场按五个连续镜头生成。' : '先从雨夜站台开始。',
+        workingBrief: { goal: '逐场完成长剧本', style: '冷蓝雨夜现实主义' },
+        phaseDecision: { phase: 'script', transition: 'stay', reason: '逐场制作' },
+        suggestions: [
+          { label: '细化列车进站', sendText: '细化列车进站的动作。', intentKind: 'recommended-next-step', role: 'recommended', inputAssetIds: [] },
+          { label: '换成车内视角', sendText: '把当前场改成车内视角。', intentKind: 'alternative-direction', role: 'alternative', inputAssetIds: [] },
+          { label: '锁定五镜继续', sendText: '锁定五镜并进入下一步。', intentKind: 'execute-or-confirm', role: 'execute', inputAssetIds: [] },
+        ],
+        proposedAction: action,
+        scenePatch: null,
+        evidence: {
+          providerCalls: 1, providerId: 'seedance-nz', modelId: 'zhenzhen/gk-4.6',
+          catalogDigest: '9ef6b59cec91b32595b0215c78f801d8c231de81062f64f68e06d772fb59d9c2',
+          responseDigest: digest({ calls }), sceneContextDigest: input.sceneContext?.contextDigest || null,
+        },
+      };
+    },
+  };
+  const f = await fixture({ llmRuntime });
+  try {
+    await request(f.baseUrl, '/sessions', {
+      method: 'POST',
+      body: JSON.stringify({ sessionId: 'creator-route-five-shots', projectId: 'project-local', canvasId: 'canvas-local' }),
+    });
+    const imported = await request(f.baseUrl, '/sessions/creator-route-five-shots/messages', {
+      method: 'POST',
+      body: JSON.stringify({
+        projectId: 'project-local', canvasId: 'canvas-local', clientRequestId: 'import-five-shot-script',
+        text: '第一场：雨夜站台\n林溪看见最后一班列车进站。\n第二场：清晨天台\n林溪独自等待日出。',
+      }),
+    });
+    assert.equal(imported.status, 201);
+    const generated = await request(f.baseUrl, '/sessions/creator-route-five-shots/messages', {
+      method: 'POST',
+      body: JSON.stringify({
+        projectId: 'project-local', canvasId: 'canvas-local', clientRequestId: 'generate-five-shots',
+        text: '生成当前场五个镜头。',
+      }),
+    });
+    assert.equal(generated.status, 201);
+    const pendingAction = generated.body.data.pendingAction;
+    assert.equal(pendingAction.shots.length, 5);
+    assert.equal(new Set(pendingAction.shots.map((shot) => shot.shotId)).size, 5);
+    assert.deepEqual(pendingAction.workBinding.shotIds, pendingAction.shots.map((shot) => shot.shotId));
+    assert.match(pendingAction.workBinding.shotPlanDigest, /^[a-f0-9]{64}$/u);
+
+    const workState = f.repository.getWorkState('creator-route-five-shots', {
+      projectId: 'project-local', canvasId: 'canvas-local', includeCurrentVersions: true,
+    });
+    const production = readSceneProduction(workState.currentVersions, pendingAction.workBinding.sceneId);
+    assert.equal(production.planDigest, pendingAction.workBinding.shotPlanDigest);
+    assert.deepEqual(production.shots.map((shot) => shot.shotId), pendingAction.workBinding.shotIds);
+    assert.equal(workState.currentVersions.filter((version) => ['ShotList', 'PromptPack'].includes(version.kind)).length, 2);
+  } finally {
+    await f.close();
+  }
+});
+
+test('Creator v2 imports a managed long-script attachment beyond its bounded LLM observation', async () => {
+  const longScriptText = [
+    '第一场：长夜',
+    '林溪沿着站台前进。'.repeat(3_500),
+    '第二场：黎明',
+    '周野在出口等她，最后一句必须保留。',
+  ].join('\n');
+  const f = await fixture({ longScriptText });
+  try {
+    await request(f.baseUrl, '/sessions', {
+      method: 'POST',
+      body: JSON.stringify({
+        sessionId: 'creator-route-long-attachment',
+        projectId: 'project-local', canvasId: 'canvas-local',
+      }),
+    });
+    const imported = await request(f.baseUrl, '/sessions/creator-route-long-attachment/messages', {
+      method: 'POST',
+      body: JSON.stringify({
+        projectId: 'project-local', canvasId: 'canvas-local',
+        clientRequestId: 'request-long-attachment', text: '导入后逐场推进。',
+        attachments: [{ assetId: 'asset-long-script' }],
+      }),
+    });
+    assert.equal(imported.status, 201);
+    const userMessage = imported.body.data.messages.find((message) => message.role === 'user');
+    assert.equal(userMessage.media[0].documentObservation.truncated, true);
+    assert.ok(userMessage.media[0].documentObservation.text.length <= 30_000);
+    const state = f.repository.getWorkState('creator-route-long-attachment', {
+      projectId: 'project-local', canvasId: 'canvas-local', includeCurrentVersions: true,
+    });
+    const work = readLongScriptWork(state.currentVersions, state.snapshot);
+    assert.equal(work.activeScenes.length, 2);
+    assert.equal(work.sourceDocumentIntegrity, true);
+    assert.equal(work.activeScenes.map((scene) => work.sourceTextBySceneId.get(scene.sceneId)).join(''), longScriptText);
+    assert.match(work.sourceTextBySceneId.get(work.activeScenes[1].sceneId), /最后一句必须保留/u);
+  } finally { await f.close(); }
+});
+
+test('Creator v2 advances a long scene part exactly once and cannot skip on a replayed confirm', async () => {
+  const llmRuntime = {
+    modelSnapshot: () => ({
+      kind: 'llm', providerId: 'seedance-nz', modelId: 'zhenzhen/gk-4.6',
+      catalogDigest: '9ef6b59cec91b32595b0215c78f801d8c231de81062f64f68e06d772fb59d9c2',
+    }),
+    respond: async () => ({
+      replyMarkdown: '先从漫长站台这一场开始，一段一段推进，不会跳过原文。',
+      workingBrief: { goal: '逐场完成长剧本' },
+      phaseDecision: { phase: 'script', transition: 'advance', reason: '已识别分场剧本' },
+      suggestions: [
+        { label: '细化当前段', sendText: '只细化当前段的动作。', intentKind: 'recommended-next-step', role: 'recommended', inputAssetIds: [] },
+        { label: '换个场内视角', sendText: '把当前段换成主角视角。', intentKind: 'alternative-direction', role: 'alternative', inputAssetIds: [] },
+        { label: '锁定当前段', sendText: '锁定当前段并继续本场。', intentKind: 'execute-or-confirm', role: 'execute', inputAssetIds: [] },
+      ],
+      proposedAction: null,
+      scenePatch: null,
+      evidence: {
+        providerCalls: 1, providerId: 'seedance-nz', modelId: 'zhenzhen/gk-4.6',
+        catalogDigest: '9ef6b59cec91b32595b0215c78f801d8c231de81062f64f68e06d772fb59d9c2',
+        responseDigest: digest({ longScene: true }), sceneContextDigest: null,
+      },
+    }),
+  };
+  const f = await fixture({ llmRuntime });
+  try {
+    const sessionId = 'creator-route-long-scene-parts';
+    await request(f.baseUrl, '/sessions', {
+      method: 'POST',
+      body: JSON.stringify({ sessionId, projectId: 'project-local', canvasId: 'canvas-local' }),
+    });
+    const body = Array.from({ length: 620 }, (_, index) => (
+      `动作 ${String(index + 1).padStart(3, '0')}：林溪沿站台前进，保留精确顺序。`
+    )).join('\n');
+    const imported = await request(f.baseUrl, `/sessions/${sessionId}/messages`, {
+      method: 'POST',
+      body: JSON.stringify({
+        projectId: 'project-local', canvasId: 'canvas-local', clientRequestId: 'long-parts-import',
+        text: `第 1 场：漫长站台\n${body}\n\n第 2 场：出口\n林溪离开车站。`,
+      }),
+    });
+    assert.equal(imported.status, 201);
+    let state = (await request(
+      f.baseUrl,
+      `/sessions/${sessionId}/scenes?projectId=project-local&canvasId=canvas-local`,
+    )).body.data;
+    const firstSceneId = state.currentSceneId;
+    assert.ok(state.currentScene.sourcePartCount >= 4);
+    const firstPartId = state.currentScene.sourcePartId;
+    const firstAdvance = await request(f.baseUrl, `/sessions/${sessionId}/current-scene/confirm`, {
+      method: 'POST',
+      body: JSON.stringify({
+        projectId: 'project-local', canvasId: 'canvas-local', sceneId: firstSceneId,
+        scenePartId: firstPartId, clientRequestId: 'confirm-long-part-0',
+      }),
+    });
+    assert.equal(firstAdvance.status, 200);
+    state = firstAdvance.body.data.navigation;
+    assert.equal(state.currentScene.sourcePartIndex, 1);
+    const revisionAfterFirstAdvance = state.work.revision;
+    const replay = await request(f.baseUrl, `/sessions/${sessionId}/current-scene/confirm`, {
+      method: 'POST',
+      body: JSON.stringify({
+        projectId: 'project-local', canvasId: 'canvas-local', sceneId: firstSceneId,
+        scenePartId: firstPartId, clientRequestId: 'confirm-long-part-0',
+      }),
+    });
+    assert.equal(replay.status, 200);
+    assert.equal(replay.body.data.navigation.currentScene.sourcePartIndex, 1);
+    assert.equal(replay.body.data.navigation.work.revision, revisionAfterFirstAdvance);
+
+    const seen = [firstPartId];
+    state = replay.body.data.navigation;
+    while (state.currentSceneId === firstSceneId) {
+      const part = state.currentScene;
+      seen.push(part.sourcePartId);
+      const confirmed = await request(f.baseUrl, `/sessions/${sessionId}/current-scene/confirm`, {
+        method: 'POST',
+        body: JSON.stringify({
+          projectId: 'project-local', canvasId: 'canvas-local', sceneId: firstSceneId,
+          scenePartId: part.sourcePartId, clientRequestId: `confirm-long-part-${part.sourcePartIndex}`,
+        }),
+      });
+      assert.equal(confirmed.status, 200);
+      state = confirmed.body.data.navigation;
+    }
+    assert.equal(new Set(seen).size, seen.length);
+    assert.equal(state.scenes[0].status, 'confirmed');
+    assert.equal(state.currentSceneId, state.scenes[1].sceneId);
+  } finally { await f.close(); }
+});
+
+test('Creator v2 persists an explicitly locked whole-work style even when the scene LLM omits style', async () => {
+  const runtime = createCreatorLlmRuntimeV2({
+    settingsProvider: () => ({
+      zhenzhenSd2ApiKey: 'test-only-not-persisted',
+      zhenzhenSd2BaseUrl: 'https://api.seedance.nz',
+    }),
+    generateChat: async () => ({
+      ok: true,
+      text: JSON.stringify({
+        schema: 't8-creator-llm-response-v2',
+        replyMarkdown: '三场已经按原顺序放好，先从雨夜车站建立人物离开的选择。',
+        workingBrief: {
+          goal: '', format: '', audience: '', style: '', story: '', assets: '',
+          constraints: '', decisions: '', openQuestion: '',
+        },
+        phaseDecision: { phase: 'script', transition: 'stay', reason: '逐场处理' },
+        scenePatch: null,
+        suggestions: [
+          { label: '细化等车选择', sendText: '继续细化当前场里林溪等车时的选择。', intentKind: 'recommended-next-step', role: 'recommended', inputAssetIds: [] },
+          { label: '换成车内视角', sendText: '把当前场改成从列车内观察林溪的视角。', intentKind: 'alternative-direction', role: 'alternative', inputAssetIds: [] },
+          { label: '锁定这场继续', sendText: '锁定当前场并进入下一场。', intentKind: 'execute-or-confirm', role: 'execute', inputAssetIds: [] },
+        ],
+        proposedAction: null,
+      }),
+    }),
+  });
+  const f = await fixture({ llmRuntime: runtime });
+  try {
+    await request(f.baseUrl, '/sessions', {
+      method: 'POST',
+      body: JSON.stringify({ sessionId: 'creator-route-style-lock', projectId: 'project-local', canvasId: 'canvas-local' }),
+    });
+    const imported = await request(f.baseUrl, '/sessions/creator-route-style-lock/messages', {
+      method: 'POST',
+      body: JSON.stringify({
+        projectId: 'project-local', canvasId: 'canvas-local', clientRequestId: 'request-style-lock',
+        text: '第一场：雨夜车站\n林溪等车。\n第二场：清晨天台\n林溪看见日出。\n全剧风格固定为潮湿冷蓝现实主义。不要生成图片或视频。',
+      }),
+    });
+    assert.equal(imported.status, 201);
+    assert.equal(imported.body.data.conversation.workingBrief.style, '潮湿冷蓝现实主义');
+    const state = f.repository.getWorkState('creator-route-style-lock', {
+      projectId: 'project-local', canvasId: 'canvas-local', includeCurrentVersions: true,
+    });
+    const brief = state.currentVersions.find((version) => version.kind === 'ProductionBrief');
+    assert.equal(brief?.fields?.style, '潮湿冷蓝现实主义');
   } finally { await f.close(); }
 });
 
@@ -554,11 +1086,28 @@ test('Creator v2 sends multi-image results independently and suppresses duplicat
     assert.equal(confirmed.status, 202);
     f.repository.updateAction('action-route-001', 'creator-route-session', {
       status: 'completed',
+      conversationPhase: 'candidates',
       resultAssets: [
         { assetId: 'asset-result-001', kind: 'image', contentHash: 'a'.repeat(64), previewUrl: '/api/project-assets/asset-result-001/media', title: 'result-1.png' },
         { assetId: 'asset-result-002', kind: 'image', contentHash: 'b'.repeat(64), previewUrl: '/api/project-assets/asset-result-002/media', title: 'result-2.png' },
       ],
     });
+    const unreviewed = await request(f.baseUrl, '/sessions/creator-route-session/media/asset-result-001/send-to-canvas', {
+      method: 'POST',
+      body: JSON.stringify({ projectId: 'project-local', canvasId: 'canvas-local', actionId: 'action-route-001' }),
+    });
+    assert.equal(unreviewed.status, 409, 'an unseen candidate must not be silently adopted');
+    for (const assetId of ['asset-result-001', 'asset-result-002']) {
+      const reviewed = await request(f.baseUrl, `/sessions/creator-route-session/media/${assetId}/reviewed`, {
+        method: 'POST',
+        body: JSON.stringify({
+          projectId: 'project-local', canvasId: 'canvas-local', actionId: 'action-route-001',
+          clientRequestId: `review-${assetId}`, evidenceKind: 'image-visible',
+        }),
+      });
+      assert.equal(reviewed.status, 200);
+      assert.equal(reviewed.body.data.action.resultAssets.find((item) => item.assetId === assetId).reviewStatus, 'reviewed');
+    }
     const sent = await request(f.baseUrl, '/sessions/creator-route-session/media/asset-result-001/send-to-canvas', {
       method: 'POST',
       body: JSON.stringify({ projectId: 'project-local', canvasId: 'canvas-local', actionId: 'action-route-001' }),
@@ -566,9 +1115,7 @@ test('Creator v2 sends multi-image results independently and suppresses duplicat
     assert.equal(sent.status, 200);
     assert.equal(sent.body.data.nodeId, 'asset-place-route-001');
     assert.equal(sent.body.data.duplicate, false);
-    assert.equal(f.repository.getConversation('creator-route-session').conversation.phase, 'delivery');
-    f.repository.db.prepare("UPDATE creator_conversations SET phase = 'candidates' WHERE id = ?")
-      .run('creator-route-session');
+    assert.equal(f.repository.getConversation('creator-route-session').conversation.phase, 'candidates');
     const duplicate = await request(f.baseUrl, '/sessions/creator-route-session/media/asset-result-001/send-to-canvas', {
       method: 'POST',
       body: JSON.stringify({ projectId: 'project-local', canvasId: 'canvas-local', actionId: 'action-route-001' }),
@@ -580,11 +1127,76 @@ test('Creator v2 sends multi-image results independently and suppresses duplicat
     assert.equal(duplicate.status, 200);
     assert.equal(duplicate.body.data.duplicate, true);
     assert.equal(duplicate.body.data.nodeId, 'asset-place-route-001');
-    assert.equal(f.repository.getConversation('creator-route-session').conversation.phase, 'delivery');
+    assert.equal(f.repository.getConversation('creator-route-session').conversation.phase, 'candidates');
     assert.equal(second.status, 200);
     assert.equal(second.body.data.duplicate, false);
     assert.equal(second.body.data.nodeId, 'asset-place-route-002');
     assert.equal(f.document.nodes.length, 2);
+    const restored = f.repository.getAction('action-route-001', 'creator-route-session');
+    assert.equal(restored.resultAssets[0].adoptionStatus, 'adopted');
+    assert.equal(restored.resultAssets[0].sentToCanvas, true);
+    assert.equal(restored.resultAssets[1].sentToCanvas, true);
+  } finally { await f.close(); }
+});
+
+test('Creator v2 recovers a canvas placement receipt after the patch was durably applied', async () => {
+  let interrupted = false;
+  const f = await fixture({
+    faultInjector: (point) => {
+      if (point === 'canvas-patch-applied' && !interrupted) {
+        interrupted = true;
+        throw new Error('simulated process loss before placement receipt');
+      }
+    },
+  });
+  try {
+    f.repository.createConversation({ id: 'creator-route-placement-recovery', projectId: 'project-local', canvasId: 'canvas-local' });
+    const response = f.repository.startAssistantResponse('creator-route-placement-recovery', { responseId: 'response-route-placement-recovery' });
+    f.repository.completeAssistantResponse('creator-route-placement-recovery', response.responseId, {
+      body: '结果准备好了。',
+      suggestions: ['查看结果', '调整画面', '继续创作'],
+      action: {
+        id: 'action-route-placement-recovery', type: 'image', prompt: '雨夜车站',
+        modelSnapshot: { kind: 'image', providerId: 'seedance-nz', modelId: 'zhenzhen-image-gk-v2', catalogDigest: digest({ catalog: 1 }) },
+      },
+    });
+    f.repository.updateAction('action-route-placement-recovery', 'creator-route-placement-recovery', {
+      status: 'completed', conversationPhase: 'candidates',
+      resultAssets: [{
+        assetId: 'asset-result-001', kind: 'image', contentHash: 'a'.repeat(64),
+        previewUrl: '/api/project-assets/asset-result-001/media', title: 'result-1.png',
+      }],
+    });
+    await request(f.baseUrl, '/sessions/creator-route-placement-recovery/media/asset-result-001/reviewed', {
+      method: 'POST',
+      body: JSON.stringify({
+        projectId: 'project-local', canvasId: 'canvas-local', actionId: 'action-route-placement-recovery',
+        clientRequestId: 'review-placement-recovery', evidenceKind: 'image-visible',
+      }),
+    });
+    const first = await request(f.baseUrl, '/sessions/creator-route-placement-recovery/media/asset-result-001/send-to-canvas', {
+      method: 'POST',
+      body: JSON.stringify({
+        projectId: 'project-local', canvasId: 'canvas-local', actionId: 'action-route-placement-recovery',
+        clientRequestId: 'send-placement-recovery',
+      }),
+    });
+    assert.equal(first.status, 500);
+    assert.equal(f.document.nodes.length, 1, 'the canvas write completed before the simulated process loss');
+
+    const recovered = await request(f.baseUrl, '/sessions/creator-route-placement-recovery/media/asset-result-001/send-to-canvas', {
+      method: 'POST',
+      body: JSON.stringify({
+        projectId: 'project-local', canvasId: 'canvas-local', actionId: 'action-route-placement-recovery',
+        clientRequestId: 'send-placement-recovery',
+      }),
+    });
+    assert.equal(recovered.status, 200);
+    assert.equal(recovered.body.data.duplicate, true);
+    assert.equal(recovered.body.data.nodeId, 'asset-place-route-001');
+    assert.equal(f.document.nodes.length, 1, 'recovery must not create a duplicate canvas node');
+    const restored = f.repository.getAction('action-route-placement-recovery', 'creator-route-placement-recovery');
+    assert.equal(restored.resultAssets[0].sentToCanvas, true);
   } finally { await f.close(); }
 });
 

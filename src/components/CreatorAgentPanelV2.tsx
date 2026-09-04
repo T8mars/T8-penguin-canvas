@@ -1,7 +1,10 @@
 import {
   AtSign,
   Check,
+  Clapperboard,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   ChevronUp,
   History,
   LoaderCircle,
@@ -36,6 +39,7 @@ import { CREATOR_AGENT_VISIBLE_CATALOG } from '../i18n/workbenchVisibleCatalog';
 import * as api from '../services/api';
 import {
   confirmCreatorActionV2,
+  confirmCreatorCurrentSceneV2,
   cancelCreatorActionV2,
   createCreatorConversationV2,
   formatCreatorModelFamily,
@@ -43,9 +47,13 @@ import {
   formatCreatorProviderLabel,
   getCreatorCatalogV2,
   getCreatorConversationV2,
+  getCreatorLongScriptScenesV2,
   getCreatorSettingsV2,
   listCreatorConversationsV2,
+  markCreatorAssetReviewedV2,
+  retryCreatorActionV2,
   saveCreatorSettingsV2,
+  setCreatorCurrentSceneV2,
   sendCreatorAssetToCanvasV2,
   sendCreatorMessageV2,
   stopCreatorResponseV2,
@@ -53,6 +61,7 @@ import {
   type CreatorActionV2,
   type CreatorCatalogV2,
   type CreatorConversationV2,
+  type CreatorLongScriptNavigationV2,
   type CreatorMediaRef,
   type CreatorMessageV2,
   type CreatorPreferencesV2,
@@ -73,6 +82,8 @@ export interface CreatorAgentPanelV2Props {
   onOpenApiSettings?: () => void;
   initialOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
+  panelSafeTop?: number;
+  initialShellOpenedAt?: number;
 }
 
 type CreatorSelectionSummary = { id: string; type: string; label: string };
@@ -83,6 +94,7 @@ type CreatorComposerDraft = {
   attachments: CreatorMediaRef[];
   selectedNodeIds: string[];
   selectedNodes: CreatorSelectionSummary[];
+  creationMode: 'auto' | 'scene';
 };
 
 type CreatorSubmitOptions = {
@@ -97,6 +109,7 @@ const EMPTY_COMPOSER_DRAFT: CreatorComposerDraft = {
   attachments: [],
   selectedNodeIds: [],
   selectedNodes: [],
+  creationMode: 'auto',
 };
 
 function boundedComposerText(value: unknown, limit: number) {
@@ -135,6 +148,7 @@ function normalizeComposerDraft(value: unknown): CreatorComposerDraft {
     attachments,
     selectedNodeIds,
     selectedNodes,
+    creationMode: source.creationMode === 'scene' ? 'scene' : 'auto',
   };
 }
 
@@ -173,7 +187,8 @@ function readComposerDraft(key: string): CreatorComposerDraft {
 function writeComposerDraft(key: string, value: CreatorComposerDraft) {
   if (typeof window === 'undefined') return;
   const normalized = normalizeComposerDraft(value);
-  if (!normalized.draft && !normalized.attachments.length && !normalized.selectedNodeIds.length) {
+  if (!normalized.draft && !normalized.attachments.length && !normalized.selectedNodeIds.length
+    && normalized.creationMode === 'auto') {
     try { window.localStorage.removeItem(key); } catch { /* Best effort. */ }
     try { window.sessionStorage.removeItem(key); } catch { /* Best effort. */ }
     return;
@@ -190,7 +205,8 @@ function writeComposerDraft(key: string, value: CreatorComposerDraft) {
 }
 
 function composerDraftHasContent(value: CreatorComposerDraft) {
-  return Boolean(value.draft || value.attachments.length || value.selectedNodeIds.length);
+  return Boolean(value.draft || value.attachments.length || value.selectedNodeIds.length
+    || value.creationMode === 'scene');
 }
 
 function conversationComposerDraftKey(baseKey: string, conversationId: string) {
@@ -207,6 +223,9 @@ const PHASES = [
 ] as const;
 
 const HISTORY_SEARCH_MIN_ITEMS = 6;
+const CREATOR_SHELL_READINESS_SCHEMA = 't8-creator-agent-shell-readiness-receipt-v1';
+const CREATOR_SHELL_TARGET_MS = 300;
+const CREATOR_IME_COMMIT_GUARD_MS = 140;
 
 const DEFAULT_PREFERENCES: CreatorPreferencesV2 = {
   providerId: 'auto',
@@ -221,7 +240,9 @@ type CreatorOperation =
   | 'reply'
   | 'action-confirm'
   | 'action-revise'
-  | 'canvas-send';
+  | 'canvas-send'
+  | 'scene-switch'
+  | 'scene-confirm';
 
 type CreatorHistoryOperation = 'idle' | 'load' | 'more';
 type CreatorSettingsOperation = 'idle' | 'load' | 'save';
@@ -444,9 +465,12 @@ export default function CreatorAgentPanelV2(props: CreatorAgentPanelV2Props) {
   const [loading, setLoading] = useState(false);
   const [operation, setOperation] = useState<CreatorOperation>('idle');
   const [conversation, setConversation] = useState<CreatorConversationV2 | null>(null);
+  const [sceneNavigation, setSceneNavigation] = useState<CreatorLongScriptNavigationV2 | null>(null);
+  const [sceneQuery, setSceneQuery] = useState('');
   const [messages, setMessages] = useState<CreatorMessageV2[]>([]);
   const [action, setAction] = useState<CreatorActionV2 | null>(null);
   const [draft, setDraft] = useState(initialComposerDraft.draft);
+  const [creationMode, setCreationMode] = useState<'auto' | 'scene'>(initialComposerDraft.creationMode);
   const [attachments, setAttachments] = useState<CreatorMediaRef[]>(initialComposerDraft.attachments);
   const [uploadStatus, setUploadStatus] = useState<CreatorUploadStatus | null>(null);
   const [error, setError] = useState('');
@@ -460,6 +484,7 @@ export default function CreatorAgentPanelV2(props: CreatorAgentPanelV2Props) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsOperation, setSettingsOperation] = useState<CreatorSettingsOperation>('idle');
   const [catalog, setCatalog] = useState<CreatorCatalogV2 | null>(null);
+  const [settingsReadError, setSettingsReadError] = useState('');
   const [showAllModels, setShowAllModels] = useState(false);
   const [preferences, setPreferences] = useState<CreatorPreferencesV2>(DEFAULT_PREFERENCES);
   const [settingsDraft, setSettingsDraft] = useState<CreatorPreferencesV2>(DEFAULT_PREFERENCES);
@@ -477,15 +502,20 @@ export default function CreatorAgentPanelV2(props: CreatorAgentPanelV2Props) {
   const [composerScopeKey, setComposerScopeKey] = useState(legacyDraftKey);
   const [launcherHost, setLauncherHost] = useState<HTMLElement | null>(null);
   const launcherRef = useRef<HTMLButtonElement>(null);
+  const panelShellRef = useRef<HTMLElement>(null);
+  const launcherOpenedAtRef = useRef<number | null>(props.initialShellOpenedAt ?? null);
   const historyButtonRef = useRef<HTMLButtonElement>(null);
   const settingsButtonRef = useRef<HTMLButtonElement>(null);
   const historyPopoverRef = useRef<HTMLElement>(null);
   const settingsPopoverRef = useRef<HTMLElement>(null);
+  const sceneSwitcherRef = useRef<HTMLDetailsElement>(null);
   const settingsLoadRef = useRef<Promise<void> | null>(null);
   const historyFirstItemRef = useRef<HTMLButtonElement>(null);
   const historySearchInputRef = useRef<HTMLInputElement>(null);
   const settingsFirstSelectRef = useRef<HTMLSelectElement>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
+  const composerComposingRef = useRef(false);
+  const compositionEndedAtRef = useRef(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const actionPromptRef = useRef<HTMLParagraphElement>(null);
   const messagesRef = useRef<HTMLDivElement>(null);
@@ -500,6 +530,8 @@ export default function CreatorAgentPanelV2(props: CreatorAgentPanelV2Props) {
   const conversationOrientationRef = useRef('');
   const panelWasOpenRef = useRef(open);
   const awaitingApiSettingsReturnRef = useRef(false);
+  const mediaReviewInFlightRef = useRef(new Set<string>());
+  const panelId = useId();
   const panelTitleId = useId();
   const historyPopoverId = useId();
   const settingsPopoverId = useId();
@@ -570,6 +602,7 @@ export default function CreatorAgentPanelV2(props: CreatorAgentPanelV2Props) {
     setAttachments(restored.attachments);
     setBoundSelectionIds(restored.selectedNodeIds);
     setBoundSelectionDetails(restored.selectedNodes);
+    setCreationMode(restored.creationMode);
   }, []);
   const switchComposerDraftScope = useCallback((nextKey: string, options: {
     reset?: boolean;
@@ -648,13 +681,34 @@ export default function CreatorAgentPanelV2(props: CreatorAgentPanelV2Props) {
     '--creator-danger': props.themeTokens.danger,
     '--creator-success': props.themeTokens.success,
     '--creator-font': props.themeTokens.fontFamily,
-  }) as CSSProperties, [props.themeTokens]);
+    '--creator-panel-safe-top': `${Math.max(86, Number(props.panelSafeTop) || 86)}px`,
+  }) as CSSProperties, [props.panelSafeTop, props.themeTokens]);
 
   useLayoutEffect(() => {
     const host = document.querySelector<HTMLElement>('[data-canvas-floating-ui="creator-agent-launcher-slot"]');
     setLauncherHost(host);
     return () => setLauncherHost(null);
   }, [props.canvasId]);
+
+  useLayoutEffect(() => {
+    const shell = panelShellRef.current;
+    if (!open || !shell) return undefined;
+    const startedAt = launcherOpenedAtRef.current ?? performance.now();
+    const commitMs = Math.max(0, performance.now() - startedAt);
+    shell.dataset.shellReadinessSchema = CREATOR_SHELL_READINESS_SCHEMA;
+    shell.dataset.shellCommitMs = commitMs.toFixed(3);
+    shell.dataset.shellTargetMs = String(CREATOR_SHELL_TARGET_MS);
+    shell.dataset.shellReadinessStatus = 'pending-paint';
+    const frame = window.requestAnimationFrame(() => {
+      const paintReadyMs = Math.max(0, performance.now() - startedAt);
+      shell.dataset.shellPaintReadyMs = paintReadyMs.toFixed(3);
+      shell.dataset.shellReadinessStatus = paintReadyMs <= CREATOR_SHELL_TARGET_MS
+        ? 'within-target'
+        : 'over-target';
+      launcherOpenedAtRef.current = null;
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [open]);
 
   useLayoutEffect(() => {
     if (composerBaseKeyRef.current === legacyDraftKey) return;
@@ -673,12 +727,13 @@ export default function CreatorAgentPanelV2(props: CreatorAgentPanelV2Props) {
       attachments,
       selectedNodeIds: boundSelectionIds,
       selectedNodes: boundSelectionDetails,
+      creationMode,
     });
     composerDraftRef.current = persisted;
     if (composerScopeKeyRef.current !== composerScopeKey) return undefined;
     const timeout = window.setTimeout(() => writeComposerDraft(composerScopeKey, persisted), 250);
     return () => window.clearTimeout(timeout);
-  }, [attachments, boundSelectionDetails, boundSelectionIds, composerScopeKey, draft]);
+  }, [attachments, boundSelectionDetails, boundSelectionIds, composerScopeKey, creationMode, draft]);
 
   useEffect(() => () => {
     writeComposerDraft(composerScopeKeyRef.current, composerDraftRef.current);
@@ -699,7 +754,10 @@ export default function CreatorAgentPanelV2(props: CreatorAgentPanelV2Props) {
   }, [draft, minimized, open, resizeComposer]);
 
   const loadConversation = useCallback(async (sessionId: string) => {
-    const snapshot = await getCreatorConversationV2(sessionId, props.projectId, props.canvasId);
+    const [snapshot, navigation] = await Promise.all([
+      getCreatorConversationV2(sessionId, props.projectId, props.canvasId),
+      getCreatorLongScriptScenesV2(sessionId, props.projectId, props.canvasId),
+    ]);
     const nextDraftKey = conversationComposerDraftKey(legacyDraftKey, snapshot.conversation.id);
     switchComposerDraftScope(nextDraftKey, {
       migrateFromKey: composerScopeKeyRef.current === legacyDraftKey ? legacyDraftKey : undefined,
@@ -707,6 +765,7 @@ export default function CreatorAgentPanelV2(props: CreatorAgentPanelV2Props) {
     conversationOrientationRef.current = [...snapshot.messages].reverse()
       .find((message) => message.role === 'assistant')?.id || '';
     setConversation(snapshot.conversation);
+    setSceneNavigation(navigation.total ? navigation : null);
     setMessages(snapshot.messages);
     setAction(snapshot.pendingAction);
     setNextBeforeSequence(snapshot.nextBeforeSequence);
@@ -729,6 +788,7 @@ export default function CreatorAgentPanelV2(props: CreatorAgentPanelV2Props) {
     if (current) return loadConversation(current.id);
     setMessages([]);
     setAction(null);
+    setSceneNavigation(null);
     setNextBeforeSequence(null);
     return null;
   }, [conversation, freshConversationRequested, loadConversation, props.canvasId, props.projectId]);
@@ -742,15 +802,16 @@ export default function CreatorAgentPanelV2(props: CreatorAgentPanelV2Props) {
     }
     const created = await createCreatorConversationV2(props.projectId, props.canvasId);
     switchComposerDraftScope(conversationComposerDraftKey(legacyDraftKey, created.conversation.id), {
-      migrateFromKey: freshDraftKey,
+      migrateFromKey: composerScopeKeyRef.current,
     });
     setConversation(created.conversation);
     setMessages([]);
     setAction(null);
+    setSceneNavigation(null);
     setNextBeforeSequence(null);
     setFreshConversationRequested(false);
     return created.conversation;
-  }, [conversation, freshConversationRequested, freshDraftKey, legacyDraftKey, loadConversation, props.canvasId, props.projectId, switchComposerDraftScope]);
+  }, [conversation, freshConversationRequested, legacyDraftKey, loadConversation, props.canvasId, props.projectId, switchComposerDraftScope]);
 
   useEffect(() => {
     if (!open || conversation || freshConversationRequested) return undefined;
@@ -827,7 +888,7 @@ export default function CreatorAgentPanelV2(props: CreatorAgentPanelV2Props) {
       onAction: (next) => {
         sequenceRef.current = Math.max(sequenceRef.current, next.sequence);
         setAction(next.status === 'cancelled' ? null : next);
-        if (next.status === 'completed' && next.resultAssets.length) {
+        if (next.resultAssets.length) {
           setMessages((current) => current.map((message) => message.actionId === next.id
             ? { ...message, media: next.resultAssets }
             : message));
@@ -840,6 +901,11 @@ export default function CreatorAgentPanelV2(props: CreatorAgentPanelV2Props) {
       onConversation: (next) => {
         sequenceRef.current = Math.max(sequenceRef.current, next.sequence);
         setConversation(next);
+      },
+      onWork: () => {
+        void getCreatorLongScriptScenesV2(conversation.id, props.projectId, props.canvasId)
+          .then((navigation) => setSceneNavigation(navigation.total ? navigation : null))
+          .catch(() => {});
       },
     });
   }, [conversation?.id, finishOperation, open, props.canvasId, props.projectId, surfaceConversationUpdate]);
@@ -981,6 +1047,7 @@ export default function CreatorAgentPanelV2(props: CreatorAgentPanelV2Props) {
     setError('');
     setNotice('');
     setConversation(null);
+    setSceneNavigation(null);
     setMessages([]);
     setAction(null);
     setHistoryOpen(false);
@@ -1077,14 +1144,13 @@ export default function CreatorAgentPanelV2(props: CreatorAgentPanelV2Props) {
       try {
         await settingsLoadRef.current;
       } catch (settingsError) {
-        if (focusFirstControl) {
-          setError(recoveryErrorText(settingsError, copy('创作模型状态没有读取成功，请检查连接后重试。', 'Creative model status did not load. Check the connection and try again.'), copy));
-        }
+        setSettingsReadError(recoveryErrorText(settingsError, copy('创作模型状态没有读取成功，请检查连接后重试。', 'Creative model status did not load. Check the connection and try again.'), copy));
       }
       if (focusFirstControl) requestAnimationFrame(() => settingsFirstSelectRef.current?.focus());
       return;
     }
     setSettingsOperation('load');
+    setSettingsReadError('');
     const task = (async () => {
       const retryDelays = [0, 350, 900];
       let lastError: unknown = null;
@@ -1098,6 +1164,7 @@ export default function CreatorAgentPanelV2(props: CreatorAgentPanelV2Props) {
           setPreferences(settingsResult.preferences);
           setSettingsDraft(settingsResult.preferences);
           setCatalog(catalogResult);
+          setSettingsReadError('');
           return;
         } catch (settingsError) {
           lastError = settingsError;
@@ -1110,12 +1177,8 @@ export default function CreatorAgentPanelV2(props: CreatorAgentPanelV2Props) {
       await task;
       if (focusFirstControl) requestAnimationFrame(() => requestAnimationFrame(() => settingsFirstSelectRef.current?.focus()));
     } catch (settingsError) {
-      // Opening Creator runs this as a background readiness check. A transient
-      // failure must not stack a second global error over conversation recovery;
-      // the explicit Settings action still surfaces the localized failure.
-      if (focusFirstControl) {
-        setError(recoveryErrorText(settingsError, copy('创作模型状态没有读取成功，请检查连接后重试。', 'Creative model status did not load. Check the connection and try again.'), copy));
-      }
+      const settingsMessage = recoveryErrorText(settingsError, copy('创作模型状态没有读取成功，请检查连接后重试。', 'Creative model status did not load. Check the connection and try again.'), copy);
+      setSettingsReadError(settingsMessage);
     } finally {
       if (settingsLoadRef.current === task) settingsLoadRef.current = null;
       setSettingsOperation('idle');
@@ -1167,11 +1230,68 @@ export default function CreatorAgentPanelV2(props: CreatorAgentPanelV2Props) {
     } catch (settingsError) { setError(recoveryErrorText(settingsError, copy('设置没有保存，请检查连接后重试。', 'Settings were not saved. Check the connection and try again.'), copy)); } finally { setSettingsOperation('idle'); }
   }, [catalog, copy, isSettingsBusy, props.canvasId, props.projectId, settingsDraft]);
 
+  const switchScene = useCallback(async (sceneId: string) => {
+    if (!conversation || !sceneNavigation || sceneId === sceneNavigation.currentSceneId || isOperating) return;
+    setOperation('scene-switch');
+    setError('');
+    try {
+      const changed = await setCreatorCurrentSceneV2(
+        conversation.id,
+        sceneId,
+        props.projectId,
+        props.canvasId,
+      );
+      setSceneNavigation(changed.navigation);
+      setConversation((current) => current ? { ...current, currentSceneId: sceneId } : current);
+      setSceneQuery('');
+      if (sceneSwitcherRef.current) sceneSwitcherRef.current.open = false;
+      requestAnimationFrame(() => composerRef.current?.focus());
+    } catch (sceneError) {
+      setError(recoveryErrorText(
+        sceneError,
+        copy('这个场次没有切换成功，当前内容没有变化，请重试。', 'This scene did not open. Your current work is unchanged; try again.'),
+        copy,
+      ));
+    } finally {
+      finishOperation('scene-switch');
+    }
+  }, [conversation, copy, finishOperation, isOperating, props.canvasId, props.projectId, sceneNavigation]);
+
+  const confirmCurrentScene = useCallback(async () => {
+    if (!conversation || !sceneNavigation?.currentSceneId || isOperating) return;
+    setOperation('scene-confirm');
+    setError('');
+    try {
+      const confirmed = await confirmCreatorCurrentSceneV2(
+        conversation.id,
+        sceneNavigation.currentSceneId,
+        props.projectId,
+        props.canvasId,
+        crypto.randomUUID(),
+        sceneNavigation.currentScene?.sourcePartId,
+      );
+      setSceneNavigation(confirmed.navigation);
+      setConversation((current) => current
+        ? { ...current, currentSceneId: confirmed.navigation.currentSceneId }
+        : current);
+      requestAnimationFrame(() => composerRef.current?.focus());
+    } catch (sceneError) {
+      setError(recoveryErrorText(
+        sceneError,
+        copy('这一场没有定下来，当前内容仍然保留，请重试。', 'This scene was not confirmed. Your work is still here; try again.'),
+        copy,
+      ));
+    } finally {
+      finishOperation('scene-confirm');
+    }
+  }, [conversation, copy, finishOperation, isOperating, props.canvasId, props.projectId, sceneNavigation]);
+
   const submit = useCallback(async (text = draft, options: CreatorSubmitOptions = {}) => {
     const requestedContent = text.trim();
     const turnAttachments = options.attachments ?? attachments;
     const turnSelectedNodeIds = options.selectedNodeIds ?? boundSelectionIds;
     const preserveComposer = options.preserveComposer === true;
+    const turnCreationMode = sceneNavigation?.total || creationMode === 'scene' ? 'scene' : 'auto';
     const hasAttachments = turnAttachments.length > 0;
     const hasSelectedNodes = turnSelectedNodeIds.length > 0;
     const turnSelectedNodes = boundSelectionDetails.filter((item) => turnSelectedNodeIds.includes(item.id));
@@ -1194,12 +1314,13 @@ export default function CreatorAgentPanelV2(props: CreatorAgentPanelV2Props) {
       attachments: turnAttachments,
       selectedNodeIds: turnSelectedNodeIds,
       selectedNodes: turnSelectedNodes,
+      creationMode: turnCreationMode,
     });
     setOperation('reply');
     setError('');
     setNotice('');
     if (!preserveComposer) {
-      composerDraftRef.current = { ...EMPTY_COMPOSER_DRAFT };
+      composerDraftRef.current = { ...EMPTY_COMPOSER_DRAFT, creationMode: turnCreationMode };
       setDraft('');
       setAttachments([]);
       clearBoundSelection();
@@ -1223,11 +1344,19 @@ export default function CreatorAgentPanelV2(props: CreatorAgentPanelV2Props) {
         clientRequestId,
         attachments: turnAttachments,
         selectedNodeIds: turnSelectedNodeIds,
+        currentSceneId: sceneNavigation?.currentSceneId || null,
+        creationMode: turnCreationMode,
       });
       const snapshot = await pending;
       setConversation(snapshot.conversation);
       setMessages(snapshot.messages);
       setAction(snapshot.pendingAction);
+      if (snapshot.conversation.currentSceneId || snapshot.work?.snapshot) {
+        try {
+          const navigation = await getCreatorLongScriptScenesV2(current.id, props.projectId, props.canvasId);
+          setSceneNavigation(navigation.total ? navigation : null);
+        } catch { /* The committed reply remains visible; SSE or reopen will restore navigation. */ }
+      }
       if (stickToBottomRef.current) settleMessageScroll();
       else setNewReplyBelow(true);
     } catch (sendError) {
@@ -1270,7 +1399,7 @@ export default function CreatorAgentPanelV2(props: CreatorAgentPanelV2Props) {
       activeTurnRef.current = null;
       finishOperation('reply');
     }
-  }, [attachments, boundSelectionDetails, boundSelectionIds, clearBoundSelection, conversation?.id, copy, creatorLlmConfigured, dismissSettings, draft, ensureConversation, finishOperation, isChinese, isOperating, openApiSettings, props.canvasId, props.projectId, refreshCreatorSettings, settleMessageScroll]);
+  }, [attachments, boundSelectionDetails, boundSelectionIds, clearBoundSelection, conversation?.id, copy, creationMode, creatorLlmConfigured, dismissSettings, draft, ensureConversation, finishOperation, isChinese, isOperating, openApiSettings, props.canvasId, props.projectId, refreshCreatorSettings, sceneNavigation?.currentSceneId, sceneNavigation?.total, settleMessageScroll]);
 
   const stop = useCallback(async () => {
     if (!conversation || !activeResponseRef.current) return;
@@ -1292,13 +1421,24 @@ export default function CreatorAgentPanelV2(props: CreatorAgentPanelV2Props) {
     }
   }, [action, conversation, copy, finishOperation, isOperating, props.canvasId, props.projectId]);
 
-  const redoAction = useCallback(() => {
-    if (!action || isOperating) return;
-    void submit(
-      copy('这个版本不合适，换一个明显不同的方向。', "This version isn't right. Try a clearly different direction."),
-      { attachments: action.resultAssets, selectedNodeIds: [], preserveComposer: true },
-    );
-  }, [action, copy, isOperating, submit]);
+  const redoAction = useCallback(async () => {
+    if (!conversation || !action || action.status !== 'failed' || isOperating) return;
+    setOperation('action-confirm');
+    setError('');
+    try {
+      const retried = await retryCreatorActionV2(
+        conversation.id, action.id, props.projectId, props.canvasId,
+      );
+      setAction(retried.action);
+    } catch (retryError) {
+      finishOperation('action-confirm');
+      setError(recoveryErrorText(
+        retryError,
+        copy('这一条没有重新开始，其他已完成结果没有受影响。', 'This item did not restart. Other completed results were not affected.'),
+        copy,
+      ));
+    }
+  }, [action, conversation, copy, finishOperation, isOperating, props.canvasId, props.projectId]);
 
   const restoreFailedTurn = useCallback((assistant: CreatorMessageV2) => {
     const user = assistant.replyToMessageId
@@ -1355,6 +1495,32 @@ export default function CreatorAgentPanelV2(props: CreatorAgentPanelV2Props) {
       props.onFocusNode(sent.nodeId);
     } catch (sendError) { setError(recoveryErrorText(sendError, copy('结果没有发送到画布，素材仍在对话中，请重试。', 'The result was not sent to the canvas. It is still in the conversation; try again.'), copy)); } finally { finishOperation('canvas-send'); }
   }, [conversation, copy, finishOperation, isOperating, props]);
+
+  const markMediaVisible = useCallback((asset: CreatorMediaRef, sourceActionId?: string | null) => {
+    settleMessageScroll();
+    if (!conversation || !sourceActionId || !['image', 'video'].includes(asset.kind)
+      || asset.reviewStatus === 'reviewed') return;
+    const key = `${sourceActionId}:${asset.assetId}`;
+    if (mediaReviewInFlightRef.current.has(key)) return;
+    mediaReviewInFlightRef.current.add(key);
+    void markCreatorAssetReviewedV2(
+      conversation.id,
+      sourceActionId,
+      asset.assetId,
+      asset.kind as 'image' | 'video',
+      props.projectId,
+      props.canvasId,
+    ).then(({ action: reviewedAction }) => {
+      setAction((current) => current?.id === reviewedAction.id ? reviewedAction : current);
+      const byId = new Map(reviewedAction.resultAssets.map((item) => [item.assetId, item]));
+      setMessages((current) => current.map((message) => message.actionId === reviewedAction.id
+        ? { ...message, media: message.media.map((item) => byId.get(item.assetId) || item) }
+        : message));
+    }).catch(() => {
+      // A loaded result remains visible. Adoption will surface a precise retry
+      // message if this small evidence write did not reach the local backend.
+    }).finally(() => mediaReviewInFlightRef.current.delete(key));
+  }, [conversation, props.canvasId, props.projectId, settleMessageScroll]);
 
   const uploadFiles = useCallback(async (files: File[]) => {
     if (!files.length || isUploading) return;
@@ -1431,10 +1597,19 @@ export default function CreatorAgentPanelV2(props: CreatorAgentPanelV2Props) {
   }, []);
 
   const onComposerKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
+    if (event.key !== 'Enter' || event.shiftKey) return;
+    const nativeEvent = event.nativeEvent;
+    if (
+      composerComposingRef.current
+      || nativeEvent.isComposing
+      || nativeEvent.keyCode === 229
+    ) return;
+    if (Date.now() - compositionEndedAtRef.current < CREATOR_IME_COMMIT_GUARD_MS) {
       event.preventDefault();
-      void submit();
+      return;
     }
+    event.preventDefault();
+    void submit();
   };
 
   const pinSelection = () => {
@@ -1494,6 +1669,21 @@ export default function CreatorAgentPanelV2(props: CreatorAgentPanelV2Props) {
   }, [history, historyQuery, isChinese]);
   const currentPhaseIndex = Math.max(0, PHASES.findIndex(([phase]) => phase === (conversation?.phase || 'idea')));
   const currentPhase = PHASES[currentPhaseIndex];
+  const currentSceneIndex = sceneNavigation
+    ? sceneNavigation.scenes.findIndex((scene) => scene.sceneId === sceneNavigation.currentSceneId)
+    : -1;
+  const visibleSceneChoices = useMemo(() => {
+    if (!sceneNavigation) return [];
+    const query = sceneQuery.trim().toLocaleLowerCase();
+    if (!query) {
+      const start = Math.max(0, currentSceneIndex - 2);
+      return sceneNavigation.scenes.slice(start, Math.min(sceneNavigation.total, start + 5));
+    }
+    return sceneNavigation.scenes.filter((scene) => {
+      const label = `${scene.number} ${scene.title}`.toLocaleLowerCase();
+      return label.includes(query);
+    }).slice(0, 12);
+  }, [currentSceneIndex, sceneNavigation, sceneQuery]);
   const visibleSuggestions = creatorLlmConfigured === true
     && latestAssistant
     && latestAssistant.status === 'completed'
@@ -1502,6 +1692,7 @@ export default function CreatorAgentPanelV2(props: CreatorAgentPanelV2Props) {
     ? latestAssistant.suggestions
     : [];
   const hasTurnInput = Boolean(draft.trim() || attachments.length || boundSelectionIds.length);
+  const compactFirstScreen = messages.length === 0 && !action && !historyOpen && !settingsOpen;
   const requiresVisionInput = attachments.some((item) => item.kind === 'image' || item.kind === 'video')
     || boundSelectionDetails.some((item) => ['image', 'video', 'upload'].includes(String(item.type || '').toLowerCase()));
   const automaticModelHint = (kind: 'llm' | 'image' | 'video') => {
@@ -1519,7 +1710,11 @@ export default function CreatorAgentPanelV2(props: CreatorAgentPanelV2Props) {
   };
   const actionPromptExpanded = Boolean(action && expandedActionPromptId === action.id);
   const actionPromptIsLong = Boolean(action && (clippedActionPromptId === action.id || actionPromptExpanded));
-  const launcherStatus = error ? 'warning' : isOperating || isUploading || action?.status === 'running' || action?.status === 'ambiguous' ? 'running' : action?.status === 'pending' ? 'approval' : action?.status === 'completed' ? 'completed' : 'idle';
+  const submissionStatusUnknown = action?.status === 'ambiguous'
+    && action.errorCode === 'CREATOR_SUBMISSION_STATUS_UNKNOWN';
+  const staleSceneAction = action?.status === 'failed'
+    && action.errorCode === 'CREATOR_ACTION_SCENE_STALE';
+  const launcherStatus = error || submissionStatusUnknown ? 'warning' : isOperating || isUploading || action?.status === 'running' || action?.status === 'ambiguous' ? 'running' : action?.status === 'pending' ? 'approval' : action?.status === 'completed' ? 'completed' : 'idle';
   const operationAnnouncement = isUploading
     ? copy('正在添加附件，可以继续整理下一条想法', 'Adding attachments. You can keep preparing your next message')
     : loading
@@ -1532,6 +1727,10 @@ export default function CreatorAgentPanelV2(props: CreatorAgentPanelV2Props) {
             : copy('正在推敲最合适的创作方向', 'Working out the strongest direction')
         : operation === 'action-confirm'
           ? copy('正在生成', 'Generating')
+          : operation === 'scene-switch'
+            ? copy('正在打开场次', 'Opening scene')
+          : operation === 'scene-confirm'
+            ? copy('正在保存这一场', 'Saving scene')
           : operation === 'canvas-send'
             ? copy('正在发送到画布', 'Sending to canvas')
             : isOperating
@@ -1551,12 +1750,14 @@ export default function CreatorAgentPanelV2(props: CreatorAgentPanelV2Props) {
       style={style}
       title={open ? copy('关闭创作助手', 'Close Creator Agent') : copy('打开创作助手', 'Open Creator Agent')}
       aria-label={open ? copy('关闭创作助手', 'Close Creator Agent') : copy('打开创作助手', 'Open Creator Agent')}
+      aria-controls={panelId}
       aria-expanded={open}
       onClick={() => {
         if (open) {
           setHistoryOpen(false);
           dismissSettings();
         } else {
+          launcherOpenedAtRef.current = performance.now();
           setMinimized(false);
         }
         setPanelOpen(!open);
@@ -1574,7 +1775,10 @@ export default function CreatorAgentPanelV2(props: CreatorAgentPanelV2Props) {
         {launcherHost ? createPortal(launcher, launcherHost) : launcher}
         {open && createPortal(
           <aside
-            className={`t8-creator-v2-panel nodrag nopan nowheel${minimized ? ' is-minimized' : ''}`}
+            ref={panelShellRef}
+            id={panelId}
+            className={`t8-creator-v2-panel nodrag nopan nowheel${minimized ? ' is-minimized' : ''}${compactFirstScreen ? ' is-first-screen' : ''}`}
+            data-canvas-floating-ui="creator-agent-panel"
             data-theme-mode={props.themeMode}
             data-theme-visual={props.visualStyle}
             style={style}
@@ -1602,6 +1806,94 @@ export default function CreatorAgentPanelV2(props: CreatorAgentPanelV2Props) {
               <p className="t8-creator-v2-phase-summary" aria-hidden="true">{copy(`第 ${currentPhaseIndex + 1}/6 步 · ${currentPhase[1]}`, `Step ${currentPhaseIndex + 1} of 6 · ${currentPhase[2]}`)}</p>
             </div>
 
+            {sceneNavigation && sceneNavigation.total > 0 && (
+              <section className="t8-creator-v2-scene-nav" aria-label={copy('当前剧本场次', 'Current script scene')}>
+                <div className="t8-creator-v2-scene-current">
+                  <strong data-i18n-skip="true">{sceneNavigation.scenes[currentSceneIndex]
+                    ? `${copy(
+                        `第 ${sceneNavigation.scenes[currentSceneIndex].number} / ${sceneNavigation.total} 场 · ${sceneNavigation.scenes[currentSceneIndex].title}`,
+                        `Scene ${sceneNavigation.scenes[currentSceneIndex].number} of ${sceneNavigation.total} · ${sceneNavigation.scenes[currentSceneIndex].title}`,
+                      )}${(sceneNavigation.currentScene?.sourcePartCount || 1) > 1
+                        ? copy(
+                            ` · 本场 ${sceneNavigation.currentScene!.sourcePartIndex + 1}/${sceneNavigation.currentScene!.sourcePartCount} 段`,
+                            ` · Part ${sceneNavigation.currentScene!.sourcePartIndex + 1} of ${sceneNavigation.currentScene!.sourcePartCount}`,
+                          ) : ''}`
+                    : copy('当前场', 'Current scene')}</strong>
+                  <details ref={sceneSwitcherRef} className="t8-creator-v2-scene-switcher">
+                    <summary title={copy('切换或搜索场次', 'Switch or search scenes')}>
+                      <Search size={14} aria-hidden="true" />
+                      <span>{copy('切换', 'Switch')}</span>
+                    </summary>
+                    <div className="t8-creator-v2-scene-menu">
+                      <label className="t8-creator-v2-scene-search">
+                        <Search size={14} aria-hidden="true" />
+                        <input
+                          type="search"
+                          value={sceneQuery}
+                          aria-label={copy('按场次编号或名称搜索', 'Search by scene number or title')}
+                          placeholder={copy('搜场次编号或名称', 'Search scenes')}
+                          onChange={(event) => setSceneQuery(event.currentTarget.value)}
+                        />
+                      </label>
+                      <div className="t8-creator-v2-scene-step">
+                        <button
+                          type="button"
+                          disabled={isOperating || currentSceneIndex <= 0}
+                          onClick={() => void switchScene(sceneNavigation.scenes[currentSceneIndex - 1]?.sceneId)}
+                        ><ChevronLeft size={14} />{copy('上一场', 'Previous scene')}</button>
+                        <button
+                          type="button"
+                          disabled={isOperating || currentSceneIndex < 0 || currentSceneIndex >= sceneNavigation.total - 1}
+                          onClick={() => void switchScene(sceneNavigation.scenes[currentSceneIndex + 1]?.sceneId)}
+                        >{copy('下一场', 'Next scene')}<ChevronRight size={14} /></button>
+                      </div>
+                      <div className="t8-creator-v2-scene-results" role="listbox" aria-label={copy('场次结果', 'Scene results')}>
+                        {visibleSceneChoices.length ? visibleSceneChoices.map((scene) => (
+                          <button
+                            key={scene.sceneId}
+                            type="button"
+                            role="option"
+                            aria-selected={scene.sceneId === sceneNavigation.currentSceneId}
+                            disabled={isOperating || scene.sceneId === sceneNavigation.currentSceneId}
+                            onClick={() => void switchScene(scene.sceneId)}
+                          >{copy(`第 ${scene.number} 场 · ${scene.title}`, `Scene ${scene.number} · ${scene.title}`)}</button>
+                        )) : <p>{copy('没有找到这个场次', 'No matching scene')}</p>}
+                      </div>
+                      {sceneNavigation.currentScene?.sourceText && (
+                        <details className="t8-creator-v2-scene-source">
+                          <summary>{(sceneNavigation.currentScene?.sourcePartCount || 1) > 1
+                            ? copy('查看本段原文', 'View this part')
+                            : copy('查看本场原文', 'View scene text')}</summary>
+                          <p data-i18n-skip="true">{sceneNavigation.currentScene.sourceText}</p>
+                        </details>
+                      )}
+                    </div>
+                  </details>
+                </div>
+                <button
+                  type="button"
+                  className="is-primary t8-creator-v2-scene-confirm"
+                  disabled={isOperating || (sceneNavigation.currentScene?.status === 'confirmed'
+                    && currentSceneIndex >= sceneNavigation.total - 1)
+                    || sceneNavigation.currentScene?.sourceIntegrity === false}
+                  onClick={() => void confirmCurrentScene()}
+                >{sceneNavigation.currentScene?.status === 'confirmed'
+                    ? copy('下一场', 'Next scene')
+                    : (sceneNavigation.currentScene?.sourcePartCount || 1) > 1
+                      && sceneNavigation.currentScene!.sourcePartIndex < sceneNavigation.currentScene!.sourcePartCount - 1
+                      ? sceneNavigation.currentScene?.sourcePartHasDraft
+                        ? copy('定这段，继续本场', 'Confirm part and continue')
+                        : copy('采用原文，继续本场', 'Use source and continue')
+                    : currentSceneIndex >= sceneNavigation.total - 1
+                      ? sceneNavigation.currentScene?.sourcePartHasDraft
+                        ? copy('定这场', 'Confirm scene')
+                        : copy('采用原文', 'Use source')
+                      : sceneNavigation.currentScene?.sourcePartHasDraft
+                        ? copy('定这场，下一场', 'Confirm and continue')
+                        : copy('采用原文，下一场', 'Use source and continue')}</button>
+              </section>
+            )}
+
             {historyOpen && (
               <section ref={historyPopoverRef} id={historyPopoverId} className="t8-creator-v2-popover is-history" role="region" tabIndex={-1} aria-label={copy('历史对话', 'Conversation history')} aria-busy={isHistoryBusy}>
                 {history.length >= HISTORY_SEARCH_MIN_ITEMS && <label className="t8-creator-v2-history-search"><Search size={14} aria-hidden="true" /><input ref={historySearchInputRef} type="search" value={historyQuery} aria-label={copy('搜索历史对话', 'Search conversations')} placeholder={copy('搜索对话', 'Search conversations')} onChange={(event) => setHistoryQuery(event.currentTarget.value)} /></label>}
@@ -1616,7 +1908,9 @@ export default function CreatorAgentPanelV2(props: CreatorAgentPanelV2Props) {
 
             {settingsOpen && (
               <section ref={settingsPopoverRef} id={settingsPopoverId} className="t8-creator-v2-popover is-settings" role="region" tabIndex={-1} aria-label={copy('生成设置', 'Generation settings')} aria-busy={isSettingsBusy}>
-                {isSettingsBusy && !catalog ? <p><LoaderCircle size={14} className="animate-spin" aria-hidden="true" />{copy('正在读取设置…', 'Loading settings…')}</p> : (
+                {isSettingsBusy && !catalog ? <p><LoaderCircle size={14} className="animate-spin" aria-hidden="true" />{copy('正在读取设置…', 'Loading settings…')}</p> : settingsReadError && !catalog ? (
+                  <div className="t8-creator-v2-settings-readiness is-empty" role="alert"><span>{settingsReadError}</span><button type="button" className="is-primary" disabled={isSettingsBusy} onClick={() => void refreshCreatorSettings(true)}>{copy('重新读取', 'Try again')}</button></div>
+                ) : (
                   settingsHasNoConfiguredModels ? (
                     <div className="t8-creator-v2-settings-readiness is-empty" role="note"><span>{settingsReadinessMessage}</span><button type="button" className="is-primary" onClick={openApiSettings}>{copy('配置 API', 'Set up API')}</button></div>
                   ) : <>
@@ -1679,13 +1973,18 @@ export default function CreatorAgentPanelV2(props: CreatorAgentPanelV2Props) {
                     : visibleMessageBody(message)}</div>
                   {message.media.length > 0 && (
                     <div className="t8-creator-v2-message-media">
-                      {message.media.map((asset) => (
-                        <section key={asset.assetId} className="t8-creator-v2-result" aria-label={asset.title || copy('生成结果', 'Generated result')}>
-                          {asset.kind === 'image' && asset.previewUrl && <img src={asset.previewUrl} alt={asset.title || copy('生成图片', 'Generated image')} loading="lazy" onLoad={settleMessageScroll} />}
-                          {asset.kind === 'video' && asset.previewUrl && <video src={asset.previewUrl} aria-label={asset.title || copy('生成视频', 'Generated video')} controls preload="metadata" onLoadedMetadata={settleMessageScroll} />}
-                          {message.role === 'assistant' && message.actionId && <footer><button type="button" disabled={isOperating} onClick={() => { setAttachments([asset]); requestAnimationFrame(() => composerRef.current?.focus()); }}>{copy('继续调整', 'Adjust')}</button><button type="button" className="is-primary" disabled={isOperating} onClick={() => void sendToCanvas(asset, message.actionId)}>{sentNodes[asset.assetId] ? copy('已发送 · 查看', 'Sent · View') : copy('发送到画布', 'Send to canvas')}</button></footer>}
-                        </section>
-                      ))}
+                      {message.media.map((asset) => {
+                        const currentAsset = knownMedia.get(asset.assetId) || asset;
+                        const isReviewed = currentAsset.reviewStatus === 'reviewed';
+                        const sentNodeId = currentAsset.canvasNodeId || sentNodes[asset.assetId];
+                        return (
+                          <section key={asset.assetId} className="t8-creator-v2-result" aria-label={asset.title || copy('生成结果', 'Generated result')}>
+                            {asset.kind === 'image' && asset.previewUrl && <img src={asset.previewUrl} alt={asset.title || copy('生成图片', 'Generated image')} loading="lazy" onLoad={() => markMediaVisible(currentAsset, message.actionId)} />}
+                            {asset.kind === 'video' && asset.previewUrl && <video src={asset.previewUrl} aria-label={asset.title || copy('生成视频', 'Generated video')} controls preload="metadata" onLoadedData={() => markMediaVisible(currentAsset, message.actionId)} />}
+                            {message.role === 'assistant' && message.actionId && <footer><button type="button" disabled={isOperating} onClick={() => { setAttachments([currentAsset]); requestAnimationFrame(() => composerRef.current?.focus()); }}>{copy('继续调整', 'Adjust')}</button><button type="button" className="is-primary" disabled={isOperating || (!sentNodeId && !isReviewed)} onClick={() => sentNodeId ? props.onFocusNode(sentNodeId) : void sendToCanvas(currentAsset, message.actionId)}>{sentNodeId ? copy('已发送 · 查看', 'Sent · View') : isReviewed ? copy('采用并发送', 'Use and send') : copy('正在准备…', 'Preparing…')}</button></footer>}
+                          </section>
+                        );
+                      })}
                     </div>
                   )}
                   {message.actionId === action?.id && action?.status === 'pending' && (
@@ -1698,8 +1997,9 @@ export default function CreatorAgentPanelV2(props: CreatorAgentPanelV2Props) {
                       <footer><button type="button" disabled={isOperating} onClick={() => void revisePendingAction()}>{copy('再改改', 'Revise')}</button><button type="button" className="is-primary" disabled={isOperating} onClick={() => void confirmAction()}>{copy('开始生成', 'Generate')}</button></footer>
                     </section>
                   )}
-                  {message.actionId === action?.id && (action?.status === 'running' || action?.status === 'ambiguous') && <p className="t8-creator-v2-state"><LoaderCircle size={15} className="animate-spin" aria-hidden="true" />{action.status === 'ambiguous' ? copy('仍在生成，已接管原任务…', 'Still generating. Reconnecting to the original task…') : copy('正在生成…', 'Generating…')}</p>}
-                  {message.actionId === action?.id && action?.status === 'failed' && <section className="t8-creator-v2-decision is-error"><p>{recoveryErrorText(action.errorMessage ? new Error(action.errorMessage) : null, copy('这次没有生成出来，对话和素材都已保留，可以重新安排。', 'This generation did not finish. The conversation and materials are saved; you can try another plan.'), copy)}</p><button type="button" disabled={isOperating} onClick={redoAction}><RefreshCw size={13} />{copy('重新安排', 'Try another')}</button></section>}
+                  {message.actionId === action?.id && submissionStatusUnknown && <section className="t8-creator-v2-decision is-error" role="alert"><p>{copy('远端可能已经收到这次生成，但本地没有拿到任务号。为避免重复生成，已停止自动重试；请先到渠道后台确认。', 'The provider may have received this generation, but the task ID was not saved locally. Automatic retry has stopped to prevent duplicate generation; please check the provider dashboard first.')}</p></section>}
+                  {message.actionId === action?.id && !submissionStatusUnknown && (action?.status === 'running' || action?.status === 'ambiguous') && <p className="t8-creator-v2-state"><LoaderCircle size={15} className="animate-spin" aria-hidden="true" />{action.status === 'ambiguous' ? copy('仍在生成，已接管原任务…', 'Still generating. Reconnecting to the original task…') : copy('正在生成…', 'Generating…')}</p>}
+                  {message.actionId === action?.id && action?.status === 'failed' && <section className="t8-creator-v2-decision is-error"><p>{staleSceneAction ? copy('这条生成对应的场次已经变化，旧提示词不会继续使用。', 'This scene changed after the generation was prepared, so the old prompt will not be used.') : recoveryErrorText(action.errorMessage ? new Error(action.errorMessage) : null, copy('这一条没有生成出来，其他已完成结果都已保留。', 'This item did not finish. Other completed results are preserved.'), copy)}</p><button type="button" disabled={isOperating} onClick={() => staleSceneAction ? void submit(copy('请根据当前场的最新内容重新生成。', 'Regenerate using the latest version of this scene.'), { attachments: [], selectedNodeIds: [], preserveComposer: true }) : void redoAction()}><RefreshCw size={13} />{staleSceneAction ? copy('按当前场重新生成', 'Regenerate current scene') : action.shots.filter((shot) => shot.status === 'failed').length > 0 ? copy(`只重试失败的 ${action.shots.filter((shot) => shot.status === 'failed').length} 镜`, `Retry ${action.shots.filter((shot) => shot.status === 'failed').length} failed shot${action.shots.filter((shot) => shot.status === 'failed').length === 1 ? '' : 's'}`) : copy('只重试这一条', 'Retry this item')}</button></section>}
                   {!resolvedRetry && message.status === 'failed' && recoveryKind === 'api-settings' && <button type="button" className="is-primary" disabled={isOperating} onClick={openApiSettings}>{copy('打开 API 设置', 'Open API settings')}</button>}
                   {!resolvedRetry && message.status === 'failed' && recoveryKind === 'generation-settings' && <button type="button" className="is-primary" disabled={isOperating} onClick={() => void openSettings(true)}>{copy('检查生成设置', 'Check generation settings')}</button>}
                   {!resolvedRetry && message.status === 'failed' && recoveryKind === 'edit' && <button type="button" className="t8-creator-v2-recovery-action" disabled={isOperating || (restoredInComposer && !hasTurnInput)} onClick={() => restoredInComposer ? void submit() : restoreFailedTurn(message)}>{restoredInComposer ? copy('直接重试', 'Retry now') : copy('修改后重试', 'Edit and retry')}</button>}
@@ -1724,6 +2024,7 @@ export default function CreatorAgentPanelV2(props: CreatorAgentPanelV2Props) {
             {notice && <div className="t8-creator-v2-notice" role="status"><span>{notice}</span><button type="button" aria-label={copy('关闭提示', 'Dismiss message')} onClick={() => setNotice('')}><X size={13} /></button></div>}
             {startupError && <div className="t8-creator-v2-error" role="alert"><span>{startupError}</span><div><button type="button" title={copy('重试', 'Retry')} aria-label={copy('重新连接创作助手', 'Reconnect Creator Agent')} disabled={loading} onClick={() => { setStartupLoadRevision((current) => current + 1); void refreshCreatorSettings(false); }}>{loading ? <LoaderCircle size={13} className="animate-spin" aria-hidden="true" /> : <RefreshCw size={13} />}</button><button type="button" aria-label={copy('关闭提示', 'Dismiss message')} onClick={() => setStartupError('')}><X size={13} /></button></div></div>}
             {error && <div className="t8-creator-v2-error" role="alert"><span>{error}</span><button type="button" aria-label={copy('关闭提示', 'Dismiss message')} onClick={() => setError('')}><X size={13} /></button></div>}
+            {settingsReadError && !settingsOpen && <div className="t8-creator-v2-readiness" role="alert"><span><strong>{copy('创作模型暂时没有连上', 'Could not reach the creative model')}</strong><small>{copy('画布、输入和素材都已保留，连接恢复后重新读取即可。', 'Your canvas, text, and media are saved. Try the check again when the connection is ready.')}</small></span><button type="button" className="is-primary" disabled={isSettingsBusy} onClick={() => void refreshCreatorSettings(false)}>{isSettingsBusy ? <LoaderCircle size={14} className="animate-spin" aria-hidden="true" /> : <RefreshCw size={14} aria-hidden="true" />}{copy('重新读取', 'Try again')}</button></div>}
             {creatorLlmConfigured === false && !settingsOpen && <div className="t8-creator-v2-readiness" role="alert"><span><strong>{copy('先设置创作模型', 'Set up a creative model first')}</strong><small>{copy('只需保存一次，首次发送时会验证 API Key；当前输入和素材会保留。', 'Save it once. The API key is verified on first send, and your current text and media will stay here.')}</small></span><button type="button" className="is-primary" onClick={openApiSettings}><Settings size={14} aria-hidden="true" />{copy('配置 API', 'Set up API')}</button></div>}
             {isUploading && uploadStatus && (
               <div className="t8-creator-v2-upload-status" role="status" aria-live="polite">
@@ -1738,15 +2039,21 @@ export default function CreatorAgentPanelV2(props: CreatorAgentPanelV2Props) {
 
             <footer className="t8-creator-v2-composer">
               <input ref={fileInputRef} className="hidden" type="file" tabIndex={-1} aria-hidden="true" multiple accept="image/*,video/*,audio/*,.txt,.md,.pdf" onChange={onFiles} />
-              <textarea ref={composerRef} data-creator-agent-composer="true" rows={2} value={draft} maxLength={30_000} aria-label={copy('描述你想做的作品', 'Describe what you want to make')} placeholder={copy('例如：把这张产品图做成 15 秒电影感广告…', 'For example: Turn this product photo into a cinematic 15-second ad…')} onChange={(event) => {
+              <textarea ref={composerRef} data-creator-agent-composer="true" rows={2} value={draft} maxLength={30_000} aria-label={copy('描述你想做的作品', 'Describe what you want to make')} placeholder={(sceneNavigation?.total || creationMode === 'scene') ? copy('写一个场景想法，或粘贴完整剧本…', 'Write a scene idea, or paste a full script…') : copy('例如：把这张产品图做成 15 秒电影感广告…', 'For example: Turn this product photo into a cinematic 15-second ad…')} onChange={(event) => {
                 const value = event.currentTarget.value;
                 composerDraftRef.current = { ...composerDraftRef.current, draft: value };
                 setDraft(value);
-              }} onKeyDown={onComposerKeyDown} />
+              }} onKeyDown={onComposerKeyDown} onCompositionStart={() => {
+                composerComposingRef.current = true;
+              }} onCompositionEnd={() => {
+                composerComposingRef.current = false;
+                compositionEndedAtRef.current = Date.now();
+              }} />
               <div>
                 <button type="button" title={copy('添加附件', 'Add attachment')} aria-label={copy('添加附件', 'Add attachment')} disabled={isUploading} onClick={() => fileInputRef.current?.click()}>{isUploading ? <LoaderCircle size={16} className="animate-spin" aria-hidden="true" /> : <Paperclip size={16} />}</button>
                 <button type="button" className={`has-touch-label${boundSelectionIds.length ? ' is-active' : ''}`} title={props.selectedNodeIds.length || boundSelectionIds.length ? copy('使用画布中选中的内容', 'Use selected canvas items') : copy('先在画布上选中图片、视频或文字', 'Select an image, video, or text item on the canvas first')} aria-label={props.selectedNodeIds.length || boundSelectionIds.length ? copy('使用画布中选中的内容', 'Use selected canvas items') : copy('先在画布上选中图片、视频或文字', 'Select an image, video, or text item on the canvas first')} aria-pressed={boundSelectionIds.length > 0} onClick={pinSelection}><AtSign size={16} /><span className="t8-creator-v2-button-label">{copy('画布', 'Canvas')}</span></button>
-                {operation === 'reply' && activeResponseId ? <button type="button" className="is-send" title={copy('停止', 'Stop')} aria-label={copy('停止', 'Stop')} onClick={() => void stop()}><Square size={13} fill="currentColor" /></button> : <button type="button" className="is-send" title={creatorLlmConfigured !== true ? copy('正在确认创作模型', 'Checking the creative model') : hasTurnInput ? copy('发送', 'Send') : copy('输入想法、添加素材或使用画布内容', 'Add text, media, or use selected canvas items')} aria-label={copy('发送', 'Send')} disabled={!hasTurnInput || isOperating || loading || creatorLlmConfigured !== true} onClick={() => void submit()}><Send size={16} /></button>}
+                <button type="button" className={`has-touch-label is-scene-mode${(sceneNavigation?.total || creationMode === 'scene') ? ' is-active' : ''}`} title={sceneNavigation?.total ? copy('当前作品正在逐场创作', 'This work is in scene mode') : copy('短想法也会直接写成高质量场稿', 'Turn even a short idea into a polished scene')} aria-label={copy('逐场创作', 'Scene mode')} aria-pressed={Boolean(sceneNavigation?.total || creationMode === 'scene')} disabled={isOperating || Boolean(sceneNavigation?.total)} onClick={() => setCreationMode((current) => current === 'scene' ? 'auto' : 'scene')}><Clapperboard size={16} /><span className="t8-creator-v2-button-label">{(sceneNavigation?.total || creationMode === 'scene') ? copy('逐场创作中', 'Scene mode on') : copy('逐场创作', 'Scene mode')}</span></button>
+                {operation === 'reply' && activeResponseId ? <button type="button" className="is-send" title={copy('停止', 'Stop')} aria-label={copy('停止', 'Stop')} onClick={() => void stop()}><Square size={13} fill="currentColor" /></button> : <button type="button" className="is-send" title={settingsReadError ? copy('先重新读取创作模型状态', 'Check the creative model again first') : creatorLlmConfigured !== true ? copy('正在确认创作模型', 'Checking the creative model') : hasTurnInput ? copy('发送', 'Send') : copy('输入想法、添加素材或使用画布内容', 'Add text, media, or use selected canvas items')} aria-label={copy('发送', 'Send')} disabled={!hasTurnInput || isOperating || loading || creatorLlmConfigured !== true} onClick={() => void submit()}><Send size={16} /></button>}
               </div>
             </footer>
           </aside>,

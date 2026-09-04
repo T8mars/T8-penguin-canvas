@@ -6,7 +6,7 @@ on:
       release_tag:
         description: Existing GitHub Release tag that receives the Mac assets
         required: true
-        default: v3.1.3
+        default: v3.1.4
         type: string
       source_ref:
         description: Immutable source tag for the Mac build (normally the same formal v<version> tag)

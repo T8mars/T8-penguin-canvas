@@ -48,6 +48,8 @@ import {
   installCanvasNodeVisibilityObserver,
 } from '../utils/canvasNodeVisibility';
 import { markCanvasPerformance } from '../utils/canvasPerformanceProbe';
+import { nextAdaptivePollDecision } from '../utils/adaptivePolling';
+import type { CanvasSurfaceReadiness } from '../utils/canvasStartupReadiness';
 import {
   estimateCanvasHeavyMediaCount,
   isPerformancePinnedNode,
@@ -3914,6 +3916,8 @@ function PlacementShelf({
 interface CanvasInnerProps {
   onAddNodeRef?: React.MutableRefObject<AddNodeFn | null>;
   onInsertWorkflowRef?: React.MutableRefObject<InsertWorkflowFn | null>;
+  onReadinessChange?: (readiness: CanvasSurfaceReadiness) => void;
+  onRetryLoadRef?: React.MutableRefObject<(() => void) | null>;
   persistenceRuntime: CanvasPersistenceRuntime;
   themeStyleOverride?: string;
   apiSettingsRevision?: number;
@@ -4086,7 +4090,7 @@ function requireVersionedCanvasPatchDocument(value: unknown, canvasId: string): 
   return document as VersionedCanvasData;
 }
 
-function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, persistenceRuntime, themeStyleOverride, apiSettingsRevision, onOpenApiSettings }: CanvasInnerProps) {
+function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, onReadinessChange, onRetryLoadRef, persistenceRuntime, themeStyleOverride, apiSettingsRevision, onOpenApiSettings }: CanvasInnerProps) {
   const { t } = useTranslation(['canvas', 'common']);
   const { activeId, canvases, refreshCanvasMetadata, setActive } = useCanvasStore();
   const performanceFixtureSize = useMemo(
@@ -7971,12 +7975,37 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, persistenceRuntime, th
     let disposed = false;
     let timerId: number | null = null;
 
+    let inFlight = false;
+    let idleStreak = 0;
+
+    const schedule = (delayMs: number) => {
+      if (disposed) return;
+      if (timerId != null) window.clearTimeout(timerId);
+      timerId = window.setTimeout(drain, Math.max(0, delayMs));
+    };
+
+    const wake = () => {
+      if (timerId != null) {
+        window.clearTimeout(timerId);
+        timerId = null;
+      }
+      if (disposed || document.visibilityState !== 'visible') return;
+      idleStreak = 0;
+      schedule(0);
+    };
+
     const drain = async () => {
+      timerId = null;
+      if (disposed || inFlight || document.visibilityState !== 'visible') return;
+      inFlight = true;
+      let hadActivity = false;
+      let failed = false;
       try {
         const res = await fetch('/api/vibex-bridge/pending?limit=12', { cache: 'no-store' });
         if (res.ok) {
           const json = await res.json().catch(() => null);
           const messages = Array.isArray(json?.data?.messages) ? json.data.messages : [];
+          hadActivity = messages.length > 0;
           messages.forEach((message: any) => {
             if (
               message?.type === VIBEX_MESSAGE_CONTRACT.type &&
@@ -7992,23 +8021,61 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, persistenceRuntime, th
               importWebImagePayload(message, '网页反推');
             }
           });
+        } else {
+          failed = true;
         }
       } catch {
         // 本地桥接不是所有运行形态都可用，失败时静默等待下一轮。
+        failed = true;
+      } finally {
+        inFlight = false;
+        if (!disposed && document.visibilityState === 'visible') {
+          const decision = nextAdaptivePollDecision({
+            baseMs: 1_800,
+            maxMs: 15_000,
+            idleStreak,
+            hadActivity,
+            failed,
+          });
+          idleStreak = decision.idleStreak;
+          schedule(decision.delayMs);
+        }
       }
-      if (!disposed) timerId = window.setTimeout(drain, 1800);
     };
 
-    drain();
+    document.addEventListener('visibilitychange', wake);
+    window.addEventListener('focus', wake);
+    wake();
     return () => {
       disposed = true;
       if (timerId != null) window.clearTimeout(timerId);
+      document.removeEventListener('visibilitychange', wake);
+      window.removeEventListener('focus', wake);
     };
   }, [importVibeXPayload, importWebImagePayload]);
 
   useEffect(() => {
     let disposed = false;
     let timerId: number | null = null;
+
+    let inFlight = false;
+    let idleStreak = 0;
+
+    const schedule = (delayMs: number) => {
+      if (disposed) return;
+      if (timerId != null) window.clearTimeout(timerId);
+      timerId = window.setTimeout(drain, Math.max(0, delayMs));
+    };
+
+    const wake = () => {
+      if (timerId != null) {
+        window.clearTimeout(timerId);
+        timerId = null;
+      }
+      if (disposed || document.visibilityState !== 'visible') return;
+      idleStreak = 0;
+      schedule(0);
+    };
 
     const settleMessage = async (message: any, imported: boolean, error?: unknown) => {
       const messageId = String(message?.payload?.messageId || message?.messageId || '').trim();
@@ -8022,11 +8089,17 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, persistenceRuntime, th
     };
 
     const drain = async () => {
+      timerId = null;
+      if (disposed || inFlight || document.visibilityState !== 'visible') return;
+      inFlight = true;
+      let hadActivity = false;
+      let failed = false;
       try {
         const res = await fetch('/api/photoshop-bridge/pending?limit=12', { cache: 'no-store' });
         if (res.ok) {
           const json = await res.json().catch(() => null);
           const messages = Array.isArray(json?.data?.messages) ? json.data.messages : [];
+          hadActivity = messages.length > 0;
           for (const message of messages) {
             if (
               message?.type === PHOTOSHOP_MESSAGE_CONTRACT.type &&
@@ -8040,17 +8113,36 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, persistenceRuntime, th
               }
             }
           }
+        } else {
+          failed = true;
         }
       } catch {
         // Photoshop UXP bridge is optional; retry quietly when it is unavailable.
+        failed = true;
+      } finally {
+        inFlight = false;
+        if (!disposed && document.visibilityState === 'visible') {
+          const decision = nextAdaptivePollDecision({
+            baseMs: 2_200,
+            maxMs: 15_000,
+            idleStreak,
+            hadActivity,
+            failed,
+          });
+          idleStreak = decision.idleStreak;
+          schedule(decision.delayMs);
+        }
       }
-      if (!disposed) timerId = window.setTimeout(drain, 2200);
     };
 
-    drain();
+    document.addEventListener('visibilitychange', wake);
+    window.addEventListener('focus', wake);
+    wake();
     return () => {
       disposed = true;
       if (timerId != null) window.clearTimeout(timerId);
+      document.removeEventListener('visibilitychange', wake);
+      window.removeEventListener('focus', wake);
     };
   }, [importPhotoshopPayload]);
 
@@ -10720,8 +10812,29 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, persistenceRuntime, th
       || loadedCanvasId !== activeId) return undefined;
     let stopped = false;
     let timer: number | null = null;
-    const poll = async () => {
+    let idleStreak = 0;
+
+    const schedule = (delayMs: number) => {
       if (stopped) return;
+      if (timer !== null) window.clearTimeout(timer);
+      timer = window.setTimeout(poll, Math.max(0, delayMs));
+    };
+
+    const wake = () => {
+      if (timer !== null) {
+        window.clearTimeout(timer);
+        timer = null;
+      }
+      if (stopped || document.visibilityState !== 'visible') return;
+      idleStreak = 0;
+      schedule(0);
+    };
+
+    const poll = async () => {
+      timer = null;
+      if (stopped || document.visibilityState !== 'visible') return;
+      let hadActivity = false;
+      let failed = false;
       try {
         if (!runIntentWorkerBusyRef.current && !runLaunchQueueRef.current.busy) {
           const now = Date.now();
@@ -10732,6 +10845,7 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, persistenceRuntime, th
               && (runIntentRetryAfterRef.current.get(item.id) || 0) <= now)
             .sort((left, right) => left.createdAt - right.createdAt || left.id.localeCompare(right.id))[0];
           if (candidate) {
+            hadActivity = true;
             runIntentWorkerBusyRef.current = true;
             try {
               const completed = await handleAcceptRunIntent(candidate);
@@ -10744,13 +10858,29 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, persistenceRuntime, th
         }
       } catch (error) {
         console.warn('[run-intent] automatic worker poll failed:', error);
+        failed = true;
+      } finally {
+        if (!stopped && document.visibilityState === 'visible') {
+          const decision = nextAdaptivePollDecision({
+            baseMs: 2_500,
+            maxMs: 15_000,
+            idleStreak,
+            hadActivity,
+            failed,
+          });
+          idleStreak = decision.idleStreak;
+          schedule(decision.delayMs);
+        }
       }
-      if (!stopped) timer = window.setTimeout(poll, 2500);
     };
-    void poll();
+    document.addEventListener('visibilitychange', wake);
+    window.addEventListener('focus', wake);
+    wake();
     return () => {
       stopped = true;
       if (timer !== null) window.clearTimeout(timer);
+      document.removeEventListener('visibilitychange', wake);
+      window.removeEventListener('focus', wake);
     };
   }, [activeId, activeProjectId, handleAcceptRunIntent, loaded, loadedCanvasId]);
 
@@ -14023,6 +14153,82 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, persistenceRuntime, th
     && Number.isSafeInteger(activeCanvasRevision)
     && activeCanvasRevision > 0;
 
+  const surfaceReadiness = useMemo<CanvasSurfaceReadiness>(() => {
+    const loadFailure = canvasLoadFailure?.canvasId === renderedCanvasId ? canvasLoadFailure : null;
+    if (!renderedCanvasId) {
+      return {
+        phase: 'empty',
+        canvasId: null,
+        loadedCanvasId,
+        revision: activeCanvasRevision,
+        flowCanvasId: initializedFlowCanvasId,
+        error: null,
+      };
+    }
+    if (loadFailure) {
+      return {
+        phase: 'failed',
+        canvasId: renderedCanvasId,
+        loadedCanvasId,
+        revision: activeCanvasRevision,
+        flowCanvasId: initializedFlowCanvasId,
+        error: loadFailure.message,
+      };
+    }
+    if (!loaded
+      || loadedCanvasId !== renderedCanvasId
+      || activeProjectId == null
+      || !Number.isSafeInteger(activeCanvasRevision)
+      || activeCanvasRevision < 1) {
+      return {
+        phase: 'document',
+        canvasId: renderedCanvasId,
+        loadedCanvasId,
+        revision: activeCanvasRevision,
+        flowCanvasId: initializedFlowCanvasId,
+        error: null,
+      };
+    }
+    if (initializedFlowCanvasId !== renderedCanvasId) {
+      return {
+        phase: 'flow',
+        canvasId: renderedCanvasId,
+        loadedCanvasId,
+        revision: activeCanvasRevision,
+        flowCanvasId: initializedFlowCanvasId,
+        error: null,
+      };
+    }
+    return {
+      phase: 'ready',
+      canvasId: renderedCanvasId,
+      loadedCanvasId,
+      revision: activeCanvasRevision,
+      flowCanvasId: initializedFlowCanvasId,
+      error: null,
+    };
+  }, [
+    activeCanvasRevision,
+    activeProjectId,
+    canvasLoadFailure,
+    initializedFlowCanvasId,
+    loaded,
+    loadedCanvasId,
+    renderedCanvasId,
+  ]);
+
+  useEffect(() => {
+    onReadinessChange?.(surfaceReadiness);
+  }, [onReadinessChange, surfaceReadiness]);
+
+  useEffect(() => {
+    if (!onRetryLoadRef) return undefined;
+    onRetryLoadRef.current = () => setCanvasLoadAttempt((attempt) => attempt + 1);
+    return () => {
+      onRetryLoadRef.current = null;
+    };
+  }, [onRetryLoadRef]);
+
   if (!renderedCanvasId) {
     return (
       <div
@@ -15988,6 +16194,8 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, persistenceRuntime, th
 interface CanvasProps {
   onAddNodeRef?: React.MutableRefObject<AddNodeFn | null>;
   onInsertWorkflowRef?: React.MutableRefObject<InsertWorkflowFn | null>;
+  onReadinessChange?: (readiness: CanvasSurfaceReadiness) => void;
+  onRetryLoadRef?: React.MutableRefObject<(() => void) | null>;
   themeStyleOverride?: string;
   apiSettingsRevision?: number;
   onOpenApiSettings?: () => void;

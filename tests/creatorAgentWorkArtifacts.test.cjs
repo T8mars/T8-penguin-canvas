@@ -5,6 +5,7 @@ const assert = require('node:assert/strict');
 
 const {
   compileCreatorWorkProposal,
+  createScopedWorkArtifactMutation,
   createCreatorLlmTurnReceipt,
   createCreatorWorkProposal,
   creatorWorkMutationScope,
@@ -13,6 +14,14 @@ const {
   normalizeWorkArtifactVersion,
   reviseWorkArtifact,
 } = require('../backend/src/services/creatorAgentWorkArtifacts.js');
+
+const longStoryTaskProfile = {
+  family: 'story',
+  intent: '逐场制作长剧本',
+  deliveryKind: 'long-form-story',
+  modalities: ['text', 'image', 'video'],
+  qualityMode: 'standard',
+};
 
 function storyModelValue(overrides = {}) {
   const artifact = (kind, title, fields, dependsOnKinds) => ({
@@ -126,6 +135,139 @@ test('strict story proposal compiles into dependency-bound versioned work', () =
       assert.equal(byVersionId.get(dependency.versionId)?.versionDigest, dependency.versionDigest);
     }
   }
+});
+
+test('scoped artifacts keep independent stable identities and commit one atomic work revision', () => {
+  const first = createScopedWorkArtifactMutation({
+    sessionId: 'session-long-story',
+    taskProfile: longStoryTaskProfile,
+    expectedWorkRevision: 0,
+    mutations: [
+      {
+        kind: 'ScriptDoc',
+        scopeKey: 'root',
+        title: '长剧本',
+        fields: { title: '长剧本', manifest: { sceneCount: 2, shardCount: 32 } },
+        baseVersionId: null,
+      },
+      {
+        kind: 'ScriptDoc',
+        scopeKey: 'scene-0a',
+        title: '场次分片 0a',
+        fields: { scenes: [{ sceneId: 'scene-a', title: '雨夜车站' }] },
+        baseVersionId: null,
+      },
+      {
+        kind: 'ScriptDoc',
+        scopeKey: 'scene-0b',
+        title: '场次分片 0b',
+        fields: { scenes: [{ sceneId: 'scene-b', title: '清晨站台' }] },
+        baseVersionId: null,
+      },
+    ],
+    createdAt: '2026-09-03T00:00:00.000Z',
+  });
+  assert.equal(first.status, 'created');
+  assert.equal(first.snapshot.revision, 1);
+  assert.equal(first.createdVersions.length, 3);
+  assert.equal(new Set(first.createdVersions.map((item) => item.artifactId)).size, 3);
+  assert.deepEqual(first.createdVersions.map((item) => item.scopeKey || 'root').sort(), [
+    'root', 'scene-0a', 'scene-0b',
+  ]);
+  first.createdVersions.forEach((version) => {
+    assert.deepEqual(normalizeWorkArtifactVersion(version), version);
+  });
+
+  const sceneA = first.createdVersions.find((item) => item.scopeKey === 'scene-0a');
+  const second = createScopedWorkArtifactMutation({
+    sessionId: 'session-long-story',
+    taskProfile: longStoryTaskProfile,
+    existingVersions: first.versions,
+    existingSnapshot: first.snapshot,
+    expectedWorkRevision: 1,
+    mutations: [{
+      kind: 'ScriptDoc',
+      scopeKey: 'scene-0a',
+      title: '场次分片 0a',
+      fields: { scenes: [{ sceneId: 'scene-a', title: '雨夜车站', status: 'confirmed' }] },
+      baseVersionId: sceneA.versionId,
+    }],
+    createdAt: '2026-09-03T00:01:00.000Z',
+  });
+  assert.equal(second.status, 'created');
+  assert.equal(second.snapshot.revision, 2);
+  assert.equal(second.createdVersions.length, 1);
+  assert.equal(second.createdVersions[0].artifactId, sceneA.artifactId);
+  assert.equal(second.createdVersions[0].revision, 2);
+  assert.equal(second.snapshot.artifactVersionIds.length, 3);
+});
+
+test('scoped artifact commit rejects stale work or shard bases without partial output', () => {
+  const first = createScopedWorkArtifactMutation({
+    sessionId: 'session-stale-story',
+    taskProfile: longStoryTaskProfile,
+    mutations: [{
+      kind: 'ScriptDoc', scopeKey: 'scene-aa', title: '场次分片',
+      fields: { scenes: [{ sceneId: 'scene-a' }] }, baseVersionId: null,
+    }],
+  });
+  const staleWork = createScopedWorkArtifactMutation({
+    sessionId: 'session-stale-story',
+    taskProfile: longStoryTaskProfile,
+    existingVersions: first.versions,
+    existingSnapshot: first.snapshot,
+    expectedWorkRevision: 0,
+    mutations: [{
+      kind: 'ScriptDoc', scopeKey: 'scene-aa', title: '场次分片',
+      fields: { scenes: [{ sceneId: 'scene-a', status: 'confirmed' }] },
+      baseVersionId: first.createdVersions[0].versionId,
+    }],
+  });
+  assert.equal(staleWork.code, 'work-snapshot-stale');
+  assert.equal(staleWork.createdVersions.length, 0);
+
+  const staleShard = createScopedWorkArtifactMutation({
+    sessionId: 'session-stale-story',
+    taskProfile: longStoryTaskProfile,
+    existingVersions: first.versions,
+    existingSnapshot: first.snapshot,
+    expectedWorkRevision: 1,
+    mutations: [{
+      kind: 'ScriptDoc', scopeKey: 'scene-aa', title: '场次分片',
+      fields: { scenes: [{ sceneId: 'scene-a', status: 'confirmed' }] },
+      baseVersionId: `cwav_${'0'.repeat(32)}`,
+    }],
+  });
+  assert.equal(staleShard.code, 'work-artifact-stale');
+  assert.equal(staleShard.createdVersions.length, 0);
+});
+
+test('scoped artifact commits never silently truncate a large bounded mutation set', () => {
+  const mutations = Array.from({ length: 97 }, (_, index) => ({
+    kind: 'ScriptDoc',
+    scopeKey: `source-${String(index).padStart(3, '0')}`,
+    title: `原文分片 ${index}`,
+    fields: { source: { index, data: `part-${index}` } },
+    baseVersionId: null,
+  }));
+  const accepted = createScopedWorkArtifactMutation({
+    sessionId: 'session-many-source-shards', taskProfile: longStoryTaskProfile,
+    expectedWorkRevision: 0, mutations,
+  });
+  assert.equal(accepted.status, 'created');
+  assert.equal(accepted.createdVersions.length, 97);
+
+  const blocked = createScopedWorkArtifactMutation({
+    sessionId: 'session-too-many-source-shards', taskProfile: longStoryTaskProfile,
+    expectedWorkRevision: 0,
+    mutations: Array.from({ length: 257 }, (_, index) => ({
+      kind: 'ScriptDoc', scopeKey: `source-${String(index).padStart(3, '0')}`,
+      title: `原文分片 ${index}`, fields: { source: { index } }, baseVersionId: null,
+    })),
+  });
+  assert.equal(blocked.status, 'blocked');
+  assert.equal(blocked.code, 'work-scoped-mutation-limit');
+  assert.equal(blocked.createdVersions.length, 0);
 });
 
 test('work snapshot revisions advance monotonically and exact no-op retries reuse the snapshot', () => {

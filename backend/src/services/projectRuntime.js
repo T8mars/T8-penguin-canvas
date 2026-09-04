@@ -1,5 +1,6 @@
 const {
   getProjectDatabase,
+  onProjectDatabaseReady,
   startProjectDatabaseStartupBackup,
 } = require('./projectDatabase');
 
@@ -80,7 +81,21 @@ function createLazyRuntime(factory, options = {}) {
     }
   }
 
+  function adopt(candidate) {
+    if (!candidate) throw new Error('lazy runtime adoption requires a value');
+    if (value) return value;
+    value = candidate;
+    lastError = null;
+    state.status = 'ready';
+    state.initializedAt = now();
+    state.failedAt = null;
+    state.retryAt = null;
+    state.errorCode = null;
+    return value;
+  }
+
   return {
+    adopt,
     get,
     peek: () => value,
     status: () => ({ ...state }),
@@ -190,6 +205,18 @@ function getProjectStorageRuntime(config) {
   scheduleProjectStorageReadyHooks(runtime);
   triggerRequestedStartupBackup();
   return runtime;
+}
+
+// Older route modules intentionally retain the long-standing synchronous
+// getProjectDatabase() ABI. Adopt that same singleton into the lazy runtime as
+// soon as any of those routes opens it, so readiness, deferred maintenance and
+// the requested startup backup cannot remain permanently idle.
+if (typeof onProjectDatabaseReady === 'function') {
+  onProjectDatabaseReady((database) => {
+    const runtime = projectStorageRuntime.adopt({ database });
+    scheduleProjectStorageReadyHooks(runtime);
+    triggerRequestedStartupBackup();
+  });
 }
 
 function requestProjectStorageStartupBackup() {

@@ -33276,17 +33276,40 @@ class ProjectDatabase {
 }
 
 let singleton = null;
+const projectDatabaseReadyListeners = new Set();
+
+function notifyProjectDatabaseReady(database) {
+  for (const listener of projectDatabaseReadyListeners) {
+    queueMicrotask(() => {
+      try {
+        listener(database);
+      } catch (error) {
+        console.warn('[project-db] ready listener failed:', error?.code || error?.message || 'unknown_error');
+      }
+    });
+  }
+}
+
+function onProjectDatabaseReady(listener) {
+  if (typeof listener !== 'function') throw new TypeError('project database ready listener is required');
+  projectDatabaseReadyListeners.add(listener);
+  if (singleton) notifyProjectDatabaseReady(singleton);
+  return () => projectDatabaseReadyListeners.delete(listener);
+}
 
 function getProjectDatabase(config) {
   // Preserve the long-standing no-argument singleton ABI without importing
   // config (or touching storage) until a caller explicitly requests the DB.
   const runtimeConfig = config || require('../config');
-  if (!singleton) singleton = new ProjectDatabase(runtimeConfig.PROJECT_DB_FILE, {
-    backupFilename: runtimeConfig.PROJECT_DB_BACKUP_FILE,
-    projectDatabaseStoragePolicy32: runtimeConfig.PROJECT_DB_STORAGE_POLICY_32,
-    deferStartupBackup: true,
-    startupObservability: true,
-  });
+  if (!singleton) {
+    singleton = new ProjectDatabase(runtimeConfig.PROJECT_DB_FILE, {
+      backupFilename: runtimeConfig.PROJECT_DB_BACKUP_FILE,
+      projectDatabaseStoragePolicy32: runtimeConfig.PROJECT_DB_STORAGE_POLICY_32,
+      deferStartupBackup: true,
+      startupObservability: true,
+    });
+    notifyProjectDatabaseReady(singleton);
+  }
   return singleton;
 }
 
@@ -33338,6 +33361,7 @@ module.exports = {
   CanvasPatchRevertConflictError,
   CanvasPatchValidationError,
   getProjectDatabase,
+  onProjectDatabaseReady,
   startProjectDatabaseStartupBackup,
   closeProjectDatabase,
 };

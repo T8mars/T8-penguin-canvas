@@ -67,6 +67,20 @@ test('lazy runtime is a singleflight singleton and exposes retryable non-empty f
   assert.equal(failingCalls, 2);
 });
 
+test('lazy runtime can adopt the already-open authoritative singleton without a second factory call', () => {
+  let calls = 0;
+  const singleton = runtimeModule.createLazyRuntime(() => {
+    calls += 1;
+    return { source: 'factory' };
+  });
+  const adopted = { source: 'legacy-route' };
+  assert.equal(singleton.adopt(adopted), adopted);
+  assert.equal(singleton.get(), adopted);
+  assert.equal(singleton.status().status, 'ready');
+  assert.equal(singleton.status().attempts, 0);
+  assert.equal(calls, 0, 'adopting the shared singleton must not open a second database');
+});
+
 test('server readiness and maintenance preserve lazy storage and startup backup intent', () => {
   const server = fs.readFileSync(path.join(root, 'backend/src/server.js'), 'utf8');
   const helper = fs.readFileSync(path.join(root, 'backend/src/services/projectRuntime.js'), 'utf8');
@@ -81,6 +95,8 @@ test('server readiness and maintenance preserve lazy storage and startup backup 
   assert.doesNotMatch(server, /startupProjectRuntimePromise|getProjectStorageRuntime\(config\)/);
   assert.doesNotMatch(server, /getRunRecoveryManager\(\{\}\)/);
   assert.match(helper, /function onProjectStorageReady/);
+  assert.match(helper, /onProjectDatabaseReady\(\(database\) =>/);
+  assert.match(helper, /projectStorageRuntime\.adopt\(\{ database \}\)/);
   assert.match(helper, /setImmediate/);
   assert.match(helper, /startupBackupRequested/);
 });

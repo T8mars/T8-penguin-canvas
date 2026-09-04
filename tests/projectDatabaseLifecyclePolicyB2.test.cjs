@@ -24,6 +24,7 @@ const EXPECTED_LIFECYCLE_METHODS = [
   'validateRecoveryCandidate',
   'recoverDatabase',
   'configure',
+  'startStartupBackup',
   'createBackup',
   'waitForBackup',
   'close',
@@ -31,10 +32,11 @@ const EXPECTED_LIFECYCLE_METHODS = [
   '_copyRecoveryEvidence',
   '_writeRecoveryGenerationState',
   '_createBackupAtomically',
+  '_reconcileTerminalRunSnapshotPins',
 ];
 
-const EXPECTED_PUBLIC_LIFECYCLE_METHODS = EXPECTED_LIFECYCLE_METHODS.slice(0, 11);
-const EXPECTED_INTERNAL_LIFECYCLE_METHODS = EXPECTED_LIFECYCLE_METHODS.slice(11);
+const EXPECTED_PUBLIC_LIFECYCLE_METHODS = EXPECTED_LIFECYCLE_METHODS.slice(0, 12);
+const EXPECTED_INTERNAL_LIFECYCLE_METHODS = EXPECTED_LIFECYCLE_METHODS.slice(12);
 
 function makeInventoryFixture() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 't8-project-db-lifecycle-policy-'));
@@ -66,7 +68,7 @@ function issue(report, code, name = null) {
   return report.issues.find((entry) => entry.code === code && (name == null || entry.name === name));
 }
 
-test('current lifecycle gate freezes fifteen exact boundaries without claiming main writer completion', () => {
+test('current lifecycle gate freezes seventeen exact boundaries without claiming main writer completion', () => {
   const report = buildProjectDatabaseLifecyclePolicy(ROOT);
   assert.equal(report.lifecycleCompliant, true);
   assert.equal(report.status, 'lifecycle-policy-complete');
@@ -75,15 +77,15 @@ test('current lifecycle gate freezes fifteen exact boundaries without claiming m
   assert.equal(report.writerInventory.classificationComplete, true);
   assert.equal(report.writerInventory.classificationGatePassed, true);
   assert.equal(report.writerInventory.mainWriterPolicyCompliant, false);
-  assert.equal(report.writerInventory.mainWriterPolicyCounts.noncompliant, 11);
+  assert.equal(report.writerInventory.mainWriterPolicyCounts.noncompliant, 12);
   assert.equal(Number.isInteger(report.writerInventory.mainWriterPolicyCounts.compliant), true);
   assert.equal(Number.isInteger(report.writerInventory.mainWriterPolicyCounts.unresolved), true);
   assert.equal(Number.isInteger(report.writerInventory.mainWriterPolicyCounts.notApplicable), true);
 
   assert.deepEqual(LIFECYCLE_METHOD_NAMES, EXPECTED_LIFECYCLE_METHODS);
   assert.deepEqual(report.lifecycle.allowlist, EXPECTED_LIFECYCLE_METHODS);
-  assert.equal(report.lifecycle.allowlistCount, 15);
-  assert.equal(report.lifecycle.observedCount, 15);
+  assert.equal(report.lifecycle.allowlistCount, 17);
+  assert.equal(report.lifecycle.observedCount, 17);
   assert.equal(report.lifecycle.contractFingerprint, CONTRACT_FINGERPRINT);
   assert.deepEqual(report.lifecycle.actualInternalCallsites, EXPECTED_INTERNAL_LIFECYCLE_CALLS);
   assert.match(CONTRACT_FINGERPRINT, /^[a-f0-9]{64}$/);
@@ -140,6 +142,8 @@ test('current lifecycle gate freezes fifteen exact boundaries without claiming m
     'chmodSync', 'rmSync', 'renameSync', 'rmdirSync', 'renameSync', 'rmSync', 'rmdirSync',
   ]);
   assert.deepEqual(methods.get('createBackup').calledProjectDatabaseMethods, ['_createBackupAtomically']);
+  assert.deepEqual(methods.get('startStartupBackup').calledProjectDatabaseMethods, ['createBackup']);
+  assert.deepEqual(methods.get('_reconcileTerminalRunSnapshotPins').direct.transactionTypes, ['immediate']);
   assert.deepEqual(methods.get('_writeRecoveryGenerationState').direct.filesystemMutationMethods, [
     'openSync', 'writeFileSync', 'fsyncSync', 'renameSync', 'rmSync',
   ]);

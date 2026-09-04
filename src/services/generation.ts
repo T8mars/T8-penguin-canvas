@@ -1188,6 +1188,8 @@ export type HailuoModel =
   | 'hailuo-h3-global-multi'
   | 'hailuo-h3-max-t2v'
   | 'hailuo-h3-max-i2v'
+  | 'hailuo-h3-max-turbo-t2v'
+  | 'hailuo-h3-max-turbo-i2v'
   | 'minimax-h3-ow-t2v'
   | 'minimax-h3-ow-r2v'
   | 'minimax-h3-ow-i2v'

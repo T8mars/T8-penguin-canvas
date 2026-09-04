@@ -12,6 +12,9 @@ const {
   CreatorConversationRepository,
   digest,
 } = require('../backend/src/services/creatorConversationRepository.js');
+const {
+  prepareLongScriptImport,
+} = require('../backend/src/services/creatorLongScriptWork.js');
 
 function fixture() {
   const repository = new CreatorConversationRepository();
@@ -190,6 +193,187 @@ test('Creator commits assistant reply, proposed action, working brief, and phase
   } finally { repository.close(); }
 });
 
+test('Creator completes the LLM reply and scoped long-script import in one transaction', () => {
+  const { repository, conversation } = fixture();
+  const taskProfile = {
+    family: 'story', intent: '逐场制作长剧本', deliveryKind: 'long-form-story',
+    modalities: ['text', 'image', 'video'], qualityMode: 'standard',
+  };
+  try {
+    const user = repository.appendUserMessage(conversation.id, {
+      body: '导入两场长剧本', clientRequestId: 'request-work-atomic-001',
+    });
+    const response = repository.startAssistantResponse(conversation.id, {
+      responseId: 'response-work-atomic-001', replyToMessageId: user.message.id,
+    });
+    repository.completeAssistantResponse(conversation.id, response.responseId, {
+      body: '剧本已经按场整理好，我们先推进第一场。',
+      suggestions: ['细化第一场', '换个开场视角', '锁定第一场'],
+      workMutation: {
+        expectedWorkRevision: 0,
+        taskProfile,
+        mutations: [{
+          kind: 'ScriptDoc', scopeKey: 'root', title: '长剧本',
+          fields: { title: '长剧本', manifest: { sceneCount: 2 } }, baseVersionId: null,
+        }],
+      },
+    });
+    const snapshot = repository.getConversation(conversation.id);
+    assert.equal(snapshot.messages.at(-1).status, 'completed');
+    assert.equal(snapshot.work.snapshot.revision, 1);
+    assert.equal(snapshot.work.artifacts.length, 1);
+    assert.deepEqual(repository.listChanges(conversation.id, { after: 2 }).map((item) => item.kind), [
+      'message', 'work',
+    ]);
+
+    const secondUser = repository.appendUserMessage(conversation.id, {
+      body: '导入一个损坏的场次', clientRequestId: 'request-work-atomic-002',
+    });
+    const second = repository.startAssistantResponse(conversation.id, {
+      responseId: 'response-work-atomic-002', replyToMessageId: secondUser.message.id,
+    });
+    assert.throws(() => repository.completeAssistantResponse(conversation.id, second.responseId, {
+      body: '这条回复不得半写入。',
+      suggestions: ['继续当前场', '换个视角', '锁定当前场'],
+      workMutation: {
+        expectedWorkRevision: 0,
+        taskProfile,
+        mutations: [{
+          kind: 'ScriptDoc', scopeKey: 'root', title: '损坏更新',
+          fields: { title: '损坏更新' }, baseVersionId: null,
+        }],
+      },
+    }), (error) => error?.code === 'CREATOR_WORK_COMMIT_BLOCKED');
+    const afterFailure = repository.getConversation(conversation.id);
+    assert.equal(afterFailure.messages.at(-1).status, 'streaming');
+    assert.equal(afterFailure.work.snapshot.revision, 1);
+  } finally { repository.close(); }
+});
+
+test('Creator recovers a staged LLM result after every atomic commit crash boundary', () => {
+  const faultPoints = [
+    'response-draft-staged',
+    'assistant-response-updated',
+    'work-version-inserted',
+    'work-before-current-pointer-update',
+    'work-current-pointer-updated',
+    'work-before-snapshot-update',
+    'work-snapshot-updated',
+    'assistant-before-commit',
+  ];
+  faultPoints.forEach((faultPoint, faultIndex) => {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), `t8-creator-crash-${faultIndex}-`));
+    const filename = path.join(directory, 'creator-v2.sqlite');
+    let repository = null;
+    let reopened = null;
+    try {
+      let injected = false;
+      repository = new CreatorConversationRepository({
+        filename,
+        faultInjector(point) {
+          if (!injected && point === faultPoint) {
+            injected = true;
+            throw new Error(`simulated-crash:${point}`);
+          }
+        },
+      });
+      const sessionId = `creator-crash-session-${faultIndex}`;
+      repository.createConversation({
+        id: sessionId, projectId: 'project-local', canvasId: 'canvas-local',
+      });
+      const user = repository.appendUserMessage(sessionId, {
+        body: '继续第一场', clientRequestId: `request-crash-${faultIndex}`,
+      });
+      const response = repository.startAssistantResponse(sessionId, {
+        responseId: `response-crash-${faultIndex}`,
+        replyToMessageId: user.message.id,
+      });
+      const completion = {
+        body: '第一场已经整理好，可以继续。',
+        suggestions: ['确认这一场', '调整节奏', '继续下一场'],
+        conversationContext: {
+          workingBrief: { goal: '完成长剧本' },
+          phaseDecision: { phase: 'script', transition: 'advance', reason: '用户正在推进剧本' },
+        },
+        workMutation: {
+          expectedWorkRevision: 0,
+          taskProfile: {
+            family: 'story', intent: '逐场制作长剧本', deliveryKind: 'long-form-story',
+            modalities: ['text', 'image', 'video'], qualityMode: 'standard',
+          },
+          mutations: [{
+            kind: 'ScriptDoc', scopeKey: 'root', title: '崩溃恢复剧本',
+            fields: { title: '崩溃恢复剧本', manifest: { sceneCount: 1 } },
+            baseVersionId: null,
+          }],
+        },
+      };
+      assert.throws(() => {
+        repository.stageAssistantResult(sessionId, response.responseId, completion);
+        repository.completeAssistantResponse(sessionId, response.responseId, completion);
+      }, new RegExp(`simulated-crash:${faultPoint}`));
+      assert.equal(injected, true);
+      const beforeRestart = repository.getConversation(sessionId);
+      assert.equal(beforeRestart.messages.at(-1).status, 'streaming');
+      assert.equal(beforeRestart.work.snapshot, null);
+      assert.equal(repository.db.prepare('SELECT COUNT(*) AS count FROM creator_response_drafts').get().count, 1);
+      repository.close();
+      repository = null;
+
+      reopened = new CreatorConversationRepository({ filename });
+      const recovered = reopened.getConversation(sessionId);
+      assert.equal(recovered.messages.at(-1).status, 'completed', faultPoint);
+      assert.equal(recovered.messages.at(-1).body, completion.body, faultPoint);
+      assert.equal(recovered.conversation.phase, 'script', faultPoint);
+      assert.equal(recovered.work.snapshot.revision, 1, faultPoint);
+      assert.equal(reopened.db.prepare('SELECT COUNT(*) AS count FROM creator_response_drafts').get().count, 0);
+    } finally {
+      repository?.close();
+      reopened?.close();
+      fs.rmSync(directory, { recursive: true, force: true });
+    }
+  });
+});
+
+test('Creator long-script context loads only the selected scene source shards', () => {
+  const { repository, conversation } = fixture();
+  const scope = { projectId: 'project-local', canvasId: 'canvas-local' };
+  try {
+    const source = Array.from({ length: 120 }, (_, index) => (
+      `第${index + 1}场：场景${index + 1}\n人物在第${index + 1}场完成一个独立动作。\n`
+    )).join('\n');
+    const prepared = prepareLongScriptImport({
+      sessionId: conversation.id,
+      source,
+      sourceKind: 'message',
+      currentVersions: [],
+      existingSnapshot: null,
+    });
+    assert.ok(prepared);
+    repository.commitWorkMutation(conversation.id, {
+      expectedWorkRevision: 0,
+      taskProfile: prepared.taskProfile,
+      currentSceneId: prepared.previewWork.activeScenes[0].sceneId,
+      mutations: prepared.mutations,
+    }, scope);
+    const target = prepared.previewWork.activeScenes[73];
+    repository.setCurrentScene(conversation.id, target.sceneId, scope);
+    const state = repository.getLongScriptContextState(conversation.id, {
+      ...scope, sceneId: target.sceneId,
+    });
+    const loadedSourceScopes = state.currentVersions
+      .filter((version) => version.kind === 'ScriptDoc' && String(version.scopeKey || '').startsWith('source-'))
+      .map((version) => version.scopeKey).sort();
+    assert.deepEqual(loadedSourceScopes, [...target.sourceShardKeys].sort());
+    assert.ok(loadedSourceScopes.length < prepared.previewWork.manifest.sourceShardKeys.length);
+    assert.equal(state.work.sourceTextBySceneId.get(target.sceneId).includes('第74场'), true);
+    assert.equal(state.work.sourceTextBySceneId.size, 1);
+    assert.equal(state.work.sourceDocumentIntegrity, null);
+  } finally {
+    repository.close();
+  }
+});
+
 test('Creator assistant response has exactly three suggestions and one pending action', () => {
   const { repository, conversation } = fixture();
   try {
@@ -211,6 +395,16 @@ test('Creator assistant response has exactly three suggestions and one pending a
           catalogDigest: digest({ catalog: 'test' }),
           kind: 'image',
         },
+        workBinding: {
+          schema: 't8-creator-scene-action-binding-v1',
+          workId: 'work-test-001',
+          workRevision: 3,
+          workDigest: 'a'.repeat(64),
+          sceneId: 'scene-test-001',
+          scenePartId: 'part-test-001',
+          sceneRevision: 2,
+          contextDigest: 'b'.repeat(64),
+        },
       },
     });
     assert.equal(completed.status, 'completed');
@@ -218,6 +412,9 @@ test('Creator assistant response has exactly three suggestions and one pending a
     const current = repository.getConversation(conversation.id);
     assert.equal(current.pendingAction.id, 'action-image-001');
     assert.equal(current.pendingAction.status, 'pending');
+    assert.equal(current.pendingAction.workBinding.sceneId, 'scene-test-001');
+    assert.equal(current.pendingAction.workBinding.sceneRevision, 2);
+    assert.equal(current.pendingAction.workBinding.contextDigest, 'b'.repeat(64));
     assert.throws(() => repository.completeAssistantResponse(conversation.id, response.responseId, {
       body: '重放不应改变结果',
       suggestions: ['一', '二'],
@@ -302,6 +499,151 @@ test('Creator completed media action is recovered only while it belongs to the l
   }
 });
 
+test('Creator retries only the failed generation item and preserves completed media', () => {
+  const { repository, conversation } = fixture();
+  try {
+    const first = repository.startAssistantResponse(conversation.id, { responseId: 'response-retry-first' });
+    repository.completeAssistantResponse(conversation.id, first.responseId, {
+      body: '第一张已准备。', suggestions: ['生成第一张', '换个构图', '继续'],
+      action: {
+        id: 'action-retry-completed', type: 'image', prompt: '第一张，雨夜车站',
+        parameters: { ratio: '16:9', count: 1 },
+        modelSnapshot: { kind: 'image', providerId: 'seedance-nz', modelId: 'zhenzhen-image-gk-v2', catalogDigest: digest({ catalog: 1 }) },
+      },
+    });
+    repository.updateAction('action-retry-completed', conversation.id, { status: 'running' });
+    repository.updateAction('action-retry-completed', conversation.id, {
+      status: 'completed',
+      resultAssets: [{ assetId: 'asset-retry-kept', kind: 'image', contentHash: 'c'.repeat(64) }],
+    });
+
+    const second = repository.startAssistantResponse(conversation.id, { responseId: 'response-retry-failed' });
+    repository.completeAssistantResponse(conversation.id, second.responseId, {
+      body: '第二张准备生成。', suggestions: ['生成第二张', '降低动作', '继续'],
+      action: {
+        id: 'action-retry-failed', type: 'image', prompt: '第二张，清晨站台',
+        parameters: { ratio: '4:3', count: 1 },
+        modelSnapshot: { kind: 'image', providerId: 'seedance-nz', modelId: 'zhenzhen-image-gk-v2', catalogDigest: digest({ catalog: 1 }) },
+      },
+    });
+    repository.updateAction('action-retry-failed', conversation.id, { status: 'running' });
+    repository.updateAction('action-retry-failed', conversation.id, {
+      status: 'failed', errorCode: 'UPSTREAM_FAILED', errorMessage: '第二张失败',
+    });
+
+    const retried = repository.retryFailedAction('action-retry-failed', conversation.id, {
+      clientRequestId: 'retry-only-failed-item',
+    });
+    const replay = repository.retryFailedAction('action-retry-failed', conversation.id, {
+      clientRequestId: 'retry-only-failed-item',
+    });
+    assert.equal(retried.id, replay.id);
+    assert.equal(retried.status, 'pending');
+    assert.equal(retried.prompt, '第二张，清晨站台');
+    assert.equal(retried.parameters.ratio, '4:3');
+    const preserved = repository.getAction('action-retry-completed', conversation.id);
+    assert.equal(preserved.status, 'completed');
+    assert.equal(preserved.resultAssets[0].assetId, 'asset-retry-kept');
+    const messages = repository.getConversation(conversation.id, { limit: 20 }).messages;
+    assert.equal(messages.find((message) => message.responseId === first.responseId).actionId, 'action-retry-completed');
+    assert.equal(messages.find((message) => message.responseId === second.responseId).actionId, retried.id);
+    assert.equal(repository.db.prepare(`SELECT COUNT(*) AS count FROM creator_actions
+      WHERE session_id = ?`).get(conversation.id).count, 3);
+  } finally {
+    repository.close();
+  }
+});
+
+test('Creator shot batch retry keeps four completed shots and resets only the failed fifth shot', () => {
+  const { repository, conversation } = fixture();
+  try {
+    const response = repository.startAssistantResponse(conversation.id, { responseId: 'response-shot-batch-retry' });
+    const shots = Array.from({ length: 5 }, (_, index) => ({
+      shotId: `shot_batch_${index + 1}`,
+      ordinal: index + 1,
+      title: `镜头 ${index + 1}`,
+      prompt: `雨夜站台第 ${index + 1} 镜。`,
+      parameters: { ratio: '16:9', duration: 6, resolution: '768p' },
+      inputAssetIds: [],
+      status: 'pending',
+      resultAssets: [],
+    }));
+    repository.completeAssistantResponse(conversation.id, response.responseId, {
+      body: '这场按五个镜头生成。', suggestions: ['生成五镜', '换成车内', '锁定继续'],
+      action: {
+        id: 'action-shot-batch-retry', type: 'video', prompt: '雨夜站台五镜段落',
+        parameters: { ratio: '16:9', duration: 6, resolution: '768p' },
+        modelSnapshot: {
+          kind: 'video', providerId: 'seedance-nz', modelId: 'hailuo-2.3-t2v-standard',
+          catalogDigest: digest({ catalog: 'shot-batch' }),
+        },
+        shots,
+      },
+    });
+    const settledShots = shots.map((shot, index) => index === 2 ? {
+      ...shot, status: 'failed', errorCode: 'UPSTREAM_FAILED', errorMessage: '第三镜失败',
+    } : {
+      ...shot,
+      status: 'completed',
+      resultAssets: [{
+        assetId: `asset-shot-${index + 1}`, kind: 'video', contentHash: String(index + 1).repeat(64),
+        shotId: shot.shotId, shotOrdinal: shot.ordinal,
+      }],
+    });
+    repository.updateAction('action-shot-batch-retry', conversation.id, {
+      status: 'failed',
+      shots: settledShots,
+      resultAssets: settledShots.flatMap((shot) => shot.resultAssets),
+      errorCode: 'CREATOR_SHOT_BATCH_PARTIAL_FAILURE',
+      errorMessage: '五镜中一镜失败',
+    });
+
+    const retried = repository.retryFailedAction('action-shot-batch-retry', conversation.id, {
+      clientRequestId: 'retry-shot-three-only',
+    });
+    assert.equal(retried.status, 'pending');
+    assert.deepEqual(retried.shots.map((shot) => shot.shotId), shots.map((shot) => shot.shotId));
+    assert.deepEqual(retried.shots.map((shot) => shot.status), [
+      'completed', 'completed', 'pending', 'completed', 'completed',
+    ]);
+    assert.equal(retried.resultAssets.length, 4);
+    assert.equal(retried.shots[2].resultAssets.length, 0);
+    assert.equal(repository.getConversation(conversation.id).messages.at(-1).media.length, 4);
+  } finally {
+    repository.close();
+  }
+});
+
+test('Creator never retries a stale scene action with its obsolete prompt', () => {
+  const { repository, conversation } = fixture();
+  try {
+    const response = repository.startAssistantResponse(conversation.id, { responseId: 'response-stale-action' });
+    repository.completeAssistantResponse(conversation.id, response.responseId, {
+      body: '准备生成当前场。', suggestions: ['直接生成', '换个视角', '继续'],
+      action: {
+        id: 'action-stale-scene-retry', type: 'image', prompt: '旧版雨夜车站',
+        parameters: { ratio: '16:9', count: 1 },
+        modelSnapshot: { kind: 'image', providerId: 'seedance-nz', modelId: 'zhenzhen-image-gk-v2', catalogDigest: digest({ catalog: 1 }) },
+        workBinding: {
+          schema: 't8-creator-scene-action-binding-v1', workId: 'work-stale-scene',
+          workRevision: 2, workDigest: 'a'.repeat(64), sceneId: 'scene-stale-retry',
+          scenePartId: null, sceneRevision: 1, contextDigest: 'b'.repeat(64),
+        },
+      },
+    });
+    repository.updateAction('action-stale-scene-retry', conversation.id, {
+      status: 'failed', errorCode: 'CREATOR_ACTION_SCENE_STALE', errorMessage: '场次已更新',
+    });
+    assert.throws(() => repository.retryFailedAction(
+      'action-stale-scene-retry', conversation.id, { clientRequestId: 'retry-stale-scene' },
+    ), (error) => error?.code === 'CREATOR_ACTION_SCENE_STALE' && error?.status === 409);
+    assert.equal(repository.db.prepare('SELECT COUNT(*) AS count FROM creator_actions WHERE session_id = ?')
+      .get(conversation.id).count, 1);
+  } finally {
+    repository.close();
+  }
+});
+
 test('Creator preferences persist only the four product choices and reject secrets or cost fields', () => {
   const { repository } = fixture();
   try {
@@ -369,7 +711,85 @@ test('Creator change feed is monotonic and 500 conversations remain index-pagina
     const changes = repository.listChanges(conversation.id, { after: 0 });
     assert.deepEqual(changes.map((item) => item.sequence), [1, 2, 3]);
     assert.equal(changes.at(-1).data.status, 'completed');
-    assert.deepEqual(repository.stats(), { conversations: 501, messages: 2, actions: 0, preferences: 0 });
+    assert.deepEqual(repository.stats(), {
+      conversations: 501,
+      messages: 2,
+      actions: 0,
+      preferences: 0,
+      workSnapshots: 0,
+      workArtifactVersions: 0,
+    });
+  } finally {
+    repository.close();
+  }
+});
+
+test('Creator V2 persists scoped work atomically, restores current pointers, and rejects stale retries', () => {
+  const { repository, conversation } = fixture();
+  const scope = { projectId: 'project-local', canvasId: 'canvas-local' };
+  const taskProfile = {
+    family: 'story',
+    intent: '逐场制作长剧本',
+    deliveryKind: 'long-form-story',
+    modalities: ['text', 'image', 'video'],
+    qualityMode: 'standard',
+  };
+  try {
+    assert.equal(repository.getConversation(conversation.id, scope).work.snapshot, null);
+    const first = repository.commitWorkMutation(conversation.id, {
+      expectedWorkRevision: 0,
+      taskProfile,
+      mutations: [
+        {
+          kind: 'ScriptDoc', scopeKey: 'root', title: '长剧本',
+          fields: { title: '长剧本', manifest: { sceneCount: 2, shardCount: 32 } },
+          baseVersionId: null,
+        },
+        {
+          kind: 'ScriptDoc', scopeKey: 'scene-0a', title: '场次分片 0a',
+          fields: { scenes: [{ sceneId: 'scene-a', title: '雨夜车站' }] },
+          baseVersionId: null,
+        },
+      ],
+    }, scope);
+    assert.equal(first.status, 'created');
+    assert.equal(first.snapshot.revision, 1);
+
+    const restored = repository.getWorkState(conversation.id, {
+      ...scope, includeCurrentVersions: true,
+    });
+    assert.equal(restored.snapshot.workDigest, first.snapshot.workDigest);
+    assert.equal(restored.currentVersions.length, 2);
+    assert.deepEqual(restored.artifacts.map((item) => item.scopeKey).sort(), ['root', 'scene-0a']);
+    const sceneShard = restored.currentVersions.find((item) => item.scopeKey === 'scene-0a');
+
+    const stale = repository.commitWorkMutation(conversation.id, {
+      expectedWorkRevision: 0,
+      taskProfile,
+      mutations: [{
+        kind: 'ScriptDoc', scopeKey: 'scene-0a', title: '场次分片 0a',
+        fields: { scenes: [{ sceneId: 'scene-a', status: 'confirmed' }] },
+        baseVersionId: sceneShard.versionId,
+      }],
+    }, scope);
+    assert.equal(stale.code, 'work-snapshot-stale');
+    assert.equal(repository.getWorkState(conversation.id, scope).snapshot.revision, 1);
+    assert.equal(repository.stats().workArtifactVersions, 2);
+
+    const second = repository.commitWorkMutation(conversation.id, {
+      expectedWorkRevision: 1,
+      taskProfile,
+      mutations: [{
+        kind: 'ScriptDoc', scopeKey: 'scene-0a', title: '场次分片 0a',
+        fields: { scenes: [{ sceneId: 'scene-a', status: 'confirmed' }] },
+        baseVersionId: sceneShard.versionId,
+      }],
+    }, scope);
+    assert.equal(second.snapshot.revision, 2);
+    assert.equal(repository.getConversation(conversation.id, scope).work.snapshot.revision, 2);
+    assert.equal(repository.stats().workArtifactVersions, 3);
+    assert.equal(repository.listChanges(conversation.id, { ...scope, after: 0 })
+      .filter((item) => item.kind === 'work').length, 2);
   } finally {
     repository.close();
   }

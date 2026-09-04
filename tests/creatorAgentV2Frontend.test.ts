@@ -14,6 +14,7 @@ const root = path.resolve(import.meta.dirname, '..');
 const panelSource = readFileSync(path.join(root, 'src/components/CreatorAgentPanelV2.tsx'), 'utf8');
 const entrySource = readFileSync(path.join(root, 'src/components/CreatorAgentEntry.tsx'), 'utf8');
 const canvasSource = readFileSync(path.join(root, 'src/components/Canvas.tsx'), 'utf8');
+const appSource = readFileSync(path.join(root, 'src/App.tsx'), 'utf8');
 const serviceSource = readFileSync(path.join(root, 'src/services/creatorAgentV2.ts'), 'utf8');
 const styles = readFileSync(path.join(root, 'src/styles/index.css'), 'utf8');
 
@@ -73,9 +74,23 @@ test('Creator panel separates the active creative run from non-blocking history 
   assert.match(panelSource, /aria-current=\{index === currentPhaseIndex \? 'step'/);
 });
 
-test('Creator lazy fallback remains visible and themed without a portal host', () => {
+test('Creator v2 composer does not submit while a CJK input method is committing text', () => {
+  assert.match(panelSource, /CREATOR_IME_COMMIT_GUARD_MS = 140/);
+  assert.match(panelSource, /composerComposingRef = useRef\(false\)/);
+  assert.match(panelSource, /compositionEndedAtRef = useRef\(0\)/);
+  assert.match(panelSource, /nativeEvent\.isComposing/);
+  assert.match(panelSource, /nativeEvent\.keyCode === 229/);
+  assert.match(panelSource, /Date\.now\(\) - compositionEndedAtRef\.current < CREATOR_IME_COMMIT_GUARD_MS/);
+  assert.match(panelSource, /onCompositionStart=\{\(\) => \{/);
+  assert.match(panelSource, /onCompositionEnd=\{\(\) => \{/);
+});
+
+test('Creator lazy fallback is immediate, themed, and portaled above the canvas', () => {
   assert.match(entrySource, /launcherHost \? createPortal\(fallbackLauncher, launcherHost\) : fallbackLauncher/);
   assert.match(entrySource, /className="t8-creator-v2-panel is-loading-shell/);
+  assert.match(entrySource, /panelOpen && createPortal\([\s\S]*data-canvas-floating-ui="creator-agent-panel"[\s\S]*document\.body/);
+  assert.match(entrySource, /data-shell-readiness-schema=\{CREATOR_SHELL_READINESS_SCHEMA\}/);
+  assert.match(entrySource, /aria-controls=\{fallbackPanelId\}/);
   assert.match(entrySource, /loadCreatorAgentPanelV2/);
   assert.match(entrySource, /requestIdleCallback\(preload/);
   assert.match(entrySource, /data-theme-visual=\{props\.visualStyle\}/);
@@ -85,11 +100,12 @@ test('Creator lazy fallback remains visible and themed without a portal host', (
   assert.match(entrySource, /const \[panelOpen, setPanelOpen\] = useState\(false\)/);
   assert.match(entrySource, /initialOpen=\{panelOpen\}/);
   assert.match(entrySource, /onOpenChange=\{setPanelOpen\}/);
+  assert.match(entrySource, /panelSafeTop=\{panelSafeTop\}/);
 });
 
 test('Creator panel escapes the isolated canvas stacking context on narrow screens', () => {
   assert.match(panelSource, /open && createPortal\([\s\S]*document\.body/);
-  assert.match(styles, /@media \(max-width: 520px\) \{[\s\S]*\.t8-creator-v2-panel \{ inset: 0;/);
+  assert.match(styles, /@media \(max-width: 520px\) \{[\s\S]*\.t8-creator-v2-panel \{ inset: var\(--creator-panel-safe-top, 86px\) 0 0;/);
 });
 
 test('Creator keeps reconnect, draft, upload, and localized failure paths bounded', () => {
@@ -184,19 +200,36 @@ test('Creator restores a conversation-scoped composer and one-click choices neve
   assert.match(panelSource, /writeComposerDraft\(composerScopeKeyRef\.current, composerDraftRef\.current\)/);
   assert.match(panelSource, /conversationComposerDraftKey\(legacyDraftKey, snapshot\.conversation\.id\)/);
   assert.match(panelSource, /switchComposerDraftScope\(freshDraftKey, \{ reset: true \}\)/);
-  assert.match(panelSource, /migrateFromKey: freshDraftKey/);
+  const ensureConversationBlock = panelSource.slice(
+    panelSource.indexOf('const ensureConversation'),
+    panelSource.indexOf('useEffect(() => {', panelSource.indexOf('const ensureConversation')),
+  );
+  assert.match(ensureConversationBlock, /migrateFromKey: composerScopeKeyRef\.current/);
+  assert.doesNotMatch(ensureConversationBlock, /migrateFromKey: freshDraftKey/);
   assert.match(panelSource, /const restored = readComposerDraft\(legacyDraftKey\)/);
   assert.match(panelSource, /setAttachments\(restored\.attachments\)/);
   assert.match(panelSource, /setBoundSelectionIds\(restored\.selectedNodeIds\)/);
   assert.match(panelSource, /setBoundSelectionDetails\(restored\.selectedNodes\)/);
   assert.match(panelSource, /preserveComposer: true/);
   assert.match(panelSource, /selectedNodeIds: \[\], preserveComposer: true/);
-  assert.match(panelSource, /if \(!preserveComposer\) \{[\s\S]*composerDraftRef\.current = \{ \.\.\.EMPTY_COMPOSER_DRAFT \};[\s\S]*setDraft\(''\);[\s\S]*setAttachments\(\[\]\);[\s\S]*clearBoundSelection\(\);[\s\S]*\}/);
+  assert.match(panelSource, /if \(!preserveComposer\) \{[\s\S]*composerDraftRef\.current = \{ \.\.\.EMPTY_COMPOSER_DRAFT, creationMode: turnCreationMode \};[\s\S]*setDraft\(''\);[\s\S]*setAttachments\(\[\]\);[\s\S]*clearBoundSelection\(\);[\s\S]*\}/);
   assert.match(panelSource, /setAttachments\(\(current\) => current\.length \? current : turnAttachments\)/);
   assert.match(panelSource, /setBoundSelectionIds\(\(current\) => current\.length \? current : turnSelectedNodeIds\)/);
   assert.match(panelSource, /if \(!conversation && messages\.length === 0 && !action\)/);
   assert.match(panelSource, /switchComposerDraftScope\(freshDraftKey, \{ migrateFromKey: composerScopeKeyRef\.current \}\)/);
   assert.match(panelSource, /当前已经是新对话，未发送的内容已保留/);
+});
+
+test('Creator offers an explicit persistent scene mode for short ideas without adding another dialog', () => {
+  assert.match(panelSource, /creationMode: 'auto' \| 'scene'/);
+  assert.match(panelSource, /const \[creationMode, setCreationMode\] = useState<'auto' \| 'scene'>/);
+  assert.match(panelSource, /copy\('逐场创作', 'Scene mode'\)/);
+  assert.match(panelSource, /copy\('逐场创作中', 'Scene mode on'\)/);
+  assert.match(panelSource, /aria-pressed=\{Boolean\(sceneNavigation\?\.total \|\| creationMode === 'scene'\)\}/);
+  assert.match(panelSource, /写一个场景想法，或粘贴完整剧本/);
+  assert.match(panelSource, /creationMode: turnCreationMode/);
+  assert.match(serviceSource, /creationMode\?: 'auto' \| 'scene'/);
+  assert.doesNotMatch(panelSource, /scene-mode-dialog|sceneModeModal/iu);
 });
 
 test('Creator keeps progress visible, exposes reply progress, and makes every failed turn retryable', () => {
@@ -205,7 +238,58 @@ test('Creator keeps progress visible, exposes reply progress, and makes every fa
   assert.match(panelSource, /className="t8-creator-v2-operation-status" role="status"/);
   assert.match(panelSource, /restoredInComposer \? void submit\(\) : restoreFailedTurn\(message\)/);
   assert.match(panelSource, /restoredInComposer \? copy\('直接重试', 'Retry now'\)/);
+  assert.match(panelSource, /action\.errorCode === 'CREATOR_SUBMISSION_STATUS_UNKNOWN'/);
+  assert.match(panelSource, /Automatic retry has stopped to prevent duplicate generation/);
+  assert.match(panelSource, /!submissionStatusUnknown && \(action\?\.status === 'running' \|\| action\?\.status === 'ambiguous'\)/);
+  assert.match(panelSource, /action\.errorCode === 'CREATOR_ACTION_SCENE_STALE'/);
+  assert.match(panelSource, /Regenerate using the latest version of this scene/);
+  assert.match(panelSource, /staleSceneAction \? void submit\(/);
   assert.doesNotMatch(panelSource, /className="sr-only" role="status"[^>]*>\{operationAnnouncement\}/);
+});
+
+test('Creator exposes one novice-friendly current-scene control without leaking work internals', () => {
+  assert.match(serviceSource, /getCreatorLongScriptScenesV2/);
+  assert.match(serviceSource, /setCreatorCurrentSceneV2/);
+  assert.match(serviceSource, /confirmCreatorCurrentSceneV2/);
+  assert.match(serviceSource, /currentSceneId: string \| null/);
+  assert.match(panelSource, /className="t8-creator-v2-scene-nav"/);
+  assert.match(panelSource, /className="t8-creator-v2-scene-current"/);
+  assert.match(panelSource, /ref=\{sceneSwitcherRef\} className="t8-creator-v2-scene-switcher"/);
+  assert.match(panelSource, /copy\('切换或搜索场次', 'Switch or search scenes'\)/);
+  assert.match(panelSource, /copy\('按场次编号或名称搜索', 'Search by scene number or title'\)/);
+  assert.match(panelSource, /\.slice\(0, 12\)/);
+  assert.match(panelSource, /copy\('上一场', 'Previous scene'\)/);
+  assert.match(panelSource, /copy\('下一场', 'Next scene'\)/);
+  assert.match(panelSource, /copy\('查看本场原文', 'View scene text'\)/);
+  assert.match(panelSource, /copy\('查看本段原文', 'View this part'\)/);
+  assert.match(panelSource, /copy\('定这段，继续本场', 'Confirm part and continue'\)/);
+  assert.match(serviceSource, /sourcePartId: string \| null/);
+  assert.match(serviceSource, /sourcePartIndex: number/);
+  assert.match(serviceSource, /sourcePartCount: number/);
+  assert.match(serviceSource, /sourcePartHasDraft: boolean/);
+  assert.match(panelSource, /copy\('采用原文，继续本场', 'Use source and continue'\)/);
+  assert.match(panelSource, /copy\('采用原文，下一场', 'Use source and continue'\)/);
+  assert.match(panelSource, /copy\('定这场，下一场', 'Confirm and continue'\)/);
+  assert.match(panelSource, /currentSceneId: sceneNavigation\?\.currentSceneId \|\| null/);
+  assert.match(styles, /\.t8-creator-v2-scene-nav \{[\s\S]*grid-template-columns: minmax\(0, 1fr\);/);
+  assert.match(styles, /\.t8-creator-v2-scene-menu \{[\s\S]*position: absolute;/);
+  const sceneMarkup = panelSource.slice(
+    panelSource.indexOf('className="t8-creator-v2-scene-nav"'),
+    panelSource.indexOf('{historyOpen &&'),
+  );
+  assert.doesNotMatch(sceneMarkup, /<select/);
+  assert.doesNotMatch(sceneMarkup, /Artifact|WorkSnapshot|revision|digest|scopeKey|Run|Attempt/);
+  const coarsePointerStyles = styles.slice(styles.indexOf('@media (pointer: coarse), (max-width: 520px)'));
+  for (const selector of [
+    '.t8-creator-v2-scene-switcher > summary',
+    '.t8-creator-v2-scene-search',
+    '.t8-creator-v2-scene-step button',
+    '.t8-creator-v2-scene-results button',
+    '.t8-creator-v2-scene-source > summary',
+    '.t8-creator-v2-scene-nav > .t8-creator-v2-scene-confirm',
+    '.t8-creator-v2-upload-status button',
+  ]) assert.match(coarsePointerStyles, new RegExp(selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  assert.match(coarsePointerStyles, /min-height: 44px/);
 });
 
 test('Creator hides its programmatic file picker from the accessibility tree', () => {
@@ -323,6 +407,12 @@ test('Creator preflights model readiness and provides direct non-duplicating rec
   assert.match(panelSource, /对话模型/);
   assert.match(panelSource, /settingsReadinessMessage/);
   assert.match(panelSource, /settingsHasNoConfiguredModels/);
+  assert.match(panelSource, /const \[settingsReadError, setSettingsReadError\] = useState\(''\)/);
+  assert.match(panelSource, /setSettingsReadError\(settingsMessage\)/);
+  assert.match(panelSource, /settingsReadError && !settingsOpen && <div className="t8-creator-v2-readiness"/);
+  assert.match(panelSource, /创作模型暂时没有连上/);
+  assert.match(panelSource, /onClick=\{\(\) => void refreshCreatorSettings\(false\)\}/);
+  assert.match(panelSource, /settingsReadError && !catalog/);
   assert.match(panelSource, /className="t8-creator-v2-recovery-action"[\s\S]*修改后重试/);
   assert.match(styles, /\.t8-creator-v2-message > \.t8-creator-v2-recovery-action \{[\s\S]*border: 1px solid/);
 });
@@ -344,7 +434,7 @@ test('Creator auto-grows the composer and can minimize without closing', () => {
   assert.match(panelSource, /is-minimized/);
   assert.match(panelSource, /Minimize2/);
   assert.match(styles, /\.t8-creator-v2-panel\.is-minimized/);
-  assert.match(styles, /\.t8-creator-v2-panel\.is-minimized \{[\s\S]*top: 160px;[\s\S]*width: min\(260px,/);
+  assert.match(styles, /\.t8-creator-v2-panel\.is-minimized \{[\s\S]*top: var\(--creator-panel-safe-top, 86px\);[\s\S]*width: min\(260px,/);
   assert.match(styles, /\.t8-creator-v2-composer textarea \{[\s\S]*resize: none;/);
 });
 
@@ -358,10 +448,20 @@ test('Creator keeps frequent desktop controls understandable and removes empty-h
   assert.match(styles, /@media \(max-width: 520px\) \{[\s\S]*\.t8-creator-v2-composer \{ grid-template-columns: minmax\(0, 1fr\); \}/);
 });
 
-test('Creator keeps the full-height first screen and simplifies only the narrow header', () => {
-  assert.doesNotMatch(panelSource, /!loading && messages\.length === 0 && !action \? ' is-empty' : ''/);
-  assert.doesNotMatch(styles, /\.t8-creator-v2-panel\.is-empty/);
+test('Creator keeps the first screen compact and below the canvas toolbar', () => {
+  assert.match(panelSource, /aria-controls=\{panelId\}/);
+  assert.match(panelSource, /ref=\{panelShellRef\}[\s\S]*id=\{panelId\}[\s\S]*data-canvas-floating-ui="creator-agent-panel"/);
+  assert.match(panelSource, /shell\.dataset\.shellReadinessSchema = CREATOR_SHELL_READINESS_SCHEMA/);
+  assert.match(panelSource, /shell\.dataset\.shellReadinessStatus = paintReadyMs <= CREATOR_SHELL_TARGET_MS/);
+  assert.match(entrySource, /toolbar\.getBoundingClientRect\(\)\.bottom \+ CREATOR_PANEL_TOOLBAR_GAP/);
+  assert.match(entrySource, /new ResizeObserver\(syncSafeTop\)/);
+  assert.match(panelSource, /'--creator-panel-safe-top': `\$\{Math\.max\(86, Number\(props\.panelSafeTop\) \|\| 86\)\}px`/);
+  assert.match(panelSource, /const compactFirstScreen = messages\.length === 0 && !action && !historyOpen && !settingsOpen/);
+  assert.match(panelSource, /compactFirstScreen \? ' is-first-screen' : ''/);
+  assert.match(styles, /\.t8-creator-v2-panel\.is-first-screen:not\(\.is-minimized\) \{[\s\S]*bottom: auto;[\s\S]*height: min\(500px,/);
   assert.match(styles, /\.t8-creator-v2-empty \{[\s\S]*margin: clamp\(64px, 16vh, 120px\) auto 0;/);
+  assert.match(styles, /@media \(max-width: 900px\), \(max-height: 620px\) \{[\s\S]*\.t8-creator-v2-panel \{[\s\S]*inset: var\(--creator-panel-safe-top, 86px\) 10px 14px;/);
+  assert.match(styles, /@media \(max-width: 520px\) \{[\s\S]*\.t8-creator-v2-panel \{ inset: var\(--creator-panel-safe-top, 86px\) 0 0;/);
   assert.match(styles, /@media \(max-width: 420px\) \{[\s\S]*\.t8-creator-v2-header \{[\s\S]*flex-wrap: nowrap;/);
   assert.match(styles, /@media \(max-width: 420px\) \{[\s\S]*\.t8-creator-v2-header button\.has-touch-label \.t8-creator-v2-button-label \{[\s\S]*display: none;/);
 });
@@ -382,8 +482,8 @@ test('Creator retries transient startup restoration and never reduces it to a ge
     panelSource.indexOf('useEffect(() => {', panelSource.indexOf('const refreshCreatorSettings')),
   );
   assert.match(settingsRefresh, /const retryDelays = \[0, 350, 900\]/);
-  assert.match(settingsRefresh, /if \(focusFirstControl\) \{[\s\S]*setError\(recoveryErrorText/);
-  assert.doesNotMatch(settingsRefresh, /catch \(settingsError\) \{\s*setError\(/);
+  assert.match(settingsRefresh, /setSettingsReadError\(settingsMessage\)/);
+  assert.doesNotMatch(settingsRefresh, /setError\(/);
 });
 
 test('Creator startup waits for authoritative canvas data and the initialized ReactFlow viewport', () => {
@@ -513,6 +613,10 @@ test('Creator CSS includes touch, 200% reflow, and reduced-motion gates', () => 
   assert.match(styles, /\.t8-creator-v2-model-toggle \{[\s\S]*border: 1px solid var\(--creator-border\);/);
   assert.match(styles, /\.t8-creator-v2-composer button\.is-send:disabled \{[\s\S]*background: var\(--creator-surface-alt\);/);
   assert.match(styles, /@media \(max-width: 900px\), \(max-height: 620px\)/);
-  assert.match(styles, /max-height: calc\(100dvh - 90px\)/);
+  assert.match(styles, /max-height: calc\(100dvh - var\(--creator-panel-safe-top, 86px\) - 22px\)/);
+  assert.match(appSource, /className="t8-topbar-brand-status flex items-center gap-3"/);
+  assert.match(appSource, /className="t8-topbar-actions flex items-center gap-1"/);
+  assert.match(styles, /@media \(max-width: 1600px\)[\s\S]*\.t8-topbar-actions \{[\s\S]*justify-content: flex-end;/);
+  assert.match(styles, /\.t8-topbar-actions > button\[title\] > span,[\s\S]*display: none;/);
   assert.match(styles, /@media \(prefers-reduced-motion: reduce\)[\s\S]*animation-duration: 0\.01ms !important;/);
 });
