@@ -74,6 +74,10 @@ import {
   ZHENZHEN_IMAGE_NB_STANDARD_RATIOS,
   QWEN_IMAGE_30_MODELS,
   QWEN_IMAGE_30_RATIOS,
+  QWEN_IMAGE_GLOBAL_21_MODEL,
+  QWEN_IMAGE_GLOBAL_21_RATIOS,
+  QWEN_IMAGE_GLOBAL_21_RESOLUTIONS,
+  QWEN_IMAGE_GLOBAL_21_MAX_REFERENCE_IMAGES,
   SEEDREAM_LAYER_DECOMPOSITION_MODEL,
   SEEDREAM_LAYER_RESOLUTIONS,
   isQwenImage30I2IModel,
@@ -461,6 +465,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
     || modelDef.id === 'nano-banana-pro'
     || modelDef.id === 'grok-image';
   const isQwenImageTab = modelDef.paramKind === 'qwen-image-3.0';
+  const isQwenImage21Tab = modelDef.paramKind === 'qwen-image-global-2.1';
   const isSeedreamLayerTab = modelDef.paramKind === 'seedream-layer';
   const isWanImageTab = modelDef.paramKind === 'wan-image';
   const isVosr2ImageTab = modelDef.paramKind === 'vosr2-upscale';
@@ -473,6 +478,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
   const isZhenzhenBudgetPlatformSelected = isZhenzhenBudgetImageSelected
     || isZhenzhenBudgetMjSelected
     || isQwenImageTab
+    || isQwenImage21Tab
     || isSeedreamLayerTab
     || isWanImageTab
     || isVosr2ImageTab;
@@ -540,7 +546,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
         : modelDef.aspectRatios;
   const effectiveAspectRatio = effectiveAspectRatios.includes(aspectRatio)
     ? aspectRatio
-    : (isZhenzhenImageG2 ? 'adaptive' : isZhenzhenGrokImageV2Edit ? 'auto' : '1:1');
+    : (isZhenzhenImageG2 ? 'adaptive' : isZhenzhenGrokImageV2Edit ? 'auto' : isQwenImage21Tab ? '3:4' : '1:1');
   const effectiveSizes = isZhenzhenImageG2
     ? ['1K']
     : isZhenzhenLowpriceImage
@@ -669,6 +675,10 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
   const qwenSeed = Number.isInteger(d?.qwenSeed) ? Math.max(-1, Math.min(2147483647, d.qwenSeed)) : -1;
   const qwenNegativePrompt = typeof d?.qwenNegativePrompt === 'string' ? d.qwenNegativePrompt : '';
   const qwenPromptExtend = d?.qwenPromptExtend !== false;
+  const qwen21Resolution: '1k' | '2k' | '4k' = (QWEN_IMAGE_GLOBAL_21_RESOLUTIONS as readonly string[]).includes(d?.qwen21Resolution)
+    ? d.qwen21Resolution
+    : '2k';
+  const qwen21Seed = Number.isSafeInteger(d?.qwen21Seed) && d.qwen21Seed >= -1 ? d.qwen21Seed : -1;
   const wanImageWidth = Math.min(4096, Math.max(512, Number(d?.wanImageWidth) || 1024));
   const wanImageHeight = Math.min(4096, Math.max(512, Number(d?.wanImageHeight) || 1024));
   const wanImageThinkingMode = d?.wanImageThinkingMode !== false;
@@ -717,6 +727,8 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
       ? 1
     : isQwenImageTab
       ? isQwenImageI2I ? 3 : 0
+    : isQwenImage21Tab
+      ? QWEN_IMAGE_GLOBAL_21_MAX_REFERENCE_IMAGES
     : isWanImageTab
       ? isWanImageI2I ? 9 : 0
     : isZhenzhenImageG2I2I
@@ -852,6 +864,18 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
         qwenImageCount: Math.min(6, Math.max(1, Number(d?.qwenImageCount) || 1)),
         qwenSeed: Number.isInteger(d?.qwenSeed) ? d.qwenSeed : -1,
         qwenPromptExtend: d?.qwenPromptExtend !== false,
+      });
+      return;
+    }
+    if (newDef.paramKind === 'qwen-image-global-2.1') {
+      update({
+        model: newDef.id,
+        apiModel: QWEN_IMAGE_GLOBAL_21_MODEL,
+        imageBuiltinSource: 'seedance-nz',
+        aspectRatio: (QWEN_IMAGE_GLOBAL_21_RATIOS as readonly string[]).includes(d?.aspectRatio) ? d.aspectRatio : '3:4',
+        sizeLevel: '',
+        qwen21Resolution: (QWEN_IMAGE_GLOBAL_21_RESOLUTIONS as readonly string[]).includes(d?.qwen21Resolution) ? d.qwen21Resolution : '2k',
+        qwen21Seed: Number.isSafeInteger(d?.qwen21Seed) && d.qwen21Seed >= -1 ? d.qwen21Seed : -1,
       });
       return;
     }
@@ -1224,6 +1248,11 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
     if (isQwenImageI2I && upstreamImages.length === 0) {
       setError(`${apiModel} 必须提供 1-3 张参考图`);
       logBus.error('生成中止: Qwen Image 3.0 图像编辑缺少参考图', src);
+      return;
+    }
+    if (isQwenImage21Tab && orderedImages.length > QWEN_IMAGE_GLOBAL_21_MAX_REFERENCE_IMAGES) {
+      setError(`Qwen Image Global 2.1 最多支持 ${QWEN_IMAGE_GLOBAL_21_MAX_REFERENCE_IMAGES} 张参考图`);
+      logBus.error(`生成中止: Qwen Image Global 2.1 参考图数量 ${orderedImages.length}`, src);
       return;
     }
     if (isWanImageTab) {
@@ -1922,7 +1951,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
 
       // seedance.nz uses a dedicated asynchronous image protocol for Seedream,
       // Zhenzhen Image G-2 and APIMart image models.
-      if (isSeedreamNz || isZhenzhenBudgetImageSelected || isQwenImageTab || isSeedreamLayerTab || isWanImageTab || isVosr2ImageTab) {
+      if (isSeedreamNz || isZhenzhenBudgetImageSelected || isQwenImageTab || isQwenImage21Tab || isSeedreamLayerTab || isWanImageTab || isVosr2ImageTab) {
         if (!zhenzhenSd2ApiKey) throw new Error(`请先在 API 设置中填写“${seedanceNzProviderLabel} API Key”`);
         const providerRefs = isSeedreamLayerTab || isVosr2ImageTab
           ? allRefs.slice(0, 1)
@@ -1930,6 +1959,8 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
           ? (isWanImageI2I ? allRefs.slice(0, 9) : [])
           : isQwenImageTab
           ? (isQwenImageI2I ? allRefs.slice(0, 3) : [])
+          : isQwenImage21Tab
+          ? allRefs.slice(0, QWEN_IMAGE_GLOBAL_21_MAX_REFERENCE_IMAGES)
           : isZhenzhenImageG2 && !isZhenzhenImageG2I2I
           ? []
           : isZhenzhenGrokImage
@@ -1949,6 +1980,8 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
           ? apiModel
           : isQwenImageTab
           ? apiModel
+          : isQwenImage21Tab
+          ? QWEN_IMAGE_GLOBAL_21_MODEL
           : isZhenzhenBudgetImageSelected
           ? apiModel
           : seedreamNzModelFamily === 'overseas'
@@ -1962,6 +1995,8 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
           ? 'Wan Image 2.7 Global'
           : isQwenImageTab
           ? 'Qwen Image 3.0'
+          : isQwenImage21Tab
+          ? 'Qwen Image Global 2.1'
           : isZhenzhenImageG2
           ? 'Zhenzhen Image G-2'
           : isZhenzhenImageG25
@@ -1985,6 +2020,8 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
             : qwenSizingMode === 'ratio'
               ? `${qwenResolution} · ${effectiveAspectRatio} · n=${qwenImageCount}`
               : `${qwenCustomSize} · n=${qwenImageCount}`
+          : isQwenImage21Tab
+          ? `${qwen21Resolution} · ${effectiveAspectRatio} · 单图输出`
           : isZhenzhenImageG2
           ? '1k'
           : isZhenzhenImageG25
@@ -2027,6 +2064,8 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
               | 'qwen-image-3.0-global-i2i'
               | 'qwen-image-3.0-global-pro-t2i'
               | 'qwen-image-3.0-global-pro-i2i'
+            : isQwenImage21Tab
+            ? QWEN_IMAGE_GLOBAL_21_MODEL
             : isZhenzhenBudgetImageSelected
             ? apiModel as
               | 'zhenzhen-image-g2-t2i'
@@ -2043,13 +2082,15 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
               | 'zhenzhen-image-nb-2'
               | 'zhenzhen-image-nb-pro'
             : undefined,
-          modelFamily: isZhenzhenBudgetImageSelected || isQwenImageTab || isSeedreamLayerTab || isWanImageTab ? undefined : seedreamNzModelFamily,
+          modelFamily: isZhenzhenBudgetImageSelected || isQwenImageTab || isQwenImage21Tab || isSeedreamLayerTab || isWanImageTab ? undefined : seedreamNzModelFamily,
           resolution: isZhenzhenGrokImageV2Edit
             ? grokV2EditResolution
             : isSeedreamLayerTab
             ? seedreamLayerResolution
             : isQwenImageTab
             ? qwenSizingMode === 'ratio' ? qwenResolution : undefined
+            : isQwenImage21Tab
+            ? qwen21Resolution
             : isZhenzhenImageG2
             ? '1k'
             : isZhenzhenImageG25
@@ -2065,6 +2106,8 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
             ? qwenSizingMode === 'ratio' ? effectiveAspectRatio as
               | '1:1' | '2:3' | '3:2' | '3:4' | '4:3' | '4:5' | '5:4' | '9:16' | '16:9' | '21:9'
               : undefined
+            : isQwenImage21Tab
+            ? effectiveAspectRatio as '1:1' | '2:3' | '3:2' | '3:4' | '4:3' | '9:16' | '16:9' | '21:9'
             : isZhenzhenImageG2
             ? effectiveAspectRatio as 'adaptive' | '16:9' | '4:3' | '1:1' | '3:4' | '9:16' | '21:9'
             : undefined,
@@ -2099,7 +2142,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
           negative_prompt: isQwenImageTab ? qwenNegativePrompt.trim() || undefined : undefined,
           prompt_extend: isQwenImageTab ? qwenPromptExtend : undefined,
           sizing_mode: isQwenImageTab ? qwenSizingMode : undefined,
-          seed: isQwenImageTab ? qwenSeed : undefined,
+          seed: isQwenImageTab ? qwenSeed : isQwenImage21Tab ? qwen21Seed : undefined,
           width: isWanImageTab && !isWanImageI2I ? wanImageWidth : undefined,
           height: isWanImageTab && !isWanImageI2I ? wanImageHeight : undefined,
           thinking_mode: isWanImageTab && !isWanImageI2I ? wanImageThinkingMode : undefined,
@@ -2175,7 +2218,9 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
               usedI2I: isSeedreamLayerTab || isVosr2ImageTab
                 ? true
                 : isWanImageTab ? isWanImageI2I
-                : isQwenImageTab ? isQwenImageI2I : isZhenzhenImageG2 ? isZhenzhenImageG2I2I : providerRefs.length > 0,
+                : isQwenImageTab ? isQwenImageI2I
+                : isQwenImage21Tab ? providerRefs.length > 0
+                : isZhenzhenImageG2 ? isZhenzhenImageG2I2I : providerRefs.length > 0,
               requestId: query.requestId,
               transportHttpStatus: query.transportHttpStatus,
               upstreamHttpStatus: query.upstreamHttpStatus,
@@ -2429,6 +2474,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
           } : {}),
           ...(!isExternalSelected && isQwenImageTab ? { qwenSizingMode, qwenResolution, qwenCustomSize,
             qwenImageCount, qwenSeed, qwenNegativePrompt, qwenPromptExtend } : {}),
+          ...(!isExternalSelected && isQwenImage21Tab ? { qwen21Resolution, qwen21Seed } : {}),
           ...(!isExternalSelected && isWanImageTab && !isWanImageI2I ? { wanImageWidth, wanImageHeight, wanImageThinkingMode } : {}),
           ...(!isExternalSelected && isSeedreamLayerTab ? { seedreamLayerResolution, seedreamOutputFormat } : {}),
           ...(!isExternalSelected && isSeedreamNz ? { seedreamNzModelFamily, seedreamNzResolution, seedreamNzCustomSize, seedreamOutputFormat } : {}),
@@ -2551,10 +2597,11 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
                         const leavingBudgetPlatform = d?.imageBuiltinSource === 'seedance-nz'
                           || isZhenzhenBudgetImageModel(savedApiModel)
                           || isQwenImageTab
+                          || isQwenImage21Tab
                           || isSeedreamLayerTab
                           || isWanImageTab
                           || isVosr2ImageTab;
-                        const leavingDedicatedBudgetTab = isQwenImageTab || isSeedreamLayerTab || isWanImageTab || isVosr2ImageTab;
+                        const leavingDedicatedBudgetTab = isQwenImageTab || isQwenImage21Tab || isSeedreamLayerTab || isWanImageTab || isVosr2ImageTab;
                         const fallbackModel = IMAGE_MODELS[0];
                         update({
                           providerSource: 'zhenzhen',
@@ -3069,6 +3116,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
                 || m.id === 'nano-banana-pro'
                 || m.id === 'grok-image'
                 || m.id === 'qwen-image-3.0'
+                || m.id === QWEN_IMAGE_GLOBAL_21_MODEL
                 || m.id === 'wan-image'
                 || m.id === 'seedream-layer-decomposition'
                 || m.id === VOSR2_IMAGE_UPSCALE_MODEL
@@ -3432,6 +3480,15 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
           </div>
         )}
 
+        {isQwenImage21Tab && !isExternalSelected && (
+          <div className="rounded border border-cyan-400/25 bg-cyan-500/5 px-2 py-1.5 text-[10px] leading-4 text-cyan-100/80">
+            <div>贞贞的平价AI小屋 · {QWEN_IMAGE_GLOBAL_21_MODEL}</div>
+            <div>{translate('nodes:image.qwen21ModeHint')}</div>
+            <div>{translate('nodes:image.qwen21FieldsHint')}</div>
+            {!zhenzhenSd2ApiKey && <div className="text-amber-300">{translate('nodes:generation.missingBudgetKey')}</div>}
+          </div>
+        )}
+
         {isVosr2ImageTab && !isExternalSelected && (
           <div className="rounded border border-cyan-400/25 bg-cyan-500/5 px-2 py-1.5 text-[10px] leading-4 text-cyan-100/80">
             <div>{translate('nodes:generation.vosr2.imageChannel')}</div>
@@ -3576,7 +3633,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
         )}
 
         {/* 比例 + 尺寸;Seedream 使用像素尺寸 + 输出格式,Grok Image 只需要比例 */}
-        {(!isFal && !isMj && !isComfyExternal && !isQwenImageTab && !isSeedreamLayerTab && !isWanImageTab && !isGptImage25 && !isZhenzhenImageG25) && (
+        {(!isFal && !isMj && !isComfyExternal && !isQwenImageTab && !isQwenImage21Tab && !isSeedreamLayerTab && !isWanImageTab && !isGptImage25 && !isZhenzhenImageG25) && (
           <div className={`grid gap-2 ${isSeedream || (!isGrokImage && effectiveSizes.length) ? 'grid-cols-2' : 'grid-cols-1'}`}>
             {effectiveAspectRatios.length > 0 && <div>
               <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.aspectRatio')}</label>
@@ -3797,6 +3854,55 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
                 placeholder="不希望出现在图像中的内容"
                 className="h-12 w-full resize-none rounded border border-white/10 bg-black/20 px-2 py-1 text-[11px] text-white outline-none focus:border-cyan-400/60 placeholder:text-white/25"
               />
+            </div>
+          </div>
+        )}
+        {isQwenImage21Tab && !isExternalSelected && (
+          <div className="space-y-2 rounded border border-cyan-400/25 bg-cyan-500/5 p-2">
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.aspectRatio')}</label>
+                <select
+                  value={effectiveAspectRatio}
+                  onChange={(e) => update({ aspectRatio: e.target.value })}
+                  style={{ background: '#18181b', color: '#ffffff' }}
+                  className="w-full rounded border border-white/10 px-2 py-1 text-xs outline-none focus:border-cyan-400/60"
+                >
+                  {QWEN_IMAGE_GLOBAL_21_RATIOS.map((item) => (
+                    <option key={item} value={item} style={{ background: '#18181b', color: '#ffffff' }}>{item}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.resolution')}</label>
+                <select
+                  value={qwen21Resolution}
+                  onChange={(e) => update({ qwen21Resolution: e.target.value })}
+                  style={{ background: '#18181b', color: '#ffffff' }}
+                  className="w-full rounded border border-white/10 px-2 py-1 text-xs outline-none focus:border-cyan-400/60"
+                >
+                  {QWEN_IMAGE_GLOBAL_21_RESOLUTIONS.map((item) => (
+                    <option key={item} value={item} style={{ background: '#18181b', color: '#ffffff' }}>{item.toUpperCase()}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div>
+              <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.seedRandom')}</label>
+              <input
+                type="number"
+                min={-1}
+                max={Number.MAX_SAFE_INTEGER}
+                step={1}
+                value={qwen21Seed}
+                onChange={(e) => {
+                  const next = Number(e.target.value);
+                  update({ qwen21Seed: Number.isSafeInteger(next) ? Math.max(-1, next) : -1 });
+                }}
+                style={{ background: '#18181b', color: '#ffffff' }}
+                className="w-full rounded border border-white/10 px-2 py-1 text-xs outline-none focus:border-cyan-400/60"
+              />
+              <div className="mt-1 text-[10px] text-white/35">{translate('nodes:image.qwen21SeedHint')}</div>
             </div>
           </div>
         )}

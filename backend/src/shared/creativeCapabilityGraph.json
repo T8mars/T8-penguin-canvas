@@ -21,16 +21,16 @@
     "canvasNodeSchema": "7f3a5b89672debff165568245f3a341de78d738722e8ac2d4b9e55e1925d4292",
     "canvasNodeSchemaFile": "a5d1cb072894c751b49a7ba05e24518ce19212fff1b52661a146f888644739b7",
     "i18nNodeCatalog": "0479653284399372bba58f69d528e45ed9de267f9a1d7107347401ab75f60676",
-    "i18nRendererResources": "e122c0a0874812fe83c3678d5e0633149f55361d2011917c3222a3850151ca55",
+    "i18nRendererResources": "07a1f2c84603c0bc4d1b612624882f716ce8616498e27c3b6c2df592d06f2826",
     "i18nElectronCatalog": "afffcf09bb10690b6db48236fe826dcadab9070a6dc9540ae1c730b1aab38836",
-    "runtimeCatalogSources": "d996fe9f96ccb6d2d9adf88e772a81cf6d3b0c2f70bcc1636f55c6ff5710b1fa",
-    "runtimeCatalogArtifact": "1512ea1ee0b84b23288ca424f3876a5a6bc4e4a441a3e9b31f5ea913f36a694a",
+    "runtimeCatalogSources": "a66ecd6443e3bae0365ed5e3d12180444091beca544b4cb04bfe4ee3dccbc660",
+    "runtimeCatalogArtifact": "c3d1b7080d1681a8cbac03fbe2716ca843a9c53bc76c41baf3fca892d9240caa",
     "handlerBindings": "3cd8cde3c05d1642d72ce8cbfae2874d1bdf986592ae431ef7d66b043da257b5",
     "capabilityGraphCompiler": "a3716d239b91e1c4775f5996b3865ba3ab8fd652263138feef0a56de40851c24",
     "coverageReceiptCompiler": "68c02167cb5317107edd346223a5e5999168e447bacbb977ff8e9678e6753fe7",
     "canonicalTextDigestCompiler": "b0afcf28a257fbbd8f391edc117348f8f2ede1b4a039ae91bce25a8d563ac0cf"
   },
-  "aggregateDigest": "b4b8f1538eb88edfda036a7fa0ea71ecec00831be708148918268e95d66cfa66",
+  "aggregateDigest": "b2181f19a50a8d54cf89cce46bf53a37be670a4fea94d93f71304853a7e1886b",
   "principles": {
     "oneSentenceStart": true,
     "directCanvasMutation": false,
@@ -54,18 +54,18 @@
     "accountedNodes": 83,
     "unexplainedNodes": 0,
     "fullyOperableNodes": 20,
-    "runtimeEntries": 297,
+    "runtimeEntries": 299,
     "runtimeByKind": {
       "llm": 34,
-      "image": 55,
-      "video": 130,
+      "image": 56,
+      "video": 131,
       "audio": 17,
       "actions": 61
     },
     "runtimeByProvider": {
       "grok-oauth": 2,
-      "seedance-nz": 226,
-      "zhenzhen": 62,
+      "seedance-nz": 227,
+      "zhenzhen": 63,
       "fal": 7
     },
     "operations": 196,
@@ -7401,7 +7401,7 @@
   ],
   "runtime": {
     "schema": "t8-creative-runtime-catalog-v1",
-    "sourceDigest": "d996fe9f96ccb6d2d9adf88e772a81cf6d3b0c2f70bcc1636f55c6ff5710b1fa",
+    "sourceDigest": "a66ecd6443e3bae0365ed5e3d12180444091beca544b4cb04bfe4ee3dccbc660",
     "platforms": [
       {
         "id": "zhenzhen",
@@ -9188,6 +9188,26 @@
         "model": "qwen-image-3.0-t2i",
         "label": "qwen-image-3.0-t2i",
         "family": "qwen-image-3.0",
+        "available": true,
+        "catalogSection": "image",
+        "compatibility": {
+          "known": true,
+          "installed": true,
+          "credentialReady": null,
+          "regionReady": true,
+          "executable": false,
+          "available": true,
+          "requiresRuntimeCheck": true
+        }
+      },
+      {
+        "id": "image:seedance-nz:qwen-image-global-2.1",
+        "kind": "image",
+        "provider": "seedance-nz",
+        "platformLabel": "贞贞的平价AI小屋",
+        "model": "qwen-image-global-2.1",
+        "label": "qwen-image-global-2.1",
+        "family": "seedream-v5-pro",
         "available": true,
         "catalogSection": "image",
         "compatibility": {
@@ -12807,6 +12827,26 @@
         }
       },
       {
+        "id": "video:zhenzhen:animate-motion-transfer",
+        "kind": "video",
+        "provider": "zhenzhen",
+        "platformLabel": "贞贞的AI工坊",
+        "model": "animate-motion-transfer",
+        "label": "animate-motion-transfer",
+        "family": "animate-motion-transfer",
+        "available": true,
+        "catalogSection": "video",
+        "compatibility": {
+          "known": true,
+          "installed": true,
+          "credentialReady": null,
+          "regionReady": true,
+          "executable": false,
+          "available": true,
+          "requiresRuntimeCheck": true
+        }
+      },
+      {
         "id": "video:zhenzhen:doubao-seedance-2-0-260128",
         "kind": "video",
         "provider": "zhenzhen",
@@ -13723,6 +13763,7 @@
       "image:seedance-nz:qwen-image-3.0-pro-i2i",
       "image:seedance-nz:qwen-image-3.0-pro-t2i",
       "image:seedance-nz:qwen-image-3.0-t2i",
+      "image:seedance-nz:qwen-image-global-2.1",
       "image:seedance-nz:seedream-v5-pro-i2i",
       "image:seedance-nz:seedream-v5-pro-layer-decomposition",
       "image:seedance-nz:seedream-v5-pro-t2i",
@@ -13903,6 +13944,7 @@
       "video:seedance-nz:zhenzhen-video-v31-fast",
       "video:seedance-nz:zhenzhen-video-v31-lite",
       "video:seedance-nz:zhenzhen-video-v31-quality",
+      "video:zhenzhen:animate-motion-transfer",
       "video:zhenzhen:doubao-seedance-2-0-260128",
       "video:zhenzhen:doubao-seedance-2-0-fast-260128",
       "video:zhenzhen:doubao-seedance-2.0-mini",
@@ -13941,7 +13983,7 @@
     "sourceDigests": {
       "capabilityManifest": "569f2c8be144e05120ca629b2826383a06c4d6565ab3896c2dc61807bb9f7c27",
       "nodeSchema": "7f3a5b89672debff165568245f3a341de78d738722e8ac2d4b9e55e1925d4292",
-      "runtimeCatalog": "d996fe9f96ccb6d2d9adf88e772a81cf6d3b0c2f70bcc1636f55c6ff5710b1fa",
+      "runtimeCatalog": "a66ecd6443e3bae0365ed5e3d12180444091beca544b4cb04bfe4ee3dccbc660",
       "handlerBindings": "3cd8cde3c05d1642d72ce8cbfae2874d1bdf986592ae431ef7d66b043da257b5",
       "receiptCompiler": "68c02167cb5317107edd346223a5e5999168e447bacbb977ff8e9678e6753fe7"
     },
@@ -13953,8 +13995,8 @@
       },
       "runtime": {
         "llm": 34,
-        "image": 55,
-        "video": 130,
+        "image": 56,
+        "video": 131,
         "audio": 17,
         "actions": 61
       },
@@ -13970,6 +14012,6 @@
       "missingCompatibilityEdges": []
     },
     "complete": true,
-    "digest": "ca5bee0989c24234a3301f03c0013af0e4d37ecfb74dc4445200181d5e9bc509"
+    "digest": "be250c4808d87799013cce82c7d2aea178397dfc1e1c215e552a99c7033268c8"
   }
 }

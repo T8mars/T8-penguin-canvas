@@ -240,6 +240,18 @@ const EXTRA_ENTRIES: ReadonlyArray<readonly [string, string]> = [
   ['Wan 3.0 I2V 使用第 1 张首帧图和可选第 2 张尾帧图；提示词可选。', 'Wan 3.0 I2V uses image 1 as the first frame and optional image 2 as the last frame; the prompt is optional.'],
   ['Wan 3.0 R2V 必须填写提示词；最多 10 图、5 视频、5 音频，并可附加文件或网页 URL。', 'Wan 3.0 R2V requires a prompt; it accepts up to 10 images, 5 videos, and 5 audio files, plus an optional file or web URL.'],
   ['贞贞的平价AI小屋 · auto / 2-30 秒 · 480P / 720P / 1080P', 'Zhenzhen Budget AI House · auto / 2–30 sec · 480P / 720P / 1080P'],
+  ['贞贞的平价AI小屋 · qwen-image-global-2.1', 'Zhenzhen Budget AI House · qwen-image-global-2.1'],
+  ['同一模型自动区分文生图/图生图；参考图可选 0–10 张，固定单图输出。', 'The model automatically switches between text-to-image and image-to-image; use 0–10 references and receive exactly one image.'],
+  ['仅发送 Prompt、参考图、比例、分辨率与可选 Seed，不复用 Qwen 3.0 参数。', 'Sends only the prompt, references, aspect ratio, resolution, and optional seed; Qwen 3.0 fields are not reused.'],
+  ['-1 表示不发送 seed；范围 0–9007199254740991。', '-1 omits the seed; the supported range is 0–9007199254740991.'],
+  ['单图输出', 'One image'],
+  ['Animate Motion Transfer · 必须恰好一图一视频 · 不发送 Prompt、音频或 Seed', 'Animate Motion Transfer · exactly one image and one motion video · no prompt, audio, or seed'],
+  ['可连接/拖入本地素材，也可在下面直接粘贴公网 URL；同类来源不能重复。', 'Connect or drop local media, or paste public URLs below; do not provide the same media type twice.'],
+  ['图片公网 URL（与连接图片二选一）', 'Public image URL (choose this or a connected image)'],
+  ['动作视频公网 URL（与连接视频二选一）', 'Public motion-video URL (choose this or a connected video)'],
+  ['比例（adaptive 或 W:H）', 'Aspect ratio (adaptive or W:H)'],
+  ['max_frames（0=上游默认）', 'max_frames (0 = provider default)'],
+  ['1080p 最长 10 秒：max_frames ≤ frame_rate × 10。', '1080p supports up to 10 seconds: max_frames ≤ frame_rate × 10.'],
   ['启用思考（仅 Global 标准版支持）', 'Enable thinking (Global standard models only)'],
   ['文件 URL（可选）', 'File URL (optional)'],
   ['网页 URL（可选）', 'Web URL (optional)'],
@@ -354,6 +366,20 @@ const DYNAMIC_REPLACEMENTS: ReadonlyArray<readonly [string, string]> = [
 export function localizeNodeDynamicText(source: string) {
   let match = source.match(/^(\d+) 项$/);
   if (match) return `${match[1]} items`;
+  match = source.match(/^Qwen Image Global 2\.1 最多支持 (\d+) 张参考图$/);
+  if (match) return `Qwen Image Global 2.1 supports up to ${match[1]} reference images`;
+  if (source === 'Animate Motion Transfer 必须且只能提供 1 张图片和 1 个动作视频；连接素材与 URL 输入会合并计数') {
+    return 'Animate Motion Transfer requires exactly one image and one motion video; connected media and URL inputs are counted together';
+  }
+  if (source === 'Animate Motion Transfer 不接受音频素材') return 'Animate Motion Transfer does not accept audio';
+  match = source.match(/^Animate Motion Transfer (图片|视频) URL 必须是 http\(s\) 公网地址$/);
+  if (match) return `The Animate Motion Transfer ${match[1] === '图片' ? 'image' : 'video'} URL must be a public HTTP(S) address`;
+  if (source === 'Animate Motion Transfer 比例必须是 adaptive 或正整数 W:H') {
+    return 'The Animate Motion Transfer aspect ratio must be adaptive or a positive-integer W:H value';
+  }
+  if (source === 'Animate Motion Transfer 1080p 最长 10 秒：max_frames 不能超过 frame_rate × 10') {
+    return 'Animate Motion Transfer at 1080p supports up to 10 seconds: max_frames cannot exceed frame_rate × 10';
+  }
   match = source.match(/^删除素材 (\d+)$/);
   if (match) return `Remove material ${match[1]}`;
   if (/^画布 · .+/.test(source)) return source.replace(/^画布/, 'Canvas');

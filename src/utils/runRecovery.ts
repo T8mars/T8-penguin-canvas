@@ -12,6 +12,7 @@ export type RunRecoveryKind =
   | 'upscaler'
   | 'fashvsr'
   | 'vosr2'
+  | 'animate'
   | 'vidu'
   | 'seed-audio'
   | 'suno'
@@ -36,7 +37,7 @@ export interface RunRecoveryDescriptor {
   maxPolls?: number;
 }
 const RECOVERY_KINDS = new Set<RunRecoveryKind>([
-  'runninghub', 'seedance', 'seedream-nz', 'wan', 'happyhorse', 'hailuo', 'flux3', 'kling', 'upscaler', 'fashvsr', 'vosr2', 'vidu', 'seed-audio', 'suno',
+  'runninghub', 'seedance', 'seedream-nz', 'wan', 'happyhorse', 'hailuo', 'flux3', 'kling', 'upscaler', 'fashvsr', 'vosr2', 'animate', 'vidu', 'seed-audio', 'suno',
   'image', 'mj', 'video', 'image-fal', 'video-fal',
 ]);
 
@@ -110,6 +111,9 @@ export function inferRunRecoveryDescriptor(payload: Record<string, unknown>): Ru
     }
     if (lowerModel === 'vosr2-video-upscale') {
       return { version: 1, kind: 'vosr2', taskId, model, pollIntervalMs, maxPolls };
+    }
+    if (lowerModel === 'animate-motion-transfer') {
+      return { version: 1, kind: 'animate', taskId, model, pollIntervalMs, maxPolls };
     }
     if (lowerModel === 'zhenzhen-upscaler') return { version: 1, kind: 'upscaler', taskId, model, pollIntervalMs, maxPolls };
     if (lowerModel.startsWith('vidu-')) return { version: 1, kind: 'vidu', taskId, model, pollIntervalMs, maxPolls };

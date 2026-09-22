@@ -1,0 +1,37 @@
+{
+  "schema": "t8-workflow-fragment",
+  "version": 1,
+  "title": "Qwen Image Global 2.1 · 文生图",
+  "nodes": [
+    {
+      "id": "qwen21-t2i-generation",
+      "type": "image",
+      "position": { "x": 120, "y": 80 },
+      "data": {
+        "label": "Qwen Image Global 2.1 文生图",
+        "model": "qwen-image-global-2.1",
+        "apiModel": "qwen-image-global-2.1",
+        "imageBuiltinSource": "seedance-nz",
+        "prompt": "A cinematic portrait with precise typography and rich natural detail",
+        "aspectRatio": "3:4",
+        "qwen21Resolution": "2k",
+        "qwen21Seed": -1,
+        "referenceImages": [],
+        "reuseResult": false
+      }
+    },
+    {
+      "id": "qwen21-t2i-output",
+      "type": "output",
+      "position": { "x": 600, "y": 80 },
+      "data": { "label": "Qwen 2.1 图片输出" }
+    }
+  ],
+  "edges": [
+    { "id": "qwen21-t2i-output-edge", "source": "qwen21-t2i-generation", "target": "qwen21-t2i-output" }
+  ],
+  "nodeCount": 2,
+  "edgeCount": 1,
+  "nodeTypes": ["image", "output"],
+  "savedAt": "2026-09-22T00:00:00.000Z"
+}

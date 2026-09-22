@@ -1,0 +1,44 @@
+{
+  "schema": "t8-workflow-fragment",
+  "version": 1,
+  "title": "Qwen Image Global 2.1 · 图生图",
+  "nodes": [
+    {
+      "id": "qwen21-i2i-source",
+      "type": "upload",
+      "position": { "x": 0, "y": 80 },
+      "data": { "label": "上传 1–10 张有序参考图", "uploadType": "image", "lockedUploadType": "image" }
+    },
+    {
+      "id": "qwen21-i2i-generation",
+      "type": "image",
+      "position": { "x": 420, "y": 80 },
+      "data": {
+        "label": "Qwen Image Global 2.1 图生图",
+        "model": "qwen-image-global-2.1",
+        "apiModel": "qwen-image-global-2.1",
+        "imageBuiltinSource": "seedance-nz",
+        "prompt": "Preserve the subject identity and composition while applying a refined cinematic illustration style",
+        "aspectRatio": "3:4",
+        "qwen21Resolution": "2k",
+        "qwen21Seed": -1,
+        "referenceImages": [],
+        "reuseResult": false
+      }
+    },
+    {
+      "id": "qwen21-i2i-output",
+      "type": "output",
+      "position": { "x": 900, "y": 80 },
+      "data": { "label": "Qwen 2.1 编辑图片输出" }
+    }
+  ],
+  "edges": [
+    { "id": "qwen21-i2i-source-edge", "source": "qwen21-i2i-source", "target": "qwen21-i2i-generation" },
+    { "id": "qwen21-i2i-output-edge", "source": "qwen21-i2i-generation", "target": "qwen21-i2i-output" }
+  ],
+  "nodeCount": 3,
+  "edgeCount": 2,
+  "nodeTypes": ["upload", "image", "output"],
+  "savedAt": "2026-09-22T00:00:00.000Z"
+}

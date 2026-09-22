@@ -20,6 +20,8 @@ import {
   ZHENZHEN_VIDEO_V31_QUALITY_MODEL,
   FASHVSR_VIDEO_UPSCALE_MODEL,
   VOSR2_VIDEO_UPSCALE_MODEL,
+  ANIMATE_MOTION_TRANSFER_MODEL,
+  ANIMATE_MOTION_TRANSFER_POSE_METHODS,
   MINIMAX_H3_V2_MODEL,
   MINIMAX_H3_V2_DURATIONS,
   WAN30_I2V_MODELS,
@@ -57,6 +59,8 @@ import {
   queryFashVsr,
   submitVosr2Video,
   queryVosr2Video,
+  submitAnimateMotionTransfer,
+  queryAnimateMotionTransfer,
   submitVidu,
   queryVidu,
   submitWan,
@@ -286,6 +290,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
   const isUpscaler = !isExternalSelected && modelDef.kind === 'upscaler';
   const isFashVsr = isUpscaler && apiModel === FASHVSR_VIDEO_UPSCALE_MODEL;
   const isVosr2 = isUpscaler && apiModel === VOSR2_VIDEO_UPSCALE_MODEL;
+  const isAnimate = !isExternalSelected && modelDef.kind === 'animate' && apiModel === ANIMATE_MOTION_TRANSFER_MODEL;
   const isVidu = !isExternalSelected && modelDef.kind === 'vidu';
   const isWan = !isExternalSelected && modelDef.kind === 'wan';
   const isWan30 = isWan && apiModel.startsWith('wan-3.0-');
@@ -439,6 +444,23 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
     const value = Number(Array.isArray(d?.minimaxH3VideoStartSeconds) ? d.minimaxH3VideoStartSeconds[index] : 0);
     return Number.isFinite(value) ? Math.max(0, Math.min(3600, value)) : 0;
   });
+  const animateImageUrl = typeof d?.animateImageUrl === 'string' ? d.animateImageUrl.trim() : '';
+  const animateVideoUrl = typeof d?.animateVideoUrl === 'string' ? d.animateVideoUrl.trim() : '';
+  const animateRatio = typeof d?.animateRatio === 'string' && d.animateRatio.trim() ? d.animateRatio.trim() : 'adaptive';
+  const animateFrameRate = Number.isInteger(d?.animateFrameRate) ? Math.max(1, Math.min(999999, d.animateFrameRate)) : 30;
+  const animateMaxFrames = Number.isInteger(d?.animateMaxFrames) ? Math.max(0, Math.min(999999, d.animateMaxFrames)) : 0;
+  const animateSkipFrames = Number.isInteger(d?.animateSkipFrames) ? Math.max(0, Math.min(999999, d.animateSkipFrames)) : 0;
+  const animatePoseMethod = (ANIMATE_MOTION_TRANSFER_POSE_METHODS as readonly string[]).includes(d?.animatePoseMethod)
+    ? d.animatePoseMethod as 'vitpose' | 'sdpose' | 'wuwupose'
+    : 'vitpose';
+  const animateNormalMode = d?.animateNormalMode !== false;
+  const animateNeckCorrection = d?.animateNeckCorrection === true;
+  const animatePoseStrength = Number.isFinite(Number(d?.animatePoseStrength)) ? Number(d.animatePoseStrength) : 1;
+  const animateCameraMotion = d?.animateCameraMotion === true;
+  const animateCameraStrength = Number.isFinite(Number(d?.animateCameraStrength)) ? Number(d.animateCameraStrength) : 1;
+  const animateMaskMode = d?.animateMaskMode === true;
+  const animateExpressionStrength = Number.isFinite(Number(d?.animateExpressionStrength)) ? Number(d.animateExpressionStrength) : 0.8;
+  const animateChestMotionStrength = Number.isFinite(Number(d?.animateChestMotionStrength)) ? Number(d.animateChestMotionStrength) : 0.2;
 
   // FAL 专属参数
   const isFal = isFalVideoModel(apiModel);
@@ -648,6 +670,8 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
       : modelDef.maxRefImages;
   const maxMentionVideos = isUpscaler
     ? 1
+    : isAnimate
+    ? 1
     : isWan30 && wan30Mode === 'r2v'
     ? 5
     : isKling && klingMode === 'edit'
@@ -698,6 +722,8 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
         ? ['text', 'image', 'video']
       : isApimartOmniLowprice
         ? apimartOmniLowpriceMode === 'reference_video' ? ['text', 'video'] : apimartOmniLowpriceMode === 'text' ? ['text'] : ['text', 'image']
+      : isAnimate
+        ? ['image', 'video']
       : isUpscaler
         ? ['video']
       : isWan30 && wan30Mode === 'r2v'
@@ -719,7 +745,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
       : isHailuoH3 && hailuoMode === 'multi'
         ? ['text', 'image', 'video', 'audio']
         : ['text', 'image']),
-    [modelDef.kind, isJimengSeedanceSelected, isApimartOmni, isApimartOmniLowprice, apimartOmniLowpriceMode, isUpscaler, isWan30, wan30Mode, isKling, klingMode, isSeedance25, seedance25Mode, isFlux3, flux3Mode, isMinimaxH3V2, isMinimaxH3OwAudioDrive, isHailuoH3, hailuoMode],
+    [modelDef.kind, isJimengSeedanceSelected, isApimartOmni, isApimartOmniLowprice, apimartOmniLowpriceMode, isAnimate, isUpscaler, isWan30, wan30Mode, isKling, klingMode, isSeedance25, seedance25Mode, isFlux3, flux3Mode, isMinimaxH3V2, isMinimaxH3OwAudioDrive, isHailuoH3, hailuoMode],
   );
 
   // 收集上游 prompt + 参考图/视频/音频 (按用户拖拽顺序), 合并本地拖入素材
@@ -798,6 +824,12 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
       ...(nextModel.startsWith('flux-3-video-')
         ? { ratio: 'auto', duration: 5, resolution: 'hd', flux3Draft: false, flux3AudioMode: 'api_default', flux3SafetyTolerance: 'api_default' }
         : {}),
+      ...(nextModel === ANIMATE_MOTION_TRANSFER_MODEL
+        ? { ratio: 'adaptive', resolution: '720p', animateRatio: 'adaptive', animateFrameRate: 30, animateMaxFrames: 0,
+            animateSkipFrames: 0, animatePoseMethod: 'vitpose', animateNormalMode: true, animateNeckCorrection: false,
+            animatePoseStrength: 1, animateCameraMotion: false, animateCameraStrength: 1, animateMaskMode: false,
+            animateExpressionStrength: 0.8, animateChestMotionStrength: 0.2 }
+        : {}),
     });
   };
 
@@ -831,6 +863,12 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
       ...(nextModel.startsWith('vidu-q3-') ? { viduSeed: -1 } : {}),
       ...(nextModel.startsWith('flux-3-video-')
         ? { ratio: 'auto', duration: 5, resolution: 'hd', flux3Draft: false, flux3AudioMode: 'api_default', flux3SafetyTolerance: 'api_default' }
+        : {}),
+      ...(nextModel === ANIMATE_MOTION_TRANSFER_MODEL
+        ? { ratio: 'adaptive', resolution: '720p', animateRatio: 'adaptive', animateFrameRate: 30, animateMaxFrames: 0,
+            animateSkipFrames: 0, animatePoseMethod: 'vitpose', animateNormalMode: true, animateNeckCorrection: false,
+            animatePoseStrength: 1, animateCameraMotion: false, animateCameraStrength: 1, animateMaskMode: false,
+            animateExpressionStrength: 0.8, animateChestMotionStrength: 0.2 }
         : {}),
     });
   };
@@ -870,6 +908,8 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
         try {
           const r = isWan
             ? await queryWan(tid)
+            : isAnimate
+              ? await queryAnimateMotionTransfer(tid)
             : isSeedance25
               ? await querySeedance(tid, 'seedance-nz')
             : isFlux3
@@ -894,7 +934,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
             model: apiModel,
             taskId: tid,
             recovery: {
-              kind: isWan ? 'wan' : isSeedance25 ? 'seedance' : isFlux3 ? 'flux3' : isHailuo ? 'hailuo' : isKling ? 'kling' : isVosr2 ? 'vosr2' : isFashVsr ? 'fashvsr' : isUpscaler ? 'upscaler' : isVidu ? 'vidu' : isHappyHorse ? 'happyhorse' : isApimartBudgetVideo ? 'seedance' : 'video',
+              kind: isWan ? 'wan' : isAnimate ? 'animate' : isSeedance25 ? 'seedance' : isFlux3 ? 'flux3' : isHailuo ? 'hailuo' : isKling ? 'kling' : isVosr2 ? 'vosr2' : isFashVsr ? 'fashvsr' : isUpscaler ? 'upscaler' : isVidu ? 'vidu' : isHappyHorse ? 'happyhorse' : isApimartBudgetVideo ? 'seedance' : 'video',
               taskId: tid, model: apiModel, pollIntervalMs: POLL_INT, maxPolls: MAX,
             },
             requestId: r.requestId,
@@ -1170,6 +1210,8 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
     const { prompt: upstreamPrompt, imageUrls, videoUrls, audioUrls } = collectUpstream();
     const resolvedLocalPrompt = resolveMediaMentions(localPrompt, promptMentions, mentionMaterials);
     const finalPrompt = (upstreamPrompt || resolvedLocalPrompt || '').trim();
+    const animateImageSources = [...new Set([...imageUrls, animateImageUrl].filter(Boolean))];
+    const animateVideoSources = [...new Set([...videoUrls, animateVideoUrl].filter(Boolean))];
     let minimaxH3ImageCursor = 0;
     const minimaxH3FirstFrame = isMinimaxH3V2 && minimaxH3FirstFrameEnabled
       ? imageUrls[minimaxH3ImageCursor++]
@@ -1184,6 +1226,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
       : [];
     if (
       !finalPrompt
+      && !isAnimate
       && !(isWan && (!isWan30 || wan30Mode === 'i2v'))
       && !isUpscaler
       && !(isHappyHorse && happyHorseMode !== 't2v')
@@ -1201,6 +1244,38 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
       setError('未连接 text 节点也未填写 prompt');
       logBus.error('生成中止: 缺少 prompt', src);
       return;
+    }
+    if (isAnimate) {
+      if (animateImageSources.length !== 1 || animateVideoSources.length !== 1) {
+        setError('Animate Motion Transfer 必须且只能提供 1 张图片和 1 个动作视频；连接素材与 URL 输入会合并计数');
+        logBus.error(`生成中止: Animate 输入图=${animateImageSources.length} 视频=${animateVideoSources.length}`, src);
+        return;
+      }
+      if (audioUrls.length > 0) {
+        setError('Animate Motion Transfer 不接受音频素材');
+        return;
+      }
+      for (const [label, value] of [['图片 URL', animateImageUrl], ['视频 URL', animateVideoUrl]] as const) {
+        if (!value) continue;
+        try {
+          const parsed = new URL(value);
+          if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error('protocol');
+        } catch {
+          setError(`Animate Motion Transfer ${label} 必须是 http(s) 公网地址`);
+          return;
+        }
+      }
+      if (animateRatio !== 'adaptive') {
+        const ratioMatch = animateRatio.match(/^(\d{1,6}):(\d{1,6})$/);
+        if (!ratioMatch || Number(ratioMatch[1]) < 1 || Number(ratioMatch[2]) < 1) {
+          setError('Animate Motion Transfer 比例必须是 adaptive 或正整数 W:H');
+          return;
+        }
+      }
+      if (resolution === '1080p' && animateMaxFrames > animateFrameRate * 10) {
+        setError('Animate Motion Transfer 1080p 最长 10 秒：max_frames 不能超过 frame_rate × 10');
+        return;
+      }
     }
     const jimengUsesMultimodal = isJimengSeedanceSelected
       && (videoUrls.length > 0 || audioUrls.length > 0 || (jimengSeedanceMode === 'omni' && imageUrls.length > 0));
@@ -1627,6 +1702,47 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
         logBus.success(`扩展平台视频完成 → ${nextVideoUrl}`, src);
         taskCompletionSound.notifyComplete(id, 'video');
         return r.videoUrls;
+      }
+
+      if (isAnimate) {
+        logBus.info(
+          `提交 Animate Motion Transfer: ${resolution} · ${animateRatio} · ${animateFrameRate}fps · maxFrames=${animateMaxFrames || '上游默认'}`,
+          src,
+        );
+        const result = await submitAnimateMotionTransfer({
+          model: ANIMATE_MOTION_TRANSFER_MODEL,
+          images: animateImageSources,
+          videos: animateVideoSources,
+          resolution: (['480p', '720p', '1080p'].includes(resolution) ? resolution : '720p') as '480p' | '720p' | '1080p',
+          ratio: animateRatio,
+          frameRate: animateFrameRate,
+          maxFrames: animateMaxFrames,
+          skipFrames: animateSkipFrames,
+          poseMethod: animatePoseMethod,
+          normalMode: animateNormalMode,
+          neckCorrection: animateNeckCorrection,
+          poseStrength: animatePoseStrength,
+          cameraMotion: animateCameraMotion,
+          cameraStrength: animateCameraStrength,
+          maskMode: animateMaskMode,
+          expressionStrength: animateExpressionStrength,
+          chestMotionStrength: animateChestMotionStrength,
+        }, { submissionKey: reporter?.providerSubmissionKey });
+        if (!isCurrentGenerationRun(runId) || reporter?.signal?.aborted) return;
+        await reporter?.providerSubmitted({
+          provider: traceProvider,
+          model: traceModel,
+          upstreamTaskId: result.taskId,
+          requestId: result.requestId,
+          transportHttpStatus: result.transportHttpStatus,
+          upstreamHttpStatus: result.upstreamHttpStatus,
+          usage: result.usage,
+          httpStatusSource: 'local-backend',
+        });
+        if (!isCurrentGenerationRun(runId) || reporter?.signal?.aborted) return;
+        update({ status: 'polling', taskId: result.taskId, progress: '0%', provider: 'seedance-nz', apiModel: result.model });
+        logBus.info('Animate Motion Transfer 任务已提交，开始轮询', src);
+        return await startPolling(result.taskId, runId, reporter, '');
       }
 
       if (isApimartBudgetVideo) {
@@ -2426,6 +2542,9 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
             } : { wanNegativePrompt, wanPromptExtend, wanSeed } : {}),
             ...(isHailuo && isMinimaxH3V2 ? { minimaxH3FirstFrameEnabled, minimaxH3LastFrameEnabled, minimaxH3DriveAudioEnabled,
               minimaxH3AudioMode, minimaxH3DenoiseStrength, minimaxH3AddDriveAsReference } : {}),
+            ...(isAnimate ? { animateImageUrl, animateVideoUrl, animateRatio, animateFrameRate, animateMaxFrames,
+              animateSkipFrames, animatePoseMethod, animateNormalMode, animateNeckCorrection, animatePoseStrength,
+              animateCameraMotion, animateCameraStrength, animateMaskMode, animateExpressionStrength, animateChestMotionStrength } : {}),
           } : {}),
         },
       };
@@ -2447,7 +2566,9 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
     if (payload.kind === 'image' && payload.url) {
       const cur = Array.isArray(d?.localRefImages) ? d.localRefImages : [];
       if (cur.indexOf(payload.url) !== -1) return;
-      const cap = isWan
+      const cap = isAnimate
+        ? 1
+        : isWan
         ? 1
         : isKling
         ? maxMentionRefs
@@ -2464,9 +2585,9 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
             : (modelDef.maxRefImages || 7) + 4;
       if (cur.length >= cap) return;
       update({ localRefImages: [...cur, payload.url] });
-    } else if (payload.kind === 'video' && payload.url && (isJimengSeedanceSelected || isApimartOmni || (isApimartOmniLowprice && apimartOmniLowpriceMode === 'reference_video') || isUpscaler || (isFlux3 && flux3Mode === 'v2v') || (isKling && klingMode === 'edit'))) {
+    } else if (payload.kind === 'video' && payload.url && (isAnimate || isJimengSeedanceSelected || isApimartOmni || (isApimartOmniLowprice && apimartOmniLowpriceMode === 'reference_video') || isUpscaler || (isFlux3 && flux3Mode === 'v2v') || (isKling && klingMode === 'edit'))) {
       const cur = Array.isArray(d?.localRefVideos) ? d.localRefVideos : [];
-      const cap = isUpscaler || isApimartOmni || isApimartOmniLowprice || (isFlux3 && flux3Mode === 'v2v') || (isKling && klingMode === 'edit') ? 1 : jimengSeedanceLimits.videos;
+      const cap = isAnimate || isUpscaler || isApimartOmni || isApimartOmniLowprice || (isFlux3 && flux3Mode === 'v2v') || (isKling && klingMode === 'edit') ? 1 : jimengSeedanceLimits.videos;
       if (cur.indexOf(payload.url) !== -1 || cur.length >= cap) return;
       update({ localRefVideos: [...cur, payload.url] });
     } else if (payload.kind === 'audio' && payload.url && isJimengSeedanceSelected) {
@@ -2485,6 +2606,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
       : isApimartOmniLowprice
         ? apimartOmniLowpriceMode === 'reference_video' ? ['video', 'text'] : apimartOmniLowpriceMode === 'text' ? ['text'] : ['image', 'text']
       : isApimartV31Lite ? ['text']
+      : isAnimate ? ['image', 'video']
       : isUpscaler ? ['video']
       : isFlux3 ? flux3Mode === 'v2v' ? ['video', 'text'] : flux3Mode === 'i2v' ? ['image', 'text'] : ['text']
       : isKling && klingMode === 'edit' ? ['video', 'text'] : ['image', 'text'],
@@ -3427,7 +3549,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
         )}
 
         {/* 比例(非 FAL 时显示原始控件) */}
-        {showGenericVideoControls && !isGrok15New && !isWan && !isHailuo && !isKling && !isUpscaler && !isVidu && (
+        {showGenericVideoControls && !isGrok15New && !isWan && !isHailuo && !isKling && !isUpscaler && !isVidu && !isAnimate && (
         <div className="grid grid-cols-2 gap-1.5">
           <div>
             <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.aspectRatio')}</label>
@@ -3857,7 +3979,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
         )}
 
         {/* 分辨率(仅 grok 非FAL) */}
-        {showGenericVideoControls && !isHailuo && !isKling && !isVidu && resolutionOptions.length > 0 && (
+        {showGenericVideoControls && !isHailuo && !isKling && !isVidu && !isAnimate && resolutionOptions.length > 0 && (
           <div>
             <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.resolution')}</label>
             <select
@@ -3936,8 +4058,86 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
           </div>
         )}
 
+        {isAnimate && (
+          <div className="space-y-2 rounded border border-cyan-400/25 bg-cyan-500/5 p-2">
+            <div className="text-[10px] leading-4 text-cyan-100/80">
+              <div>{translate('nodes:video.animateContract')}</div>
+              <div>{translate('nodes:video.animateSourceHint')}</div>
+            </div>
+            <div className="space-y-1">
+              <label className="block text-[10px] text-white/50">{translate('nodes:video.animateImageUrl')}</label>
+              <input value={animateImageUrl} onChange={(e) => update({ animateImageUrl: e.target.value })} placeholder="https://.../image.png"
+                className="w-full rounded bg-white/5 border border-white/10 px-2 py-1 text-xs text-white outline-none focus:border-cyan-400/60 placeholder:text-white/25" />
+              <label className="block text-[10px] text-white/50">{translate('nodes:video.animateVideoUrl')}</label>
+              <input value={animateVideoUrl} onChange={(e) => update({ animateVideoUrl: e.target.value })} placeholder="https://.../motion.mp4"
+                className="w-full rounded bg-white/5 border border-white/10 px-2 py-1 text-xs text-white outline-none focus:border-cyan-400/60 placeholder:text-white/25" />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <label className="text-[10px] text-white/50">{translate('nodes:video.animateResolution')}
+                <select value={resolution || '720p'} onChange={(e) => update({ resolution: e.target.value })}
+                  className="mt-1 w-full rounded bg-zinc-900 border border-white/10 px-2 py-1 text-xs text-white">
+                  {['480p', '720p', '1080p'].map((item) => <option key={item} value={item}>{item}</option>)}
+                </select>
+              </label>
+              <label className="text-[10px] text-white/50">{translate('nodes:video.animateRatio')}
+                <input value={animateRatio} onChange={(e) => update({ animateRatio: e.target.value })} placeholder="adaptive"
+                  className="mt-1 w-full rounded bg-white/5 border border-white/10 px-2 py-1 text-xs text-white" />
+              </label>
+              <label className="text-[10px] text-white/50">frame_rate
+                <input type="number" min={1} max={999999} step={1} value={animateFrameRate}
+                  onChange={(e) => update({ animateFrameRate: Math.max(1, Math.min(999999, Math.trunc(Number(e.target.value) || 1))) })}
+                  className="mt-1 w-full rounded bg-white/5 border border-white/10 px-2 py-1 text-xs text-white" />
+              </label>
+              <label className="text-[10px] text-white/50">{translate('nodes:video.animateMaxFrames')}
+                <input type="number" min={0} max={999999} step={1} value={animateMaxFrames}
+                  onChange={(e) => update({ animateMaxFrames: Math.max(0, Math.min(999999, Math.trunc(Number(e.target.value) || 0))) })}
+                  className="mt-1 w-full rounded bg-white/5 border border-white/10 px-2 py-1 text-xs text-white" />
+              </label>
+              <label className="text-[10px] text-white/50">skip_frames
+                <input type="number" min={0} max={999999} step={1} value={animateSkipFrames}
+                  onChange={(e) => update({ animateSkipFrames: Math.max(0, Math.min(999999, Math.trunc(Number(e.target.value) || 0))) })}
+                  className="mt-1 w-full rounded bg-white/5 border border-white/10 px-2 py-1 text-xs text-white" />
+              </label>
+              <label className="text-[10px] text-white/50">pose_method
+                <select value={animatePoseMethod} onChange={(e) => update({ animatePoseMethod: e.target.value })}
+                  className="mt-1 w-full rounded bg-zinc-900 border border-white/10 px-2 py-1 text-xs text-white">
+                  {ANIMATE_MOTION_TRANSFER_POSE_METHODS.map((item) => <option key={item} value={item}>{item}</option>)}
+                </select>
+              </label>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                ['pose_strength', 'animatePoseStrength', animatePoseStrength],
+                ['camera_strength', 'animateCameraStrength', animateCameraStrength],
+                ['expression_strength', 'animateExpressionStrength', animateExpressionStrength],
+                ['chest_motion_strength', 'animateChestMotionStrength', animateChestMotionStrength],
+              ].map(([label, key, value]) => (
+                <label key={String(key)} className="text-[10px] text-white/50">{String(label)}
+                  <input type="number" step="0.1" value={Number(value)}
+                    onChange={(e) => update({ [String(key)]: Number(e.target.value) })}
+                    className="mt-1 w-full rounded bg-white/5 border border-white/10 px-2 py-1 text-xs text-white" />
+                </label>
+              ))}
+            </div>
+            <div className="grid grid-cols-2 gap-1">
+              {[
+                ['normal_mode', 'animateNormalMode', animateNormalMode],
+                ['neck_correction', 'animateNeckCorrection', animateNeckCorrection],
+                ['camera_motion', 'animateCameraMotion', animateCameraMotion],
+                ['mask_mode', 'animateMaskMode', animateMaskMode],
+              ].map(([label, key, checked]) => (
+                <label key={String(key)} className="flex items-center gap-1 text-[10px] text-white/60">
+                  <input type="checkbox" checked={Boolean(checked)} onChange={(e) => update({ [String(key)]: e.target.checked })} className="accent-cyan-400" />
+                  {String(label)}
+                </label>
+              ))}
+            </div>
+            {resolution === '1080p' && <div className="text-[10px] text-amber-200/80">{translate('nodes:video.animate1080Limit')}</div>}
+          </div>
+        )}
+
         {/* Seed(非FAL) */}
-        {showGenericVideoControls && !isHappyHorse && !isFlux3 && !isKling && !isUpscaler && !isWan && !isApimartBudgetVideo && (
+        {showGenericVideoControls && !isHappyHorse && !isFlux3 && !isKling && !isUpscaler && !isWan && !isAnimate && !isApimartBudgetVideo && (
         <div>
           <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.seedRandom')}</label>
           <input
@@ -4058,7 +4258,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
         )}
 
         {/* Prompt */}
-        {!isUpscaler && <div>
+        {!isUpscaler && !isAnimate && <div>
               <label className="text-[10px] text-white/50 block mb-1">
                 {isWan30 && wan30Mode === 'r2v'
                   ? translate('nodes:video.wan30LocalPromptRequired')

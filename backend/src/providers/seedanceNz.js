@@ -161,6 +161,10 @@ const QWEN_IMAGE_30_RATIOS = new Set([
 const QWEN_IMAGE_30_PROMPT_MIN_LENGTH = 5;
 const QWEN_IMAGE_30_PROMPT_MAX_LENGTH = 2000;
 const QWEN_IMAGE_30_MAX_REFERENCE_IMAGES = 3;
+const QWEN_IMAGE_GLOBAL_21_MODEL = 'qwen-image-global-2.1';
+const QWEN_IMAGE_GLOBAL_21_RESOLUTIONS = new Set(['1k', '2k', '4k']);
+const QWEN_IMAGE_GLOBAL_21_RATIOS = new Set(['1:1', '2:3', '3:2', '3:4', '4:3', '9:16', '16:9', '21:9']);
+const QWEN_IMAGE_GLOBAL_21_MAX_REFERENCE_IMAGES = 10;
 const ZHENZHEN_IMAGE_GK_V2_EDIT_RATIOS = new Set([
   'auto', '16:9', '19.5:9', '1:1', '1:2', '20:9', '2:1',
   '2:3', '3:2', '3:4', '4:3', '9:16', '9:19.5', '9:20',
@@ -231,6 +235,7 @@ const IMAGE_MODELS = new Set([
   ...ZHENZHEN_IMAGE_G2_MODELS,
   ...ZHENZHEN_APIMART_IMAGE_MODELS,
   ...QWEN_IMAGE_30_MODELS,
+  QWEN_IMAGE_GLOBAL_21_MODEL,
   ...WAN27_GLOBAL_IMAGE_MODELS,
   ...SEEDREAM_LAYER_DECOMPOSITION_MODELS,
   VOSR2_IMAGE_UPSCALE_MODEL,
@@ -305,6 +310,9 @@ const ZHENZHEN_UPSCALER_RESOLUTIONS = new Set(['720p', '1080p', '2k', '4k']);
 const FASHVSR_VIDEO_UPSCALE_MODEL = 'FlashVSR_video_upscale';
 const LEGACY_FASHVSR_VIDEO_UPSCALE_MODEL = 'FashVSR_video_upscale';
 const VOSR2_VIDEO_UPSCALE_MODEL = 'vosr2-video-upscale';
+const ANIMATE_MOTION_TRANSFER_MODEL = 'animate-motion-transfer';
+const ANIMATE_MOTION_TRANSFER_RESOLUTIONS = new Set(['480p', '720p', '1080p']);
+const ANIMATE_MOTION_TRANSFER_POSE_METHODS = new Set(['vitpose', 'sdpose', 'wuwupose']);
 const FASHVSR_MIN_SECONDS = 3;
 const FASHVSR_MAX_SECONDS = 15;
 const HAILUO23_T2V_MODELS = new Set([
@@ -3148,6 +3156,9 @@ async function buildImagePayload(request, apiKey, options = {}) {
   if (QWEN_IMAGE_30_MODELS.has(requestedModel)) {
     return buildQwenImage30Payload(request, apiKey, options);
   }
+  if (requestedModel === QWEN_IMAGE_GLOBAL_21_MODEL) {
+    return buildQwenImageGlobal21Payload(request, apiKey, options);
+  }
   if (WAN27_GLOBAL_IMAGE_MODELS.has(requestedModel)) {
     return buildWan27GlobalImagePayload(request, apiKey, options);
   }
@@ -3430,6 +3441,47 @@ async function buildWan30Payload(request, apiKey, options = {}) {
       || Boolean(fileUrl || linkUrl);
   }
   return { payload, model, taskType };
+}
+
+async function buildQwenImageGlobal21Payload(request, apiKey, options = {}) {
+  const model = String(request.model || '').trim().toLowerCase();
+  if (model !== QWEN_IMAGE_GLOBAL_21_MODEL) {
+    throw new Error(`未知 Qwen Image Global 2.1 模型：${model || '(空)'}`);
+  }
+  const prompt = String(request.prompt || '').trim();
+  if (!prompt) throw new Error('Qwen Image Global 2.1 必须填写提示词');
+
+  const resolution = String(request.resolution || '2k').trim().toLowerCase();
+  if (!QWEN_IMAGE_GLOBAL_21_RESOLUTIONS.has(resolution)) {
+    throw new Error('Qwen Image Global 2.1 分辨率只支持 1k、2k 或 4k');
+  }
+  const ratio = String(request.ratio || '3:4').trim();
+  if (!QWEN_IMAGE_GLOBAL_21_RATIOS.has(ratio)) {
+    throw new Error(`Qwen Image Global 2.1 不支持比例 ${ratio}`);
+  }
+  const seed = Number(request.seed ?? -1);
+  if (!Number.isSafeInteger(seed) || seed < -1) {
+    throw new Error('Qwen Image Global 2.1 seed 必须是 -1 到 9007199254740991 的安全整数');
+  }
+
+  const refs = normalizeList(request.images || request.refImages);
+  if (refs.length > QWEN_IMAGE_GLOBAL_21_MAX_REFERENCE_IMAGES) {
+    throw new Error(`Qwen Image Global 2.1 最多支持 ${QWEN_IMAGE_GLOBAL_21_MAX_REFERENCE_IMAGES} 张参考图`);
+  }
+  const payload = { model, prompt, metadata: { resolution, ratio } };
+  if (seed >= 0) payload.metadata.seed = seed;
+  if (refs.length) {
+    payload.images = [];
+    for (const source of refs) {
+      payload.images.push(await uploadMedia(source, 'image', apiKey, {
+        ...options,
+        maxBytes: IMAGE_REFERENCE_MAX_BYTES,
+        allowedMimes: ['image/jpeg', 'image/png', 'image/webp'],
+        cacheVariant: 'qwen-image-global-2.1-v1',
+      }));
+    }
+  }
+  return { payload, model, taskType: refs.length ? 'i2i' : 't2i' };
 }
 
 async function buildWanPayload(request, apiKey, options = {}) {
@@ -4549,6 +4601,91 @@ async function buildVosr2VideoPayload(request, apiKey, options = {}) {
   };
 }
 
+function normalizeAnimateRatio(value) {
+  const ratio = String(value || 'adaptive').trim().toLowerCase();
+  if (ratio === 'adaptive') return ratio;
+  const match = ratio.match(/^(\d+):(\d+)$/);
+  if (!match || Number(match[1]) < 1 || Number(match[1]) > 999999 || Number(match[2]) < 1 || Number(match[2]) > 999999) {
+    throw new Error('Animate Motion Transfer 比例必须是 adaptive 或 1-999999:1-999999');
+  }
+  return ratio;
+}
+
+function normalizeAnimateFiniteNumber(value, fallback, label) {
+  const number = value === undefined || value === null || value === '' ? fallback : Number(value);
+  if (!Number.isFinite(number)) throw new Error(`Animate Motion Transfer ${label} 必须是有限数值`);
+  return number;
+}
+
+async function buildAnimateMotionTransferPayload(request, apiKey, options = {}) {
+  const model = String(request.model || '').trim().toLowerCase();
+  if (model !== ANIMATE_MOTION_TRANSFER_MODEL) {
+    throw new Error(`未知 Animate Motion Transfer 模型：${model || '(空)'}`);
+  }
+  const imageSources = normalizeList(request.images || request.refImages || (request.image ? [request.image] : []));
+  const videoSources = normalizeList(request.videos || request.videoUrls || (request.video ? [request.video] : []));
+  if (imageSources.length !== 1) throw new Error('Animate Motion Transfer 必须且只能提供 1 张图片');
+  if (videoSources.length !== 1) throw new Error('Animate Motion Transfer 必须且只能提供 1 个动作视频');
+
+  const resolution = String(request.resolution || '720p').trim().toLowerCase();
+  if (!ANIMATE_MOTION_TRANSFER_RESOLUTIONS.has(resolution)) {
+    throw new Error('Animate Motion Transfer 分辨率只支持 480p、720p 或 1080p');
+  }
+  const ratio = normalizeAnimateRatio(request.ratio);
+  const frameRate = normalizePositiveInteger(request.frameRate ?? request.frame_rate, 30, 1, 999999, 'Animate Motion Transfer frame_rate ');
+  const maxFramesRaw = request.maxFrames ?? request.max_frames ?? 0;
+  const maxFrames = maxFramesRaw === '' || maxFramesRaw === undefined || maxFramesRaw === null ? 0 : Number(maxFramesRaw);
+  if (!Number.isInteger(maxFrames) || maxFrames < 0 || maxFrames > 999999) {
+    throw new Error('Animate Motion Transfer max_frames 必须是 0-999999 的整数，0 表示由上游使用默认值');
+  }
+  if (resolution === '1080p' && maxFrames > frameRate * 10) {
+    throw new Error('Animate Motion Transfer 1080p 的 max_frames 不能超过 frame_rate × 10');
+  }
+  const skipFrames = normalizePositiveInteger(request.skipFrames ?? request.skip_frames, 0, 0, 999999, 'Animate Motion Transfer skip_frames ');
+  const poseMethod = String(request.poseMethod || request.pose_method || 'vitpose').trim().toLowerCase();
+  if (!ANIMATE_MOTION_TRANSFER_POSE_METHODS.has(poseMethod)) {
+    throw new Error(`Animate Motion Transfer 不支持 pose_method ${poseMethod}`);
+  }
+
+  const imageUrl = await uploadMedia(imageSources[0], 'image', apiKey, {
+    ...options,
+    maxBytes: IMAGE_REFERENCE_MAX_BYTES,
+    allowedMimes: ['image/jpeg', 'image/png', 'image/webp'],
+    cacheVariant: 'animate-motion-transfer-image-v1',
+  });
+  const motionVideoUrl = await uploadMedia(videoSources[0], 'video', apiKey, {
+    ...options,
+    maxBytes: 50 * 1024 * 1024,
+    allowedMimes: ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/x-matroska', 'video/webm'],
+    cacheVariant: 'animate-motion-transfer-video-v1',
+  });
+  const metadata = {
+    video_url: [motionVideoUrl],
+    resolution,
+    ratio,
+    frame_rate: frameRate,
+    skip_frames: skipFrames,
+    pose_method: poseMethod,
+    normal_mode: request.normalMode ?? request.normal_mode ?? true,
+    neck_correction: request.neckCorrection ?? request.neck_correction ?? false,
+    pose_strength: normalizeAnimateFiniteNumber(request.poseStrength ?? request.pose_strength, 1, 'pose_strength'),
+    camera_motion: request.cameraMotion ?? request.camera_motion ?? false,
+    camera_strength: normalizeAnimateFiniteNumber(request.cameraStrength ?? request.camera_strength, 1, 'camera_strength'),
+    mask_mode: request.maskMode ?? request.mask_mode ?? false,
+    expression_strength: normalizeAnimateFiniteNumber(request.expressionStrength ?? request.expression_strength, 0.8, 'expression_strength'),
+    chest_motion_strength: normalizeAnimateFiniteNumber(request.chestMotionStrength ?? request.chest_motion_strength, 0.2, 'chest_motion_strength'),
+  };
+  for (const field of ['normal_mode', 'neck_correction', 'camera_motion', 'mask_mode']) {
+    if (typeof metadata[field] !== 'boolean') throw new Error(`Animate Motion Transfer ${field} 必须是布尔值`);
+  }
+  if (maxFrames > 0) metadata.max_frames = maxFrames;
+  return {
+    payload: { model, images: [imageUrl], metadata },
+    model,
+    taskType: 'motion-transfer',
+  };
+}
+
 async function submitKlingTask(request, apiKey, options = {}) {
   if (!String(apiKey || '').trim()) throw new Error('请先在 API 设置中填写“贞贞的平价AI小屋 API Key”');
   const fetchImpl = getFetchImpl(options);
@@ -5038,6 +5175,29 @@ async function submitVosr2VideoTask(request, apiKey, options = {}) {
   const taskId = requiredTaskId(
     data?.id || data?.task_id || data?.data?.id || data?.data?.task_id,
     'seedance.nz Vosr2 视频超分任务提交',
+    response,
+  );
+  return { taskId, model: built.model, taskType: built.taskType, ...safeProviderTrace(response, data, { pollCount: 0 }) };
+}
+
+async function submitAnimateMotionTransferTask(request, apiKey, options = {}) {
+  if (!String(apiKey || '').trim()) throw new Error('请先在 API 设置中填写“贞贞的平价AI小屋 API Key”');
+  const fetchImpl = getFetchImpl(options);
+  const baseUrl = cleanBaseUrl(options.baseUrl);
+  const built = await buildAnimateMotionTransferPayload(request, apiKey, options);
+  const response = await fetchProviderResponse(fetchImpl, `${baseUrl}/v1/video/generations`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify(built.payload),
+  }, options, 'seedance.nz Animate Motion Transfer 任务提交');
+  const data = await responseJson(response, 'seedance.nz Animate Motion Transfer 任务提交');
+  if (!response.ok) throw createUpstreamError(data, response);
+  const taskId = requiredTaskId(
+    data?.id || data?.task_id || data?.data?.id || data?.data?.task_id,
+    'seedance.nz Animate Motion Transfer 任务提交',
     response,
   );
   return { taskId, model: built.model, taskType: built.taskType, ...safeProviderTrace(response, data, { pollCount: 0 }) };
@@ -6004,6 +6164,56 @@ async function queryVosr2VideoTask(taskId, apiKey, options = {}) {
   };
 }
 
+function animateMotionTransferResultUrl(body) {
+  const candidates = [
+    body?.result_url,
+    body?.resultUrl,
+    body?.video_url,
+    body?.videoUrl,
+    body?.data?.result_url,
+    body?.data?.content?.video_url,
+    body?.content?.video_url,
+    body?.data?.content?.video_urls,
+    body?.content?.video_urls,
+  ];
+  for (const candidate of candidates) {
+    if (Array.isArray(candidate)) {
+      const first = candidate.find((value) => typeof value === 'string' && value.trim());
+      if (first) return first.trim();
+    } else if (typeof candidate === 'string' && candidate.trim()) {
+      return candidate.trim();
+    }
+  }
+  return '';
+}
+
+async function queryAnimateMotionTransferTask(taskId, apiKey, options = {}) {
+  if (!String(apiKey || '').trim()) throw new Error('缺少贞贞的平价AI小屋 API Key');
+  const fetchImpl = getFetchImpl(options);
+  const baseUrl = cleanBaseUrl(options.baseUrl);
+  const response = await fetchProviderResponse(
+    fetchImpl,
+    `${baseUrl}/v1/video/generations/${encodeURIComponent(taskId)}`,
+    { headers: { Authorization: `Bearer ${apiKey}` } },
+    options,
+    'seedance.nz Animate Motion Transfer 任务查询',
+  );
+  const data = await responseJson(response, 'seedance.nz Animate Motion Transfer 任务查询');
+  if (!response.ok) throw createUpstreamError(data, response);
+  const body = data?.data && typeof data.data === 'object' ? data.data : data;
+  const status = normalizeStatus(body?.status || body?.data?.status);
+  const videoUrl = animateMotionTransferResultUrl(body);
+  return {
+    status,
+    progress: safeProgress(body?.progress ?? body?.data?.progress),
+    videoUrl: status === 'succeeded' ? videoUrl || null : null,
+    failReason: status === 'failed'
+      ? String(body?.fail_reason || body?.failReason || body?.data?.error?.message || 'Animate Motion Transfer 任务失败')
+      : null,
+    ...safeProviderTrace(response, data),
+  };
+}
+
 function resetCachesForTests() {
   uploadCache.clear();
   uploadQueues.clear();
@@ -6109,6 +6319,9 @@ module.exports = {
   QWEN_IMAGE_30_RATIOS,
   QWEN_IMAGE_30_RESOLUTIONS,
   QWEN_IMAGE_30_T2I_MODELS,
+  QWEN_IMAGE_GLOBAL_21_MODEL,
+  QWEN_IMAGE_GLOBAL_21_RATIOS,
+  QWEN_IMAGE_GLOBAL_21_RESOLUTIONS,
   WAN27_GLOBAL_T2I_MODEL,
   WAN27_GLOBAL_I2I_MODEL,
   WAN27_GLOBAL_I2I_PRO_MODEL,
@@ -6165,6 +6378,9 @@ module.exports = {
   FASHVSR_VIDEO_UPSCALE_MODEL,
   VOSR2_IMAGE_UPSCALE_MODEL,
   VOSR2_VIDEO_UPSCALE_MODEL,
+  ANIMATE_MOTION_TRANSFER_MODEL,
+  ANIMATE_MOTION_TRANSFER_RESOLUTIONS,
+  ANIMATE_MOTION_TRANSFER_POSE_METHODS,
   HUNYUAN3D_TEXT_MODEL,
   HUNYUAN3D_IMAGE_MODEL,
   HUNYUAN3D_MODELS,
@@ -6227,6 +6443,7 @@ module.exports = {
   buildFashVsrPayload,
   buildVosr2ImagePayload,
   buildVosr2VideoPayload,
+  buildAnimateMotionTransferPayload,
   buildViduPayload,
   buildHappyHorsePayload,
   buildWan30Payload,
@@ -6239,6 +6456,7 @@ module.exports = {
   buildImagePayload,
   buildSeedreamLayerDecompositionPayload,
   buildQwenImage30Payload,
+  buildQwenImageGlobal21Payload,
   buildWan27GlobalImagePayload,
   buildMidjourneyPayload,
   buildZhenzhenImageG2Payload,
@@ -6258,6 +6476,7 @@ module.exports = {
   queryMinimaxH3V2Task,
   queryFashVsrTask,
   queryVosr2VideoTask,
+  queryAnimateMotionTransferTask,
   resetCachesForTests,
   resolveModel,
   seedancePublicDnsLookup,
@@ -6270,6 +6489,7 @@ module.exports = {
   submitUpscalerTask,
   submitFashVsrTask,
   submitVosr2VideoTask,
+  submitAnimateMotionTransferTask,
   submitViduTask,
   submitHappyHorseTask,
   submitImageTask,

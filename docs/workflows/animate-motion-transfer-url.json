@@ -1,0 +1,48 @@
+{
+  "schema": "t8-workflow-fragment",
+  "version": 1,
+  "title": "Animate Motion Transfer · 公网 URL",
+  "nodes": [
+    {
+      "id": "animate-url-generation",
+      "type": "video",
+      "position": { "x": 120, "y": 80 },
+      "data": {
+        "label": "Animate Motion Transfer（填写一图一视频 URL）",
+        "mainId": "animate-motion-transfer",
+        "model": "animate-motion-transfer",
+        "videoBuiltinSource": "seedance-nz",
+        "resolution": "720p",
+        "animateRatio": "adaptive",
+        "animateFrameRate": 30,
+        "animateMaxFrames": 0,
+        "animateSkipFrames": 0,
+        "animatePoseMethod": "vitpose",
+        "animateNormalMode": true,
+        "animateNeckCorrection": false,
+        "animatePoseStrength": 1,
+        "animateCameraMotion": false,
+        "animateCameraStrength": 1,
+        "animateMaskMode": false,
+        "animateExpressionStrength": 0.8,
+        "animateChestMotionStrength": 0.2,
+        "animateImageUrl": "",
+        "animateVideoUrl": "",
+        "reuseResult": false
+      }
+    },
+    {
+      "id": "animate-url-output",
+      "type": "output",
+      "position": { "x": 640, "y": 80 },
+      "data": { "label": "动作迁移视频输出" }
+    }
+  ],
+  "edges": [
+    { "id": "animate-url-output-edge", "source": "animate-url-generation", "target": "animate-url-output" }
+  ],
+  "nodeCount": 2,
+  "edgeCount": 1,
+  "nodeTypes": ["video", "output"],
+  "savedAt": "2026-09-22T00:00:00.000Z"
+}

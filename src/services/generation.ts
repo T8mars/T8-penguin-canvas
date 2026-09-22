@@ -344,6 +344,7 @@ export interface SeedreamNzSubmitRequest {
     | 'qwen-image-3.0-global-i2i'
     | 'qwen-image-3.0-global-pro-t2i'
     | 'qwen-image-3.0-global-pro-i2i'
+    | 'qwen-image-global-2.1'
     | 'wan-2.7-global-t2i'
     | 'wan-2.7-global-i2i'
     | 'wan-2.7-global-i2i-pro'
@@ -1588,6 +1589,51 @@ export async function submitVosr2Video(req: Vosr2VideoSubmitRequest, transport: 
 export async function queryVosr2Video(taskId: string, transport: ProviderSubmissionTransport = {}): Promise<HappyHorseQueryResult> {
   const r = await fetch(`/api/proxy/video/vosr2/status/${encodeURIComponent(taskId)}`, { signal: transport.signal });
   const data = await safeJsonResponse(r, 'Vosr2 视频超分查询');
+  if (!r.ok || !data.success) throw providerResponseError(r, data);
+  return withProviderTransportTrace(data.data, r);
+}
+
+export interface AnimateMotionTransferSubmitRequest {
+  model: 'animate-motion-transfer';
+  images: string[];
+  videos: string[];
+  resolution?: '480p' | '720p' | '1080p';
+  ratio?: string;
+  frameRate?: number;
+  maxFrames?: number;
+  skipFrames?: number;
+  poseMethod?: 'vitpose' | 'sdpose' | 'wuwupose';
+  normalMode?: boolean;
+  neckCorrection?: boolean;
+  poseStrength?: number;
+  cameraMotion?: boolean;
+  cameraStrength?: number;
+  maskMode?: boolean;
+  expressionStrength?: number;
+  chestMotionStrength?: number;
+}
+
+export async function submitAnimateMotionTransfer(
+  req: AnimateMotionTransferSubmitRequest,
+  transport: ProviderSubmissionTransport = {},
+): Promise<{ taskId: string; model: 'animate-motion-transfer'; taskType: 'motion-transfer' } & ProviderTransportTrace> {
+  const r = await fetch('/api/proxy/video/animate/submit', {
+    method: 'POST',
+    headers: providerSubmissionHeaders(transport),
+    body: JSON.stringify(req),
+    signal: transport.signal,
+  });
+  const data = await safeJsonResponse(r, 'Animate Motion Transfer 提交');
+  if (!r.ok || !data.success) throw providerResponseError(r, data);
+  return withProviderTransportTrace(data.data, r);
+}
+
+export async function queryAnimateMotionTransfer(
+  taskId: string,
+  transport: ProviderSubmissionTransport = {},
+): Promise<HappyHorseQueryResult> {
+  const r = await fetch(`/api/proxy/video/animate/status/${encodeURIComponent(taskId)}`, { signal: transport.signal });
+  const data = await safeJsonResponse(r, 'Animate Motion Transfer 查询');
   if (!r.ok || !data.success) throw providerResponseError(r, data);
   return withProviderTransportTrace(data.data, r);
 }

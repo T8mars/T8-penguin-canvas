@@ -15,6 +15,7 @@ const RECOVERY_KINDS = new Set([
   'upscaler',
   'fashvsr',
   'vosr2',
+  'animate',
   'vidu',
   'seed-audio',
   'suno',
@@ -138,6 +139,7 @@ function recoveryRequest(baseUrl, descriptor) {
   if (descriptor.kind === 'upscaler') return get(`/api/proxy/video/upscaler/status/${taskId}`);
   if (descriptor.kind === 'fashvsr') return get(`/api/proxy/video/fashvsr/status/${taskId}`);
   if (descriptor.kind === 'vosr2') return get(`/api/proxy/video/vosr2/status/${taskId}`);
+  if (descriptor.kind === 'animate') return get(`/api/proxy/video/animate/status/${taskId}`);
   if (descriptor.kind === 'vidu') return get(`/api/proxy/video/vidu/status/${taskId}`);
   if (descriptor.kind === 'seed-audio') return get(`/api/proxy/audio/seed-audio/status/${taskId}`);
   if (descriptor.kind === 'suno') return get(`/api/proxy/audio/query?clipIds=${encodeURIComponent(descriptor.taskIds.join(','))}&saveLocal=true`);
@@ -158,7 +160,7 @@ function normalizedState(value) {
 
 function outputKindForDescriptor(descriptor) {
   if (descriptor.kind === 'seed-audio' || descriptor.kind === 'suno') return 'audio';
-  if (['seedance', 'wan', 'happyhorse', 'hailuo', 'flux3', 'kling', 'upscaler', 'fashvsr', 'vosr2', 'vidu', 'video', 'video-fal'].includes(descriptor.kind)) return 'video';
+  if (['seedance', 'wan', 'happyhorse', 'hailuo', 'flux3', 'kling', 'upscaler', 'fashvsr', 'vosr2', 'animate', 'vidu', 'video', 'video-fal'].includes(descriptor.kind)) return 'video';
   return 'image';
 }
 

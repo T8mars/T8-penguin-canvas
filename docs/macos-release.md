@@ -10,6 +10,12 @@
 - Windows 专用 `remove-ai-watermarks` / ParseHub Python 离线归档不会塞进 Mac 包；相关本地工具需要用户自行安装兼容 Python 环境。其缺失不得影响普通画布和云端节点启动。
 - 首个未公证预览升级到未来 Developer ID 正式版时，按手动覆盖安装处理；配置正式签名后，后续版本才把 `latest-mac.yml` + ZIP 视为可交付的 Mac 自动更新链路。
 
+## v3.2.0 当前授权
+
+- Windows 和 Mac 必须来自同一固定 `v3.2.0` Tag，进入同一非草稿、非预发布 Latest Release；当前不预写 commit、workflow、资产或散列。
+- Windows 唯一正式链和远端自动更新完整性不可延期。Mac 应按标准 `macos-15` arm64 workflow 提交；仅在 GitHub 额度实际不足时才记录为延期，不得用无法查账单或未提交任务冒充额度不足。
+- 当前仍为 ad-hoc 完整性签名、未使用 Apple Developer ID、未公证技术预览。真实用户/安装/F8–F10 证据按 `owner-approved-post-release-v3.2.0` 后补，不记为通过。
+
 ## v3.1.9 已发布结果
 
 - Windows 与 Mac 固定于同一正式 `v3.1.9` Tag / `adec4754cee4ccbcd44f0063fe8b7858bf3e6944`，进入同一稳定 Latest Release。

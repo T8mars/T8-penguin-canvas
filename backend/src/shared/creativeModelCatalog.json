@@ -1,6 +1,6 @@
 {
   "schema": "t8-creative-runtime-catalog-v1",
-  "sourceDigest": "d996fe9f96ccb6d2d9adf88e772a81cf6d3b0c2f70bcc1636f55c6ff5710b1fa",
+  "sourceDigest": "a66ecd6443e3bae0365ed5e3d12180444091beca544b4cb04bfe4ee3dccbc660",
   "generatedFrom": [
     "src/providers/models.ts",
     "src/config/seedance.ts",
@@ -1001,6 +1001,30 @@
         "parameterKind": "qwen-image-3.0",
         "supportsReference": false,
         "maxReferenceImages": 0,
+        "description": "贞贞的平价AI小屋图像模型"
+      }
+    },
+    {
+      "id": "image:seedance-nz:qwen-image-global-2.1",
+      "provider": "seedance-nz",
+      "platformLabel": "贞贞的平价AI小屋",
+      "model": "qwen-image-global-2.1",
+      "label": "qwen-image-global-2.1",
+      "family": "seedream-v5-pro",
+      "available": true,
+      "parameters": {
+        "label": "qwen-image-global-2.1",
+        "platformLabel": "贞贞的平价AI小屋",
+        "family": "seedream-v5-pro",
+        "available": true,
+        "tabLabel": "Seedream",
+        "capabilities": [
+          "t2i",
+          "i2i",
+          "edit"
+        ],
+        "parameterKind": "seedream-v5",
+        "supportsReference": true,
         "description": "贞贞的平价AI小屋图像模型"
       }
     },
@@ -7113,6 +7137,40 @@
       }
     },
     {
+      "id": "video:zhenzhen:animate-motion-transfer",
+      "provider": "zhenzhen",
+      "platformLabel": "贞贞的AI工坊",
+      "model": "animate-motion-transfer",
+      "label": "animate-motion-transfer",
+      "family": "animate-motion-transfer",
+      "available": true,
+      "parameters": {
+        "label": "animate-motion-transfer",
+        "platformLabel": "贞贞的AI工坊",
+        "family": "animate-motion-transfer",
+        "available": true,
+        "nodeKind": "animate",
+        "ratios": [
+          "adaptive"
+        ],
+        "defaultRatio": "adaptive",
+        "durations": [],
+        "resolutions": [
+          "480p",
+          "720p",
+          "1080p"
+        ],
+        "defaultResolution": "720p",
+        "supportsImages": true,
+        "supportsVideos": true,
+        "supportsAudios": false,
+        "maxReferenceImages": 1,
+        "maxReferenceVideos": 1,
+        "maxReferenceAudios": 0,
+        "description": "Animate Motion Transfer · 单图 + 单个动作视频，保留完整姿态/镜头/蒙版/表情参数"
+      }
+    },
+    {
       "id": "video:zhenzhen:doubao-seedance-2-0-260128",
       "provider": "zhenzhen",
       "platformLabel": "贞贞的AI工坊",
@@ -9745,8 +9803,8 @@
   ],
   "counts": {
     "llm": 34,
-    "image": 55,
-    "video": 130,
+    "image": 56,
+    "video": 131,
     "audio": 17,
     "actions": 61
   }

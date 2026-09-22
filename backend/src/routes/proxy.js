@@ -4418,6 +4418,83 @@ router.get('/video/vosr2/status/:tid', async (req, res) => {
   }
 });
 
+router.post('/video/animate/submit', async (req, res) => {
+  const settings = loadRawSettings();
+  const apiKey = String(settings?.zhenzhenSd2ApiKey || '').trim();
+  if (!apiKey) {
+    return res.status(400).json({ success: false, error: '请先在 API 设置中填写“贞贞的平价AI小屋 API Key”' });
+  }
+  try {
+    const result = await seedanceNz.submitAnimateMotionTransferTask(req.body || {}, apiKey, { signal: req.t8AbortSignal });
+    rememberTaskKey(result.taskId, apiKey, {
+      provider: 'animate-nz',
+      model: result.model,
+      taskType: result.taskType,
+    });
+    return res.json({
+      success: true,
+      data: {
+        taskId: result.taskId,
+        model: result.model,
+        taskType: result.taskType,
+        ...seedanceNzTrace(result),
+      },
+    });
+  } catch (error) {
+    const status = Number(error?.status || 500);
+    proxyRouteError('proxy/video/animate/submit 错误', error, [apiKey]);
+    return res.status(status >= 400 && status < 600 ? status : 500).json({
+      success: false,
+      error: proxyPublicError(error, 'Animate Motion Transfer 请求失败', [apiKey]),
+      ...seedanceNzTrace(error),
+    });
+  }
+});
+
+router.get('/video/animate/status/:tid', async (req, res) => {
+  const settings = loadRawSettings();
+  const remembered = recallTaskMeta(req.params.tid, 'animate-nz');
+  const apiKey = String(remembered?.apiKey || settings?.zhenzhenSd2ApiKey || '').trim();
+  if (!apiKey) return res.status(400).json({ success: false, error: '缺少贞贞的平价AI小屋 API Key' });
+  try {
+    const result = await seedanceNz.queryAnimateMotionTransferTask(req.params.tid, apiKey, { signal: req.t8AbortSignal });
+    const materialized = await materializeRemoteTaskOutput({
+      status: result.status,
+      remoteUrl: result.videoUrl,
+      kind: 'video',
+      materializationKey: `animate-nz:${req.params.tid}`,
+      providerFetchImpl: seedanceNz.fetchRemote,
+    });
+    const responseData = {
+      status: result.status,
+      progress: safeDiagnosticText(result.progress || '', 80, [apiKey]),
+      videoUrl: materialized.url,
+      failReason: result.status === 'failed'
+        ? safeDiagnosticText(result.failReason || 'Animate Motion Transfer 任务失败', 240, [apiKey])
+        : '',
+      model: remembered?.model || seedanceNz.ANIMATE_MOTION_TRANSFER_MODEL,
+      taskType: remembered?.taskType || 'motion-transfer',
+      ...seedanceNzTrace(result),
+    };
+    if (materialized.failure) {
+      return sendCompletedRemoteOutputFailure(res, materialized.failure, responseData, {
+        defaultCode: 'animate_motion_transfer_output_unusable',
+        defaultMessage: 'Animate Motion Transfer 视频结果无法保存。',
+      });
+    }
+    return res.json({ success: true, data: responseData });
+  } catch (error) {
+    const status = Number(error?.status || 500);
+    proxyRouteError('proxy/video/animate/status 错误', error, [apiKey]);
+    if (sendTaskResultQueryRecovery(res, error, { taskId: req.params.tid })) return;
+    return res.status(status >= 400 && status < 600 ? status : 500).json({
+      success: false,
+      error: proxyPublicError(error, 'Animate Motion Transfer 查询失败', [apiKey]),
+      ...seedanceNzTrace(error),
+    });
+  }
+});
+
 router.post('/video/vidu/submit', async (req, res) => {
   const settings = loadRawSettings();
   const apiKey = String(settings?.zhenzhenSd2ApiKey || '').trim();

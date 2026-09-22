@@ -14,10 +14,11 @@ export type ProviderType = 'zhenzhen' | 'llm-direct' | 'runninghub';
 //  - 'seedream-v5' : Seedream V5 Pro 协议,JSON /generations,size 为像素串,image[] 可选
 //  - 'seedream-layer': Seedream V5 Pro 分层协议,单图输入,返回底图 + 有序图层列表
 //  - 'qwen-image-3.0': Qwen Image 3.0 协议,auto / 比例+分辨率 / 自定义 W*H 三种互斥尺寸模式
+//  - 'qwen-image-global-2.1': Qwen Image Global 2.1 独立协议,0-10 图、ratio/resolution/seed
 //  - 'wan-image'   : Wan 2.7 Global 图像协议,T2I 使用宽高/思考模式,I2I 使用 1-9 张参考图
 //  - 'vosr2-upscale': Vosr2 单图超分协议,只发送 model + images[1]
 //  - 'mj'          : Midjourney 协议,走专属 /api/proxy/mj/* 路由(speed_map + sref/oref)
-export type ImageParamKind = 'gpt-size' | 'gpt-image-2.5' | 'banana-ratio' | 'grok-image' | 'seedream-v5' | 'seedream-layer' | 'qwen-image-3.0' | 'wan-image' | 'vosr2-upscale' | 'mj';
+export type ImageParamKind = 'gpt-size' | 'gpt-image-2.5' | 'banana-ratio' | 'grok-image' | 'seedream-v5' | 'seedream-layer' | 'qwen-image-3.0' | 'qwen-image-global-2.1' | 'wan-image' | 'vosr2-upscale' | 'mj';
 
 export interface ImageModelDef {
   id: string;             // 节点内部 id(如 'gpt-image-2')
@@ -189,6 +190,7 @@ export const VOSR2_IMAGE_UPSCALE_MODEL = 'vosr2-image-upscale';
 export const ZHENZHEN_BUDGET_IMAGE_MODELS = [
   ...ZHENZHEN_IMAGE_G2_MODELS,
   ...ZHENZHEN_APIMART_IMAGE_MODELS,
+  'qwen-image-global-2.1',
   VOSR2_IMAGE_UPSCALE_MODEL,
 ] as const;
 export const ZHENZHEN_IMAGE_G2_RATIOS = ['adaptive', '16:9', '4:3', '1:1', '3:4', '9:16', '21:9'];
@@ -243,6 +245,10 @@ export const QWEN_IMAGE_30_MODELS = [
 ] as const;
 export type QwenImage30Model = typeof QWEN_IMAGE_30_MODELS[number];
 export const QWEN_IMAGE_30_RATIOS = ['1:1', '2:3', '3:2', '3:4', '4:3', '4:5', '5:4', '9:16', '16:9', '21:9'];
+export const QWEN_IMAGE_GLOBAL_21_MODEL = 'qwen-image-global-2.1';
+export const QWEN_IMAGE_GLOBAL_21_RATIOS = ['1:1', '2:3', '3:2', '3:4', '4:3', '9:16', '16:9', '21:9'] as const;
+export const QWEN_IMAGE_GLOBAL_21_RESOLUTIONS = ['1k', '2k', '4k'] as const;
+export const QWEN_IMAGE_GLOBAL_21_MAX_REFERENCE_IMAGES = 10;
 export const SEEDREAM_LAYER_DECOMPOSITION_MODEL = 'seedream-v5-pro-layer-decomposition';
 export const DOLA_SEEDREAM_LAYER_DECOMPOSITION_MODEL = 'dola-seedream-5.0-pro-layer-decomposition';
 export const SEEDREAM_LAYER_DECOMPOSITION_MODELS = [
@@ -435,6 +441,23 @@ export const IMAGE_MODELS: ImageModelDef[] = [
     description: 'Qwen Image 3.0 / Pro · 国内与 Global 文生图、图像编辑',
   },
   {
+    id: QWEN_IMAGE_GLOBAL_21_MODEL,
+    apiModel: QWEN_IMAGE_GLOBAL_21_MODEL,
+    label: 'Qwen Image Global 2.1',
+    tabLabel: 'Qwen 2.1',
+    provider: 'zhenzhen',
+    paramKind: 'qwen-image-global-2.1',
+    capabilities: ['t2i', 'i2i', 'edit', 'text-render'],
+    apiModelOptions: [{ value: QWEN_IMAGE_GLOBAL_21_MODEL, label: QWEN_IMAGE_GLOBAL_21_MODEL }],
+    aspectRatios: [...QWEN_IMAGE_GLOBAL_21_RATIOS],
+    defaultAspectRatio: '3:4',
+    sizes: [...QWEN_IMAGE_GLOBAL_21_RESOLUTIONS],
+    defaultSize: '2k',
+    supportsReference: true,
+    maxReferenceImages: QWEN_IMAGE_GLOBAL_21_MAX_REFERENCE_IMAGES,
+    description: 'Qwen Image Global 2.1 · 0–10 张参考图，1K/2K/4K，单次输出 1 张',
+  },
+  {
     id: 'wan-image',
     apiModel: WAN27_GLOBAL_T2I_MODEL,
     label: 'Wan Image 2.7 Global',
@@ -618,7 +641,7 @@ export const NBPRO_FAL_RESOLUTIONS = ['1K', '2K', '4K'];
 
 // ========== 视频 ==========
 // kind 决定上游 payload 协议(后端会根据 model 名自动识别,前端主要用于控制参数 UI 列表)
-export type VideoKind = 'veo' | 'grok' | 'sora' | 'seedance' | 'seedance25' | 'happyhorse' | 'hailuo' | 'flux3' | 'kling' | 'vidu' | 'upscaler' | 'wan';
+export type VideoKind = 'veo' | 'grok' | 'sora' | 'seedance' | 'seedance25' | 'happyhorse' | 'hailuo' | 'flux3' | 'kling' | 'vidu' | 'upscaler' | 'wan' | 'animate';
 
 // ---- Video FAL 渠道注册表 (1:1 对齐 gpt-image-2-web runVeo3Fal / runGrokFal / runSora2Fal) ----
 export interface VideoFalEndpointDef {
@@ -883,6 +906,9 @@ export const FLASHVSR_VIDEO_UPSCALE_MODEL = 'FlashVSR_video_upscale';
 /** @deprecated Kept as an internal symbol alias so existing imports remain source-compatible. */
 export const FASHVSR_VIDEO_UPSCALE_MODEL = FLASHVSR_VIDEO_UPSCALE_MODEL;
 export const VOSR2_VIDEO_UPSCALE_MODEL = 'vosr2-video-upscale';
+export const ANIMATE_MOTION_TRANSFER_MODEL = 'animate-motion-transfer';
+export const ANIMATE_MOTION_TRANSFER_RESOLUTIONS = ['480p', '720p', '1080p'] as const;
+export const ANIMATE_MOTION_TRANSFER_POSE_METHODS = ['vitpose', 'sdpose', 'wuwupose'] as const;
 
 export function isZhenzhenApimartVideoModel(apiModel: string | undefined | null): boolean {
   return (ZHENZHEN_APIMART_VIDEO_MODELS as readonly string[]).includes(String(apiModel || '').trim());
@@ -1504,6 +1530,35 @@ export const VIDEO_MODELS: VideoModelDef[] = [
     supportImages: false,
     supportVideos: true,
     maxRefImages: 0,
+  },
+  {
+    id: ANIMATE_MOTION_TRANSFER_MODEL,
+    label: 'Animate Motion Transfer',
+    kind: 'animate',
+    provider: 'zhenzhen',
+    builtinSource: 'seedance-nz',
+    description: 'Animate Motion Transfer · 单图 + 单个动作视频，保留完整姿态/镜头/蒙版/表情参数',
+    apiModelOptions: [{
+      value: ANIMATE_MOTION_TRANSFER_MODEL,
+      label: ANIMATE_MOTION_TRANSFER_MODEL,
+      builtinSource: 'seedance-nz',
+      ratios: ['adaptive'],
+      defaultRatio: 'adaptive',
+      resolutions: [...ANIMATE_MOTION_TRANSFER_RESOLUTIONS],
+      defaultResolution: '720p',
+      supportImages: true,
+      supportVideos: true,
+      maxRefImages: 1,
+      maxRefVideos: 1,
+    }],
+    ratios: ['adaptive'],
+    defaultRatio: 'adaptive',
+    durations: [],
+    resolutions: [...ANIMATE_MOTION_TRANSFER_RESOLUTIONS],
+    defaultResolution: '720p',
+    supportImages: true,
+    supportVideos: true,
+    maxRefImages: 1,
   },
   {
     id: 'seedance-2.5',

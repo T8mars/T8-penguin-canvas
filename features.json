@@ -1,7 +1,19 @@
 {
   "$schema": "本文件为 T8-penguin-canvas 节点清单防丢失锁,任何节点删减都需要在 roadmap.md 中说明并更新本文件。",
-  "version": "3.1.9",
-  "lastUpdated": "2026-09-18-v3.1.9-dual-platform-released-download-verified",
+  "version": "3.2.0",
+  "lastUpdated": "2026-09-22-v3.2.0-release-authorized-qwen21-animate",
+  "electronReleaseV320": {
+    "status": "release-authorized-technical-gates-pending",
+    "date": "2026-09-22",
+    "releaseIncluded": false,
+    "version": "3.2.0",
+    "tag": "v3.2.0",
+    "latest": false,
+    "scope": "Publish qwen-image-global-2.1 and animate-motion-transfer as independent Image/Video tabs with exact documented parameters, four credential-free workflows, accepted-task recovery and trusted Provider output materialization while preserving every prior capability and saved canvas.",
+    "verification": "Development contract/UI/workflow tests 26/26, Seedance Provider/trusted-output/recovery regression 86/86, release-evidence plus Electron/updater/macOS/runtime contracts 35/35, TypeScript, i18n, capability synchronization, compact context, public/RH gates and a 2985-module production build passed before the formal source freeze. Electron/NSIS, provenance, updater and remote-download gates are still pending and must not be pre-recorded as passed.",
+    "evidenceBoundary": "owner-approved-post-release-v3.2.0: external affected-user/install/F8-F10 evidence deferred, not passed; technical gates and Windows updater integrity cannot be deferred. Mac may be deferred only if GitHub quota is actually insufficient.",
+    "details": "docs/release-v3.2.0.md"
+  },
   "electronReleaseV319": {
     "status": "released-dual-platform-verified",
     "date": "2026-09-18",
@@ -3141,34 +3153,27 @@
     ]
   },
   "release": {
-    "status": "released-v3.1.9-dual-platform-verified",
-    "version": "3.1.9",
-    "date": "2026-09-18",
-    "tag": "v3.1.9",
-    "latest": true,
-    "sourceCommit": "adec4754cee4ccbcd44f0063fe8b7858bf3e6944",
-    "publishedAt": "2026-09-18T14:11:33Z",
-    "draft": false,
-    "prerelease": false,
-    "url": "https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.1.9",
-    "details": "docs/release-v3.1.9.md",
+    "status": "release-authorized-v3.2.0-technical-gates-pending",
+    "version": "3.2.0",
+    "date": "2026-09-22",
+    "tag": "v3.2.0",
+    "latest": false,
+    "sourceCommit": null,
+    "publishedAt": null,
+    "draft": null,
+    "prerelease": null,
+    "url": "https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.2.0",
+    "details": "docs/release-v3.2.0.md",
     "verification": [
-      "Fixed v3.1.9 source/Tag published as stable Latest; unique Windows formal build and three-asset full download/size/SHA-256/updater SHA-512 passed; sealed recovery cleared.",
-      "Same-source Apple Silicon workflow 35354742555 succeeded; six assets independently fully downloaded, both updater SHA-512 checks passed, and post-Mac Windows assets remain unchanged. External affected-user/install/F8-F10 evidence deferred, not passed."
+      "Release explicitly authorized for v3.2.0; fixed source, Windows unique formal build, Tag, updater assets and remote full-download integrity remain pending until the formal chain actually converges.",
+      "Same-source Apple Silicon should run from v3.2.0 unless GitHub quota is actually insufficient. External affected-user/install/F8-F10 evidence is deferred under owner-approved-post-release-v3.2.0 and is not passed."
     ],
-    "assets": {
-      "T8-PenguinCanvas-Setup-3.1.9.exe": "1375853074 bytes / sha256 2d39f91baf788ded3d2a84bb3217b34e54c2f7d761fb8763c248d7470f2e8e38",
-      "T8-PenguinCanvas-Setup-3.1.9.exe.blockmap": "1434362 bytes / sha256 1e4c0227078f3684e59a502981ba7c832aa6ea8c350fe7802a8b15ee36c5f268",
-      "latest.yml": "362 bytes / sha256 548febff374e039318bbfb2ca360d7c0400b0faa625614eb8668318399a5a77b",
-      "T8-PenguinCanvas-3.1.9-mac-arm64.dmg": "514347610 bytes / sha256 addc8270600a1e28389b4589bd9740e705ad1600e9a00a2672be9be2be5e8c77",
-      "T8-PenguinCanvas-3.1.9-mac-arm64.zip": "506437985 bytes / sha256 da036f4f1313b73fd8970ca93e926a981efca1f392c27b69fcbaa45ace1da60b",
-      "latest-mac.yml": "536 bytes / sha256 47752e9b3945115d5295e5cc12dc65ba86d848b15423af463c2436218f50983b"
-    }
+    "assets": {}
   },
   "versionSequencePolicy": {
     "status": "active",
     "date": "2026-07-30",
-    "currentVersion": "3.1.9",
+    "currentVersion": "3.2.0",
     "rules": [
       "版本号每一段只使用 0-9；v2.6.9 的下一正式版本固定为 v2.7.0。",
       "禁止创建、打包、推送、打 tag、发布或写入自动更新元数据为 v2.6.10。",
@@ -3206,6 +3211,7 @@
       "v3.1.6 的下一正式版本固定为 v3.1.7。",
       "v3.1.7 的下一正式版本固定为 v3.1.8。",
       "v3.1.8 的下一正式版本固定为 v3.1.9；之后为 v3.2.0，禁止 v3.1.10。",
+      "v3.2.0 的下一正式版本固定为 v3.2.1。",
       "后续改版本前必须同步核对 package.json、package-lock.json、README、features.json、项目 SKILL.md、Release notes、自动更新元数据和 Git tag。"
     ]
   },
@@ -15795,5 +15801,35 @@
       "v3.1.7 pre-release contracts passed: Provider/timeout/desktop-update suite 174/174, Electron packaging 16/16, policy plus frontend recovery 6/6, and FAL short-runtime clamp 1/1.",
       "v3.1.7 fixed source, Electron package, immutable Tag, Windows and macOS automatic-update assets, GitHub Latest, runner verification and independent full-download verification all passed; external user/install/F8-F10 evidence remains explicitly deferred, not passed."
     ]
+  },
+  "qwen21AnimateMotionTransfer20260922": {
+    "status": "release-authorized-v3.2.0-live-verified",
+    "date": "2026-09-22",
+    "releaseIncluded": true,
+    "provider": "seedance-nz",
+    "officialDocs": [
+      "https://api.seedance.nz/docs/llms.txt",
+      "https://api.seedance.nz/docs/qwen-image-global-2.1.md",
+      "https://api.seedance.nz/docs/animate-motion-transfer.md"
+    ],
+    "referenceImplementation": "F:/AI-T8-video-onekey/ComfyUI/custom_nodes/ComfyUI_Seedance",
+    "models": ["qwen-image-global-2.1", "animate-motion-transfer"],
+    "contract": [
+      "Qwen Image Global 2.1 is an independent image tab with required prompt, zero to ten ordered images, 1k/2k/4k, eight documented ratios and optional non-negative safe-integer seed; it emits one image and never inherits Qwen 3.0 size/n/negative_prompt/prompt_extend fields.",
+      "Animate Motion Transfer is an independent video tab that requires exactly one image and one motion video, emits no prompt/audio/seed, and preserves the documented resolution, ratio, frame, pose, camera, mask, expression and chest-motion controls.",
+      "Both models use the existing seedance.nz credential, shared fifteen-minute media timeout, accepted-task recovery and trusted Provider output materialization without replaying ambiguous paid submissions."
+    ],
+    "workflows": [
+      "docs/workflows/qwen-image-global-2.1-t2i.json",
+      "docs/workflows/qwen-image-global-2.1-i2i.json",
+      "docs/workflows/animate-motion-transfer-local.json",
+      "docs/workflows/animate-motion-transfer-url.json"
+    ],
+    "verification": {
+      "offline": "Focused contract/UI/workflow tests passed 26/26; Seedance Provider, trusted-output and recovery regression passed 86/86. Type-check, i18n, generated capability synchronization, compact context validation and the production Vite build passed with 2985 modules. Host-Node database cases were not counted because the retained better-sqlite3 binary targets the Electron ABI; no native rebuild or retained database read was performed.",
+      "live": "All three paid paths were submitted once and reached Provider succeeded: Qwen T2I on poll 3, Qwen I2I on poll 4 with HTTP 200 and usage, and Animate on poll 13 with HTTP 200 and usage. Animate output was downloaded and probed as 219482-byte H.264, 480x848, 2 seconds. The two Qwen output downloads hit a local Node TLS disconnect after terminal success and were not resubmitted.",
+      "security": "The API key came only from hidden stdin/process environment. Source, workflows and sanitized reports contain no key, task identity, signed result URL or raw Provider response."
+    },
+    "boundary": "Authorized for v3.2.0 formal release; Electron package, fixed Tag, updater assets and remote verification are recorded only after the real formal chain converges. Live tasks prove the observed Provider contract, not installed-client, long-term availability, billing, subjective quality or F8-F10 evidence."
   }
 }
