@@ -1,17 +1,21 @@
 {
   "$schema": "本文件为 T8-penguin-canvas 节点清单防丢失锁,任何节点删减都需要在 roadmap.md 中说明并更新本文件。",
   "version": "3.2.0",
-  "lastUpdated": "2026-09-22-v3.2.0-release-authorized-qwen21-animate",
+  "lastUpdated": "2026-09-23-v3.2.0-dual-platform-release-verified",
   "electronReleaseV320": {
-    "status": "release-authorized-technical-gates-pending",
-    "date": "2026-09-22",
-    "releaseIncluded": false,
+    "status": "released-dual-platform-verified",
+    "date": "2026-09-23",
+    "releaseIncluded": true,
     "version": "3.2.0",
     "tag": "v3.2.0",
-    "latest": false,
+    "latest": true,
+    "sourceCommit": "dfb388c2d2dbae4df3186ea268f69cca96d793ac",
+    "publishedAt": "2026-09-22T15:58:45Z",
+    "url": "https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.2.0",
+    "macWorkflow": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/35751218655",
     "scope": "Publish qwen-image-global-2.1 and animate-motion-transfer as independent Image/Video tabs with exact documented parameters, four credential-free workflows, accepted-task recovery and trusted Provider output materialization while preserving every prior capability and saved canvas.",
-    "verification": "Development contract/UI/workflow tests 26/26, Seedance Provider/trusted-output/recovery regression 86/86, release-evidence plus Electron/updater/macOS/runtime contracts 35/35, TypeScript, i18n, capability synchronization, compact context, public/RH gates and a 2985-module production build passed before the formal source freeze. Electron/NSIS, provenance, updater and remote-download gates are still pending and must not be pre-recorded as passed.",
-    "evidenceBoundary": "owner-approved-post-release-v3.2.0: external affected-user/install/F8-F10 evidence deferred, not passed; technical gates and Windows updater integrity cannot be deferred. Mac may be deferred only if GitHub quota is actually insufficient.",
+    "verification": "Development contract/UI/workflow tests 26/26, Seedance Provider/trusted-output/recovery regression 86/86, release-evidence plus Electron/updater/macOS/runtime contracts 35/35, TypeScript, i18n, capability synchronization, compact context, public/RH gates and a 2985-module production build passed. The unique Windows formal chain completed encryption, runtimes, native rebuild, NSIS, post-build, provenance, sealed recovery, upload and full remote download. Same-tag macOS arm64 workflow 35751218655 completed ad-hoc-signed DMG/ZIP/updater packaging and runner download verification; independent Mac verification and a post-Mac Windows full-download verification also passed with all six assets present.",
+    "evidenceBoundary": "owner-approved-post-release-v3.2.0: external affected-user/install/F8-F10 evidence remains deferred and not passed. Mac is an ad-hoc-signed, unnotarized technical preview; GitHub quota was sufficient and no Mac deferral was used.",
     "details": "docs/release-v3.2.0.md"
   },
   "electronReleaseV319": {
@@ -3153,22 +3157,30 @@
     ]
   },
   "release": {
-    "status": "release-authorized-v3.2.0-technical-gates-pending",
+    "status": "released-v3.2.0-dual-platform-verified",
     "version": "3.2.0",
     "date": "2026-09-22",
     "tag": "v3.2.0",
-    "latest": false,
-    "sourceCommit": null,
-    "publishedAt": null,
-    "draft": null,
-    "prerelease": null,
+    "latest": true,
+    "sourceCommit": "dfb388c2d2dbae4df3186ea268f69cca96d793ac",
+    "publishedAt": "2026-09-22T15:58:45Z",
+    "draft": false,
+    "prerelease": false,
     "url": "https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.2.0",
     "details": "docs/release-v3.2.0.md",
     "verification": [
-      "Release explicitly authorized for v3.2.0; fixed source, Windows unique formal build, Tag, updater assets and remote full-download integrity remain pending until the formal chain actually converges.",
-      "Same-source Apple Silicon should run from v3.2.0 unless GitHub quota is actually insufficient. External affected-user/install/F8-F10 evidence is deferred under owner-approved-post-release-v3.2.0 and is not passed."
+      "The unique Windows Electron/NSIS flow completed provenance, sealed recovery, automatic-update publication, stable Latest and full remote re-download; recovery was cleared.",
+      "Same-tag Apple Silicon workflow 35751218655 succeeded and appended three verified Mac assets. Independent Mac full-download and final Windows full-download verification passed with all six assets present. External affected-user/install/F8-F10 evidence remains deferred under owner-approved-post-release-v3.2.0 and is not passed."
     ],
-    "assets": {}
+    "assets": {
+      "windowsInstaller": {"name": "T8-PenguinCanvas-Setup-3.2.0.exe", "bytes": 1378616565, "sha256": "1013df706477f64563890c580437e03e9ab5f402a1c59817d13b81e59d4b74c4"},
+      "windowsBlockmap": {"name": "T8-PenguinCanvas-Setup-3.2.0.exe.blockmap", "bytes": 1437932, "sha256": "d3e898c3448a2a1fde837d47bd1a76a0c345250228e59922845eefb97e8a1526"},
+      "windowsUpdater": {"name": "latest.yml", "bytes": 362, "sha256": "71bb02f994b613909a7d6de78f32edbb0fb59bb7f700819f0ca96a6cf11f7895"},
+      "macDmg": {"name": "T8-PenguinCanvas-3.2.0-mac-arm64.dmg", "bytes": 514463422, "sha256": "0b82ebbbf3f598680fdf98f0bb80320d7b0a00e87045b61fcdb92d3e89869b81"},
+      "macZip": {"name": "T8-PenguinCanvas-3.2.0-mac-arm64.zip", "bytes": 506459843, "sha256": "64b0491834f73be14f8a5ad8ae2a73c20a5b89102fb8b3fcb9c2e5fb612df885"},
+      "macUpdater": {"name": "latest-mac.yml", "bytes": 536, "sha256": "debdf7517f310ec33ad3ba58f7c3200065052adbaf9c4d1022beb7c92d411bca"}
+    },
+    "macWorkflow": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/35751218655"
   },
   "versionSequencePolicy": {
     "status": "active",
@@ -15803,7 +15815,7 @@
     ]
   },
   "qwen21AnimateMotionTransfer20260922": {
-    "status": "release-authorized-v3.2.0-live-verified",
+    "status": "released-v3.2.0-live-verified",
     "date": "2026-09-22",
     "releaseIncluded": true,
     "provider": "seedance-nz",
@@ -15830,6 +15842,6 @@
       "live": "All three paid paths were submitted once and reached Provider succeeded: Qwen T2I on poll 3, Qwen I2I on poll 4 with HTTP 200 and usage, and Animate on poll 13 with HTTP 200 and usage. Animate output was downloaded and probed as 219482-byte H.264, 480x848, 2 seconds. The two Qwen output downloads hit a local Node TLS disconnect after terminal success and were not resubmitted.",
       "security": "The API key came only from hidden stdin/process environment. Source, workflows and sanitized reports contain no key, task identity, signed result URL or raw Provider response."
     },
-    "boundary": "Authorized for v3.2.0 formal release; Electron package, fixed Tag, updater assets and remote verification are recorded only after the real formal chain converges. Live tasks prove the observed Provider contract, not installed-client, long-term availability, billing, subjective quality or F8-F10 evidence."
+    "boundary": "Included in the fixed-source v3.2.0 Windows/macOS release with six remote-verified assets. Live tasks prove the observed Provider contract, not installed-client, long-term availability, billing, subjective quality or F8-F10 evidence; those external boundaries remain deferred under owner-approved-post-release-v3.2.0 and are not passed."
   }
 }

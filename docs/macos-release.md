@@ -10,10 +10,12 @@
 - Windows 专用 `remove-ai-watermarks` / ParseHub Python 离线归档不会塞进 Mac 包；相关本地工具需要用户自行安装兼容 Python 环境。其缺失不得影响普通画布和云端节点启动。
 - 首个未公证预览升级到未来 Developer ID 正式版时，按手动覆盖安装处理；配置正式签名后，后续版本才把 `latest-mac.yml` + ZIP 视为可交付的 Mac 自动更新链路。
 
-## v3.2.0 当前授权
+## v3.2.0 已发布结果
 
-- Windows 和 Mac 必须来自同一固定 `v3.2.0` Tag，进入同一非草稿、非预发布 Latest Release；当前不预写 commit、workflow、资产或散列。
-- Windows 唯一正式链和远端自动更新完整性不可延期。Mac 应按标准 `macos-15` arm64 workflow 提交；仅在 GitHub 额度实际不足时才记录为延期，不得用无法查账单或未提交任务冒充额度不足。
+- Windows 与 Mac 固定于同一正式 `v3.2.0` Tag / `dfb388c2d2dbae4df3186ea268f69cca96d793ac`，进入同一非草稿、非预发布 [Latest Release](https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.2.0)。
+- 真实 [macos-15 arm64 workflow 35751218655](https://github.com/T8mars/T8-penguin-canvas/actions/runs/35751218655) 于 `2026-09-22T16:06:18Z` 成功完成同源私有源恢复、原生依赖、ad-hoc 签名、DMG/ZIP/更新清单、追加上传与 runner 完整回下载；GitHub 额度充足，没有延期 Mac。
+- `T8-PenguinCanvas-3.2.0-mac-arm64.dmg`：514,463,422 bytes，SHA-256 `0b82ebbbf3f598680fdf98f0bb80320d7b0a00e87045b61fcdb92d3e89869b81`；ZIP：506,459,843 bytes，`64b0491834f73be14f8a5ad8ae2a73c20a5b89102fb8b3fcb9c2e5fb612df885`；`latest-mac.yml`：536 bytes，`debdf7517f310ec33ad3ba58f7c3200065052adbaf9c4d1022beb7c92d411bca`。
+- 本机独立验证再次完整下载 Mac 三资产并核对 ZIP size/SHA-512；Mac 追加后的 Windows 安装包、blockmap 和 `latest.yml` 也再次完整下载通过且散列未变。完整六资产见[发布专题](release-v3.2.0.md)。
 - 当前仍为 ad-hoc 完整性签名、未使用 Apple Developer ID、未公证技术预览。真实用户/安装/F8–F10 证据按 `owner-approved-post-release-v3.2.0` 后补，不记为通过。
 
 ## v3.1.9 已发布结果
