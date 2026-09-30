@@ -1,6 +1,16 @@
 {
   "$schema": "本文件为 T8-penguin-canvas 节点清单防丢失锁,任何节点删减都需要在 roadmap.md 中说明并更新本文件。",
-  "version": "3.2.2",
+  "version": "3.2.3",
+  "electronReleaseV323": {
+    "status": "publish-approved-build-pending",
+    "sourceCommit": null,
+    "latest": false,
+    "version": "3.2.3",
+    "tag": "v3.2.3",
+    "evidence": "docs/release-v3.2.3.md",
+    "postReleaseEvidence": "owner-approved-post-release-v3.2.3",
+    "macBoundary": "same-tag-unsigned-preview; defer-only-if-github-quota-insufficient"
+  },
   "githubIssueTriage20261001": {
     "status": "development-targeted-verified-unreleased",
     "releaseIncluded": false,
@@ -16,7 +26,7 @@
     "summary": "磁盘容量错误显示实际盘符、需要及剩余 GiB；Electron 设置与画布加载失败页可选择其他盘，重启后离线复制校验并切换数据目录，保留原数据。",
     "evidence": "docs/desktop-data-storage.md"
   },
-  "lastUpdated": "2026-10-01-github-issue-triage-local-unreleased",
+  "lastUpdated": "2026-10-01-v3.2.3-release-approved",
   "electronReleaseV322": {
     "status": "released-dual-platform-verified",
     "sourceCommit": "beadec0a151cd03048b96d0f0e6c4eb1a45c0399",
