@@ -42,6 +42,12 @@ RunningHub / 钱包 / RH 工具提交前校验真实枚举；无效旧值在付�
 - #29/#30/#31 标记 `bug`；#24/#25 保留 `enhancement`。五项继续 OPEN，没有以本地补丁或部分验收代替用户现场确认。
 - 本地提交只作可追溯检查点，不代表 GitHub 源码已上线；待当前明确发布授权后再进入生产流程。
 
+## 后续发布授权
+
+用户随后明确授权正式发布，修复已随 v3.2.3 推送固定源码并完成 Windows Latest 和自动更新校验；Mac 同源构建及完整双平台结果集中见[发布专题](release-v3.2.3.md)。此前“仅本地”说明是本轮开发阶段的历史事实；现场复验、RH 实网与 #31 输入变化来源仍未完成，五项 Issues 不自动关闭。
+
+发布后已通知用户升级并保留复验请求：[RH #30](https://github.com/T8mars/T8-penguin-canvas/issues/30#issuecomment-5917500268)、[本地化 #31](https://github.com/T8mars/T8-penguin-canvas/issues/31#issuecomment-5917500737)。
+
 ## 本地 Git 对象修复
 
 暂存后 `git diff --cached --check` 检出新 `features.json` blob 的 zlib 校验损坏。工作文件与索引均指向 `b9ec1726b0a27edfc112f6d810d44271017cd81e`；保留坏对象至本地忽略的 `local-private/git-object-recovery-20261001/` 后，从完整工作文件重建同 ID blob，完整读取与暂存 diff 校验通过。未 reset、修改历史、覆盖源文件或删除故障证据；此检查不等于整库或物理磁盘健康验收。

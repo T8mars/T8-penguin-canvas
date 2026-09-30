@@ -2,9 +2,10 @@
   "$schema": "本文件为 T8-penguin-canvas 节点清单防丢失锁,任何节点删减都需要在 roadmap.md 中说明并更新本文件。",
   "version": "3.2.3",
   "electronReleaseV323": {
-    "status": "publish-approved-build-pending",
-    "sourceCommit": null,
-    "latest": false,
+    "status": "released-dual-platform-verified",
+    "sourceCommit": "1d5fc6774bfaa1e332d36be92eec9826e0e2cadc",
+    "latest": true,
+    "macWorkflow": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/36759071469",
     "version": "3.2.3",
     "tag": "v3.2.3",
     "evidence": "docs/release-v3.2.3.md",
@@ -12,12 +13,12 @@
     "macBoundary": "same-tag-unsigned-preview; defer-only-if-github-quota-insufficient"
   },
   "githubIssueTriage20261001": {
-    "status": "development-targeted-verified-unreleased",
-    "releaseIncluded": false,
+    "status": "released-v3.2.3-targeted-verified",
+    "releaseIncluded": true,
     "issues": [30, 31],
     "summary": "RH 三入口共用真实选项解析并移除字段名猜测；本地化运行异步拒绝后释放启动锁，保留 Run 与输入一致性门。",
     "verification": "新专项14/14、相邻十套回归81/81、TypeScript、i18n、feature-sync与公开边界门通过。",
-    "boundary": "0开放PR、5开放Issues；现场复验及#31输入变化来源未覆盖，未推送或发布。",
+    "boundary": "0开放PR、5开放Issues；现场复验、RH实网及#31输入变化来源未覆盖，Issues保持开放。",
     "evidence": "docs/github-issues-20261001.md"
   },
   "desktopDataStorage20260930": {
@@ -26,11 +27,11 @@
     "summary": "磁盘容量错误显示实际盘符、需要及剩余 GiB；Electron 设置与画布加载失败页可选择其他盘，重启后离线复制校验并切换数据目录，保留原数据。",
     "evidence": "docs/desktop-data-storage.md"
   },
-  "lastUpdated": "2026-10-01-v3.2.3-release-approved",
+  "lastUpdated": "2026-10-01-v3.2.3-dual-platform-released-verified",
   "electronReleaseV322": {
     "status": "released-dual-platform-verified",
     "sourceCommit": "beadec0a151cd03048b96d0f0e6c4eb1a45c0399",
-    "latest": true,
+    "latest": false,
     "macWorkflow": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/36689980893",
     "version": "3.2.2",
     "tag": "v3.2.2",
