@@ -864,13 +864,13 @@ test('RH toolbox builds nodeInfoList from configured mappings without per-tool c
       description: '质量',
     },
   ]);
-  assert.equal(inferredSelectParams[0].kind, 'select');
-  assert.deepEqual(inferredSelectParams[0].options?.slice(0, 4), ['1:1', '16:9', '9:16', '4:3']);
+  assert.equal(inferredSelectParams[0].kind, 'text');
+  assert.equal(inferredSelectParams[0].options, undefined, 'a field name is not authoritative enum metadata');
   assert.equal(inferredSelectParams[1].kind, 'select');
   assert.deepEqual(inferredSelectParams[1].options, ['low', 'medium', 'high']);
   assert.deepEqual(
     getRhToolboxNodeInfoFieldOptions({ fieldName: 'instanceType', fieldValue: 'plus', fieldType: 'TEXT' }),
-    ['default', 'plus', 'pro'],
+    undefined,
   );
 
   assert.deepEqual(

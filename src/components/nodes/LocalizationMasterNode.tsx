@@ -37,7 +37,7 @@ import {
 } from '../../services/localizationMaster';
 import { useApiKeysStore } from '../../stores/apiKeys';
 import { useThemeStore } from '../../stores/theme';
-import { requestCanvasNodeRun } from '../../utils/canvasRunRequest';
+import { createCanvasNodeRunRequestId, requestCanvasNodeRun } from '../../utils/canvasRunRequest';
 import {
   advancedProviderModelOptions,
   advancedProvidersForNode,
@@ -196,6 +196,7 @@ function LocalizationMasterNode({ id, data, selected }: NodeProps) {
   const persistedSourceRef = useRef({ text: project.sourceText, media: project.sourceMediaUrl });
   const actionRef = useRef<LocalizationAction>('parse');
   const pendingActionRef = useRef<LocalizationAction | null>(null);
+  const pendingRequestIdRef = useRef('');
   const retryUnitIdRef = useRef('');
   const [pendingAction, setPendingAction] = useState<LocalizationAction | null>(null);
   const [reviewFilter, setReviewFilter] = useState<'attention' | 'all' | 'approved'>('attention');
@@ -990,6 +991,7 @@ function LocalizationMasterNode({ id, data, selected }: NodeProps) {
       markAgentRequest('failed', message);
       throw error;
     } finally {
+      pendingRequestIdRef.current = '';
       pendingActionRef.current = null;
       setPendingAction(null);
     }
@@ -1002,12 +1004,27 @@ function LocalizationMasterNode({ id, data, selected }: NodeProps) {
     }
     actionRef.current = action;
     pendingActionRef.current = action;
+    const requestId = createCanvasNodeRunRequestId(id, `localization-${action}`);
+    pendingRequestIdRef.current = requestId;
     setPendingAction(action);
     setLocalError('');
-    if (!requestCanvasNodeRun(id)) {
+    const rejectRequest = (message: string) => {
+      // Canvas can reject before useRunTrigger ever invokes our finally block.
+      // Ignore stale/duplicate callbacks after a newer user request has begun.
+      if (pendingRequestIdRef.current !== requestId) return;
+      pendingRequestIdRef.current = '';
       pendingActionRef.current = null;
       setPendingAction(null);
-      setLocalError(t('nodes.localization.errors.runRequest'));
+      setLocalError(message);
+      markAgentRequest('failed', message);
+    };
+    if (!requestCanvasNodeRun(id, {
+      requestId,
+      onSettled: (outcome) => {
+        if (!outcome.accepted) rejectRequest(outcome.error || t('nodes.localization.errors.runRequest'));
+      },
+    })) {
+      rejectRequest(t('nodes.localization.errors.runRequest'));
       return false;
     }
     return true;

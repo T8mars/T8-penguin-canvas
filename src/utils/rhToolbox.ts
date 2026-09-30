@@ -1,3 +1,5 @@
+import { extractRhFieldOptions } from './rhFieldOptions';
+
 export type RhToolboxMediaKind = 'text' | 'image' | 'video' | 'audio';
 
 export type RhToolboxUserParamKind = 'text' | 'number' | 'select' | 'boolean';
@@ -330,71 +332,8 @@ function numberFromUnknown(value: unknown): number | undefined {
   return Number.isFinite(n) ? n : undefined;
 }
 
-function fieldOptionValue(option: any): string | number | undefined {
-  if (typeof option === 'string' || typeof option === 'number') return option;
-  if (option && typeof option === 'object') {
-    const value = option.value ?? option.label ?? option.name ?? option.title;
-    if (typeof value === 'string' || typeof value === 'number') return value;
-  }
-  return undefined;
-}
-
-const RH_TOOLBOX_KNOWN_FIELD_OPTIONS: Record<string, Array<string | number>> = {
-  aspectRatio: ['1:1', '16:9', '9:16', '4:3', '3:4', '4:5', '5:4', '3:2', '2:3', '21:9', '9:21', '1:4', '4:1', '1:8', '8:1'],
-  aspect_ratio: ['1:1', '16:9', '9:16', '4:3', '3:4', '4:5', '5:4', '3:2', '2:3', '21:9', '9:21'],
-  ratio: ['1:1', '16:9', '9:16', '4:3', '3:4', '4:5', '5:4', '3:2', '2:3'],
-  resolution: ['1k', '2k', '4k', '8k'],
-  size: ['512', '768', '1024', '1280', '1536', '2048'],
-  mode: ['text2img', 'img2img'],
-  quality: ['low', 'medium', 'high', 'best'],
-  instanceType: ['default', 'plus', 'pro'],
-  instance_type: ['default', 'plus', 'pro'],
-  precision: ['fp16', 'fp32', 'bf16'],
-  scheduler: ['normal', 'karras', 'exponential', 'sgm_uniform', 'simple', 'ddim_uniform'],
-  sampler: ['euler', 'euler_ancestral', 'heun', 'dpm_2', 'dpm_2_ancestral', 'lms', 'dpmpp_2m', 'dpmpp_sde', 'ddim', 'uni_pc'],
-};
-
-function normalizeRhOptionList(candidate: unknown): Array<string | number> | undefined {
-  if (!Array.isArray(candidate)) return undefined;
-  const options = candidate.map(fieldOptionValue).filter((value): value is string | number => value !== undefined);
-  if (options.length <= 1) return undefined;
-  return Array.from(new Set(options.map((value) => String(value)))).map((value) => {
-    const numberValue = Number(value);
-    return Number.isFinite(numberValue) && String(numberValue) === value ? numberValue : value;
-  });
-}
-
 export function getRhToolboxNodeInfoFieldOptions(field: any): Array<string | number> | undefined {
-  const parsedFieldData = parseRhFieldData(field?.fieldData);
-  const candidates = [
-    field?.fieldData,
-    field?.options,
-    field?.list,
-    field?.values,
-    field?.enum,
-    field?.choices,
-    field?.items,
-    field?.selectOptions,
-    field?.dropdown,
-    field?.fieldValue,
-    parsedFieldData,
-    Array.isArray(parsedFieldData) ? parsedFieldData[0] : undefined,
-  ];
-  for (const candidate of candidates) {
-    const options = normalizeRhOptionList(candidate);
-    if (options?.length) return options;
-  }
-
-  const fieldName = getRhToolboxNodeInfoFieldName(field);
-  if (fieldName) {
-    const direct = RH_TOOLBOX_KNOWN_FIELD_OPTIONS[fieldName];
-    if (direct) return direct;
-    const lower = fieldName.toLowerCase();
-    for (const key of Object.keys(RH_TOOLBOX_KNOWN_FIELD_OPTIONS)) {
-      if (key.toLowerCase() === lower) return RH_TOOLBOX_KNOWN_FIELD_OPTIONS[key];
-    }
-  }
-  return undefined;
+  return extractRhFieldOptions(field) ?? undefined;
 }
 
 function rhNodeInfoFieldMeta(field: any): any {
@@ -455,6 +394,7 @@ export function inferRhToolboxNodeInfoMediaKind(field: any): RhToolboxMediaKind 
 }
 
 export function inferRhToolboxNodeInfoParamKind(field: any): RhToolboxUserParamKind {
+  if (getRhToolboxNodeInfoFieldOptions(field)?.length) return 'select';
   const typeText = [
     field?.fieldType,
     field?.valueType,
@@ -472,7 +412,6 @@ export function inferRhToolboxNodeInfoParamKind(field: any): RhToolboxUserParamK
     return 'number';
   }
   if (typeText.includes('LIST') || typeText.includes('SELECT') || typeText.includes('DROPDOWN') || typeText.includes('ENUM')) return 'select';
-  if (getRhToolboxNodeInfoFieldOptions(field)?.length) return 'select';
   return 'text';
 }
 
@@ -496,7 +435,7 @@ export function isRhToolboxNodeInfoUserParamField(field: any): boolean {
   if (inferRhToolboxNodeInfoMediaKind(field) !== 'text') return false;
   if (isRhNodeInfoPromptLikeField(field)) return false;
   const kind = inferRhToolboxNodeInfoParamKind(field);
-  return kind === 'number' || kind === 'boolean' || kind === 'select';
+  return kind === 'number' || kind === 'boolean' || kind === 'select' || kind === 'text';
 }
 
 function rhMappingSignature(row: RhToolboxMappingLike): string {

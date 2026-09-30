@@ -1,6 +1,6 @@
 # 当前项目上下文
 
-更新：2026-09-30。仅维护当前事实；长期规则见根 `SKILL.md` 和 `AGENTS.md`。本页预算 80 行 / 8 KiB，旧检查点迁入专题，不追加长日报。
+更新：2026-10-01。仅维护当前事实；长期规则见根 `SKILL.md` 和 `AGENTS.md`。本页预算 80 行 / 8 KiB，旧检查点迁入专题，不追加长日报。
 
 - 默认目录 `E:\PenguinPravite\T8-penguin-canvas`；branch `codex/release-v3.0.8-volcengine-assets-ux`，common dir `.git`。v3.2.2 正式源码与 Tag 固定为 `beadec0a151cd03048b96d0f0e6c4eb1a45c0399`，不得移动；实际开工仍以 git/worktree 门为准。
 - package 当前为 `3.2.2`；Windows Latest、Mac 同源任务 36689980893、本机六资产及两个更新清单完整回下载均通过，见[发布专题](release-v3.2.2.md)。所有正式 Tag 冻结。
@@ -12,7 +12,7 @@
 
 | 事项 | 当前事实与下一步 |
 | --- | --- |
-| GitHub Issues 复核 | #29 的 Creator 渠道选择修复已随v3.1.9双平台发布并回复用户，专项3/3及五套回归99/99、TypeScript与发布专项29/29通过；用户“仅打开面板”仍需真实Mac定位。#24/#25继续保留验收边界，详见[专题](github-issues-20260918.md)。 |
+| GitHub PR / Issues | 10月1日：0开放PR、5开放Issues。#30 RH真实枚举与#31启动拒绝后卡锁已本地限定修复，14项新专项及十套回归81/81通过；未推送/发布，#31具体输入变更来源待复现，5项均保留验收边界。详见[本轮专题](github-issues-20261001.md)；#29历史证据见[前次专题](github-issues-20260918.md)。 |
 | v3.1.9 发布 | Windows 唯一正式链与同源[Mac任务](https://github.com/T8mars/T8-penguin-canvas/actions/runs/35354742555)成功，稳定 Latest/两个更新清单/六资产独立完整回下载通过，Windows资产追加前后不变，recovery已清除；Mac仍未公证，固定Tag不移动。详见[发布专题](release-v3.1.9.md)。 |
 | v3.1.8 历史发布 | 六资产已完成同源构建和完整回下载，历史Tag/资产冻结不移动；目前Latest为v3.1.9。旧版发布及首次主机崩溃恢复事实保留在 `feature electronReleaseV318` 与[Mac流程](macos-release.md)。 |
 | 文档轻量化 | 已完成：根手册与当前上下文均在预算内，原文逐字节归档；features/roadmap 按需读。8组校验通过，1353份源码/配置/原测试/技能散列未变，详见[校验记录](../local-private/context-maintenance/verification.json)。后续遵守手册开头预算。 |

@@ -43,6 +43,7 @@ import {
   resolvedRhSiteFromAppInfo,
 } from '../../utils/runningHubResolvedSite';
 import { isProviderUploadMediaReference } from '../../utils/providerMediaReference';
+import { extractRhFieldOptions, resolveRhFieldValue } from '../../utils/rhFieldOptions';
 import { useCanvasNodeRenderMode } from '../CanvasNodeRenderMode';
 
 /**
@@ -63,71 +64,9 @@ function inferValueType(fieldType: string | undefined): 'text' | 'number' | 'ima
   return 'text';
 }
 
-// ========== 提取字段选项列表（LIST / SELECT / DROPDOWN 等下拉类型字段）==========
-// RH apiCallDemo 响应中选项可能出现在多个字段名下，有些应用还会把选项数组直接放在 fieldValue 里。
-// 返回纯文本/数字数组；null 表示不是下拉选项字段。
-//
-// 额外补充：RH webapp apiCallDemo 经常只返回 fieldType=TEXT 不带 options 数组，
-// 但某些常见参数名（aspectRatio/resolution/instanceType...）在实践中就是枚举。
-// 这里维护一个 fieldName 词典作为薱底，仅在 candidates 都未命中时才使用。
-const KNOWN_FIELD_OPTIONS: Record<string, Array<string | number>> = {
-  aspectRatio: ['1:1', '16:9', '9:16', '4:3', '3:4', '4:5', '5:4', '3:2', '2:3', '21:9', '9:21', '1:4', '4:1', '1:8', '8:1'],
-  aspect_ratio: ['1:1', '16:9', '9:16', '4:3', '3:4', '4:5', '5:4', '3:2', '2:3', '21:9', '9:21'],
-  ratio: ['1:1', '16:9', '9:16', '4:3', '3:4', '4:5', '5:4', '3:2', '2:3'],
-  resolution: ['1k', '2k', '4k', '8k'],
-  size: ['512', '768', '1024', '1280', '1536', '2048'],
-  mode: ['text2img', 'img2img'],
-  quality: ['low', 'medium', 'high', 'best'],
-  instanceType: ['default', 'plus', 'pro'],
-  instance_type: ['default', 'plus', 'pro'],
-  precision: ['fp16', 'fp32', 'bf16'],
-  scheduler: ['normal', 'karras', 'exponential', 'sgm_uniform', 'simple', 'ddim_uniform'],
-  sampler: ['euler', 'euler_ancestral', 'heun', 'dpm_2', 'dpm_2_ancestral', 'lms', 'dpmpp_2m', 'dpmpp_sde', 'ddim', 'uni_pc'],
-};
-
+// Shared exact-value parser; never synthesize enums from a field name.
 function extractFieldOptions(it: any): Array<string | number> | null {
-  // 按优先级依次尝试多种字段名
-  const candidates = [
-    it?.fieldData,
-    it?.options,
-    it?.list,
-    it?.values,
-    it?.enum,
-    it?.choices,
-    it?.items,
-    it?.selectOptions,
-    it?.dropdown,
-  ];
-  for (const c of candidates) {
-    if (!Array.isArray(c) || c.length === 0) continue;
-    // 1) 纯文本/数字数组
-    if (c.every((x) => typeof x === 'string' || typeof x === 'number')) {
-      return c as Array<string | number>;
-    }
-    // 2) [{label, value}] 或 [{name, value}] 形式
-    if (c.every((x) => x && typeof x === 'object' && ('value' in x || 'label' in x || 'name' in x))) {
-      return c.map((x: any) => (x.value ?? x.label ?? x.name)).filter((v: any) => v != null);
-    }
-  }
-  // 3) 兑底：fieldType=LIST/SELECT 且 fieldValue 本身就是选项数组
-  const t = String(it?.fieldType || '').toUpperCase();
-  if ((t === 'LIST' || t === 'SELECT' || t === 'DROPDOWN' || t === 'COMBO' || t === 'ENUM') && Array.isArray(it?.fieldValue)) {
-    const arr = it.fieldValue;
-    if (arr.length > 0 && arr.every((x: any) => typeof x === 'string' || typeof x === 'number')) {
-      return arr as Array<string | number>;
-    }
-  }
-  // 4) 词典薱底：按 fieldName 命中常见 RH 枚举字段（不区分大小写）
-  const fname = String(it?.fieldName || '').trim();
-  if (fname) {
-    const direct = KNOWN_FIELD_OPTIONS[fname];
-    if (direct) return direct;
-    const lower = fname.toLowerCase();
-    for (const k in KNOWN_FIELD_OPTIONS) {
-      if (k.toLowerCase() === lower) return KNOWN_FIELD_OPTIONS[k];
-    }
-  }
-  return null;
+  return extractRhFieldOptions(it);
 }
 
 // 取字段默认值：如果 fieldValue 是数组（选项集同时充当默认值），取第 0 个作为默认选中。
@@ -429,19 +368,20 @@ const RunningHubNode = ({ id, data, selected, type }: NodeProps) => {
       const k = paramKey(it.nodeId, it.fieldName);
       const vt = inferValueType(it?.fieldType);
       const v = values[k]?.value;
+      const fieldOptions = extractFieldOptions(it);
       // 未填 且 原始 fieldValue 为空且非必填 → 跳过
       // 如果 fieldValue 是数组（选项集），走 extractDefaultValue 取首项，避免被隐式转成 "a,b,c"。
       const finalVal = v != null && v !== '' ? v : extractDefaultValue(it);
       const submitVal =
-        vt === 'text'
+        vt === 'text' && !fieldOptions
           ? resolveMediaMentions(String(finalVal), getParamMentions(k), mentionMaterials)
           : finalVal;
       seen.add(k);
       out.push({
         nodeId: it.nodeId,
         fieldName: it.fieldName,
-        fieldValue: submitVal,
-        valueType: vt,
+        fieldValue: resolveRhFieldValue(it, submitVal, t('runningHub.invalidOption', { field: `#${it.nodeId} ${it.fieldName}`, value: String(submitVal) })),
+        valueType: fieldOptions ? 'select' : vt,
       });
     }
     // 2. 上游 RhConfig 补充（同 key 已被节点内覆盖则跳过）

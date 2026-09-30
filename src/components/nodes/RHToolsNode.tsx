@@ -22,6 +22,7 @@
  * 主题：useThemeStore（theme=dark/light + style=pixel/tech）
  */
 import { memo, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Handle, Position, useNodeConnections, useNodesData, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
 import {
   Sparkles, Search, Plus, Pencil, AlertCircle, Loader2,
@@ -67,6 +68,7 @@ import {
   type RhParamValue,
 } from '../../utils/rhTextBinding';
 import { isProviderUploadMediaReference } from '../../utils/providerMediaReference';
+import { extractRhFieldOptions, resolveRhFieldValue } from '../../utils/rhFieldOptions';
 import ResizableCorners from './ResizableCorners';
 import RHToolEditorModal from './RHToolEditorModal';
 import type { RHTool, RHToolsBackup } from '../../services/api';
@@ -84,47 +86,9 @@ function inferValueType(fieldType: string | undefined): 'text' | 'number' | 'ima
   return 'text';
 }
 
-const KNOWN_FIELD_OPTIONS: Record<string, Array<string | number>> = {
-  aspectRatio: ['1:1', '16:9', '9:16', '4:3', '3:4', '4:5', '5:4', '3:2', '2:3', '21:9', '9:21', '1:4', '4:1', '1:8', '8:1'],
-  aspect_ratio: ['1:1', '16:9', '9:16', '4:3', '3:4', '4:5', '5:4', '3:2', '2:3', '21:9', '9:21'],
-  ratio: ['1:1', '16:9', '9:16', '4:3', '3:4', '4:5', '5:4', '3:2', '2:3'],
-  resolution: ['1k', '2k', '4k', '8k'],
-  size: ['512', '768', '1024', '1280', '1536', '2048'],
-  mode: ['text2img', 'img2img'],
-  quality: ['low', 'medium', 'high', 'best'],
-  instanceType: ['default', 'plus', 'pro'],
-  instance_type: ['default', 'plus', 'pro'],
-  precision: ['fp16', 'fp32', 'bf16'],
-  scheduler: ['normal', 'karras', 'exponential', 'sgm_uniform', 'simple', 'ddim_uniform'],
-  sampler: ['euler', 'euler_ancestral', 'heun', 'dpm_2', 'dpm_2_ancestral', 'lms', 'dpmpp_2m', 'dpmpp_sde', 'ddim', 'uni_pc'],
-};
-
+// Shared exact-value parser; never synthesize enums from a field name.
 function extractFieldOptions(it: any): Array<string | number> | null {
-  const candidates = [it?.fieldData, it?.options, it?.list, it?.values, it?.enum, it?.choices, it?.items, it?.selectOptions, it?.dropdown];
-  for (const c of candidates) {
-    if (!Array.isArray(c) || c.length === 0) continue;
-    if (c.every((x) => typeof x === 'string' || typeof x === 'number')) return c as Array<string | number>;
-    if (c.every((x) => x && typeof x === 'object' && ('value' in x || 'label' in x || 'name' in x))) {
-      return c.map((x: any) => (x.value ?? x.label ?? x.name)).filter((v: any) => v != null);
-    }
-  }
-  const t = String(it?.fieldType || '').toUpperCase();
-  if ((t === 'LIST' || t === 'SELECT' || t === 'DROPDOWN' || t === 'COMBO' || t === 'ENUM') && Array.isArray(it?.fieldValue)) {
-    const arr = it.fieldValue;
-    if (arr.length > 0 && arr.every((x: any) => typeof x === 'string' || typeof x === 'number')) {
-      return arr as Array<string | number>;
-    }
-  }
-  const fname = String(it?.fieldName || '').trim();
-  if (fname) {
-    const direct = KNOWN_FIELD_OPTIONS[fname];
-    if (direct) return direct;
-    const lower = fname.toLowerCase();
-    for (const k in KNOWN_FIELD_OPTIONS) {
-      if (k.toLowerCase() === lower) return KNOWN_FIELD_OPTIONS[k];
-    }
-  }
-  return null;
+  return extractRhFieldOptions(it);
 }
 
 function extractDefaultValue(it: any): string {
@@ -146,6 +110,7 @@ const activeRHToolsPolls = new Map<string, RHToolsPollEntry>();
 const rhToolsPollKey = (nodeId: string, taskId: string) => `${nodeId}::${taskId}`;
 
 const RHToolsNode = ({ id, data, selected }: NodeProps) => {
+  const { t } = useTranslation('nodes');
   const update = useUpdateNodeData(id);
   const updateNodeInternals = useUpdateNodeInternals();
   const { theme, style: themeStyle } = useThemeStore();
@@ -428,13 +393,14 @@ const RHToolsNode = ({ id, data, selected }: NodeProps) => {
       const k = paramKey(it.nodeId, it.fieldName);
       const vt = inferValueType(it?.fieldType);
       const v = values[k]?.value;
+      const fieldOptions = extractFieldOptions(it);
       const finalVal = v != null && v !== '' ? v : extractDefaultValue(it);
       const submitVal =
-        vt === 'text'
+        vt === 'text' && !fieldOptions
           ? resolveMediaMentions(String(finalVal), getParamMentions(k), mentionMaterials)
           : finalVal;
       seen.add(k);
-      out.push({ nodeId: it.nodeId, fieldName: it.fieldName, fieldValue: submitVal, valueType: vt });
+      out.push({ nodeId: it.nodeId, fieldName: it.fieldName, fieldValue: resolveRhFieldValue(it, submitVal, t('runningHub.invalidOption', { field: `#${it.nodeId} ${it.fieldName}`, value: String(submitVal) })), valueType: fieldOptions ? 'select' : vt });
     }
     const upstreamList = collectUpstreamConfigList();
     for (const it of upstreamList) {
