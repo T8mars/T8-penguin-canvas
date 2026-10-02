@@ -350,8 +350,10 @@ export interface SeedreamNzSubmitRequest {
     | 'wan-2.7-global-i2i-pro'
     | 'seedream-v5-pro-layer-decomposition'
     | 'dola-seedream-5.0-pro-layer-decomposition'
+    | 'seedream-v5-flash-layer-decomposition'
+    | 'dola-seedream-5.0-flash-layer-decomposition'
     | 'vosr2-image-upscale';
-  modelFamily?: 'domestic' | 'overseas';
+  modelFamily?: 'domestic' | 'overseas' | 'domestic-flash' | 'overseas-flash';
   resolution?: 'auto' | '0.5k' | '1k' | '1.5k' | '2k' | '4k';
   ratio?: 'adaptive' | '16:9' | '4:3' | '1:1' | '3:4' | '9:16' | '21:9' | '2:3' | '3:2' | '4:5' | '5:4';
   size?: string;

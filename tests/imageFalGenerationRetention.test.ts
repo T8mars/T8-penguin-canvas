@@ -9,6 +9,7 @@ import historyInputContract from '../backend/src/shared/generationHistoryInputCo
 import { GPT_IMAGE_25_MAX_IMAGES, GPT_IMAGE_25_PROMPT_MAX_LENGTH, validateGptImage25Size } from '../src/providers/models';
 import { historyImageBasicSettings } from '../src/utils/historyImageBasicSettings';
 import { buildMjPrompt } from '../src/services/generation';
+import { seedreamNzRuntimeModel, seedreamNzValidation } from '../src/utils/seedreamNzContract';
 
 // Execute the repository's actual ImageNode callback and wrapper with controlled
 // transports/lifecycle promises. Request builders for branch fixtures are not
@@ -44,7 +45,8 @@ function harness(sync = true) {
   const fresh = ['/files/output/new-1.png', '/files/output/new-2.png', '/files/output/new-3.png'];
   const state: any = { data: { status: 'success', imageUrl: old[0], imageUrls: [...old], lastPrompt: 'old prompt' }, calls: 0, queries: 0, notifications: 0, error: null, outputs: [] };
   const scope: any = {
-    historyInputContract,
+    historyInputContract, seedreamNzRuntimeModel, seedreamNzValidation,
+    isQwenImage21Tab: false, orderedImages: [],
     modelDef: { id: 'fixture-model' }, effectiveAspectRatio: '1:1', effectiveSizeLevel: '1K',
     isStandardGptImage2: false,
     cancelRunTrigger: () => true,
@@ -409,17 +411,18 @@ for (const family of ['gpt-fal', 'nbpro-fal', 'nbpro-fal-random']) test(`${famil
   for (const key of ['requestId', 'taskId', 'falEndpoint', 'providerParams', 'apiKey']) assert.equal(key in settings, false);
 });
 
-for (const family of ['g25-official', 'g25-lowprice', 'grok-edit', 'banana', 'qwen', 'wan', 'seedream-nz', 'layer']) {
+for (const family of ['g25-official', 'g25-lowprice', 'grok-edit', 'banana', 'qwen', 'wan', 'seedream-nz', 'seedream-nz-flash-domestic', 'seedream-nz-flash-overseas', 'layer']) {
   test(`${family} archived budget image options follow the actual submit branch`, async () => {
     const h = pathHarness('vosr2');
     Object.assign(h.scope, { isVosr2ImageTab: false, isZhenzhenBudgetImageSelected: ['g25-official', 'g25-lowprice', 'grok-edit', 'banana'].includes(family),
-      isZhenzhenBudgetPlatformSelected: family !== 'seedream-nz',
-      isSeedreamNz: family === 'seedream-nz', isSeedream: family === 'seedream-nz', seedreamApiSource: 'seedance-nz',
+      isZhenzhenBudgetPlatformSelected: !family.startsWith('seedream-nz'),
+      isSeedreamNz: family.startsWith('seedream-nz'), isSeedream: family.startsWith('seedream-nz'), seedreamApiSource: 'seedance-nz',
       isSeedreamLayerTab: family === 'layer', isQwenImageTab: family === 'qwen', isWanImageTab: family === 'wan', isWanImageI2I: false,
       isZhenzhenImageG25: family.startsWith('g25'), isZhenzhenImageG25Official: family === 'g25-official', isZhenzhenImageG25Lowprice: family === 'g25-lowprice',
       isZhenzhenGrokImageV2Edit: family === 'grok-edit', isZhenzhenGrokImage: false, isZhenzhenNb: family === 'banana',
       isZhenzhenApimartImage: false, isZhenzhenLowpriceImage: false,
-      seedreamNzModelFamily: 'overseas', seedreamNzResolution: 'custom', seedreamNzCustomSize: '2048x1152', seedreamNzResolvedSize: '2048x1152',
+      seedreamNzModelFamily: family === 'seedream-nz-flash-domestic' ? 'domestic-flash' : family === 'seedream-nz-flash-overseas' ? 'overseas-flash' : 'overseas',
+      seedreamNzResolution: 'custom', seedreamNzCustomSize: '2048x1152', seedreamNzResolvedSize: '2048x1152',
       seedreamNzUiModel: 'dola-seedream-5.0-pro-i2i',
       seedreamOutputFormat: 'jpeg', seedreamLayerResolution: '1.5k',
       zhenzhenImageG25Size: family === 'g25-official' ? 'custom' : '16:9', zhenzhenImageG25CustomWidth: 1536, zhenzhenImageG25CustomHeight: 1024,
@@ -442,7 +445,7 @@ for (const family of ['g25-official', 'g25-lowprice', 'grok-edit', 'banana', 'qw
       : family === 'banana' ? { apimartImageCount: 'n' }
       : family === 'qwen' ? { qwenSizingMode: 'sizing_mode', qwenCustomSize: 'size', qwenImageCount: 'n', qwenPromptExtend: 'prompt_extend', qwenSeed: 'seed' }
       : family === 'wan' ? { wanImageWidth: 'width', wanImageHeight: 'height', wanImageThinkingMode: 'thinking_mode' }
-      : family === 'seedream-nz' ? { seedreamNzModelFamily: 'modelFamily', seedreamNzCustomSize: 'size', seedreamOutputFormat: 'output_format' }
+      : family.startsWith('seedream-nz') ? { seedreamNzModelFamily: 'modelFamily', seedreamNzCustomSize: 'size', seedreamOutputFormat: 'output_format' }
       : { seedreamLayerResolution: 'resolution', seedreamOutputFormat: 'output_format' };
     for (const [setting, parameter] of Object.entries(mapping)) assert.equal(settings[setting], sent[parameter!], setting);
     if (family === 'g25-official') {

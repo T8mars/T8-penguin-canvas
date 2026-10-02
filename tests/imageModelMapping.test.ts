@@ -221,8 +221,7 @@ test('Seedream tab keeps legacy source by default and exposes isolated seedance.
   assert.match(imageNodeSource, /d\?\.seedreamApiSource === 'seedance-nz' \? 'seedance-nz' : 'zhenzhen'/);
   assert.match(imageNodeSource, /贞贞的AI工坊（海外） · 原 Seedream/);
   assert.match(imageNodeSource, /贞贞的平价AI小屋 · api\.seedance\.nz/);
-  assert.match(imageNodeSource, /seedream-v5-pro-i2i/);
-  assert.match(imageNodeSource, /seedream-v5-pro-t2i/);
+  assert.match(imageNodeSource, /seedreamNzRuntimeModel\(seedreamNzModelFamily, providerRefs.length\)/);
   assert.match(imageNodeSource, /submitSeedreamNz/);
   assert.match(imageNodeSource, /querySeedreamNz/);
   assert.match(proxySource, /\/image\/seedance-nz\/submit/);
@@ -242,6 +241,8 @@ test('Seedream layer decomposition is an isolated single-image tab with ordered 
   assert.deepEqual(SEEDREAM_LAYER_DECOMPOSITION_MODELS, [
     SEEDREAM_LAYER_DECOMPOSITION_MODEL,
     DOLA_SEEDREAM_LAYER_DECOMPOSITION_MODEL,
+    'seedream-v5-flash-layer-decomposition',
+    'dola-seedream-5.0-flash-layer-decomposition',
   ]);
   assert.deepEqual(
     layer.apiModelOptions.map((option) => option.value),

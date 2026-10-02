@@ -13,6 +13,7 @@ import LazyVideo from '../LazyVideo';
 import PromptTextarea from '../PromptTextarea';
 import { resolveMediaMentions, type MediaMention } from './mediaMentions';
 import historyInputContract from '../../../backend/src/shared/generationHistoryInputContract.json';
+import { SEEDREAM_NZ_FAMILIES, seedreamNzFamily, seedreamNzFamilyChange, seedreamNzRuntimeModel, seedreamNzValidation, type SeedreamNzResolution } from '../../utils/seedreamNzContract';
 import {
   IMAGE_MODELS,
   FAL_REGISTRY,
@@ -688,10 +689,9 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
     : 'auto';
   const seedreamApiSource: 'zhenzhen' | 'seedance-nz' = d?.seedreamApiSource === 'seedance-nz' ? 'seedance-nz' : 'zhenzhen';
   const isSeedreamNz = isSeedream && seedreamApiSource === 'seedance-nz';
-  const seedreamNzModelFamily: 'domestic' | 'overseas' = d?.seedreamNzModelFamily === 'overseas'
-    ? 'overseas'
-    : 'domestic';
-  const seedreamNzResolution: '1k' | '2k' | 'custom' = ['1k', '2k', 'custom'].includes(d?.seedreamNzResolution)
+  const seedreamNzModelFamily = seedreamNzFamily(d?.seedreamNzModelFamily);
+  const seedreamNzContract = SEEDREAM_NZ_FAMILIES[seedreamNzModelFamily];
+  const seedreamNzResolution: SeedreamNzResolution = ['1k', '1.5k', '2k', 'custom'].includes(d?.seedreamNzResolution)
     ? d.seedreamNzResolution
     : '2k';
   const seedreamNzCustomSize = typeof d?.seedreamNzCustomSize === 'string' ? d.seedreamNzCustomSize : '2048x2048';
@@ -802,10 +802,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
   const materialOrder: string[] = Array.isArray(d?.materialOrder) ? d.materialOrder : [];
   const orderedImages = useOrderedMaterials(allImagesUnordered, materialOrder);
   const orderedTexts = useOrderedMaterials(visibleUpstreamTexts, materialOrder);
-  const seedreamNzUiModel = seedreamNzModelFamily === 'overseas'
-    ? (orderedImages.length > 0 ? 'dola-seedream-5.0-pro-i2i' : 'dola-seedream-5.0-pro-t2i')
-    : (orderedImages.length > 0 ? 'seedream-v5-pro-i2i' : 'seedream-v5-pro-t2i');
-  const seedreamNzModelRegion = seedreamNzModelFamily === 'overseas' ? '海外模型' : '国内模型';
+  const seedreamNzUiModel = seedreamNzRuntimeModel(seedreamNzModelFamily, orderedImages.length);
   const mentionMaterials = useMemo(
     () => orderedImages.slice(0, maxRefs),
     [orderedImages, maxRefs],
@@ -1292,6 +1289,15 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
       setError('Seedream 自定义尺寸格式应为 宽x高，例如 2048x1536');
       logBus.error(`生成中止: Seedream 尺寸格式无效 ${seedreamResolvedSize || '(空)'}`, src);
       return;
+    }
+    if (isSeedreamNz) {
+      const invalid = seedreamNzValidation(seedreamNzModelFamily, seedreamNzResolution, finalPrompt, orderedImages.length);
+      if (invalid) {
+        const message = translate(`nodes:generation.seedreamNz.${invalid.code}`, { count: invalid.count });
+        setError(message);
+        logBus.error(message, src);
+        return;
+      }
     }
     if (isSeedreamNz && seedreamNzResolution === 'custom') {
       const match = seedreamNzResolvedSize.match(/^(\d+)x(\d+)$/);
@@ -1984,9 +1990,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
           ? QWEN_IMAGE_GLOBAL_21_MODEL
           : isZhenzhenBudgetImageSelected
           ? apiModel
-          : seedreamNzModelFamily === 'overseas'
-            ? (providerRefs.length ? 'dola-seedream-5.0-pro-i2i' : 'dola-seedream-5.0-pro-t2i')
-            : (providerRefs.length ? 'seedream-v5-pro-i2i' : 'seedream-v5-pro-t2i');
+          : seedreamNzRuntimeModel(seedreamNzModelFamily, providerRefs.length);
         const imageFamilyLabel = isVosr2ImageTab
           ? 'Vosr2 图片超分'
           : isSeedreamLayerTab
@@ -2049,6 +2053,8 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
             ? apiModel as
               | 'seedream-v5-pro-layer-decomposition'
               | 'dola-seedream-5.0-pro-layer-decomposition'
+              | 'seedream-v5-flash-layer-decomposition'
+              | 'dola-seedream-5.0-flash-layer-decomposition'
             : isWanImageTab
             ? apiModel as
               | 'wan-2.7-global-t2i'
@@ -3164,16 +3170,21 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
                   <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.modelRegion')}</label>
                   <select
                     value={seedreamNzModelFamily}
-                    onChange={(e) => update({ seedreamNzModelFamily: e.target.value })}
+                    onChange={(event) => seedreamNzFamilyChange(event, update)}
                     style={{ background: '#18181b', color: '#ffffff' }}
                     className="w-full rounded border border-white/10 px-2 py-1 text-xs outline-none focus:border-cyan-400/60"
                   >
-                    <option value="domestic" style={{ background: '#18181b', color: '#ffffff' }}>Seedream v5 Pro（国内模型）</option>
-                    <option value="overseas" style={{ background: '#18181b', color: '#ffffff' }}>Dola Seedream 5.0 Pro（海外模型）</option>
+                    {Object.entries(SEEDREAM_NZ_FAMILIES).map(([family, selected]) => (
+                      <option key={family} value={family} style={{ background: '#18181b', color: '#ffffff' }}>
+                        {selected.label} · {translate(`nodes:generation.seedreamNz.${selected.region}`)}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div className="text-[10px] leading-4 text-cyan-100/75">
-                  实际模型：{seedreamNzUiModel}（{seedreamNzModelRegion}，按参考图自动切换）
+                  {translate('nodes:generation.seedreamNz.actualModel', { model: seedreamNzUiModel })}
+                  <div>{translate('nodes:generation.seedreamNz.limits', { count: seedreamNzContract.promptMaxLength, mb: seedreamNzContract.referenceMaxBytes / 1048576 })}</div>
+                  {!seedreamNzContract.models[1] && <div>{translate('nodes:generation.seedreamNz.textOnly')}</div>}
                   {!zhenzhenSd2ApiKey && <div className="mt-1 text-amber-300">{translate('nodes:generation.missingBudgetKey')}</div>}
                 </div>
               </div>
@@ -3674,6 +3685,9 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
                   className="w-full rounded border border-white/10 px-2 py-1 text-xs outline-none focus:border-white/30"
                 >
                   <option value="1k" style={{ background: '#18181b', color: '#ffffff' }}>1K</option>
+                  {(seedreamNzContract.resolutions.includes('1.5k') || seedreamNzResolution === '1.5k') && (
+                    <option value="1.5k" disabled={!seedreamNzContract.resolutions.includes('1.5k')} style={{ background: '#18181b', color: '#ffffff' }}>1.5K</option>
+                  )}
                   <option value="2k" style={{ background: '#18181b', color: '#ffffff' }}>2K</option>
                   <option value="custom" style={{ background: '#18181b', color: '#ffffff' }}>Custom</option>
                 </select>

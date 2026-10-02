@@ -1,5 +1,6 @@
 const canvasNodeSchema = require('../shared/canvasNodeSchema.json');
 const seedanceNzLlmModels = require('../shared/seedanceNzLlmModels.json');
+const seedreamNzContract = require('../shared/seedreamNzContract.json');
 
 const RUN_INTENT_AUTHORITY_SCHEMA = 't8-run-intent-authority-v1';
 const MAX_CANVAS_NODES = 20_000;
@@ -81,6 +82,10 @@ const IMAGE_RUNTIME_MODELS = Object.freeze({
     defaultModel: 'seedream-v5-pro',
     models: ['seedream-v5-pro'],
   },
+  'seedream-layer-decomposition': {
+    defaultModel: seedreamNzContract.layerModels[0],
+    models: seedreamNzContract.layerModels,
+  },
   'qwen-image-global-2.1': {
     defaultModel: 'qwen-image-global-2.1',
     models: ['qwen-image-global-2.1'],
@@ -135,6 +140,7 @@ const VIDEO_RUNTIME_MODELS = Object.freeze({
 });
 
 const SEEDANCE_NZ_IMAGE_RUNTIME_MODELS = new Set([
+  ...seedreamNzContract.layerModels,
   'zhenzhen-image-g2-t2i',
   'zhenzhen-image-g2-i2i',
   'zhenzhen-image-g-v2-lowprice',
@@ -345,12 +351,14 @@ function providerDeclarationForNode(node, context = {}) {
     const seedreamNz = resolved.familyId === 'seedream-v5-pro' && data.seedreamApiSource === 'seedance-nz';
     if (seedreamNz) {
       const hasReference = hasAuthoritativeImageReference(node, context);
-      const overseas = data.seedreamNzModelFamily === 'overseas';
+      const family = Object.hasOwn(seedreamNzContract.families, data.seedreamNzModelFamily)
+        ? seedreamNzContract.families[data.seedreamNzModelFamily] : seedreamNzContract.families.domestic;
+      if (hasReference && !family.models[1]) {
+        throw authorityError('intent_seedream_text_only', '当前模型系列仅支持文生图，请移除参考图或切换图生图系列', [node.id]);
+      }
       return {
         provider: 'seedance-nz',
-        model: overseas
-          ? (hasReference ? 'dola-seedream-5.0-pro-i2i' : 'dola-seedream-5.0-pro-t2i')
-          : (hasReference ? 'seedream-v5-pro-i2i' : 'seedream-v5-pro-t2i'),
+        model: family.models[hasReference ? 1 : 0],
       };
     }
     if (resolved.familyId === 'midjourney') {

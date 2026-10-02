@@ -15884,6 +15884,18 @@
     ],
     "boundary": "Released in v3.2.1. It cannot reconstruct writes whose only durable SQLite pages/WAL were already lost; it provides a safe in-app choice to restore the newest fully verified canonical backup while preserving evidence. UUID-mismatched or otherwise unverifiable backups remain blocked and require an operator recovery flow. Affected-user old databases and installed-upgrade evidence remain deferred, not passed."
   },
+  "seedreamFlash20261002": {
+    "status": "development-live-verified",
+    "date": "2026-10-02",
+    "releaseIncluded": false,
+    "provider": "seedance-nz",
+    "tabs": ["Seedream", "Seedream分层"],
+    "models": ["seedream-v5-flash-t2i", "seedream-v5-flash-i2i", "seedream-v5-flash-layer-decomposition", "dola-seedream-5.0-flash-t2i", "dola-seedream-5.0-flash-i2i", "dola-seedream-5.0-flash-layer-decomposition"],
+    "summary": "Flash families in existing tabs; shared exact runtime identity, 5000-character prompts, 1.5k, 30 MiB references and complete ordered layer outputs. Pro defaults/limits retained; trusted COS GET recovery added.",
+    "details": "docs/seedream-v5-flash.md",
+    "verification": {"live": "6/6 succeeded, HTTP 200; 13/13 outputs downloaded, fully decoded and visually inspected; read-only official COS alias has identical SHA-256", "offline": "263/263 targeted and adjacent tests; type-check, i18n, capability sync and context checks passed", "report": "local-private/seedream-flash-live-20261002/report.json", "tests": "local-private/seedream-flash-live-20261002/final-tests.log"},
+    "boundary": "No version bump, production build, installer, push or Release; installed-user and F8-F10 evidence not claimed. Credentials and live identities remain private."
+  },
   "qwen21AnimateMotionTransfer20260922": {
     "status": "released-v3.2.0-live-verified",
     "date": "2026-09-22",

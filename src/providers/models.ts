@@ -254,6 +254,8 @@ export const DOLA_SEEDREAM_LAYER_DECOMPOSITION_MODEL = 'dola-seedream-5.0-pro-la
 export const SEEDREAM_LAYER_DECOMPOSITION_MODELS = [
   SEEDREAM_LAYER_DECOMPOSITION_MODEL,
   DOLA_SEEDREAM_LAYER_DECOMPOSITION_MODEL,
+  'seedream-v5-flash-layer-decomposition',
+  'dola-seedream-5.0-flash-layer-decomposition',
 ] as const;
 export type SeedreamLayerDecompositionModel = typeof SEEDREAM_LAYER_DECOMPOSITION_MODELS[number];
 export const SEEDREAM_LAYER_RESOLUTIONS = ['auto', '1k', '1.5k', '2k'] as const;
@@ -409,7 +411,7 @@ export const IMAGE_MODELS: ImageModelDef[] = [
   {
     id: 'seedream-layer-decomposition',
     apiModel: SEEDREAM_LAYER_DECOMPOSITION_MODEL,
-    label: 'Seedream V5 Pro 分层',
+    label: 'Seedream V5 Pro / Flash 分层',
     tabLabel: 'Seedream分层',
     provider: 'zhenzhen',
     paramKind: 'seedream-layer',
@@ -421,7 +423,7 @@ export const IMAGE_MODELS: ImageModelDef[] = [
     defaultSize: '',
     supportsReference: true,
     maxReferenceImages: 1,
-    description: 'Seedream / Dola Seedream V5 Pro 图层拆分 · 单图输入，完整返回底图与全部有序图层',
+    description: 'Seedream / Dola Seedream V5 Pro / Flash 图层拆分 · 单图输入，完整返回底图与全部有序图层',
   },
   {
     id: 'qwen-image-3.0',

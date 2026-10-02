@@ -1,0 +1,9 @@
+{
+  "families": {
+    "domestic": { "label": "Seedream V5 Pro", "region": "domestic", "promptMaxLength": 2000, "referenceMaxBytes": 10485760, "resolutions": ["1k", "2k"], "models": ["seedream-v5-pro-t2i", "seedream-v5-pro-i2i"] },
+    "overseas": { "label": "Dola Seedream 5.0 Pro", "region": "overseas", "promptMaxLength": 2000, "referenceMaxBytes": 10485760, "resolutions": ["1k", "2k"], "models": ["dola-seedream-5.0-pro-t2i", "dola-seedream-5.0-pro-i2i"] },
+    "domestic-flash": { "label": "Seedream V5 Flash", "region": "domestic", "promptMaxLength": 5000, "referenceMaxBytes": 31457280, "resolutions": ["1k", "1.5k", "2k"], "models": ["seedream-v5-flash-t2i", "seedream-v5-flash-i2i"] },
+    "overseas-flash": { "label": "Dola Seedream 5.0 Flash", "region": "overseas", "promptMaxLength": 5000, "referenceMaxBytes": 31457280, "resolutions": ["1k", "1.5k", "2k"], "models": ["dola-seedream-5.0-flash-t2i", "dola-seedream-5.0-flash-i2i"] }
+  },
+  "layerModels": ["seedream-v5-pro-layer-decomposition", "dola-seedream-5.0-pro-layer-decomposition", "seedream-v5-flash-layer-decomposition", "dola-seedream-5.0-flash-layer-decomposition"]
+}

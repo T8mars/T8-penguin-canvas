@@ -1,0 +1,111 @@
+{
+  "schema": "t8-workflow-fragment",
+  "version": 1,
+  "title": "dola-seedream-5.0-flash-i2i",
+  "nodes": [
+    {
+      "id": "source",
+      "type": "upload",
+      "position": {
+        "x": 0,
+        "y": 80
+      },
+      "data": {
+        "label": "上传源图 / Upload source image",
+        "uploadType": "image",
+        "lockedUploadType": "image"
+      }
+    },
+    {
+      "id": "generation",
+      "type": "image",
+      "position": {
+        "x": 420,
+        "y": 80
+      },
+      "data": {
+        "label": "dola-seedream-5.0-flash-i2i",
+        "model": "seedream-v5-pro",
+        "apiModel": "seedream-v5-pro",
+        "imageBuiltinSource": "seedance-nz",
+        "seedreamApiSource": "seedance-nz",
+        "seedreamNzModelFamily": "overseas-flash",
+        "seedreamNzResolution": "1.5k",
+        "seedreamNzCustomSize": "2048x2048",
+        "seedreamOutputFormat": "png",
+        "prompt": "Keep the subject and composition. Change the background to a soft blue studio.",
+        "referenceImages": [],
+        "imageOnlyOutput": true,
+        "reuseResult": false
+      }
+    },
+    {
+      "id": "output",
+      "type": "output",
+      "position": {
+        "x": 840,
+        "y": 80
+      },
+      "data": {
+        "label": "结果 / Result"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "source-edge",
+      "source": "source",
+      "target": "generation"
+    },
+    {
+      "id": "output-edge",
+      "source": "generation",
+      "target": "output"
+    }
+  ],
+  "nodeCount": 3,
+  "edgeCount": 2,
+  "nodeTypes": [
+    "upload",
+    "image",
+    "output"
+  ],
+  "topologyPreview": {
+    "nodes": [
+      {
+        "id": "source",
+        "type": "upload",
+        "label": "上传源图 / Upload source image",
+        "x": 50,
+        "y": 130
+      },
+      {
+        "id": "generation",
+        "type": "image",
+        "label": "dola-seedream-5.0-flash-i2i",
+        "x": 470,
+        "y": 130
+      },
+      {
+        "id": "output",
+        "type": "output",
+        "label": "结果 / Result",
+        "x": 890,
+        "y": 130
+      }
+    ],
+    "edges": [
+      {
+        "id": "source-edge",
+        "source": "source",
+        "target": "generation"
+      },
+      {
+        "id": "output-edge",
+        "source": "generation",
+        "target": "output"
+      }
+    ]
+  },
+  "savedAt": "2026-10-02T00:00:00.000Z"
+}

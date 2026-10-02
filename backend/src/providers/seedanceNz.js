@@ -69,10 +69,9 @@ const SEEDANCE25_MULTI_LIMITS = Object.freeze({
   audios: 10,
   total: 50,
 });
-const IMAGE_MODEL_PAIRS = {
-  domestic: ['seedream-v5-pro-t2i', 'seedream-v5-pro-i2i'],
-  overseas: ['dola-seedream-5.0-pro-t2i', 'dola-seedream-5.0-pro-i2i'],
-};
+const seedreamNzContract = require('../shared/seedreamNzContract.json');
+const IMAGE_MODEL_PAIRS = Object.fromEntries(Object.entries(seedreamNzContract.families)
+  .map(([family, contract]) => [family, contract.models]));
 const ZHENZHEN_IMAGE_G2_T2I_MODEL = 'zhenzhen-image-g2-t2i';
 const ZHENZHEN_IMAGE_G2_I2I_MODEL = 'zhenzhen-image-g2-i2i';
 const ZHENZHEN_IMAGE_G2_MODELS = new Set([
@@ -184,10 +183,7 @@ const WAN27_GLOBAL_I2I_PROMPT_MAX_LENGTH = 2048;
 const WAN27_GLOBAL_MAX_REFERENCE_IMAGES = 9;
 const SEEDREAM_LAYER_DECOMPOSITION_MODEL = 'seedream-v5-pro-layer-decomposition';
 const DOLA_SEEDREAM_LAYER_DECOMPOSITION_MODEL = 'dola-seedream-5.0-pro-layer-decomposition';
-const SEEDREAM_LAYER_DECOMPOSITION_MODELS = new Set([
-  SEEDREAM_LAYER_DECOMPOSITION_MODEL,
-  DOLA_SEEDREAM_LAYER_DECOMPOSITION_MODEL,
-]);
+const SEEDREAM_LAYER_DECOMPOSITION_MODELS = new Set(seedreamNzContract.layerModels);
 const SEEDREAM_LAYER_RESOLUTIONS = new Set(['auto', '1k', '1.5k', '2k']);
 const SEEDREAM_LAYER_OUTPUT_FORMATS = new Set(['jpeg', 'png']);
 const SEEDREAM_LAYER_PROMPT_MAX_LENGTH = 2000;
@@ -2640,15 +2636,16 @@ async function buildPayload(request, apiKey, options = {}) {
   return { payload, taskType, model };
 }
 
-function normalizeImagePrompt(value) {
+function normalizeImagePrompt(value, maxLength = 2000) {
   const prompt = String(value || '').trim();
-  if (prompt.length < 5 || prompt.length > 2000) {
-    throw new Error('seedance.nz Seedream 提示词长度必须为 5-2000 字符');
+  const length = Array.from(prompt).length;
+  if (length < 5 || length > maxLength) {
+    throw new Error(`seedance.nz Seedream 提示词长度必须为 5-${maxLength} 字符`);
   }
   return prompt;
 }
 
-function normalizeImageMetadata(request = {}) {
+function normalizeImageMetadata(request = {}, resolutions = [...IMAGE_RESOLUTIONS]) {
   const outputFormat = String(request.output_format || request.outputFormat || 'png').trim().toLowerCase();
   if (!IMAGE_OUTPUT_FORMATS.has(outputFormat)) {
     throw new Error('seedance.nz Seedream 输出格式只支持 png 或 jpeg');
@@ -2656,8 +2653,8 @@ function normalizeImageMetadata(request = {}) {
   const metadata = { output_format: outputFormat };
   const resolution = String(request.resolution || '').trim().toLowerCase();
   if (resolution) {
-    if (!IMAGE_RESOLUTIONS.has(resolution)) {
-      throw new Error('seedance.nz Seedream 分辨率只支持 1k 或 2k');
+    if (!resolutions.includes(resolution)) {
+      throw new Error(`seedance.nz Seedream 分辨率只支持 ${resolutions.join(' / ')}`);
     }
     metadata.resolution = resolution;
     return metadata;
@@ -3173,30 +3170,32 @@ async function buildImagePayload(request, apiKey, options = {}) {
   const requestedFamily = String(
     request.modelFamily || request.model_family || request.model || 'domestic',
   ).trim().toLowerCase();
-  const family = requestedFamily === 'overseas'
-    || requestedFamily === 'dola'
-    || requestedFamily.startsWith('dola-seedream-5.0-pro')
-    ? 'overseas'
-    : requestedFamily === 'domestic'
-      || requestedFamily === 'seedream'
-      || requestedFamily.startsWith('seedream-v5-pro')
-      ? 'domestic'
-      : '';
+  const family = Object.hasOwn(IMAGE_MODEL_PAIRS, requestedFamily) ? requestedFamily
+    : requestedFamily === 'dola' ? 'overseas'
+    : requestedFamily === 'seedream' ? 'domestic'
+    : Object.entries(IMAGE_MODEL_PAIRS).find(([, models]) => models.includes(requestedFamily))?.[0]
+      || (requestedFamily === 'seedream-v5-pro' ? 'domestic' : requestedFamily === 'dola-seedream-5.0-pro' ? 'overseas' : '');
   if (!family) throw new Error(`未知 Seedream 模型系列：${requestedFamily || '(空)'}`);
+  if (requestedModel && IMAGE_MODELS.has(requestedModel)
+    && !IMAGE_MODEL_PAIRS[family].includes(requestedModel)) {
+    throw new Error('Seedream 模型与模型系列不匹配');
+  }
   const modelPair = IMAGE_MODEL_PAIRS[family];
+  if (refs.length && !modelPair[1]) throw new Error('当前 Seedream 模型系列仅支持文生图，请移除参考图或选择图生图系列');
   const model = refs.length ? modelPair[1] : modelPair[0];
   if (!IMAGE_MODELS.has(model)) throw new Error(`未知 Seedream 模型：${model}`);
+  const contract = seedreamNzContract.families[family];
   const payload = {
     model,
-    prompt: normalizeImagePrompt(request.prompt),
-    metadata: normalizeImageMetadata(request),
+    prompt: normalizeImagePrompt(request.prompt, contract.promptMaxLength),
+    metadata: normalizeImageMetadata(request, contract.resolutions),
   };
   if (refs.length) {
     payload.images = [];
     for (const source of refs) {
       payload.images.push(await uploadMedia(source, 'image', apiKey, {
         ...options,
-        maxBytes: IMAGE_REFERENCE_MAX_BYTES,
+        maxBytes: contract.referenceMaxBytes,
         allowedMimes: ['image/jpeg', 'image/png', 'image/webp'],
       }));
     }

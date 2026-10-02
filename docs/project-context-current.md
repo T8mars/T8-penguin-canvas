@@ -1,6 +1,6 @@
 # 当前项目上下文
 
-更新：2026-10-01。仅维护当前事实；长期规则见根 `SKILL.md` 和 `AGENTS.md`。本页预算 80 行 / 8 KiB，旧检查点迁入专题，不追加长日报。
+更新：2026-10-02。仅维护当前事实；长期规则见根 `SKILL.md` 和 `AGENTS.md`。本页预算 80 行 / 8 KiB，旧检查点迁入专题，不追加长日报。
 
 - 默认目录 `E:\PenguinPravite\T8-penguin-canvas`；branch `codex/release-v3.0.8-volcengine-assets-ux`，common dir `.git`。v3.2.3 正式源码与 Tag 固定为 `1d5fc6774bfaa1e332d36be92eec9826e0e2cadc`，不得移动；实际开工仍以 git/worktree 门为准。
 - package 当前为 `3.2.3`，Windows唯一正式链、Mac同源任务36759071469、本机六资产及两个更新清单完整回下载均通过，已为稳定Latest，见[本次发布专题](release-v3.2.3.md)。所有已发布Tag冻结，后续只提交事实，不重建包。
@@ -12,6 +12,7 @@
 
 | 事项 | 当前事实与下一步 |
 | --- | --- |
+| Seedream Flash | 既有 Seedream/分层 Tab 接入国内与海外六路径；真实六任务成功，13/13 结果下载、完整解码并查看，COS 官方别名只读 GET 散列一致。263/263 回归及类型/双语/能力同步门通过；Pro 默认/限制不变，六份无凭据工作流已完成，未打包或发布；见[专题](seedream-v5-flash.md)。 |
 | GitHub PR / Issues | 10月1日：0开放PR、5开放Issues。#30 RH真实枚举与#31启动拒绝后卡锁限定修复提交 `276a2c6`，14项新专项及十套回归81/81通过，已随v3.2.3发布；#31具体输入变更来源待复现，5项均保留验收边界。详见[本轮专题](github-issues-20261001.md)；#29历史证据见[前次专题](github-issues-20260918.md)。 |
 | v3.1.9 发布 | Windows 唯一正式链与同源[Mac任务](https://github.com/T8mars/T8-penguin-canvas/actions/runs/35354742555)成功，稳定 Latest/两个更新清单/六资产独立完整回下载通过，Windows资产追加前后不变，recovery已清除；Mac仍未公证，固定Tag不移动。详见[发布专题](release-v3.1.9.md)。 |
 | v3.1.8 历史发布 | 六资产已完成同源构建和完整回下载，历史Tag/资产冻结不移动；当时Latest后续推进到v3.1.9。旧版发布及首次主机崩溃恢复事实保留在 `feature electronReleaseV318` 与[Mac流程](macos-release.md)。 |

@@ -1424,7 +1424,32 @@ async function fetchTrustedProviderOutput(inputUrl, options, state, initialRedir
     };
   }
 }
+// Tencent documents these two default bucket domains as official equivalents.
+// Only the exact HTTPS bucket endpoint is eligible, never arbitrary suffix matches.
+function tencentCosResultUrlFallback(value) {
+  let target;
+  try { target = new URL(String(value)); } catch { return null; }
+  if (target.protocol !== 'https:' || target.username || target.password || (target.port && target.port !== '443')) return null;
+  if (!/^[a-z0-9][a-z0-9-]*-\d+\.cos\.[a-z0-9][a-z0-9-]*\.myqcloud\.com$/i.test(target.hostname)) return null;
+  target.hostname = target.hostname.replace(/\.myqcloud\.com$/i, '.tencentcos.cn');
+  return target.toString();
+}
+
 async function safeRemoteMediaFetch(inputUrl, options = {}, redirectCount = 0) {
+  try {
+    return await safeRemoteMediaFetchOnce(inputUrl, options, redirectCount);
+  } catch (error) {
+    const fallback = options.trustedProviderOutput === true && !options.signal?.aborted
+      && systemFetchFallbackAllowed(error) ? tencentCosResultUrlFallback(inputUrl) : null;
+    if (!fallback) throw error;
+    // Same completed object, read-only recovery. Cross-origin request credentials
+    // remain stripped; preserve the object's original signed path/query verbatim.
+    const result = await safeRemoteMediaFetchOnce(fallback, { ...options, headers: requestHeaders(options, false) }, redirectCount);
+    return { ...result, providerResultDomainFallback: 'tencent-cos' };
+  }
+}
+
+async function safeRemoteMediaFetchOnce(inputUrl, options = {}, redirectCount = 0) {
   const normalizedOptions = { ...options, _protocols: allowedProtocols(options.protocols) };
   const state = createTransferState(normalizedOptions);
   let activeState = state;
@@ -1709,4 +1734,5 @@ module.exports = {
   safeRemoteMediaFetch,
   safeRemoteJsonFetch,
   safeRemoteUpload,
+  tencentCosResultUrlFallback,
 };

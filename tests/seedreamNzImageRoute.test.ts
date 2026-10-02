@@ -60,8 +60,7 @@ test('Seedream NZ proxy uses the independent SD2 key and stores completed output
   seedanceNz.submitImageTask = async (request: any, apiKey: string) => {
     submittedRequest = request;
     submittedKey = apiKey;
-    const isLayer = request.model === 'seedream-v5-pro-layer-decomposition'
-      || request.model === 'dola-seedream-5.0-pro-layer-decomposition';
+    const isLayer = request.model?.endsWith('-layer-decomposition');
     return {
       taskId: isLayer ? 'seedream-layer-task-1' : 'seedream-nz-task-1',
       model: request.model || (request.images?.length ? 'seedream-v5-pro-i2i' : 'seedream-v5-pro-t2i'),
@@ -181,6 +180,18 @@ test('Seedream NZ proxy uses the independent SD2 key and stores completed output
   assert.equal(dolaLayerSubmit.data.taskId, 'seedream-layer-task-1');
   assert.equal(dolaLayerSubmit.data.model, 'dola-seedream-5.0-pro-layer-decomposition');
   assert.equal(submittedRequest.model, 'dola-seedream-5.0-pro-layer-decomposition');
+
+  for (const model of ['seedream-v5-flash-layer-decomposition', 'dola-seedream-5.0-flash-layer-decomposition']) {
+    const flashLayer = await fetch(`${base}/api/proxy/image/seedance-nz/submit`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model, images: ['/files/input/layer-source.png'], prompt: '', resolution: 'auto', output_format: 'png' }),
+    }).then((response) => response.json());
+    assert.equal(flashLayer.success, true);
+    assert.equal(flashLayer.data.model, model);
+    assert.equal(flashLayer.data.taskProvider, 'seedance-nz-image');
+    assert.equal(submittedRequest.model, model);
+    assert.equal(submittedKey, 'sd2-image-key');
+  }
 
   const layerStatus = await fetch(`${base}/api/proxy/image/seedance-nz/status/seedream-layer-task-1`)
     .then((response) => response.json());

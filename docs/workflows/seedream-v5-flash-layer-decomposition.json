@@ -1,0 +1,108 @@
+{
+  "schema": "t8-workflow-fragment",
+  "version": 1,
+  "title": "seedream-v5-flash-layer-decomposition",
+  "nodes": [
+    {
+      "id": "source",
+      "type": "upload",
+      "position": {
+        "x": 0,
+        "y": 80
+      },
+      "data": {
+        "label": "上传源图 / Upload source image",
+        "uploadType": "image",
+        "lockedUploadType": "image"
+      }
+    },
+    {
+      "id": "generation",
+      "type": "image",
+      "position": {
+        "x": 420,
+        "y": 80
+      },
+      "data": {
+        "label": "seedream-v5-flash-layer-decomposition",
+        "model": "seedream-layer-decomposition",
+        "apiModel": "seedream-v5-flash-layer-decomposition",
+        "imageBuiltinSource": "seedance-nz",
+        "seedreamLayerResolution": "auto",
+        "seedreamOutputFormat": "png",
+        "prompt": "",
+        "referenceImages": [],
+        "imageOnlyOutput": true,
+        "reuseResult": false
+      }
+    },
+    {
+      "id": "output",
+      "type": "output",
+      "position": {
+        "x": 840,
+        "y": 80
+      },
+      "data": {
+        "label": "底图与全部图层 / Base and all layers"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "source-edge",
+      "source": "source",
+      "target": "generation"
+    },
+    {
+      "id": "output-edge",
+      "source": "generation",
+      "target": "output"
+    }
+  ],
+  "nodeCount": 3,
+  "edgeCount": 2,
+  "nodeTypes": [
+    "upload",
+    "image",
+    "output"
+  ],
+  "topologyPreview": {
+    "nodes": [
+      {
+        "id": "source",
+        "type": "upload",
+        "label": "上传源图 / Upload source image",
+        "x": 50,
+        "y": 130
+      },
+      {
+        "id": "generation",
+        "type": "image",
+        "label": "seedream-v5-flash-layer-decomposition",
+        "x": 470,
+        "y": 130
+      },
+      {
+        "id": "output",
+        "type": "output",
+        "label": "底图与全部图层 / Base and all layers",
+        "x": 890,
+        "y": 130
+      }
+    ],
+    "edges": [
+      {
+        "id": "source-edge",
+        "source": "source",
+        "target": "generation"
+      },
+      {
+        "id": "output-edge",
+        "source": "generation",
+        "target": "output"
+      }
+    ]
+  },
+  "savedAt": "2026-10-02T00:00:00.000Z"
+}

@@ -157,6 +157,13 @@ export const zhCN = {
   nodes: {
     generation: {
       advancedSource: '高级来源', platform: '平台', workshop: '贞贞的AI工坊', defaultWorkshop: '默认贞贞工坊', workshopDefault: '贞贞的AI工坊（默认）', budgetHouse: '贞贞的平价AI小屋', externalModel: '外部模型', model: '模型', apiSource: 'API 来源', modelRegion: '模型地区', specificModel: '具体模型', unselectedModel: '未选模型',
+      seedreamNz: {
+        domestic: '国内模型', overseas: '海外模型', actualModel: '实际模型：{{model}}',
+        limits: '提示词 5–{{count}} 字符；参考图最多 10 张，每张不超过 {{mb}} MB。',
+        prompt: 'Seedream 提示词必须为 5–{{count}} 字符。', references: 'Seedream 参考图最多 {{count}} 张。',
+        textOnly: '当前模型系列仅支持文生图；请移除参考图或切换图生图系列。',
+        resolution: '当前系列不支持所选分辨率，请重新选择；Pro 不支持 1.5K。',
+      },
       generationCount: '生成数量', outputCount: '生成张数', width: '宽度', height: '高度', resolutionLevel: '分辨率级别', aspectRatio: '比例', size: '尺寸', resolution: '分辨率', duration: '时长', durationSeconds: '时长（秒）', customSize: '自定义尺寸', outputFormat: '输出格式', contentReview: '内容审查',
       promptFallback: '备用：无上游连接时使用', localPrompt: '本地 Prompt（可选，优先取上游文本）', negativePromptOptional: '反向提示词（可选）', systemPromptOptional: 'System Prompt（可选）', optionalSystemInstruction: '可选系统指令',
       addImage: '添加图片', remove: '移除', ctrlDrag: '按住 Ctrl 拖拽到其他节点', enabled: '开启', disabled: '关闭', automatic: '自动', generate: '生成', generating: '生成中', stop: '停止', stopWithStatus: '停止（{{status}}）', missingBudgetKey: '尚未配置“贞贞的平价AI小屋 API Key”', missingProvider: '当前画布记录的扩展平台未启用或不存在，已临时回到默认来源。',
@@ -754,6 +761,13 @@ export const enUS = {
   nodes: {
     generation: {
       advancedSource: 'Advanced source', platform: 'Platform', workshop: 'Zhenzhen AI Workshop', defaultWorkshop: 'Default Zhenzhen Workshop', workshopDefault: 'Zhenzhen AI Workshop (default)', budgetHouse: 'Zhenzhen Budget AI House', externalModel: 'External model', model: 'Model', apiSource: 'API source', modelRegion: 'Model region', specificModel: 'Specific model', unselectedModel: 'No model selected',
+      seedreamNz: {
+        domestic: 'Domestic model', overseas: 'Overseas model', actualModel: 'Actual model: {{model}}',
+        limits: 'Prompt: 5–{{count}} characters. Up to 10 reference images, at most {{mb}} MB each.',
+        prompt: 'Seedream prompts must contain 5–{{count}} characters.', references: 'Seedream accepts at most {{count}} reference images.',
+        textOnly: 'This model family supports text-to-image only. Remove references or select an editing family.',
+        resolution: 'The selected family does not support this resolution. Select again; Pro does not support 1.5K.',
+      },
       generationCount: 'Generation count', outputCount: 'Output count', width: 'Width', height: 'Height', resolutionLevel: 'Resolution tier', aspectRatio: 'Aspect ratio', size: 'Size', resolution: 'Resolution', duration: 'Duration', durationSeconds: 'Duration (seconds)', customSize: 'Custom size', outputFormat: 'Output format', contentReview: 'Content review',
       promptFallback: 'Fallback when no upstream input is connected', localPrompt: 'Local prompt (optional; upstream text takes priority)', negativePromptOptional: 'Negative prompt (optional)', systemPromptOptional: 'System prompt (optional)', optionalSystemInstruction: 'Optional system instruction',
       addImage: 'Add image', remove: 'Remove', ctrlDrag: 'Hold Ctrl and drag to another node', enabled: 'On', disabled: 'Off', automatic: 'Auto', generate: 'Generate', generating: 'Generating', stop: 'Stop', stopWithStatus: 'Stop ({{status}})', missingBudgetKey: 'The Zhenzhen Budget AI House API key is not configured.', missingProvider: 'The extended platform stored by this canvas is disabled or missing, so the default source is active temporarily.',

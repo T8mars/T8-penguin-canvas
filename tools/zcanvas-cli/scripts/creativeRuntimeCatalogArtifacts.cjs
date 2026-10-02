@@ -15,6 +15,7 @@ const SEEDANCE_SOURCE = path.join(ROOT, 'src', 'config', 'seedance.ts');
 const MIDJOURNEY_SOURCE = path.join(ROOT, 'src', 'utils', 'midjourneyNz.ts');
 const SEEDANCE_NZ_LLM_SOURCE = path.join(ROOT, 'backend', 'src', 'shared', 'seedanceNzLlmModels.json');
 const SEEDANCE_NZ_PROVIDER_SOURCE = path.join(ROOT, 'backend', 'src', 'providers', 'seedanceNz.js');
+const SEEDREAM_NZ_CONTRACT_SOURCE = path.join(ROOT, 'backend', 'src', 'shared', 'seedreamNzContract.json');
 const BACKEND_TARGET = path.join(ROOT, 'backend', 'src', 'shared', 'creativeModelCatalog.json');
 const CLI_TARGET = path.join(ROOT, 'tools', 'zcanvas-cli', 'generated', 'creative-runtime-catalog.json');
 
@@ -24,6 +25,7 @@ const SOURCE_PATHS = [
   MIDJOURNEY_SOURCE,
   SEEDANCE_NZ_LLM_SOURCE,
   SEEDANCE_NZ_PROVIDER_SOURCE,
+  SEEDREAM_NZ_CONTRACT_SOURCE,
 ];
 
 const PLATFORM_META = Object.freeze({

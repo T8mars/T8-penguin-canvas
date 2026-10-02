@@ -1,0 +1,80 @@
+{
+  "schema": "t8-workflow-fragment",
+  "version": 1,
+  "title": "dola-seedream-5.0-flash-t2i",
+  "nodes": [
+    {
+      "id": "generation",
+      "type": "image",
+      "position": {
+        "x": 420,
+        "y": 80
+      },
+      "data": {
+        "label": "dola-seedream-5.0-flash-t2i",
+        "model": "seedream-v5-pro",
+        "apiModel": "seedream-v5-pro",
+        "imageBuiltinSource": "seedance-nz",
+        "seedreamApiSource": "seedance-nz",
+        "seedreamNzModelFamily": "overseas-flash",
+        "seedreamNzResolution": "1.5k",
+        "seedreamNzCustomSize": "2048x2048",
+        "seedreamOutputFormat": "png",
+        "prompt": "A friendly penguin next to a yellow teapot and a green plant on a wooden table, clean illustration.",
+        "referenceImages": [],
+        "imageOnlyOutput": true,
+        "reuseResult": false
+      }
+    },
+    {
+      "id": "output",
+      "type": "output",
+      "position": {
+        "x": 840,
+        "y": 80
+      },
+      "data": {
+        "label": "结果 / Result"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "output-edge",
+      "source": "generation",
+      "target": "output"
+    }
+  ],
+  "nodeCount": 2,
+  "edgeCount": 1,
+  "nodeTypes": [
+    "image",
+    "output"
+  ],
+  "topologyPreview": {
+    "nodes": [
+      {
+        "id": "generation",
+        "type": "image",
+        "label": "dola-seedream-5.0-flash-t2i",
+        "x": 470,
+        "y": 130
+      },
+      {
+        "id": "output",
+        "type": "output",
+        "label": "结果 / Result",
+        "x": 890,
+        "y": 130
+      }
+    ],
+    "edges": [
+      {
+        "id": "output-edge",
+        "source": "generation",
+        "target": "output"
+      }
+    ]
+  },
+  "savedAt": "2026-10-02T00:00:00.000Z"
+}

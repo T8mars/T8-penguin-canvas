@@ -1,12 +1,13 @@
 {
   "schema": "t8-creative-runtime-catalog-v1",
-  "sourceDigest": "a66ecd6443e3bae0365ed5e3d12180444091beca544b4cb04bfe4ee3dccbc660",
+  "sourceDigest": "ad5eb239a1205fc51ba41b9998ff6da7bb7de1d152ec7f110740d18a3285463b",
   "generatedFrom": [
     "src/providers/models.ts",
     "src/config/seedance.ts",
     "src/utils/midjourneyNz.ts",
     "backend/src/shared/seedanceNzLlmModels.json",
-    "backend/src/providers/seedanceNz.js"
+    "backend/src/providers/seedanceNz.js",
+    "backend/src/shared/seedreamNzContract.json"
   ],
   "platforms": [
     {
@@ -741,6 +742,78 @@
       }
     },
     {
+      "id": "image:seedance-nz:dola-seedream-5.0-flash-i2i",
+      "provider": "seedance-nz",
+      "platformLabel": "贞贞的平价AI小屋",
+      "model": "dola-seedream-5.0-flash-i2i",
+      "label": "dola-seedream-5.0-flash-i2i",
+      "family": "seedream-v5-pro",
+      "available": true,
+      "parameters": {
+        "label": "dola-seedream-5.0-flash-i2i",
+        "platformLabel": "贞贞的平价AI小屋",
+        "family": "seedream-v5-pro",
+        "available": true,
+        "tabLabel": "Seedream",
+        "capabilities": [
+          "t2i",
+          "i2i",
+          "edit"
+        ],
+        "parameterKind": "seedream-v5",
+        "supportsReference": true,
+        "maxReferenceImages": 10,
+        "description": "贞贞的平价AI小屋图像模型"
+      }
+    },
+    {
+      "id": "image:seedance-nz:dola-seedream-5.0-flash-layer-decomposition",
+      "provider": "seedance-nz",
+      "platformLabel": "贞贞的平价AI小屋",
+      "model": "dola-seedream-5.0-flash-layer-decomposition",
+      "label": "dola-seedream-5.0-flash-layer-decomposition",
+      "family": "seedream-layer-decomposition",
+      "available": true,
+      "parameters": {
+        "label": "dola-seedream-5.0-flash-layer-decomposition",
+        "platformLabel": "贞贞的平价AI小屋",
+        "family": "seedream-layer-decomposition",
+        "available": true,
+        "tabLabel": "Seedream分层",
+        "capabilities": [
+          "i2i",
+          "edit"
+        ],
+        "parameterKind": "seedream-layer",
+        "supportsReference": true,
+        "maxReferenceImages": 1,
+        "description": "贞贞的平价AI小屋图像模型"
+      }
+    },
+    {
+      "id": "image:seedance-nz:dola-seedream-5.0-flash-t2i",
+      "provider": "seedance-nz",
+      "platformLabel": "贞贞的平价AI小屋",
+      "model": "dola-seedream-5.0-flash-t2i",
+      "label": "dola-seedream-5.0-flash-t2i",
+      "family": "seedream-v5-pro",
+      "available": true,
+      "parameters": {
+        "label": "dola-seedream-5.0-flash-t2i",
+        "platformLabel": "贞贞的平价AI小屋",
+        "family": "seedream-v5-pro",
+        "available": true,
+        "tabLabel": "Seedream",
+        "capabilities": [
+          "t2i"
+        ],
+        "parameterKind": "seedream-v5",
+        "supportsReference": false,
+        "maxReferenceImages": 0,
+        "description": "贞贞的平价AI小屋图像模型"
+      }
+    },
+    {
       "id": "image:seedance-nz:dola-seedream-5.0-pro-i2i",
       "provider": "seedance-nz",
       "platformLabel": "贞贞的平价AI小屋",
@@ -1025,6 +1098,78 @@
         ],
         "parameterKind": "seedream-v5",
         "supportsReference": true,
+        "description": "贞贞的平价AI小屋图像模型"
+      }
+    },
+    {
+      "id": "image:seedance-nz:seedream-v5-flash-i2i",
+      "provider": "seedance-nz",
+      "platformLabel": "贞贞的平价AI小屋",
+      "model": "seedream-v5-flash-i2i",
+      "label": "seedream-v5-flash-i2i",
+      "family": "seedream-v5-pro",
+      "available": true,
+      "parameters": {
+        "label": "seedream-v5-flash-i2i",
+        "platformLabel": "贞贞的平价AI小屋",
+        "family": "seedream-v5-pro",
+        "available": true,
+        "tabLabel": "Seedream",
+        "capabilities": [
+          "t2i",
+          "i2i",
+          "edit"
+        ],
+        "parameterKind": "seedream-v5",
+        "supportsReference": true,
+        "maxReferenceImages": 10,
+        "description": "贞贞的平价AI小屋图像模型"
+      }
+    },
+    {
+      "id": "image:seedance-nz:seedream-v5-flash-layer-decomposition",
+      "provider": "seedance-nz",
+      "platformLabel": "贞贞的平价AI小屋",
+      "model": "seedream-v5-flash-layer-decomposition",
+      "label": "seedream-v5-flash-layer-decomposition",
+      "family": "seedream-layer-decomposition",
+      "available": true,
+      "parameters": {
+        "label": "seedream-v5-flash-layer-decomposition",
+        "platformLabel": "贞贞的平价AI小屋",
+        "family": "seedream-layer-decomposition",
+        "available": true,
+        "tabLabel": "Seedream分层",
+        "capabilities": [
+          "i2i",
+          "edit"
+        ],
+        "parameterKind": "seedream-layer",
+        "supportsReference": true,
+        "maxReferenceImages": 1,
+        "description": "贞贞的平价AI小屋图像模型"
+      }
+    },
+    {
+      "id": "image:seedance-nz:seedream-v5-flash-t2i",
+      "provider": "seedance-nz",
+      "platformLabel": "贞贞的平价AI小屋",
+      "model": "seedream-v5-flash-t2i",
+      "label": "seedream-v5-flash-t2i",
+      "family": "seedream-v5-pro",
+      "available": true,
+      "parameters": {
+        "label": "seedream-v5-flash-t2i",
+        "platformLabel": "贞贞的平价AI小屋",
+        "family": "seedream-v5-pro",
+        "available": true,
+        "tabLabel": "Seedream",
+        "capabilities": [
+          "t2i"
+        ],
+        "parameterKind": "seedream-v5",
+        "supportsReference": false,
+        "maxReferenceImages": 0,
         "description": "贞贞的平价AI小屋图像模型"
       }
     },
@@ -9803,7 +9948,7 @@
   ],
   "counts": {
     "llm": 34,
-    "image": 56,
+    "image": 62,
     "video": 131,
     "audio": 17,
     "actions": 61

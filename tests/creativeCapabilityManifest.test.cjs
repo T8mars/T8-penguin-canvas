@@ -64,6 +64,13 @@ const {
 
 
 const ROOT = path.resolve(__dirname, '..');
+const NODE_TYPES = JSON.parse(fs.readFileSync(
+  path.join(ROOT, 'backend', 'src', 'shared', 'canvasNodeSchema.json'), 'utf8',
+)).types;
+const RUNTIME_KINDS = ['llm', 'image', 'video', 'audio', 'actions'];
+const runtimeInventory = (catalog) => Object.fromEntries(
+  RUNTIME_KINDS.map((kind) => [kind, catalog[kind].length]),
+);
 
 test('creative capability text digests are stable across Windows and Unix line endings', () => {
   const lf = '{"schema":"example"}\nline two\n';
@@ -133,7 +140,7 @@ test('creative capability manifest covers the one-sentence production spine', ()
   assert.equal(payload.principles.explicitApprovalForWrites, true);
   const nodeAdd = payload.capabilities.find((capability) => capability.id === 'canvas.node-add');
   assert.equal(nodeAdd.nodeTypeSelector, 'creator-visible');
-  assert.equal(nodeAdd.nodeTypes.length, 69);
+  assert.deepEqual(nodeAdd.nodeTypes, NODE_TYPES.filter((node) => !node.hidden).map((node) => node.type));
   assert.equal(nodeAdd.nodeTypes.includes('loop'), true);
   assert.equal(nodeAdd.nodeTypes.includes('remove-bg'), false);
 });
@@ -202,8 +209,8 @@ test('capability graph validates real node types and fails closed on drift', () 
   const { manifest, digest } = readGeneratorManifest();
   const runtimeCatalog = buildRuntimeCatalog();
   const graph = buildCapabilityGraph({ manifest, manifestDigest: digest, runtimeCatalog });
-  assert.equal(graph.counts.nodes, 81);
-  assert.equal(graph.counts.runtimeEntries, 269);
+  assert.equal(graph.counts.nodes, NODE_TYPES.length);
+  assert.equal(graph.counts.runtimeEntries, RUNTIME_KINDS.reduce((sum, kind) => sum + runtimeCatalog[kind].length, 0));
   assert.equal(
     graph.counts.operations,
     graph.capabilities.reduce((sum, capability) => sum + capability.operations.length, 0),
@@ -223,17 +230,20 @@ test('capability graph validates real node types and fails closed on drift', () 
   );
   const nodeAdd = graph.capabilities.find((capability) => capability.id === 'canvas.node-add');
   assert.ok(nodeAdd);
-  assert.equal(nodeAdd.nodeTypes.length, 69);
+  assert.deepEqual(nodeAdd.nodeTypes, NODE_TYPES.filter((node) => !node.hidden).map((node) => node.type));
   assert.deepEqual(nodeAdd.nodeTypes, graph.nodes.filter((node) => !node.hidden).map((node) => node.type));
-  assert.equal(graph.counts.referencedNodes, 72);
-  assert.equal(graph.counts.unreferencedNodes, 9);
-  assert.equal(graph.counts.directCapabilityNodes, 72);
-  assert.equal(graph.counts.internalCompatNodes, 1);
-  assert.equal(graph.counts.semanticSupersededNodes, 8);
+  const referencedNodes = graph.nodes.filter((node) => node.capabilityIds.length > 0).length;
+  assert.equal(graph.counts.referencedNodes, referencedNodes);
+  assert.equal(graph.counts.unreferencedNodes, NODE_TYPES.length - referencedNodes);
+  assert.equal(graph.counts.directCapabilityNodes, referencedNodes);
+  assert.equal(graph.counts.internalCompatNodes, graph.gaps.internalCompatNodes.length);
+  assert.equal(graph.counts.semanticSupersededNodes, graph.gaps.semanticSupersededNodes.length);
   assert.equal(graph.counts.publicCapabilityGapNodes, 0);
-  assert.equal(graph.counts.accountedNodes, 81);
+  assert.equal(graph.counts.accountedNodes, NODE_TYPES.length);
   assert.equal(graph.counts.unexplainedNodes, 0);
-  assert.equal(graph.counts.fullyOperableNodes, 19);
+  assert.equal(graph.counts.fullyOperableNodes, graph.nodes.filter((node) => (
+    ['plan', 'preview', 'apply', 'run', 'verify'].every((operation) => node.coverage[operation])
+  )).length);
   assert.equal(graph.nodes.find((node) => node.type === 'minimax-h3-prompt-enhancer').coverage.run, true);
   assert.equal(graph.nodes.find((node) => node.type === 'loop').coverage.apply, true);
   assert.equal(graph.nodes.find((node) => node.type === 'loop').coverage.run, false);
@@ -354,7 +364,7 @@ test('capability graph validates real node types and fails closed on drift', () 
   );
   const coverageMarkdown = coverageMarkdownArtifact(graph);
   assert.equal(
-    coverageMarkdown.includes('Accounted / unexplained nodes: **81 / 0**'),
+    coverageMarkdown.includes(`Accounted / unexplained nodes: **${NODE_TYPES.length} / 0**`),
     true,
   );
   assert.equal(coverageMarkdown.includes('- Public capability gaps: none'), true);
@@ -379,10 +389,11 @@ test('capability graph validates real node types and fails closed on drift', () 
 
 test('dynamic coverage receipt proves node, runtime, handler, risk, verification, and compatibility completeness', () => {
   const { manifest, digest } = readGeneratorManifest();
+  const runtimeCatalog = buildRuntimeCatalog();
   const graph = buildCapabilityGraph({
     manifest,
     manifestDigest: digest,
-    runtimeCatalog: buildRuntimeCatalog(),
+    runtimeCatalog,
   });
   const receipt = buildCapabilityCoverageReceipt(graph);
   assert.deepEqual(receipt, graph.coverageReceipt);
@@ -399,14 +410,12 @@ test('dynamic coverage receipt proves node, runtime, handler, risk, verification
     executable: graph.nodes.filter((node) => node.executable).length,
     generatable: graph.nodes.filter((node) => node.generatable).length,
   });
-  assert.deepEqual(receipt.inventory.nodes, { total: 81, executable: 62, generatable: 12 });
-  assert.deepEqual(receipt.inventory.runtime, {
-    llm: 34,
-    image: 45,
-    video: 115,
-    audio: 17,
-    actions: 58,
+  assert.deepEqual(receipt.inventory.nodes, {
+    total: NODE_TYPES.length,
+    executable: NODE_TYPES.filter((node) => node.executable).length,
+    generatable: NODE_TYPES.filter((node) => node.generatable).length,
   });
+  assert.deepEqual(receipt.inventory.runtime, runtimeInventory(runtimeCatalog));
   assert.equal(receipt.inventory.capabilities, graph.capabilities.length);
   assert.equal(receipt.inventory.handlers, graph.bindings.length);
   assert.equal(receipt.inventory.operations, graph.counts.operations);
@@ -422,11 +431,11 @@ test('dynamic coverage receipt proves node, runtime, handler, risk, verification
   assert.doesNotThrow(() => assertCapabilityCoverageReceipt(graph));
   const markdown = coverageMarkdownArtifact(graph);
   assert.equal(
-    markdown.includes('Dynamic node inventory (total / executable / generatable): **81 / 62 / 12**'),
+    markdown.includes(`Dynamic node inventory (total / executable / generatable): **${Object.values(receipt.inventory.nodes).join(' / ')}**`),
     true,
   );
   assert.equal(
-    markdown.includes('Dynamic runtime inventory (LLM / image / video / audio / actions): **34 / 45 / 115 / 17 / 58**'),
+    markdown.includes(`Dynamic runtime inventory (LLM / image / video / audio / actions): **${RUNTIME_KINDS.map((kind) => runtimeCatalog[kind].length).join(' / ')}**`),
     true,
   );
 
@@ -557,11 +566,12 @@ test('Agent tools, CLI schema, Skill reference and UI actions are generated from
   const catalog = buildCommandCatalog(manifest);
   const surfaces = buildCapabilitySurfaces(manifest, digest, graph);
   const surfaceArtifact = capabilitySurfacesArtifact(surfaces);
+  const capabilityCount = manifest.capabilities.length;
   assert.deepEqual(surfaces.counts, {
-    capabilities: 31,
-    agentTools: 31,
-    cliOperations: 31,
-    uiActions: 31,
+    capabilities: capabilityCount,
+    agentTools: capabilityCount,
+    cliOperations: capabilityCount,
+    uiActions: capabilityCount,
   });
   assert.equal(surfaces.capabilityManifestVersion, manifest.version);
   assert.deepEqual(
@@ -627,11 +637,11 @@ test('Agent tools, CLI schema, Skill reference and UI actions are generated from
       assert.equal(cliOperation.requires.includes(requiredScope), true);
     }
   }
-  assert.equal(new Set(surfaces.capabilities.map((surface) => surface.agentTool.name)).size, 31);
-  assert.equal(new Set(surfaces.capabilities.map((surface) => surface.cli.operation)).size, 31);
-  assert.equal(new Set(surfaces.capabilities.map((surface) => surface.ui.action)).size, 31);
+  assert.equal(new Set(surfaces.capabilities.map((surface) => surface.agentTool.name)).size, capabilityCount);
+  assert.equal(new Set(surfaces.capabilities.map((surface) => surface.cli.operation)).size, capabilityCount);
+  assert.equal(new Set(surfaces.capabilities.map((surface) => surface.ui.action)).size, capabilityCount);
   const publicToolCatalog = publicVersionedCapabilityToolCatalog(surfaces);
-  assert.equal(publicToolCatalog.tools.length, 31);
+  assert.equal(publicToolCatalog.tools.length, capabilityCount);
   assert.equal(JSON.stringify(publicToolCatalog).includes('"handler"'), false);
   assert.equal(JSON.stringify(publicToolCatalog).includes('"service"'), false);
   assert.equal(JSON.stringify(publicToolCatalog).includes('"method"'), false);

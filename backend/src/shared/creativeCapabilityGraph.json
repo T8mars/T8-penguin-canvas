@@ -11,7 +11,8 @@
       "src/config/seedance.ts",
       "src/utils/midjourneyNz.ts",
       "backend/src/shared/seedanceNzLlmModels.json",
-      "backend/src/providers/seedanceNz.js"
+      "backend/src/providers/seedanceNz.js",
+      "backend/src/shared/seedreamNzContract.json"
     ],
     "handlerRegistry": "backend/src/services/agentControlCapabilityHandlers.js",
     "coverageReceiptCompiler": "tools/zcanvas-cli/src/capabilityCoverage.cjs"
@@ -21,16 +22,16 @@
     "canvasNodeSchema": "7f3a5b89672debff165568245f3a341de78d738722e8ac2d4b9e55e1925d4292",
     "canvasNodeSchemaFile": "a5d1cb072894c751b49a7ba05e24518ce19212fff1b52661a146f888644739b7",
     "i18nNodeCatalog": "0479653284399372bba58f69d528e45ed9de267f9a1d7107347401ab75f60676",
-    "i18nRendererResources": "ddbf5066ec8ba833ca30eb33938e91767c2f5d8fe51081e669ee1866991a3cfe",
+    "i18nRendererResources": "c044e0e2ed880c7434aa54fa47b1a7c3cd55e5b95b556127d1363ff10fd0ea73",
     "i18nElectronCatalog": "afffcf09bb10690b6db48236fe826dcadab9070a6dc9540ae1c730b1aab38836",
-    "runtimeCatalogSources": "a66ecd6443e3bae0365ed5e3d12180444091beca544b4cb04bfe4ee3dccbc660",
-    "runtimeCatalogArtifact": "c3d1b7080d1681a8cbac03fbe2716ca843a9c53bc76c41baf3fca892d9240caa",
+    "runtimeCatalogSources": "ad5eb239a1205fc51ba41b9998ff6da7bb7de1d152ec7f110740d18a3285463b",
+    "runtimeCatalogArtifact": "f1d3c8767086b6a6de342eb2116ba306b9a8cfebece19becc2540b40234dd33a",
     "handlerBindings": "3cd8cde3c05d1642d72ce8cbfae2874d1bdf986592ae431ef7d66b043da257b5",
     "capabilityGraphCompiler": "a3716d239b91e1c4775f5996b3865ba3ab8fd652263138feef0a56de40851c24",
     "coverageReceiptCompiler": "68c02167cb5317107edd346223a5e5999168e447bacbb977ff8e9678e6753fe7",
     "canonicalTextDigestCompiler": "b0afcf28a257fbbd8f391edc117348f8f2ede1b4a039ae91bce25a8d563ac0cf"
   },
-  "aggregateDigest": "9cad046b7fcc007b512bc859404e0ecaded1c3d0efb861fe455e305ceebad55e",
+  "aggregateDigest": "77d51af78dec51a461da67284a350c57a0cdca39d6b701dd4f91027ebc0dd427",
   "principles": {
     "oneSentenceStart": true,
     "directCanvasMutation": false,
@@ -54,17 +55,17 @@
     "accountedNodes": 83,
     "unexplainedNodes": 0,
     "fullyOperableNodes": 20,
-    "runtimeEntries": 299,
+    "runtimeEntries": 305,
     "runtimeByKind": {
       "llm": 34,
-      "image": 56,
+      "image": 62,
       "video": 131,
       "audio": 17,
       "actions": 61
     },
     "runtimeByProvider": {
       "grok-oauth": 2,
-      "seedance-nz": 227,
+      "seedance-nz": 233,
       "zhenzhen": 63,
       "fal": 7
     },
@@ -7401,7 +7402,7 @@
   ],
   "runtime": {
     "schema": "t8-creative-runtime-catalog-v1",
-    "sourceDigest": "a66ecd6443e3bae0365ed5e3d12180444091beca544b4cb04bfe4ee3dccbc660",
+    "sourceDigest": "ad5eb239a1205fc51ba41b9998ff6da7bb7de1d152ec7f110740d18a3285463b",
     "platforms": [
       {
         "id": "zhenzhen",
@@ -8687,6 +8688,66 @@
         }
       },
       {
+        "id": "image:seedance-nz:dola-seedream-5.0-flash-i2i",
+        "kind": "image",
+        "provider": "seedance-nz",
+        "platformLabel": "贞贞的平价AI小屋",
+        "model": "dola-seedream-5.0-flash-i2i",
+        "label": "dola-seedream-5.0-flash-i2i",
+        "family": "seedream-v5-pro",
+        "available": true,
+        "catalogSection": "image",
+        "compatibility": {
+          "known": true,
+          "installed": true,
+          "credentialReady": null,
+          "regionReady": true,
+          "executable": false,
+          "available": true,
+          "requiresRuntimeCheck": true
+        }
+      },
+      {
+        "id": "image:seedance-nz:dola-seedream-5.0-flash-layer-decomposition",
+        "kind": "image",
+        "provider": "seedance-nz",
+        "platformLabel": "贞贞的平价AI小屋",
+        "model": "dola-seedream-5.0-flash-layer-decomposition",
+        "label": "dola-seedream-5.0-flash-layer-decomposition",
+        "family": "seedream-layer-decomposition",
+        "available": true,
+        "catalogSection": "image",
+        "compatibility": {
+          "known": true,
+          "installed": true,
+          "credentialReady": null,
+          "regionReady": true,
+          "executable": false,
+          "available": true,
+          "requiresRuntimeCheck": true
+        }
+      },
+      {
+        "id": "image:seedance-nz:dola-seedream-5.0-flash-t2i",
+        "kind": "image",
+        "provider": "seedance-nz",
+        "platformLabel": "贞贞的平价AI小屋",
+        "model": "dola-seedream-5.0-flash-t2i",
+        "label": "dola-seedream-5.0-flash-t2i",
+        "family": "seedream-v5-pro",
+        "available": true,
+        "catalogSection": "image",
+        "compatibility": {
+          "known": true,
+          "installed": true,
+          "credentialReady": null,
+          "regionReady": true,
+          "executable": false,
+          "available": true,
+          "requiresRuntimeCheck": true
+        }
+      },
+      {
         "id": "image:seedance-nz:dola-seedream-5.0-pro-i2i",
         "kind": "image",
         "provider": "seedance-nz",
@@ -9207,6 +9268,66 @@
         "platformLabel": "贞贞的平价AI小屋",
         "model": "qwen-image-global-2.1",
         "label": "qwen-image-global-2.1",
+        "family": "seedream-v5-pro",
+        "available": true,
+        "catalogSection": "image",
+        "compatibility": {
+          "known": true,
+          "installed": true,
+          "credentialReady": null,
+          "regionReady": true,
+          "executable": false,
+          "available": true,
+          "requiresRuntimeCheck": true
+        }
+      },
+      {
+        "id": "image:seedance-nz:seedream-v5-flash-i2i",
+        "kind": "image",
+        "provider": "seedance-nz",
+        "platformLabel": "贞贞的平价AI小屋",
+        "model": "seedream-v5-flash-i2i",
+        "label": "seedream-v5-flash-i2i",
+        "family": "seedream-v5-pro",
+        "available": true,
+        "catalogSection": "image",
+        "compatibility": {
+          "known": true,
+          "installed": true,
+          "credentialReady": null,
+          "regionReady": true,
+          "executable": false,
+          "available": true,
+          "requiresRuntimeCheck": true
+        }
+      },
+      {
+        "id": "image:seedance-nz:seedream-v5-flash-layer-decomposition",
+        "kind": "image",
+        "provider": "seedance-nz",
+        "platformLabel": "贞贞的平价AI小屋",
+        "model": "seedream-v5-flash-layer-decomposition",
+        "label": "seedream-v5-flash-layer-decomposition",
+        "family": "seedream-layer-decomposition",
+        "available": true,
+        "catalogSection": "image",
+        "compatibility": {
+          "known": true,
+          "installed": true,
+          "credentialReady": null,
+          "regionReady": true,
+          "executable": false,
+          "available": true,
+          "requiresRuntimeCheck": true
+        }
+      },
+      {
+        "id": "image:seedance-nz:seedream-v5-flash-t2i",
+        "kind": "image",
+        "provider": "seedance-nz",
+        "platformLabel": "贞贞的平价AI小屋",
+        "model": "seedream-v5-flash-t2i",
+        "label": "seedream-v5-flash-t2i",
         "family": "seedream-v5-pro",
         "available": true,
         "catalogSection": "image",
@@ -13738,6 +13859,9 @@
       "image:fal:gpt-image-2-fal",
       "image:fal:nano-banana-2-fal",
       "image:fal:nano-banana-pro-fal",
+      "image:seedance-nz:dola-seedream-5.0-flash-i2i",
+      "image:seedance-nz:dola-seedream-5.0-flash-layer-decomposition",
+      "image:seedance-nz:dola-seedream-5.0-flash-t2i",
       "image:seedance-nz:dola-seedream-5.0-pro-i2i",
       "image:seedance-nz:dola-seedream-5.0-pro-layer-decomposition",
       "image:seedance-nz:dola-seedream-5.0-pro-t2i",
@@ -13764,6 +13888,9 @@
       "image:seedance-nz:qwen-image-3.0-pro-t2i",
       "image:seedance-nz:qwen-image-3.0-t2i",
       "image:seedance-nz:qwen-image-global-2.1",
+      "image:seedance-nz:seedream-v5-flash-i2i",
+      "image:seedance-nz:seedream-v5-flash-layer-decomposition",
+      "image:seedance-nz:seedream-v5-flash-t2i",
       "image:seedance-nz:seedream-v5-pro-i2i",
       "image:seedance-nz:seedream-v5-pro-layer-decomposition",
       "image:seedance-nz:seedream-v5-pro-t2i",
@@ -13983,7 +14110,7 @@
     "sourceDigests": {
       "capabilityManifest": "569f2c8be144e05120ca629b2826383a06c4d6565ab3896c2dc61807bb9f7c27",
       "nodeSchema": "7f3a5b89672debff165568245f3a341de78d738722e8ac2d4b9e55e1925d4292",
-      "runtimeCatalog": "a66ecd6443e3bae0365ed5e3d12180444091beca544b4cb04bfe4ee3dccbc660",
+      "runtimeCatalog": "ad5eb239a1205fc51ba41b9998ff6da7bb7de1d152ec7f110740d18a3285463b",
       "handlerBindings": "3cd8cde3c05d1642d72ce8cbfae2874d1bdf986592ae431ef7d66b043da257b5",
       "receiptCompiler": "68c02167cb5317107edd346223a5e5999168e447bacbb977ff8e9678e6753fe7"
     },
@@ -13995,7 +14122,7 @@
       },
       "runtime": {
         "llm": 34,
-        "image": 56,
+        "image": 62,
         "video": 131,
         "audio": 17,
         "actions": 61
@@ -14012,6 +14139,6 @@
       "missingCompatibilityEdges": []
     },
     "complete": true,
-    "digest": "be250c4808d87799013cce82c7d2aea178397dfc1e1c215e552a99c7033268c8"
+    "digest": "ca38a7a5807c9d4442318d106dd4454f2e778efdc89f73672c2ce98210ffea5f"
   }
 }
