@@ -1,6 +1,6 @@
 # Seedream / Dola Seedream V5 Flash
 
-状态：2026-10-02 开发及六路径真实验证完成，未打包或发布；现有版本仍为 3.2.3。
+状态：2026-10-02 开发及六路径真实验证完成；用户已授权纳入 v3.2.4，正式打包与发布待验证，见[发布专题](release-v3.2.4.md)。
 
 ## 入口与协议
 
@@ -49,4 +49,4 @@
 
 验证入口：`tests/seedreamFlash.test.ts`、Seedance Provider/模型映射/两种 Seedream 路由、真实 ImageNode 处理器历史/结果保留、RunIntent/恢复/生成历史、可信下载与 COS 恢复、共享超时、能力同步及 i18n。最终 15 套专项及相邻回归 **263/263 通过**，无跳过或失败；`type-check`、`i18n:check`、`feature-sync:check`、上下文预算/JSON/归档及 diff 检查通过。能力数量断言改为从共享 schema/模型清单读取，拒绝未知节点、缺失处理器、风险或验收缺口的检查保留。详细输出见[回归日志](../local-private/seedream-flash-live-20261002/final-tests.log)及同目录 `final-typecheck.log`。
 
-边界：本次未进行生产 build、Electron 安装包、版本升级、推送或 Release；未将真实 API 验证替代安装版 UI、旧用户画布升级、Mac 安装或 F8–F10 外部证据。
+边界：开发阶段未打包发布；后续 v3.2.4 发布单独绑定固定源码并验证产物。真实 API 验证不替代安装版 UI、旧用户画布升级、Mac 安装或 F8–F10 外部证据；这些证据按当前授权后补、不记通过。
