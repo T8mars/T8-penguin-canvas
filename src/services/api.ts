@@ -275,6 +275,7 @@ export interface CanvasListRecoveryState {
 }
 
 export interface CanvasListPage {
+  counts?: { active: number; archived: number };
   items: CanvasListItem[];
   total: number | null;
   hasMore: boolean;
@@ -286,6 +287,8 @@ export interface CanvasListPage {
 }
 
 export interface ListCanvasPageOptions {
+  status?: 'active' | 'archived';
+  sort?: 'updated' | 'opened';
   limit?: number;
   cursor?: string | null;
   activeId?: string | null;
@@ -303,10 +306,13 @@ export async function listCanvasPage(options: ListCanvasPageOptions = {}): Promi
   if (options.cursor) query.set('cursor', options.cursor);
   if (options.activeId) query.set('activeId', options.activeId);
   if (options.query?.trim()) query.set('q', options.query.trim());
+  if (options.status) query.set('status', options.status);
+  if (options.sort) query.set('sort', options.sort);
   const res = await request<{
     success: boolean;
     data: CanvasListItem[];
     meta?: {
+      counts?: { active: number; archived: number };
       total?: number | null;
       hasMore?: boolean;
       nextCursor?: string | null;
@@ -315,8 +321,9 @@ export async function listCanvasPage(options: ListCanvasPageOptions = {}): Promi
       recovery?: CanvasListRecoveryState;
       activeItem?: CanvasListItem;
     };
-  }>(`${BASE}/canvas?${query.toString()}`);
+  }>(`${BASE}/canvas/directory?${query.toString()}`);
   return {
+    counts: res.meta?.counts,
     items: Array.isArray(res.data) ? res.data : [],
     total: typeof res.meta?.total === 'number' && Number.isSafeInteger(res.meta.total) ? res.meta.total : null,
     hasMore: Boolean(res.meta?.hasMore),
@@ -328,6 +335,25 @@ export async function listCanvasPage(options: ListCanvasPageOptions = {}): Promi
     },
     activeItem: res.meta?.activeItem || null,
   };
+}
+
+export async function transitionCanvasArchive(item: CanvasListItem, action: 'archive' | 'restore', operationId: string) {
+  const url = `${BASE}/canvas/${encodeURIComponent(item.id)}/${action}`;
+  const init = { method: 'POST', body: JSON.stringify({ operationId, catalogRevision: item.catalogRevision, baseRevision: item.revision, projectId: item.projectId }) };
+  type Response = { success: boolean; data: { item: CanvasListItem; duplicate: boolean } };
+  let response: Response;
+  try { response = await request<Response>(url, init); }
+  catch (error) {
+    if (error instanceof ApiRequestError && error.status < 500) throw error;
+    // One exact receipt recovery after a lost response. Never generate a new
+    // UUID/CAS or apply this retry policy to Run/Provider generation requests.
+    response = await request<Response>(url, init);
+  }
+  return response.data;
+}
+export async function updateCanvasDirectoryProfile(id: string, patch: { pinned?: boolean; opened?: boolean }) {
+  const response = await request<{ success: boolean; data: CanvasListItem }>(`${BASE}/canvas/${encodeURIComponent(id)}/profile`, { method: 'POST', body: JSON.stringify(patch) });
+  return response.data;
 }
 
 export async function getCanvasMetadata(id: string): Promise<CanvasListItem | null> {

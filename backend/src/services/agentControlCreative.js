@@ -1,5 +1,6 @@
 const crypto = require('node:crypto');
 const fs = require('node:fs');
+const { applyCreatorMediaNodeDefaults, resolveNewMediaNodeData } = require('../utils/mediaNodeDefaults');
 const nodeSchemaManifest = require('../shared/canvasNodeSchema.json');
 const creativeModelCatalog = require('../shared/creativeModelCatalog.json');
 const storyCreative = require('./agentControlStoryCreative');
@@ -3203,7 +3204,7 @@ function creatorNodeData(document, database, schema, input) {
   return defaults;
 }
 
-function graphNodeAddPatch(document, database, planId, input = {}) {
+function graphNodeAddPatch(document, database, planId, input = {}, mediaNodeDefaults) {
   const type = identifier(input.type, '节点类型');
   const schema = CREATOR_NODE_SCHEMA_BY_TYPE.get(type);
   if (!schema) {
@@ -3220,7 +3221,8 @@ function graphNodeAddPatch(document, database, planId, input = {}) {
   const position = input.position == null ? {} : record(input.position);
   const x = finiteCanvasCoordinate(input.x ?? position.x, origin.x, '节点横坐标');
   const y = finiteCanvasCoordinate(input.y ?? position.y, origin.y, '节点纵坐标');
-  const data = creatorNodeData(document, database, schema, input);
+  const validatedData = creatorNodeData(document, database, schema, input);
+  const data = resolveNewMediaNodeData(type, validatedData, record(input.data), mediaNodeDefaults);
   const nodeId = stableId(`agent-${type}`, `${planId}:${document.canvasId}:${type}`);
   return patchEnvelope(
     document,
@@ -3467,7 +3469,8 @@ function imagePatch(document, planId, brief, candidateCount, options = {}) {
   const prompt = [creatorPrompt(effectiveBrief), referenceBindingPrompt(referenceBindings)]
     .filter(Boolean)
     .join('\n');
-  const providerSource = brief.imageProviderSource || 'zhenzhen';
+  const requestedSource = brief.imageProviderSource || 'zhenzhen';
+  const providerSource = requestedSource === 'seedance-nz' ? 'zhenzhen' : requestedSource;
   const providerId = brief.imageProviderId || '';
   const model = brief.imageModel || brief.model || 'gpt-image-2';
   const productionBinding = creatorProductionCandidateBinding(options.productionDocuments);
@@ -3487,6 +3490,7 @@ function imagePatch(document, planId, brief, candidateCount, options = {}) {
     candidateNodeIds.push(nodeId);
     operations.push(nodeAdd(nodeId, 'image', origin.x + 430, origin.y + index * 560, {
       model: 'gpt-image-2',
+      ...(requestedSource === 'seedance-nz' ? { imageBuiltinSource: 'seedance-nz' } : {}),
       ...(providerSource === 'zhenzhen' ? { apiModel: model } : {}),
       aspectRatio: brief.ratio,
       // A balanced plan is still a direction-finding preview. Spend the higher
@@ -5207,6 +5211,13 @@ function modelCatalog(document, input = {}, options = {}) {
 }
 
 function createAgentControlCreativeService(options = {}) {
+  function mediaPreferencesSnapshot() {
+    if (typeof options.mediaNodeDefaultsProvider === 'function') return options.mediaNodeDefaultsProvider();
+    if (options.settingsFile && fs.existsSync(options.settingsFile)) {
+      return JSON.parse(fs.readFileSync(options.settingsFile, 'utf8')).preferences?.mediaNodeDefaults;
+    }
+    return undefined;
+  }
   const database = options.database;
   const now = typeof options.now === 'function' ? options.now : () => Date.now();
   const plans = new Map();
@@ -5386,7 +5397,13 @@ function createAgentControlCreativeService(options = {}) {
     if (!CREATIVE_PLAN_KINDS.includes(kind)) {
       throw new AgentControlCreativeError('CREATIVE_KIND_UNSUPPORTED', `创作类型无效：${kind || '未提供'}`);
     }
-    const normalizedInput = applyCreatorRecipe(applyNaturalCreativeDefaults(input));
+    const recipeInput = applyCreatorRecipe(applyNaturalCreativeDefaults(input));
+    const effectiveKind = kind === 'plan-card' ? text(recipeInput.targetKind, 40) || 'image' : kind;
+    let mediaNodeDefaults;
+    if (['image', 'edit-image'].includes(effectiveKind)) {
+      mediaNodeDefaults = mediaPreferencesSnapshot();
+    }
+    const normalizedInput = applyCreatorMediaNodeDefaults(effectiveKind, recipeInput, mediaNodeDefaults);
     const profile = profileFor(normalizedInput.profile);
     const brief = resolveBriefProviders(
       creativeBrief(kind === 'plan-card' ? text(normalizedInput.targetKind, 40) || 'image' : kind, normalizedInput, profile),
@@ -5485,7 +5502,7 @@ function createAgentControlCreativeService(options = {}) {
       patch = iteratePatch(document, id, action, input);
       summary = patch.summary;
     } else if (action === 'graph.node-add') {
-      patch = graphNodeAddPatch(document, database, id, input);
+      patch = graphNodeAddPatch(document, database, id, input, mediaPreferencesSnapshot());
       summary = patch.summary;
     } else if (action === 'production.continue') {
       patch = productionContinuePatch(document, id, input);

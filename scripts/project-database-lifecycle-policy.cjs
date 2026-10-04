@@ -107,6 +107,7 @@ const LIFECYCLE_METHOD_CONTRACTS = deepFreeze([
       '_assertCanvasPermanentLedgerAccounting',
       '_assertCanvasSnapshotPins',
       '_assertDurableLedgerAccounting',
+      '_migrateSchema32To33',
       '_reconcileTerminalRunSnapshotPins',
       'bootstrapRecoveryGeneration',
       'configure',
@@ -114,7 +115,7 @@ const LIFECYCLE_METHOD_CONTRACTS = deepFreeze([
       'recoverInterruptedRuns',
       'withProjectDatabaseReadSnapshot',
     ],
-    calledProjectDatabaseMethodCallCount: 12,
+    calledProjectDatabaseMethodCallCount: 14,
   }),
   lifecycleContract('bootstrapRecoveryGeneration', {
     calledProjectDatabaseMethods: [
@@ -275,6 +276,7 @@ const LIFECYCLE_MEMBER_NAME_SET = new Set(LIFECYCLE_METHOD_NAMES.filter((name) =
 const EXPECTED_INTERNAL_LIFECYCLE_CALLS = deepFreeze([
   { caller: '_createBackupAtomically', callee: 'validateRecoveryCandidate', count: 1 },
   { caller: '_migrateSchema31To32', callee: '_writeRecoveryGenerationState', count: 1 },
+  { caller: '_migrateSchema32To33', callee: 'validateRecoveryCandidate', count: 1 },
   { caller: 'bootstrapRecoveryGeneration', callee: '_writeRecoveryGenerationState', count: 4 },
   { caller: 'close', callee: 'waitForBackup', count: 1 },
   { caller: 'constructor', callee: 'initializeDatabase', count: 2 },
@@ -283,7 +285,7 @@ const EXPECTED_INTERNAL_LIFECYCLE_CALLS = deepFreeze([
   { caller: 'constructor', callee: 'startStartupBackup', count: 1 },
   { caller: 'createBackup', callee: '_createBackupAtomically', count: 1 },
   { caller: 'initializeDatabase', callee: '_reconcileTerminalRunSnapshotPins', count: 1 },
-  { caller: 'initializeDatabase', callee: 'bootstrapRecoveryGeneration', count: 2 },
+  { caller: 'initializeDatabase', callee: 'bootstrapRecoveryGeneration', count: 3 },
   { caller: 'initializeDatabase', callee: 'configure', count: 1 },
   { caller: 'preflightExistingDatabase', callee: '_assertProjectDatabaseHistoryCandidate', count: 2 },
   { caller: 'recoverDatabase', callee: '_copyRecoveryEvidence', count: 2 },

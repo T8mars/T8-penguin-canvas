@@ -28,7 +28,7 @@ interface CanvasStoreState {
   createCanvas: (name?: string) => Promise<CanvasListItem | null>;
   deleteCanvas: (id: string) => Promise<void>;
   renameCanvas: (id: string, name: string) => Promise<void>;
-  setActive: (id: string) => void;
+  setActive: (id: string | null) => void;
   markCanvasCompletionNotice: (id: string) => void;
   clearCanvasCompletionNotice: (id: string) => void;
 }
@@ -65,6 +65,8 @@ function persistActiveId(id: string | null) {
 
 function sortCanvasItems(items: CanvasListItem[]) {
   return [...items].sort((left, right) => {
+    const pinDelta = Number(Boolean(right.pinned)) - Number(Boolean(left.pinned));
+    if (pinDelta) return pinDelta;
     const updatedDelta = (Number(right.updatedAt) || 0) - (Number(left.updatedAt) || 0);
     return updatedDelta || String(left.id).localeCompare(String(right.id));
   });
@@ -374,6 +376,9 @@ export const useCanvasStore = create<CanvasStoreState>((set, get) => ({
       activeId: id,
       completionNoticeCanvasIds: state.completionNoticeCanvasIds.filter((noticeId) => noticeId !== id),
     }));
+    if (id) void api.updateCanvasDirectoryProfile(id, { opened: true }).then((item) => {
+      set((state) => ({ canvases: mergeCanvasItems(state.canvases, [item]) }));
+    }).catch(() => { /* Opening is allowed even when the advisory local profile update fails. */ });
   },
 
   markCanvasCompletionNotice(id) {

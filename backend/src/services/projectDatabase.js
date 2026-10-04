@@ -6,6 +6,12 @@ const { generationInputMetadata, generationReferenceAssets, storedRunInput, runI
 const { TextDecoder, types: utilTypes } = require('util');
 const { isMainThread } = require('node:worker_threads');
 const BetterSqlite3 = require('better-sqlite3');
+const canvasDirectory33 = require('./canvasDirectory33');
+const {
+  PROJECT_DATABASE_MIGRATION_33,
+  PROJECT_DATABASE_MIGRATION_33_CREATE_SQL,
+  PROJECT_DATABASE_SCHEMA_33_OWNED_OBJECT_NAMES,
+} = require('./projectDatabaseMigration33');
 const {
   canTransitionReviewLifecycle,
   decodeReviewThreadStorageStatus,
@@ -164,7 +170,7 @@ const {
 } = require('./canvasResourceScope');
 
 const PROJECT_DATABASE_LEGACY_BRIDGE_VERSION = 28;
-const PROJECT_DATABASE_SCHEMA_VERSION = 32;
+const PROJECT_DATABASE_SCHEMA_VERSION = 33;
 const PROJECT_DATABASE_OWNER_GUARD_BASENAME = '.t8-project-database-owner.sqlite3';
 const PROJECT_DATABASE_OWNER_GUARD_APPLICATION_ID = 0x54385043;
 const PROJECT_DATABASE_OWNER_GUARD_SCHEMA_VERSION = 2;
@@ -245,7 +251,7 @@ const PROJECT_DATABASE_MIGRATIONS = Object.freeze([
   fromVersion: PROJECT_DATABASE_MIGRATION_32.fromVersion,
   checksum: PROJECT_DATABASE_MIGRATION_32.checksum,
   downPolicy: PROJECT_DATABASE_MIGRATION_32.downPolicy,
-})]));
+}), PROJECT_DATABASE_MIGRATION_33]));
 if (PROJECT_DATABASE_MIGRATIONS.length !== PROJECT_DATABASE_SCHEMA_VERSION) {
   throw new Error('项目数据库 migration registry 与当前 schema 版本不一致');
 }
@@ -1642,6 +1648,15 @@ function inspectProjectDatabaseCurrentSchemaManifest(database, options = {}) {
   const excludedObjectNames = options.excludedObjectNames == null
     ? new Set()
     : new Set([...options.excludedObjectNames].map(String));
+  // Keep the published v32 protocol fingerprint frozen. Only a committed v33
+  // ledger authorizes partitioning its extension out of historical manifests.
+  if (Number(options.descriptorVersion) <= 32
+    && database.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='schema_migrations'").get()
+    && database.prepare(
+    "SELECT 1 FROM schema_migrations WHERE version = 33",
+  ).get()) {
+    for (const name of PROJECT_DATABASE_SCHEMA_33_OWNED_OBJECT_NAMES) excludedObjectNames.add(name);
+  }
   const includesObject = (name) => (
     !excludedObjectNames.has(String(name))
     && (includedObjectNames == null || includedObjectNames.has(String(name)))
@@ -2598,12 +2613,39 @@ function assertProjectDatabaseSchema32(database, context = 'schema-32') {
 }
 
 function assertProjectDatabaseCurrentSchema(database, context = 'active') {
-  return assertProjectDatabaseSchema32(database, context);
+  const base = assertProjectDatabaseSchema32(database, context);
+  const version = inspectProjectDatabaseSchema(database, { requireContiguous: true }).version;
+  if (version === 32) return base;
+  if (version !== 33) throw new ProjectDatabaseSchemaInvalidError('画布目录 schema 版本无效');
+  const extension = inspectProjectDatabaseCurrentSchemaManifest(database, { descriptorVersion: 33, includedObjectNames: PROJECT_DATABASE_SCHEMA_33_OWNED_OBJECT_NAMES });
+  const probe = new BetterSqlite3(':memory:');
+  let expected;
+  try {
+    probe.exec('CREATE TABLE canvas_documents(canvas_id TEXT PRIMARY KEY,project_id TEXT,revision INTEGER,snapshot_json TEXT,created_at INTEGER,updated_at INTEGER); CREATE TABLE runs(canvas_id TEXT); CREATE TABLE run_intents(canvas_id TEXT);');
+    probe.exec(PROJECT_DATABASE_MIGRATION_33_CREATE_SQL);
+    expected = inspectProjectDatabaseCurrentSchemaManifest(probe, { descriptorVersion: 33, includedObjectNames: PROJECT_DATABASE_SCHEMA_33_OWNED_OBJECT_NAMES });
+  } finally { probe.close(); }
+  const full = inspectProjectDatabaseCurrentSchemaManifest(database, { descriptorVersion: 33, excludedObjectNames: PROJECT_DATABASE_SCHEMA_23_OWNED_OBJECT_NAMES });
+  const receipt = database.prepare('SELECT * FROM schema_migration_receipts WHERE version=33').get();
+  const ledger = database.prepare('SELECT applied_at FROM schema_migrations WHERE version=33').get();
+  if (extension.fingerprint !== expected.fingerprint || receipt?.checksum !== PROJECT_DATABASE_MIGRATION_33.checksum
+    || receipt?.name !== PROJECT_DATABASE_MIGRATION_33.name || receipt?.down_policy !== PROJECT_DATABASE_MIGRATION_33.downPolicy
+    || receipt?.from_fingerprint !== base.fingerprint || receipt?.to_fingerprint !== full.fingerprint
+    || receipt?.applied_at !== ledger?.applied_at) throw new ProjectDatabaseSchemaInvalidError('画布目录 schema33 manifest/receipt 不匹配');
+  const invalid = database.prepare(`SELECT COUNT(*) AS count FROM canvas_documents d LEFT JOIN canvas_directory c ON c.canvas_id=d.canvas_id
+    WHERE c.canvas_id IS NULL OR c.project_id!=d.project_id OR c.content_revision!=d.revision
+      OR c.updated_at!=d.updated_at OR c.node_count!=COALESCE(json_array_length(d.snapshot_json,'$.nodes'),0)
+      OR c.name!=COALESCE(NULLIF(json_extract(d.snapshot_json,'$.name'),''),NULLIF(json_extract(d.snapshot_json,'$.title'),''),d.canvas_id)`).get();
+  if (Number(invalid.count)) throw new ProjectDatabaseSchemaInvalidError('画布目录投影不完整或与权威文档不符');
+  return { ...base, extendedFingerprint: full.fingerprint, currentSchemaVersion: 33 };
 }
 
 function assertProjectDatabaseCurrentSchemaIfLatest(database, schema, context) {
   if (schema.initialized && schema.version === PROJECT_DATABASE_SCHEMA_VERSION) {
     return assertProjectDatabaseCurrentSchema(database, context);
+  }
+  if (schema.initialized && schema.version === PROJECT_DATABASE_MIGRATION_32.version) {
+    return assertProjectDatabaseSchema32(database, context);
   }
   if (schema.initialized && schema.version === PROJECT_DATABASE_MIGRATION_31.version) {
     return assertProjectDatabaseSchema31(database, context);
@@ -6419,12 +6461,14 @@ function verifyProjectDatabaseSchema32MigrationGuardPrimary(
   const intent = normalizeProjectDatabaseSchema32MigrationGuardIntent(intentValue);
   const requireInitialSequence = options.requireInitialSequence !== false;
   const schema = inspectProjectDatabaseSchema(database, { requireContiguous: true });
-  if (!schema.initialized || schema.version !== PROJECT_DATABASE_MIGRATION_32.version) {
+  if (!schema.initialized || (schema.version !== PROJECT_DATABASE_MIGRATION_32.version
+    && !(schema.version === 33 && requireInitialSequence === false))) {
     throw projectDatabaseSchema32MigrationGuardError(
       'prepared migration guard 只能修复精确 schema 32 主库',
       { actualVersion: schema.version },
     );
   }
+  if (schema.version === 33) assertProjectDatabaseCurrentSchema(database, 'completed-guard-v33-extension');
   const foreignKeyViolations = database.pragma('foreign_key_check');
   const quickCheck = database.pragma('quick_check', { simple: true });
   if (quickCheck !== 'ok' || foreignKeyViolations.length !== 0) {
@@ -7292,7 +7336,7 @@ class ProjectDatabase {
     this.configure();
     this.migrate();
     const migratedSchema = inspectProjectDatabaseSchema(this.db, { requireContiguous: true });
-    if (migratedSchema.version === PROJECT_DATABASE_MIGRATION_32.version) {
+    if (migratedSchema.version >= PROJECT_DATABASE_MIGRATION_32.version) {
       const policyRows = this.db.prepare(`
         SELECT * FROM project_database_storage_policy ORDER BY singleton_id
       `).all();
@@ -7307,6 +7351,8 @@ class ProjectDatabase {
         this.db,
         this.projectDatabaseStoragePolicy32,
       );
+      this.bootstrapRecoveryGeneration();
+      if (migratedSchema.version === 32) this._migrateSchema32To33();
     }
     if (migratedSchema.version >= PROJECT_DATABASE_MIGRATION_29.version) {
       // Startup has not entered the public write coordinator yet. Removing
@@ -7329,7 +7375,7 @@ class ProjectDatabase {
     const integrity = this.db.pragma('quick_check', { simple: true });
     if (integrity !== 'ok') throw new Error(`项目数据库完整性检查失败: ${integrity}`);
     const currentSchema = inspectProjectDatabaseSchema(this.db, { requireContiguous: true });
-    if (currentSchema.version === PROJECT_DATABASE_MIGRATION_32.version) {
+    if (currentSchema.version >= PROJECT_DATABASE_MIGRATION_32.version) {
       // Schema32 public writers require an acknowledged watermark before the
       // first transaction. Establish/adopt the freshness fence first, then let
       // interrupted-Run reconciliation advance write_sequence through the same
@@ -7609,7 +7655,7 @@ class ProjectDatabase {
     if (this.recoveryGenerationRuntimeFailure) return this.getRecoveryGeneration();
     if (this.recoveryGenerationBootstrapped === true) return this.getRecoveryGeneration();
     const schema = inspectProjectDatabaseSchema(this.db, { requireContiguous: true });
-    if (schema.version === PROJECT_DATABASE_MIGRATION_32.version) {
+    if (schema.version >= PROJECT_DATABASE_MIGRATION_32.version) {
       const identityRows = this.db.prepare(`
         SELECT database_uuid, recovery_generation, write_sequence, updated_at
         FROM project_database_identity
@@ -8148,7 +8194,7 @@ class ProjectDatabase {
     };
     if (!isUuid(expected) || expected !== currentGeneration) throw conflict('memory-fence');
     const schema = inspectProjectDatabaseSchema(this.db, { requireContiguous: true });
-    if (schema.version === PROJECT_DATABASE_MIGRATION_32.version) {
+    if (schema.version >= PROJECT_DATABASE_MIGRATION_32.version) {
       if (!this.projectDatabaseWriteSequenceCoordinator32
         || this.projectDatabaseWriteSequenceCoordinator32.isActive()
         || this.db.inTransaction === true) {
@@ -8486,7 +8532,7 @@ class ProjectDatabase {
         });
       }
       let canonicalVerification = null;
-      if (schema.version === PROJECT_DATABASE_MIGRATION_32.version) {
+      if (schema.version >= PROJECT_DATABASE_MIGRATION_32.version) {
         const targetReceipt = candidate.prepare(`
           SELECT to_fingerprint
           FROM schema_migration_receipts
@@ -8681,7 +8727,7 @@ class ProjectDatabase {
       }
       const backupStateAfterCopy = backupCopy.sourceState;
       const validation = this.validateRecoveryCandidate(restoreTemp);
-      if (validation.schemaVersion !== PROJECT_DATABASE_MIGRATION_32.version
+      if (validation.schemaVersion < PROJECT_DATABASE_MIGRATION_32.version
         || !validation.canonicalVerification?.verified) {
         // Schema 31 backups have no database UUID, acknowledged write sequence,
         // or self-contained freshness receipt. Structural validity therefore
@@ -9031,7 +9077,7 @@ class ProjectDatabase {
         fsyncProjectDatabaseFile(restoreTemp);
         const rotatedValidation = this.validateRecoveryCandidate(restoreTemp);
         const rotatedCanonical = rotatedValidation.canonicalVerification;
-        if (rotatedValidation.schemaVersion !== PROJECT_DATABASE_MIGRATION_32.version
+        if (rotatedValidation.schemaVersion < PROJECT_DATABASE_MIGRATION_32.version
           || !rotatedCanonical?.verified
           || rotatedCanonical.databaseUuid !== transitionFence.databaseUuid
           || rotatedCanonical.recoveryGeneration !== transitionFence.generation
@@ -9537,7 +9583,7 @@ class ProjectDatabase {
         requireInitialized: true,
         requireContiguous: true,
       });
-      if (liveSchema.version === PROJECT_DATABASE_MIGRATION_32.version) {
+      if (liveSchema.version >= PROJECT_DATABASE_MIGRATION_32.version) {
         phase = 'physical_admission';
         const policyRows = this.db.prepare(`
           SELECT * FROM project_database_storage_policy ORDER BY singleton_id
@@ -9569,7 +9615,7 @@ class ProjectDatabase {
           requireInitialized: true,
           requireContiguous: true,
         });
-        if (candidateSchema.version === PROJECT_DATABASE_MIGRATION_32.version) {
+        if (candidateSchema.version >= PROJECT_DATABASE_MIGRATION_32.version) {
           writableCandidate.pragma('foreign_keys = ON');
           const targetReceipt = writableCandidate.prepare(`
             SELECT to_fingerprint
@@ -9747,6 +9793,10 @@ class ProjectDatabase {
       this._migrateSchema31To32(fromManifest, preMigrationBackup);
       schema = inspectProjectDatabaseSchema(this.db, { requireContiguous: true });
     }
+    if (schema.initialized && schema.version === 32) {
+      assertProjectDatabaseSchema32(this.db, 'migration-base32-committed');
+      return;
+    }
     if (!schema.initialized || schema.version !== PROJECT_DATABASE_SCHEMA_VERSION) {
       throw new ProjectDatabaseSchemaInvalidError('项目数据库无法进入当前可执行 schema', {
         actualVersion: schema.version,
@@ -9754,6 +9804,54 @@ class ProjectDatabase {
       });
     }
     assertProjectDatabaseCurrentSchema(this.db, 'migration-current-committed');
+  }
+
+  _migrateSchema32To33() {
+    const from = assertProjectDatabaseSchema32(this.db, 'migration-33-from');
+    const sourceDataVersion = Number(this.db.pragma('data_version', { simple: true }));
+    const sourceDigest = projectDatabaseLogicalContentDigest32(this.db).digest;
+    let backup = null;
+    if (this.filename !== ':memory:') {
+      const policy = projectDatabaseStoragePolicy32FromRow(this.db.prepare('SELECT * FROM project_database_storage_policy').get());
+      assertProjectDatabaseMigrationAdmission32(observeProjectDatabasePhysicalStorage32(this.db, { filename: this.filename }), policy);
+      const directory = fs.mkdtempSync(path.join(path.dirname(path.resolve(this.filename)), '.schema32-before33-'));
+      const filename = path.join(directory, 'canonical.sqlite3');
+      this.db.exec(`VACUUM main INTO ${sqlitePragmaString(filename)}`);
+      const candidate = new BetterSqlite3(filename);
+      try {
+        candidate.pragma('foreign_keys=ON');
+        sealProjectDatabaseCanonicalBackup32(candidate, { targetSchemaFingerprint: from.fingerprint,
+          inspectSchemaFingerprint: (db) => assertProjectDatabaseSchema32(db, 'migration-33-backup').fingerprint });
+        candidate.pragma('wal_checkpoint(TRUNCATE)');
+      } finally { candidate.close(); }
+      fsyncProjectDatabaseFile(filename);
+      fsyncProjectDatabaseDirectory(directory);
+      fsyncProjectDatabaseDirectory(path.dirname(directory));
+      backup = { filename, dataVersion: sourceDataVersion, validation: this.validateRecoveryCandidate(filename) };
+      if (!backup.validation.canonicalVerification?.verified) throw new ProjectDatabaseSchemaInvalidError('schema33 迁移前 canonical 备份未验证');
+    }
+    // The coordinator advances the identity before invoking its callback.
+    // Compare the complete source digest immediately before entering it, then
+    // recheck data_version after taking the IMMEDIATE writer lock.
+    if (projectDatabaseLogicalContentDigest32(this.db).digest !== sourceDigest) throw new ProjectDatabaseSchemaInvalidError('schema33 备份期间主库内容发生变化');
+    this.withProjectDatabaseWrite('canvas.directory.migrate33', () => {
+      if (backup && backup.dataVersion !== Number(this.db.pragma('data_version', { simple: true }))) throw new ProjectDatabaseSchemaInvalidError('schema33 备份后主库发生变化');
+      if (assertProjectDatabaseSchema32(this.db, 'migration-33-locked').fingerprint !== from.fingerprint) throw new ProjectDatabaseSchemaInvalidError('schema33 来源指纹变化');
+      this.db.exec(PROJECT_DATABASE_MIGRATION_33_CREATE_SQL);
+      this.options.beforeExecutableMigrationPhase?.(this.db, { version: 33, phase: 'after-ddl' });
+      this.db.prepare(`INSERT INTO canvas_directory(canvas_id,project_id,name,node_count,content_revision,created_at,updated_at)
+        SELECT canvas_id,project_id,COALESCE(NULLIF(json_extract(snapshot_json,'$.name'),''),NULLIF(json_extract(snapshot_json,'$.title'),''),canvas_id),
+          COALESCE(json_array_length(snapshot_json,'$.nodes'),0),revision,created_at,updated_at FROM canvas_documents`).run();
+      this.options.beforeExecutableMigrationPhase?.(this.db, { version: 33, phase: 'after-backfill' });
+      const now = Date.now();
+      const target = inspectProjectDatabaseCurrentSchemaManifest(this.db, { descriptorVersion: 33, excludedObjectNames: PROJECT_DATABASE_SCHEMA_23_OWNED_OBJECT_NAMES });
+      this.db.prepare('INSERT INTO schema_migrations(version,applied_at) VALUES(33,?)').run(now);
+      this.db.prepare('INSERT INTO schema_migration_receipts(version,name,checksum,from_fingerprint,to_fingerprint,down_policy,applied_at) VALUES(33,?,?,?,?,?,?)')
+        .run(PROJECT_DATABASE_MIGRATION_33.name, PROJECT_DATABASE_MIGRATION_33.checksum, from.fingerprint, target.fingerprint, PROJECT_DATABASE_MIGRATION_33.downPolicy, now);
+      assertProjectDatabaseCurrentSchema(this.db, 'migration-33-target');
+      if (this.db.pragma('quick_check', { simple: true }) !== 'ok' || this.db.pragma('foreign_key_check').length) throw new ProjectDatabaseSchemaInvalidError('schema33 完整性验证失败');
+      this.options.beforeMigrationCommit?.(this.db, 33, PROJECT_DATABASE_MIGRATION_33);
+    });
   }
 
   _createSchema22PreMigrationBackup(fromManifest) {
@@ -18029,6 +18127,73 @@ class ProjectDatabase {
       updatedAt: row.updated_at,
     }) : null;
   }
+  _transitionCanvasArchive(canvasId, action, input) {
+    this._assertProjectDatabaseMutationTransaction('coordinator');
+    if (!this.db.inTransaction) throw canvasDirectory33.error('project_database_mutation_transaction_required', '归档必须在权威写入事务内执行');
+    if (!['archive','restore'].includes(action) || !input || !Number.isSafeInteger(input.catalogRevision) || input.catalogRevision < 1
+      || !/^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(input.operationId || '')) throw canvasDirectory33.error('canvas_archive_request_invalid', '归档请求身份或目录版本无效', 400);
+    const current = canvasDirectory33.get(this.db, canvasId);
+    if (!current) throw canvasDirectory33.error('canvas_not_found', '画布不存在', 404);
+    if (input.projectId != null && current.projectId !== input.projectId) throw canvasDirectory33.error('canvas_project_mismatch', '画布不属于当前项目', 403);
+    const digest = crypto.createHash('sha256').update(JSON.stringify([current.projectId, canvasId, action, input.catalogRevision, input.baseRevision ?? null])).digest('hex');
+    const prior = this.db.prepare('SELECT * FROM canvas_directory_operations WHERE operation_id=?').get(input.operationId);
+    if (prior) {
+      if (prior.request_digest !== digest || prior.project_id !== current.projectId || prior.canvas_id !== canvasId) throw canvasDirectory33.error('canvas_archive_operation_conflict', '操作身份已用于不同请求');
+      return { ...JSON.parse(prior.result_json), duplicate: true };
+    }
+    if (current.catalogRevision !== input.catalogRevision) throw canvasDirectory33.error('canvas_catalog_revision_conflict', '画布目录状态已变化，请刷新后重试');
+    const target = action === 'archive' ? 'archived' : 'active';
+    if (target === current.status) throw canvasDirectory33.error('canvas_archive_state_conflict', '画布状态已变化，请刷新后重试');
+    if (action === 'archive') {
+      if (!Number.isSafeInteger(input.baseRevision) || input.baseRevision !== current.revision) throw canvasDirectory33.error('canvas_revision_conflict', '最新画布保存尚未确认或内容已变化，请保存后重试');
+      const busy = this.db.prepare(`SELECT 1 FROM runs WHERE canvas_id=? AND project_id=? AND status NOT IN ('succeeded','failed','cancelled','stopped')
+        UNION ALL SELECT 1 FROM run_intents WHERE canvas_id=? AND project_id=? AND status IN ('pending','accepted','dispatching','running') LIMIT 1`).get(canvasId,current.projectId,canvasId,current.projectId);
+      if (busy) throw canvasDirectory33.error('canvas_archive_busy', '画布仍有运行、未确认提交或待恢复任务，不能归档');
+    }
+    const usage = this.db.prepare('SELECT COUNT(*) AS count,COALESCE(SUM(length(result_json)+length(request_digest)+length(operation_id)+256),0) AS bytes FROM canvas_directory_operations WHERE project_id=?').get(current.projectId);
+    if (usage.count >= 10000 || usage.bytes >= 10 * 1024 * 1024) throw canvasDirectory33.error('canvas_archive_operation_capacity', '归档操作凭证容量已达到安全上限，请联系作者；不会清除旧凭证', 507);
+    const changed = this.db.prepare('UPDATE canvas_directory SET status=?,archived_at=?,catalog_revision=catalog_revision+1 WHERE canvas_id=? AND project_id=? AND catalog_revision=?')
+      .run(target, target === 'archived' ? Date.now() : null, canvasId, current.projectId, current.catalogRevision);
+    if (changed.changes !== 1) throw canvasDirectory33.error('canvas_catalog_revision_conflict', '画布目录状态已变化');
+    const result = { item: canvasDirectory33.get(this.db, canvasId), duplicate: false };
+    this.db.prepare('INSERT INTO canvas_directory_operations(operation_id,project_id,canvas_id,request_digest,result_json,created_at) VALUES(?,?,?,?,?,?)')
+      .run(input.operationId,current.projectId,canvasId,digest,JSON.stringify(result),Date.now());
+    return result;
+  }
+  _updateCanvasDirectoryProfile(canvasId, input = {}) {
+    this._assertProjectDatabaseMutationTransaction('coordinator');
+    const profileId = 'desktop-local';
+    if (!this.db.inTransaction) throw canvasDirectory33.error('project_database_mutation_transaction_required', '目录偏好必须在权威写入事务内执行');
+    if (!input || typeof input !== 'object' || Array.isArray(input) || Object.keys(input).some((key) => !['pinned','opened'].includes(key))
+      || (input.opened != null && typeof input.opened !== 'boolean')) throw canvasDirectory33.error('canvas_profile_invalid', '目录偏好无效', 400);
+    if (!canvasDirectory33.get(this.db, canvasId)) throw canvasDirectory33.error('canvas_not_found', '画布不存在', 404);
+    if (input.pinned != null && typeof input.pinned !== 'boolean') throw canvasDirectory33.error('canvas_profile_invalid', '置顶值无效', 400);
+    const old = this.db.prepare('SELECT * FROM canvas_directory_profile WHERE profile_id=? AND canvas_id=?').get(profileId,canvasId);
+    this.db.prepare(`INSERT INTO canvas_directory_profile(profile_id,canvas_id,pinned,opened_at) VALUES(?,?,?,?)
+      ON CONFLICT(profile_id,canvas_id) DO UPDATE SET pinned=excluded.pinned,opened_at=excluded.opened_at`)
+      .run(profileId,canvasId,input.pinned == null ? old?.pinned || 0 : input.pinned ? 1 : 0,input.opened === true ? Date.now() : old?.opened_at || 0);
+    return canvasDirectory33.get(this.db,canvasId);
+  }
+  getCanvasDirectoryEntry(canvasId) {
+    return canvasDirectory33.get(this.db, canvasId);
+  }
+  isCanvasDirectoryHydrated() {
+    return this.db.prepare('SELECT status FROM canvas_directory_hydration_state WHERE singleton_id=1').get()?.status === 'ready';
+  }
+  completeCanvasDirectoryHydration() {
+    return this.withProjectDatabaseWrite('canvas.directory.hydration-complete', () => {
+      this.db.prepare("UPDATE canvas_directory_hydration_state SET status='ready',completed_at=? WHERE singleton_id=1 AND status='pending'").run(Date.now());
+    });
+  }
+  listCanvasDirectoryPage(projectId = DEFAULT_PROJECT_ID, options = {}) {
+    return canvasDirectory33.page(this.db, projectId, options);
+  }
+  transitionCanvasArchive(canvasId, action, input) {
+    return this.withProjectDatabaseWrite('canvas.directory.transition', () => this._transitionCanvasArchive(String(canvasId), action, input));
+  }
+  updateCanvasDirectoryProfile(canvasId, input) {
+    return this.withProjectDatabaseWrite('canvas.directory.profile', () => this._updateCanvasDirectoryProfile(String(canvasId), input));
+  }
   updateCanvasCatalogMetadata(canvasId, metadata = {}) {
     const normalizedCanvasId = String(canvasId || '');
     return this.withProjectDatabaseWrite('canvas.catalog-metadata.update', () => {
@@ -19320,6 +19485,7 @@ class ProjectDatabase {
   saveCanvasSnapshot(canvasId, snapshot, options = {}) {
     try {
       return this.withProjectDatabaseWrite('canvas.snapshot-save', () => {
+      canvasDirectory33.writable(this.db, canvasId);
       const current = this.getCanvas(canvasId);
       const currentRevision = current?.revision || 0;
       if (options.expectedRevision != null && Number(options.expectedRevision) !== currentRevision) {
@@ -24090,6 +24256,7 @@ class ProjectDatabase {
     this._assertProjectDatabaseMutationTransaction('coordinator');
       const existing = this.getRunIntentByKey(intent.projectId, intent.idempotencyKey);
       if (existing) return existing;
+      canvasDirectory33.writable(this.db, intent.canvasId);
       // Durable owner order is snapshot -> owner -> explicit pin. Creating the
       // owner first would make reserve compaction observe a dangling reference.
       this._ensureSchema31SnapshotOwnerAuthority({
@@ -25678,6 +25845,7 @@ class ProjectDatabase {
 
   createRun(input) {
     return this.withProjectDatabaseWrite('run.create', () => {
+    canvasDirectory33.writable(this.db, String(input.canvasId));
     const now = Date.now();
     const id = String(input.id || crypto.randomUUID());
     const projectId = String(input.projectId || DEFAULT_PROJECT_ID);

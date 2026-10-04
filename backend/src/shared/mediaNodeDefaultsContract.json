@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "sources": ["product-default", "zhenzhen", "seedance-nz"],
+  "nodeTypes": ["image", "edit", "video"],
+  "explicitFields": ["providerSource", "providerId", "providerModel", "imageBuiltinSource", "videoBuiltinSource", "model", "apiModel", "mainId"],
+  "defaults": {
+    "image": {
+      "zhenzhen": {"providerSource":"zhenzhen","providerId":"","providerModel":"","imageBuiltinSource":"zhenzhen","model":"gpt-image-2","apiModel":"gpt-image-2","aspectRatio":"1:1","sizeLevel":"1K"},
+      "seedance-nz": {"providerSource":"zhenzhen","providerId":"","providerModel":"","imageBuiltinSource":"seedance-nz","model":"gpt-image-2","apiModel":"zhenzhen-image-g2-t2i","aspectRatio":"adaptive","sizeLevel":"1K"}
+    },
+    "edit": {
+      "zhenzhen": {"providerSource":"zhenzhen","providerId":"","providerModel":"","imageBuiltinSource":"zhenzhen","model":"gpt-image-2","apiModel":"gpt-image-2","aspectRatio":"1:1","sizeLevel":"1K"},
+      "seedance-nz": {"providerSource":"zhenzhen","providerId":"","providerModel":"","imageBuiltinSource":"seedance-nz","model":"gpt-image-2","apiModel":"zhenzhen-image-g2-i2i","aspectRatio":"adaptive","sizeLevel":"1K"}
+    },
+    "video": {
+      "zhenzhen": {"providerSource":"zhenzhen","providerId":"","providerModel":"","videoBuiltinSource":"zhenzhen","mainId":"grok-video-3","model":"grok-video-3","ratio":"16:9","duration":15,"resolution":"720P"},
+      "seedance-nz": {"providerSource":"zhenzhen","providerId":"","providerModel":"","videoBuiltinSource":"seedance-nz","mainId":"grok-video-3","model":"zhenzhen-video-gk-v15","ratio":"16:9","duration":6,"resolution":"720p"}
+    }
+  }
+}

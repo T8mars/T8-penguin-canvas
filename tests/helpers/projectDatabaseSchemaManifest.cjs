@@ -1,4 +1,5 @@
 const crypto = require('node:crypto');
+const { PROJECT_DATABASE_SCHEMA_33_OWNED_OBJECT_NAMES } = require('../../backend/src/services/projectDatabaseMigration33');
 
 // Test-side implementation of the frozen schema-manifest algorithm. It is
 // deliberately independent from projectDatabase.js so lineage fixtures cannot
@@ -120,6 +121,13 @@ function inspectProjectDatabaseSchemaManifest(database, options = {}) {
   const excludedObjectNames = options.excludedObjectNames == null
     ? new Set()
     : new Set([...options.excludedObjectNames].map(String));
+  // A frozen historical descriptor inspects its own base contract only when
+  // the new extension is actually recorded. Full descriptor33 includes it.
+  if (Number(options.descriptorVersion || 0) <= 32
+    && database.prepare("SELECT 1 FROM sqlite_master WHERE name='schema_migrations'").get()
+    && database.prepare('SELECT 1 FROM schema_migrations WHERE version=33').get()) {
+    for (const name of PROJECT_DATABASE_SCHEMA_33_OWNED_OBJECT_NAMES) excludedObjectNames.add(name);
+  }
   const includesObject = (name) => (
     !excludedObjectNames.has(String(name))
     && (includedObjectNames == null || includedObjectNames.has(String(name)))

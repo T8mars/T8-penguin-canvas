@@ -12,7 +12,7 @@ import { supportsHistoryInputDraft } from '../src/utils/generationHistorySetting
 import { historyVideoBasicSettings } from '../src/utils/historyVideoBasicSettings.ts';
 import historyInputContract from '../backend/src/shared/generationHistoryInputContract.json';
 import { isGrokVideo15NewModel, grokVideo15NewSizeFromRatio } from '../src/providers/models.ts';
-import { VIDEO_MODELS, VIDEO_FAL_REGISTRY } from '../src/providers/models.ts';
+import { VIDEO_MODELS, VIDEO_FAL_REGISTRY, ANIMATE_MOTION_TRANSFER_MODEL } from '../src/providers/models.ts';
 import { readHistoryFalVideoInput } from '../src/utils/historyFalVideoInput.ts';
 import { prepareHistoryInputDraft, createHistoryInputDraftPatch } from '../src/utils/generationHistoryInputDraft.ts';
 
@@ -24,7 +24,7 @@ const names = new Set(['localPrompt', 'promptMentions', 'excludedMaterialIds', '
   'visibleUpstreamTexts', 'visibleUpstreamImages', 'visibleUpstreamVideos', 'visibleUpstreamAudios',
   'orderedTexts', 'orderedImages', 'orderedVideos', 'orderedAudios',
   'localRefImages', 'localRefVideos', 'localRefAudios', 'localRefMaterials', 'mentionMaterials', 'collectUpstream', 'minimaxH3VideoStartSeconds',
-  'isGrok15New', 'grok15NewSize']);
+  'isGrok15New', 'grok15NewSize', 'isAnimate']);
 const declarations: string[] = [];
 const submitArguments: Record<string, string[]> = {};
 let capture = ''; let generationPrelude = '';
@@ -81,7 +81,7 @@ const material = (id: string, url: string, kind: string) => ({ id, url, kind, so
 function render(d: Record<string, unknown>, extra: Record<string, unknown> = {}) {
   return factory({ id: 'video', d, upstream: { texts: [], images: [], videos: [], audios: [] },
     useMemo: (read: () => unknown) => read(), useOrderedMaterials: orderMaterials,
-    filterExcludedMaterials, normalizeExcludedMaterialIds, resolveMediaMentions, isGrokVideo15NewModel, grokVideo15NewSizeFromRatio,
+    filterExcludedMaterials, normalizeExcludedMaterialIds, resolveMediaMentions, isGrokVideo15NewModel, grokVideo15NewSizeFromRatio, ANIMATE_MOTION_TRANSFER_MODEL,
     maxMentionRefs: 2, maxMentionVideos: 1, maxMentionAudios: 1, historyInputContract,
     modelDef: { id: 'grok', kind: 'grok' }, apiModel: 'grok-video-3', videoBuiltinSource: 'zhenzhen', isFal: false, falReg: null, isVeoOmni: false,
     isApimartBudgetVideo: false, isApimartOmniLowprice: false, isSeedance25: false, isKling: false, isVidu: false,

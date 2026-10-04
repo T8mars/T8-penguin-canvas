@@ -275,9 +275,13 @@ test('terminal offscreen failure is caught and rendered as a visible Canvas aler
     'background save alert must be a single top-level child of the canvas shell',
   );
   assert.match(canvasSource, /data-canvas-background-save-error-kind=\{backgroundSaveFailure\.kind\}/);
-  assert.match(canvasSource, /backgroundSaveFailure\.kind === 'persist-failed'[\s\S]{0,180}后台节点结果未能保存/);
-  assert.match(canvasSource, /后台节点结果已保存，当前界面同步失败/);
-  assert.match(canvasSource, /服务端结果已持久化；请重新打开该画布以同步最新结果，无需重新生成。/);
+  assert.match(canvasSource, /backgroundSaveFailure\.kind === 'persist-failed'[\s\S]{0,180}canvas:backgroundSave.persistFailed/);
+  assert.match(canvasSource, /canvas:backgroundSave.syncFailed/);
+  assert.match(canvasSource, /canvas:backgroundSave.syncDetail/);
+  const localized = readFileSync(new URL('../src/i18n/resources.ts', import.meta.url), 'utf8');
+  assert.match(localized, /后台节点结果未能保存/);
+  assert.match(localized, /后台节点结果已保存，当前界面同步失败/);
+  assert.match(localized, /服务端结果已持久化；请重新打开该画布以同步最新结果，无需重新生成。/);
 });
 
 test('commit before the replacement listener mounts remains visible through the bounded mailbox', () => {

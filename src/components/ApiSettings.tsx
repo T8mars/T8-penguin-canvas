@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import DesktopDataStorage from './DesktopDataStorage';
+import { normalizeMediaNodeDefaults, resolveNewMediaNodeData, type MediaNodeDefaults, type MediaNodeDefaultSource } from '../utils/mediaNodeDefaults';
 import { localizeApiError } from '../i18n/apiErrors';
 import { ChevronDown, ChevronRight, CloudUpload, Download, ExternalLink, Eye, EyeOff, FileUp, Info, KeyRound, Loader2, Lock, Plus, Save, Settings2, TestTube2, Trash2, X, FolderOpen, ServerCog, Volume2 } from 'lucide-react';
 import { useApiKeysStore, FIXED_ZHENZHEN_BASE, FIXED_ZHENZHEN_SD2_BASE, RH_BASE, RH_INTL_BASE } from '../stores/apiKeys';
@@ -265,6 +266,14 @@ export default function ApiSettingsModal({ open, onClose, mode = 'full', returnF
   const [shows, setShows] = useState<Record<KeyField, boolean>>(emptyShow());
   const [clearedFields, setClearedFields] = useState<Partial<Record<KeyField, boolean>>>({});
   const [saved, setSaved] = useState(false);
+  const [mediaDefaultsDraft, setMediaDefaultsDraft] = useState<MediaNodeDefaults>(() => normalizeMediaNodeDefaults(undefined));
+  const mediaDefaultsDirty = useRef(false);
+  useEffect(() => {
+    if (!open) { mediaDefaultsDirty.current = false; return; }
+    if (!loaded || mediaDefaultsDirty.current) return;
+    try { setMediaDefaultsDraft(normalizeMediaNodeDefaults(settings.preferences?.mediaNodeDefaults)); }
+    catch { /* The store keeps the last verified settings and displays its error. */ }
+  }, [open, loaded, settings]);
   // v1.2.10.2: 文件自动保存路径输入
   const [fileSavePathInput, setFileSavePathInput] = useState<string>('');
   // v1.3.1: 画布自动保存路径输入
@@ -470,6 +479,7 @@ export default function ApiSettingsModal({ open, onClose, mode = 'full', returnF
     resourceLibraryPath: resourceLibraryPathInput.trim(),
     themeTemplatePath: themeTemplatePathInput.trim(),
     eagleApiBase: eagleApiBaseInput.trim(),
+    preferences: { ...settings.preferences, mediaNodeDefaults: mediaDefaultsDraft },
     ...(advancedDirty ? { advancedProviders: advancedProvidersInput } : {}),
     ...(cloudUploadDirty ? { cloudUploadTargets: cloudUploadTargetsInput } : {}),
   });
@@ -503,6 +513,9 @@ export default function ApiSettingsModal({ open, onClose, mode = 'full', returnF
     }
     if ((source as any).preferences && typeof (source as any).preferences === 'object') {
       next.preferences = { ...(source as any).preferences };
+      if (next.preferences?.mediaNodeDefaults !== undefined) {
+        next.preferences.mediaNodeDefaults = normalizeMediaNodeDefaults(next.preferences.mediaNodeDefaults);
+      }
     }
     if (Array.isArray((source as any).advancedProviders)) {
       next.advancedProviders = (source as any).advancedProviders;
@@ -536,6 +549,7 @@ export default function ApiSettingsModal({ open, onClose, mode = 'full', returnF
       const editable = getCurrentEditableSettings();
       const exportSettings = {
         ...(raw || {}),
+        preferences: { ...(raw?.preferences || settings.preferences), mediaNodeDefaults: mediaDefaultsDraft },
         ...Object.fromEntries(
           Object.entries(editable).filter(([, value]) => typeof value === 'string' && value.trim())
         ),
@@ -577,6 +591,10 @@ export default function ApiSettingsModal({ open, onClose, mode = 'full', returnF
     if (typeof patch.resourceLibraryPath === 'string') setResourceLibraryPathInput(patch.resourceLibraryPath);
     if (typeof patch.themeTemplatePath === 'string') setThemeTemplatePathInput(patch.themeTemplatePath);
     if (typeof patch.eagleApiBase === 'string') setEagleApiBaseInput(patch.eagleApiBase);
+    if (patch.preferences?.mediaNodeDefaults !== undefined) {
+      setMediaDefaultsDraft(normalizeMediaNodeDefaults(patch.preferences.mediaNodeDefaults));
+      mediaDefaultsDirty.current = true;
+    }
     if (Array.isArray(patch.advancedProviders)) {
       setAdvancedProvidersInput(patch.advancedProviders);
       setActiveAdvancedProviderId(patch.advancedProviders[0]?.id || '');
@@ -705,6 +723,9 @@ export default function ApiSettingsModal({ open, onClose, mode = 'full', returnF
     if (cloudUploadDirty) {
       (patch as any).cloudUploadTargets = cloudUploadTargetsInput;
     }
+    if (mediaDefaultsDirty.current) {
+      patch.preferences = { mediaNodeDefaults: normalizeMediaNodeDefaults(mediaDefaultsDraft) };
+    }
     if (creatorMode
       && !inputs.zhenzhenSd2ApiKey.trim()
       && !String((settings as any)?.zhenzhenSd2ApiKey || '').trim()) {
@@ -719,6 +740,14 @@ export default function ApiSettingsModal({ open, onClose, mode = 'full', returnF
       return;
     }
     await save(patch);
+    const persisted = useApiKeysStore.getState();
+    if (persisted.error || (patch.preferences?.mediaNodeDefaults && JSON.stringify(
+      normalizeMediaNodeDefaults(persisted.settings.preferences?.mediaNodeDefaults),
+    ) !== JSON.stringify(patch.preferences.mediaNodeDefaults))) {
+      setBackupMessage({ text: t('mediaDefaults.saveFailed'), tone: 'error' });
+      return;
+    }
+    mediaDefaultsDirty.current = false;
     setClearedFields({});
     setSaved(true);
     setTimeout(() => {
@@ -2634,6 +2663,40 @@ export default function ApiSettingsModal({ open, onClose, mode = 'full', returnF
           {renderKey(COMMON_KEYS[2], { baseUrlNote: `Base URL: ${RH_BASE}` })}
           {renderKey(COMMON_KEYS[3], { baseUrlNote: `Base URL: ${RH_INTL_BASE}`, clearable: true })}
           {renderKey(COMMON_KEYS[4], { baseUrlNote: t('keys.sameBaseIndependent', { url: FIXED_ZHENZHEN_BASE }) })}
+
+          <section className="t8-api-settings-divider pt-3 border-t" data-media-node-defaults="true">
+            <h3 className={labelCls}>{t('mediaDefaults.title')}</h3>
+            <p className={`${hintCls} text-xs mt-1 mb-3`}>{t('mediaDefaults.hint')}</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {(['imageSource', 'videoSource'] as const).map((field) => (
+                <label key={field} className="flex flex-col gap-1 text-sm">
+                  <span className={labelCls}>{t(`mediaDefaults.${field}`)}</span>
+                  <select className={inputCls} value={mediaDefaultsDraft[field]} disabled={!loaded || loading}
+                    data-media-default-field={field}
+                    onChange={(event) => {
+                      const source = event.currentTarget.value as MediaNodeDefaultSource;
+                      mediaDefaultsDirty.current = true;
+                      setMediaDefaultsDraft((previous) => ({ ...previous, [field]: source }));
+                    }}>
+                    {(['product-default', 'zhenzhen', 'seedance-nz'] as const).map((source) => (
+                      <option key={source} value={source}>{t(`mediaDefaults.${source}`)}</option>
+                    ))}
+                  </select>
+                  <span className={`${hintCls} text-xs`}>{String(resolveNewMediaNodeData(field === 'videoSource' ? 'video' : 'image', {}, {}, mediaDefaultsDraft)[field === 'videoSource' ? 'model' : 'apiModel'])}</span>
+                </label>
+              ))}
+            </div>
+            <button type="button" className={`${eyeBtnCls} text-xs mt-2`} disabled={!loaded || loading}
+              onClick={() => {
+                mediaDefaultsDirty.current = true;
+                setMediaDefaultsDraft({ version: 1, imageSource: 'seedance-nz', videoSource: 'seedance-nz' });
+              }}>{t('mediaDefaults.bothBudget')}</button>
+            <p className={`${hintCls} text-xs mt-2`}>{t('mediaDefaults.scope')}</p>
+            {(mediaDefaultsDraft.imageSource === 'seedance-nz' || mediaDefaultsDraft.videoSource === 'seedance-nz')
+              && !settings.zhenzhenSd2ApiKey && !inputs.zhenzhenSd2ApiKey.trim()
+              && <p className={`${hintCls} text-xs mt-2`}>{t('mediaDefaults.keyHint')}</p>}
+            {!loaded && <button type="button" className={`${eyeBtnCls} text-xs`} disabled={loading} onClick={() => void load()}>{t('mediaDefaults.retry')}</button>}
+          </section>
 
           {/* 分类独立 Key（默认折叠，点击展开 —— 新手友好） */}
           <div className="t8-api-settings-divider pt-3 border-t">

@@ -278,6 +278,12 @@ export interface CanvasNodeData {
 
 // 画布列表项(后端返回)
 export interface CanvasListItem {
+  projectId?: string;
+  status?: 'active' | 'archived';
+  archivedAt?: number | null;
+  catalogRevision?: number;
+  pinned?: boolean;
+  openedAt?: number;
   id: string;
   name: string;
   nodeCount: number;
@@ -721,6 +727,7 @@ export interface ApiSettings {
     url?: string;
   };
   preferences?: {
+    mediaNodeDefaults?: import('../utils/mediaNodeDefaults').MediaNodeDefaults;
     theme?: 'dark' | 'light';
     /** Interface locale only. It must never change prompt/content language. */
     uiLocale?: 'zh-CN' | 'en-US';

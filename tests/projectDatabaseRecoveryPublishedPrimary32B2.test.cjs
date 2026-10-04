@@ -46,7 +46,7 @@ async function createRecoverableSchema32Fixture(prefix) {
   let database = null;
   try {
     database = new ProjectDatabase(filename, { autoBackup: false });
-    assert.equal(PROJECT_DATABASE_SCHEMA_VERSION, PROJECT_DATABASE_MIGRATION_32.version);
+    assert.equal(PROJECT_DATABASE_SCHEMA_VERSION, 33);
     await database.createBackup();
     await database.close();
     database = null;
@@ -79,7 +79,7 @@ async function assertColdOpenRepairsPublishedTransition(fixture) {
 }
 
 test('B2 a post-publish primary-open failure is marked committed and remains cold-repairable', {
-  skip: PROJECT_DATABASE_SCHEMA_VERSION === PROJECT_DATABASE_MIGRATION_32.version
+  skip: PROJECT_DATABASE_SCHEMA_VERSION >= PROJECT_DATABASE_MIGRATION_32.version
     ? false
     : 'production schema remains 31 until the exact schema32 lineage is wired',
   timeout: 180_000,
@@ -109,7 +109,7 @@ test('B2 a post-publish primary-open failure is marked committed and remains col
 });
 
 test('B2 a post-publish identity-read failure closes the restored handle and remains cold-repairable', {
-  skip: PROJECT_DATABASE_SCHEMA_VERSION === PROJECT_DATABASE_MIGRATION_32.version
+  skip: PROJECT_DATABASE_SCHEMA_VERSION >= PROJECT_DATABASE_MIGRATION_32.version
     ? false
     : 'production schema remains 31 until the exact schema32 lineage is wired',
   timeout: 180_000,

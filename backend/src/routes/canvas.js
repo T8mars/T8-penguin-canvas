@@ -7,6 +7,7 @@ const config = require('../config');
 const {
   getProjectDatabase,
   recoverProjectDatabaseFromExplicitCanonicalBackup,
+  startProjectDatabaseStartupBackup,
 } = require('../services/projectDatabase');
 const { mapCanvasMutationError } = require('../services/canvasPatch');
 
@@ -39,6 +40,38 @@ const pendingCanvasListMirrorUpdates = new Map();
 let canvasListMutationEpoch = 0;
 const lastCanvasListMirrorWriteAt = new Map();
 const deletedCanvasListIds = new Set();
+let directoryHydrationFlight = null;
+let directoryHydrationPath = '';
+function scheduleDirectoryHydration(database) {
+  const runtimePath = path.resolve(config.CANVAS_FILE);
+  if (directoryHydrationPath !== runtimePath) { directoryHydrationFlight = null; directoryHydrationPath = runtimePath; }
+  if (database.isCanvasDirectoryHydrated() || directoryHydrationFlight) return;
+  // No all-document/file scan on the request path. Existing canonical status
+  // always wins; legacy JSON can initialize only a previously unknown identity.
+  directoryHydrationFlight = new Promise((resolve) => setImmediate(resolve)).then(async () => {
+    let state = loadCanvasListState();
+    if (!state.healthy) {
+      await canvasListRecoveryPromise;
+      if (canvasListRecoveryState.status === 'failed') throw new Error('旧画布目录恢复失败');
+      state = loadCanvasListState();
+      if (!state.healthy) throw new Error('旧画布目录仍不可验证');
+    }
+    canvasListRecoveryState = { ...canvasListRecoveryState, status: 'running', total: state.list.length, scanned: 0, startedAt: Date.now() };
+    for (let offset = 0; offset < state.list.length; offset += CANVAS_LIST_RECOVERY_BATCH_SIZE) {
+      if (path.resolve(config.CANVAS_FILE) !== runtimePath) return;
+      for (const item of state.list.slice(offset, offset + CANVAS_LIST_RECOVERY_BATCH_SIZE)) {
+        if (!item?.id || deletedCanvasListIds.has(item.id) || database.getCanvasDirectoryEntry(item.id)) continue;
+        if (!ensurePatchCanvas(database, item.id)) throw new Error('旧画布目录项缺少可验证文档');
+      }
+      canvasListRecoveryState.scanned = Math.min(state.list.length, offset + CANVAS_LIST_RECOVERY_BATCH_SIZE);
+      await yieldCanvasListRecovery();
+    }
+    database.completeCanvasDirectoryHydration();
+    canvasListRecoveryState = { ...canvasListRecoveryState, status: 'ready', completedAt: Date.now() };
+  }).catch(() => {
+    canvasListRecoveryState = { ...canvasListRecoveryState, status: 'failed', completedAt: Date.now() };
+  }).finally(() => { if (directoryHydrationPath === runtimePath) directoryHydrationFlight = null; });
+}
 
 function projectDatabase() {
   return getProjectDatabase(config);
@@ -1569,6 +1602,33 @@ function resolveRequestedCanvasListItem(activeId, list) {
     return null;
   }
 }
+// Canonical lightweight directory. Compatibility mirrors never decide status.
+router.get('/directory', (req, res) => {
+  try {
+    if (Object.values(req.query).some((value) => typeof value !== 'string')) throw Object.assign(new Error('目录参数必须是单个值'), { code: 'canvas_list_query_invalid', status: 400 });
+    const database = projectDatabase();
+    scheduleDirectoryHydration(database);
+    const page = database.listCanvasDirectoryPage(undefined, { limit: req.query.limit, cursor: req.query.cursor, query: req.query.q, status: req.query.status, sort: req.query.sort });
+    const activeItem = req.query.activeId ? database.getCanvasDirectoryEntry(req.query.activeId) : null;
+    const ready = database.isCanvasDirectoryHydrated();
+    return res.json({ success: true, data: page.items, meta: { version: 2, total: page.total, hasMore: page.hasMore, nextCursor: page.nextCursor,
+      counts: page.counts, partial: !ready, searchUnavailable: !ready, activeItem,
+      recovery: ready ? { status: 'ready', reason: null, scanned: 0, total: 0, recovered: 0, startedAt: null, completedAt: null } : { ...canvasListRecoveryState, status: canvasListRecoveryState.status === 'failed' ? 'failed' : 'running' } } });
+  } catch (error) { return sendCanvasPatchError(res, error, { fallbackCode: 'canvas_directory_read_failed', defaultStatus: 500 }); }
+});
+router.post('/:id/archive', (req, res) => {
+  try { return res.json({ success: true, data: projectDatabase().transitionCanvasArchive(req.params.id, 'archive', req.body) }); }
+  catch (error) { return sendCanvasPatchError(res, error, { fallbackCode: 'canvas_archive_failed' }); }
+});
+router.post('/:id/restore', (req, res) => {
+  try { return res.json({ success: true, data: projectDatabase().transitionCanvasArchive(req.params.id, 'restore', req.body) }); }
+  catch (error) { return sendCanvasPatchError(res, error, { fallbackCode: 'canvas_restore_failed' }); }
+});
+router.post('/:id/profile', (req, res) => {
+  try { return res.json({ success: true, data: projectDatabase().updateCanvasDirectoryProfile(req.params.id, req.body) }); }
+  catch (error) { return sendCanvasPatchError(res, error, { fallbackCode: 'canvas_profile_update_failed' }); }
+});
+
 // GET /api/canvas — 获取画布列表
 router.get('/', (req, res) => {
   const options = parseCanvasListQuery(req);
@@ -1577,6 +1637,14 @@ router.get('/', (req, res) => {
   }
 
   const state = loadCanvasListState();
+  // Older clients must not resurrect an archived canvas from a stale JSON
+  // mirror. Canonical entries overlay metadata and decide visibility.
+  try {
+    const database = projectDatabase();
+    if (typeof database.getCanvasDirectoryEntry === 'function') {
+      state.list = state.list.map((item) => database.getCanvasDirectoryEntry(item.id) || item).filter((item) => item.status !== 'archived');
+    }
+  } catch (error) { return sendCanvasPatchError(res, error, { fallbackCode: 'canvas_directory_read_failed', defaultStatus: 500 }); }
   const recoveryRunning = canvasListRecoveryState.status === 'running';
   const catalogHealthy = state.healthy && !recoveryRunning;
   if (!options.paged) {
@@ -1729,7 +1797,7 @@ router.post('/recovery/restore-canonical-backup', async (req, res) => {
   }
   let backupRefreshWarning = null;
   try {
-    await database.startStartupBackup();
+    await startProjectDatabaseStartupBackup();
   } catch (error) {
     backupRefreshWarning = String(error?.code || 'canonical_backup_refresh_failed');
   }
@@ -1793,8 +1861,9 @@ router.get('/:id', (req, res) => {
 // GET /api/canvas/:id/metadata — 只读取 SQLite 权威目录元数据。
 router.get('/:id/metadata', (req, res) => {
   try {
-    const document = projectDatabase().getCanvas(req.params.id);
-    const item = canvasListItemFromDocument(req.params.id, document);
+    const database = projectDatabase();
+    const item = typeof database.getCanvasDirectoryEntry === 'function' ? database.getCanvasDirectoryEntry(req.params.id)
+      : canvasListItemFromDocument(req.params.id, database.getCanvas(req.params.id));
     if (!item) {
       return res.status(404).json({
         success: false,

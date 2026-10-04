@@ -238,7 +238,7 @@ function readSchema32Identity(database) {
 function assertCompleteSchema32(database, exactSchema31) {
   assert.deepEqual(
     migrationVersions(database),
-    Array.from({ length: PROJECT_DATABASE_MIGRATION_32.version }, (_, index) => index + 1),
+    Array.from({ length: PROJECT_DATABASE_SCHEMA_VERSION }, (_, index) => index + 1),
   );
   assert.deepEqual(
     ownedObjectNames(database, PROJECT_DATABASE_SCHEMA_31_OWNED_OBJECT_NAMES),
@@ -312,8 +312,8 @@ async function createExactSchema31RecoveryPoint(directory) {
   let seed = null;
   try {
     seed = new ProjectDatabase(seedFilename, databaseOptions(schema31Filename));
-    assert.equal(PROJECT_DATABASE_SCHEMA_VERSION, PROJECT_DATABASE_MIGRATION_32.version);
-    assert.equal(migrationVersions(seed.db).at(-1), PROJECT_DATABASE_MIGRATION_32.version);
+    assert.equal(PROJECT_DATABASE_SCHEMA_VERSION, 33);
+    assert.equal(migrationVersions(seed.db).at(-1), PROJECT_DATABASE_SCHEMA_VERSION);
     await seed.close();
     seed = null;
     assert.equal(fs.existsSync(schema31Filename), true);
@@ -337,7 +337,7 @@ async function createExactSchema31RecoveryPoint(directory) {
 test('B2 exact schema31 disk database upgrades atomically to schema32 with singleton state and a mandatory recovery point', {
   timeout: 180_000,
 }, async () => {
-  assert.equal(PROJECT_DATABASE_SCHEMA_VERSION, PROJECT_DATABASE_MIGRATION_32.version);
+  assert.equal(PROJECT_DATABASE_SCHEMA_VERSION, 33);
   const directory = temporaryDirectory('t8-b2-schema32-integration-');
   const upgradeFilename = path.join(directory, 'upgrade-from-v31.sqlite3');
   const backupFilename = `${upgradeFilename}.pre-migration-v31.sqlite3`;
@@ -377,7 +377,7 @@ test('B2 exact schema31 disk database upgrades atomically to schema32 with singl
 test('B2 schema32 late real SQLITE_FULL rolls the exact v31 migration back and retries from the mandatory recovery point', {
   timeout: 180_000,
 }, async () => {
-  assert.equal(PROJECT_DATABASE_SCHEMA_VERSION, PROJECT_DATABASE_MIGRATION_32.version);
+  assert.equal(PROJECT_DATABASE_SCHEMA_VERSION, 33);
   const directory = temporaryDirectory('t8-b2-schema32-real-full-');
   const primaryFilename = path.join(directory, 'projects.sqlite3');
   const backupFilename = `${primaryFilename}.pre-migration-v31.sqlite3`;
@@ -463,7 +463,7 @@ test('B2 schema32 late real SQLITE_FULL rolls the exact v31 migration back and r
 test('B2 schema32 migration fails closed when the primary data_version changes after exact v31 backup reuse', {
   timeout: 180_000,
 }, async () => {
-  assert.equal(PROJECT_DATABASE_SCHEMA_VERSION, PROJECT_DATABASE_MIGRATION_32.version);
+  assert.equal(PROJECT_DATABASE_SCHEMA_VERSION, 33);
   const directory = temporaryDirectory('t8-b2-schema32-data-version-');
   const primaryFilename = path.join(directory, 'projects.sqlite3');
   const backupFilename = `${primaryFilename}.pre-migration-v31.sqlite3`;
@@ -544,7 +544,7 @@ function databaseVersion32ReceiptCount(database) {
 test('B2 schema32 migration rejects a structurally valid v31 database outside the exact ten-lineage allowlist before DDL', {
   timeout: 180_000,
 }, async () => {
-  assert.equal(PROJECT_DATABASE_SCHEMA_VERSION, PROJECT_DATABASE_MIGRATION_32.version);
+  assert.equal(PROJECT_DATABASE_SCHEMA_VERSION, 33);
   const directory = temporaryDirectory('t8-b2-schema32-lineage-reject-');
   const primaryFilename = path.join(directory, 'projects.sqlite3');
   const backupFilename = `${primaryFilename}.pre-migration-v31.sqlite3`;

@@ -856,9 +856,9 @@ test('B2 malformed migration-ledger diagnostics expose only bounded schema summa
 test('B2 complete manifest accepts only deterministic pre-ledger and schema10/15/16/17/19/22/23/25/27/28 histories', async () => {
   const historicalSchema22 = loadHistoricalProjectDatabase('v2.5.6');
   const historicalSchema23 = loadHistoricalProjectDatabase('v2.5.8');
-  const retainedF2Schema23 = loadProjectDatabaseSourceFile(
-    'E:\\PenguinPravite\\T8-penguin-canvas-release-v2.5.9\\backend\\src\\services\\projectDatabase.js',
-  );
+  // Frozen F2 source creates only a new disposable fixture. Never depend on a
+  // historical checkout path or open a retained user database.
+  const retainedF2Schema23 = loadHistoricalProjectDatabase('9b6f6a43bc407a3c47a32dd9c0536afa879f256b');
   assert.equal(historicalSchema22.PROJECT_DATABASE_SCHEMA_VERSION, 22);
   assert.equal(historicalSchema23.PROJECT_DATABASE_SCHEMA_VERSION, 23);
   const matrix = [
@@ -1026,7 +1026,7 @@ test('B2 current-version table, index, and trigger drift fail closed without sil
 
       assert.throws(
         () => new ProjectDatabase(fixture.filename, { autoBackup: false }),
-        (error) => assertSchemaDriftFailure(error, /^preflight-/),
+        (error) => assertSchemaDriftFailure(error, /^(?:preflight-|active-initialize$)/),
       );
 
       assert.equal(fs.existsSync(fixture.generationFilename), false);

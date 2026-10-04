@@ -10,6 +10,7 @@ const {
 const {
   PROJECT_DATABASE_SCHEMA_31_OWNED_OBJECTS,
 } = require('../../backend/src/services/projectDatabaseMigration31');
+const { PROJECT_DATABASE_SCHEMA_33_OWNED_OBJECT_NAMES } = require('../../backend/src/services/projectDatabaseMigration33');
 
 function quoteSqlIdentifier(value) {
   return `"${String(value).replaceAll('"', '""')}"`;
@@ -76,6 +77,20 @@ function removeSchema32SyntheticFixtureArtifacts(filename) {
 // removes only its source-controlled extension and ledger rows from a
 // disposable database before an older exact historical fixture is rebuilt.
 function stripSchema32ForSyntheticSchema31(database) {
+  // Only disposable fixtures can shed the newer additive extension. Production
+  // continues to reject a schema33 primary in every older-schema executable.
+  if (database.name !== ':memory:') assertTemporaryFixturePath(database.name);
+  if (database.prepare("SELECT 1 FROM sqlite_master WHERE name='canvas_directory'").get()) {
+    const objects = database.prepare('SELECT type,name FROM sqlite_master').all()
+      .filter((row) => PROJECT_DATABASE_SCHEMA_33_OWNED_OBJECT_NAMES.includes(row.name));
+    const order = { trigger: 0, index: 1, view: 2, table: 3 };
+    objects.sort((a,b) => order[a.type] - order[b.type]);
+    database.transaction(() => {
+      for (const row of objects) database.exec(`DROP ${row.type.toUpperCase()} ${quoteSqlIdentifier(row.name)}`);
+      database.prepare('DELETE FROM schema_migration_receipts WHERE version=33').run();
+      database.prepare('DELETE FROM schema_migrations WHERE version=33').run();
+    }).immediate();
+  }
   const migrationTablePresent = Boolean(database.prepare(`
     SELECT 1 AS found FROM sqlite_master
     WHERE type = 'table' AND name = 'schema_migrations'

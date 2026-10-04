@@ -183,6 +183,34 @@ function applyArtifacts(database, fixture, artifacts, batchOverrides = {}, optio
   });
 }
 
+test('archived canvas accepts only original verified host results and remains read-only after late commit', (t) => {
+  const database = new ProjectDatabase(':memory:', { autoBackup: false });
+  t.after(() => database.close());
+  const fixture = createFixture(database, '-archived');
+  fixture.run = database.updateRun(fixture.run.id, { status: 'succeeded' });
+  fixture.nodeRun = database.updateNodeRun(fixture.nodeRun.id, { status: 'succeeded' });
+  fixture.attempt = database.updateAttempt(fixture.attempt.id, { status: 'succeeded' });
+  const item = database.getCanvasDirectoryEntry(fixture.document.canvasId);
+  const archived = database.transitionCanvasArchive(item.id, 'archive', {
+    catalogRevision: item.catalogRevision, baseRevision: item.revision, operationId: crypto.randomUUID(), projectId: item.projectId,
+  });
+  const artifact = makeArtifact(fixture, 0);
+  assert.throws(() => applyArtifacts(database, fixture, [artifact], {}, { hostIdentity: { actorId: 'client', sessionId: 'forged' } }), /权威身份/);
+  const wrong = makeBatch(fixture, [artifact]); wrong.operations[0].payload.nodeUid = crypto.randomUUID();
+  assert.throws(() => database.applyCommonHostArtifactBatch(wrong, { hostIdentity: HOST_IDENTITY, verifiedArtifacts: [artifact] }));
+  const committed = applyArtifacts(database, fixture, [artifact]);
+  assert.ok(committed);
+  assert.equal(database.getCanvasDirectoryEntry(item.id).status, 'archived');
+  assert.equal(database.getCanvasDirectoryEntry(item.id).catalogRevision, archived.item.catalogRevision);
+  // Results belong to the immutable Run ledger, not an ordinary canvas edit.
+  assert.equal(database.getCanvas(item.id).revision, fixture.document.revision);
+  assert.equal(database.getNodeRun(fixture.nodeRun.id).outputRefs.length, 1);
+  assert.equal(database.db.prepare('SELECT count(*) AS n FROM run_output_commits').get().n, 1);
+  assert.throws(() => database.saveCanvasSnapshot(item.id, database.getCanvas(item.id)), /归档|canvas_archived_read_only/);
+  const replay = applyArtifacts(database, fixture, [artifact]);
+  assert.equal(replay.duplicate, true);
+});
+
 function tableCount(database, table) {
   return Number(database.db.prepare(`SELECT COUNT(*) AS count FROM ${table}`).get().count);
 }

@@ -21,6 +21,7 @@ import type { CanvasListItem, NodeMeta, NodeType } from '../types/canvas';
 import { useThemeStore } from '../stores/theme';
 import { useCanvasStore } from '../stores/canvas';
 import { listCanvasPage } from '../services/api';
+import CanvasCatalogManager from './CanvasCatalogManager';
 import { resolveThemeTemplate } from '../theme/defaultTemplates';
 import { useUiLocaleStore } from '../stores/locale';
 import { getNodeSearchText, localizeNodeMeta, NODE_GROUP_COPY } from '../i18n/nodeCatalog';
@@ -591,6 +592,7 @@ export default function Sidebar({
   const renameCanvas = useCanvasStore((state) => state.renameCanvas);
   const setActive = useCanvasStore((state) => state.setActive);
   const [canvasPanelOpen, setCanvasPanelOpen] = useState(true);
+  const [managerOpen, setManagerOpen] = useState(false);
   const [canvasScrollTop, setCanvasScrollTop] = useState(0);
   const [canvasSearchDraft, setCanvasSearchDraft] = useState('');
   const [canvasSearchQuery, setCanvasSearchQuery] = useState('');
@@ -607,7 +609,7 @@ export default function Sidebar({
   const creatingCanvasRef = useRef(false);
   const completionNoticeSet = useMemo(() => new Set(completionNoticeCanvasIds), [completionNoticeCanvasIds]);
   const displayedCanvasTotal = canvasTotal ?? canvases.length;
-  const displayedCanvases = canvasSearchQuery ? canvasSearchResults : canvases;
+  const displayedCanvases = (canvasSearchQuery ? canvasSearchResults : canvases).filter((item) => item.status !== 'archived');
   const canvasVisibleRange = useMemo(() => {
     const first = Math.max(0, Math.floor(canvasScrollTop / CANVAS_ROW_HEIGHT) - CANVAS_ROW_OVERSCAN);
     const count = Math.ceil(CANVAS_VIEWPORT_HEIGHT / CANVAS_ROW_HEIGHT) + CANVAS_ROW_OVERSCAN * 2;
@@ -871,6 +873,7 @@ export default function Sidebar({
             {creatingCanvas ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
           </button>
         </div>
+        <button type="button" className="mx-2 mb-2 rounded-md border border-[var(--t8-border)] px-2 py-2 text-xs font-semibold hover:bg-[var(--bg-secondary)]" onClick={() => setManagerOpen(true)}>{t('archive.manage')}</button>
         {canvasPanelOpen && (
           <div className="px-2 pb-2">
             <form
@@ -1050,6 +1053,7 @@ export default function Sidebar({
       )}
 
       {/* 搜索框 */}
+      {managerOpen && <CanvasCatalogManager onClose={() => setManagerOpen(false)} />}
       <div
         className={`t8-sidebar-search-row p-2 border-b ${
           isPixel ? 'border-[#1A1410]/80' : isDark ? 'border-white/10' : 'border-black/10'

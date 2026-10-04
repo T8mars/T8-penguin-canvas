@@ -1,4 +1,4 @@
-export type CanvasSurfacePhase = 'mounting' | 'empty' | 'document' | 'flow' | 'ready' | 'failed';
+export type CanvasSurfacePhase = 'mounting' | 'empty' | 'document' | 'flow' | 'ready' | 'failed' | 'archived';
 
 export interface CanvasSurfaceReadiness {
   phase: CanvasSurfacePhase;
@@ -127,6 +127,7 @@ export function deriveCanvasStartupReadiness(
       error: null,
     };
   }
+  if (input.surface.phase === 'archived') return { stage: 'ready', catalogReady: true, canCreateCanvas: true, canAddNodes: false, error: null };
 
   return {
     stage: 'document',

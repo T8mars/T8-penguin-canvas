@@ -2,7 +2,6 @@
 
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
-const Module = require('node:module');
 const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
@@ -21,57 +20,10 @@ function loadSchema32ProjectDatabaseModule() {
     '../backend/src/services/projectDatabase.js',
   );
   const production = require(projectDatabaseFilename);
-  if (production.PROJECT_DATABASE_SCHEMA_VERSION === 32) return production;
-  assert.equal(production.PROJECT_DATABASE_SCHEMA_VERSION, 31);
-
-  const migrationFilename = require.resolve(
-    '../backend/src/services/projectDatabaseMigration32',
-  );
-  const migration = require(migrationFilename);
-  if (!Array.isArray(migration.PROJECT_DATABASE_SCHEMA_32_FINGERPRINT_MAPPINGS)) {
-    require.cache[migrationFilename].exports = Object.freeze({
-      ...migration,
-      PROJECT_DATABASE_SCHEMA_32_FINGERPRINT_MAPPINGS: Object.freeze([
-        Object.freeze({
-          fromFingerprint: SOURCE_FINGERPRINT,
-          toFingerprint: TARGET_FINGERPRINT,
-        }),
-      ]),
-      PROJECT_DATABASE_SCHEMA_32_EXTENSION_FINGERPRINT: EXTENSION_FINGERPRINT,
-    });
-  }
-
-  let source = fs.readFileSync(projectDatabaseFilename, 'utf8');
-  source = source.replace(
-    'const PROJECT_DATABASE_SCHEMA_VERSION = 31;',
-    'const PROJECT_DATABASE_SCHEMA_VERSION = 32;',
-  );
-  source = source.replace(
-    'if (PROJECT_DATABASE_MIGRATIONS.length !== PROJECT_DATABASE_SCHEMA_VERSION) {',
-    'if (false && PROJECT_DATABASE_MIGRATIONS.length !== PROJECT_DATABASE_SCHEMA_VERSION) {',
-  );
-  source = source.replace(
-    /function assertProjectDatabaseCurrentSchema\(database, context = 'active'\) \{\s*return assertProjectDatabaseSchema31\(database, context\);\s*\}/,
-    `function assertProjectDatabaseCurrentSchema(database, context = 'active') {
-      const schema = inspectProjectDatabaseSchema(database, { requireContiguous: true });
-      if (schema.version === PROJECT_DATABASE_MIGRATION_32.version) {
-        return inspectProjectDatabaseCurrentSchemaManifest(database, {
-          descriptorVersion: PROJECT_DATABASE_MIGRATION_32.version,
-          excludedObjectNames: PROJECT_DATABASE_SCHEMA_23_OWNED_OBJECT_NAMES,
-        });
-      }
-      return assertProjectDatabaseSchema31(database, context);
-    }`,
-  );
-  assert.match(source, /const PROJECT_DATABASE_SCHEMA_VERSION = 32;/);
-  assert.match(source, /if \(false && PROJECT_DATABASE_MIGRATIONS\.length/);
-
-  const instrumented = new Module(projectDatabaseFilename, module);
-  instrumented.filename = projectDatabaseFilename;
-  instrumented.paths = Module._nodeModulePaths(path.dirname(projectDatabaseFilename));
-  instrumented._compile(source, projectDatabaseFilename);
-  assert.equal(instrumented.exports.PROJECT_DATABASE_SCHEMA_VERSION, 32);
-  return instrumented.exports;
+  // Exercise the real migration guard, including completion into newer
+  // additive schemas. Never disable the production registry/manifest gate.
+  assert.ok(production.PROJECT_DATABASE_SCHEMA_VERSION >= 32);
+  return production;
 }
 
 function writeMarker(value) {

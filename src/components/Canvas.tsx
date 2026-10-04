@@ -1,6 +1,7 @@
 import { createContext, lazy, Suspense, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ComponentType, type CSSProperties, type DragEvent as ReactDragEvent, type MouseEvent as ReactMouseEvent, type RefObject, type SetStateAction } from 'react';
 import { useTranslation } from 'react-i18next';
 import DesktopDataStorage from './DesktopDataStorage';
+import CanvasRestoreDialog from './CanvasRestoreDialog';
 import NodeDomLanguageBoundary from '../i18n/NodeDomLanguageBoundary';
 import {
   ReactFlow,
@@ -32,7 +33,10 @@ import { Play, Copy, CopyPlus, Trash2, FolderPlus, PackagePlus, Library, Downloa
 import * as LucideIcons from 'lucide-react';
 import { useCanvasStore } from '../stores/canvas';
 import { waitForCanvasCloseSave } from '../utils/canvasCloseSave';
+import { registerCanvasArchiveGuard } from '../utils/canvasArchiveLifecycle';
+import { parseCanvasNodeExecutionKey } from '../stores/runBus';
 import { useApiKeysStore } from '../stores/apiKeys';
+import { createBlankNodeData } from '../utils/mediaNodeCreation';
 import { useThemeStore } from '../stores/theme';
 import { useShortcutStore } from '../stores/shortcuts';
 import { trackAchievementEvent, useAchievementStore } from '../stores/achievements';
@@ -385,6 +389,7 @@ interface PreparedRunExecution {
 }
 
 interface ActiveCanvasRunControl {
+  canvasId: string;
   cancelled: boolean;
   cancelPersistence: Promise<void>;
 }
@@ -3263,7 +3268,7 @@ export interface AddNodeOptions {
   data?: Record<string, any>;
 }
 
-export type AddNodeFn = (type: NodeType, options?: AddNodeOptions) => string;
+export type AddNodeFn = (type: NodeType, options?: AddNodeOptions) => string | undefined;
 
 interface RadialMenuSession {
   anchor: RadialMenuPoint;
@@ -4101,6 +4106,36 @@ function requireVersionedCanvasPatchDocument(value: unknown, canvasId: string): 
 function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, onReadinessChange, onRetryLoadRef, persistenceRuntime, themeStyleOverride, apiSettingsRevision, onOpenApiSettings }: CanvasInnerProps) {
   const { t } = useTranslation(['canvas', 'common']);
   const { activeId, canvases, refreshCanvasMetadata, setActive } = useCanvasStore();
+  const archiveReadOnly = canvases.find((item) => item.id === activeId)?.status === 'archived';
+  const [restoreConfirmation, setRestoreConfirmation] = useState<(typeof canvases)[number] | null>(null);
+  useEffect(() => {
+    if (!activeId) return;
+    const refresh = () => { if (document.visibilityState === 'visible') void refreshCanvasMetadata(activeId); };
+    refresh();
+    const timer = window.setInterval(refresh, 30_000);
+    window.addEventListener('focus', refresh);
+    return () => { window.clearInterval(timer); window.removeEventListener('focus', refresh); };
+  }, [activeId, refreshCanvasMetadata]);
+  useEffect(() => {
+    // Register before the canvas-wide hotkeys. A portal's keyboard events must
+    // reach its own controls, but may never trigger canvas editing underneath.
+    const guard = (event: Event) => {
+      if (document.querySelector('[data-canvas-manager="true"], [data-canvas-restore="true"]')) return;
+      const state = useCanvasStore.getState();
+      if (state.canvases.find((item) => item.id === state.activeId)?.status !== 'archived') return;
+      const target = event.target instanceof Element ? event.target : null;
+      if (target?.closest('input,textarea,select,[role="dialog"]')) return;
+      const keyboard = event as KeyboardEvent;
+      const navigational = event.type === 'keydown' && ['Tab','Escape','ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End','PageUp','PageDown'].includes(keyboard.key);
+      const buttonActivation = event.type === 'keydown' && target?.closest('button') && ['Enter',' '].includes(keyboard.key);
+      const copy = event.type === 'keydown' && (keyboard.ctrlKey || keyboard.metaKey) && keyboard.key.toLowerCase() === 'c';
+      if (navigational || buttonActivation || copy) return;
+      event.preventDefault(); event.stopImmediatePropagation();
+    };
+    window.addEventListener('keydown', guard, true);
+    window.addEventListener('paste', guard, true);
+    return () => { window.removeEventListener('keydown', guard, true); window.removeEventListener('paste', guard, true); };
+  }, []);
   const performanceFixtureSize = useMemo(
     () => (typeof window === 'undefined' ? null : readCanvasPerformanceFixtureSize(window.location.search)),
     [],
@@ -5554,6 +5589,7 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, onReadinessChange, onR
 
   // 自动保存(防抖 800ms,防空数据覆盖)
   useEffect(() => {
+    if (archiveReadOnly) return;
     if (!activeId || !loaded || loadedCanvasId !== activeId) return;
     const currentRevision = canvasRevisionsRef.current.get(activeId);
     if (!hasCanvasWriteAuthority({
@@ -5766,7 +5802,54 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, onReadinessChange, onR
     timer = window.setTimeout(flushPendingAutosave, 800);
     saveTimersByCanvasRef.current.set(canvasIdForSave, timer);
     pendingSaveFlushersByCanvasRef.current.set(canvasIdForSave, flushPendingAutosave);
-  }, [nodes, edges, creativeDesk, farmCanvas, activeId, loaded, loadedCanvasId, getViewport, dragSaveTick, enqueueCanvasMutation, setCanvasRevision]);
+  }, [nodes, edges, creativeDesk, farmCanvas, activeId, loaded, loadedCanvasId, getViewport, dragSaveTick, enqueueCanvasMutation, setCanvasRevision, archiveReadOnly]);
+
+  useEffect(() => registerCanvasArchiveGuard(async (canvasId) => {
+    const root = document.getElementById('root');
+    const priorInert = root?.inert || false;
+    (document.activeElement as HTMLElement | null)?.blur?.();
+    if (root) root.inert = true;
+    let released = false;
+    const release = () => { if (!released) { released = true; if (root) root.inert = priorInert; } };
+    try {
+      flushCanvasViewportStorage();
+      const result = await waitForCanvasCloseSave({
+        cancelled: () => released,
+        read: () => {
+          const isActive = useCanvasStore.getState().activeId === canvasId;
+          const bus = useRunBusStore.getState();
+          if ([...activeCanvasRunsRef.current].some((run) => run.canvasId === canvasId)
+            || Object.keys(bus.executionTokens).some((key) => parseCanvasNodeExecutionKey(key).canvasId === canvasId)) return { dirty: true, queued: false, blocked: 'running' };
+          if (pendingSaveByCanvasRef.current.get(canvasId)?.conflicted) return { dirty: true, queued: false, blocked: 'conflict' };
+          if (isActive && (!loadedRef.current || loadedCanvasIdRef.current !== canvasId)) return { dirty: true, queued: false, blocked: 'conflict' };
+          const snapshot = isActive ? persistableCanvasPatchStateFromParts(nodesRef.current, edgesRef.current,
+            creativeDeskRef.current, farmCanvasRef.current, nextNodeSerialIdRef.current).snapshot : null;
+          return { dirty: pendingSaveByCanvasRef.current.has(canvasId) || Boolean(snapshot && lastSavedByCanvasRef.current.get(canvasId) !== snapshot),
+            queued: canvasMutationQueuesRef.current.has(canvasId) || saveTimersByCanvasRef.current.has(canvasId) };
+        },
+        flush: () => {
+          const flusher = pendingSaveFlushersByCanvasRef.current.get(canvasId);
+          if (flusher) flusher();
+          else if (useCanvasStore.getState().activeId === canvasId) setDragSaveTick((tick) => tick + 1);
+        },
+      });
+      if (!result.ok) throw new Error(`canvas_archive_${result.reason || 'save'}`);
+      return { release, revision: useCanvasStore.getState().activeId === canvasId ? canvasRevisionsRef.current.get(canvasId) : undefined };
+    } catch (error) { release(); throw error; }
+  }), [flushCanvasViewportStorage]);
+
+  useEffect(() => {
+    if (!archiveReadOnly || !loaded) return;
+    const touched = new Map<HTMLElement, boolean>();
+    const apply = () => document.querySelectorAll<HTMLElement>('.t8-canvas-shell .react-flow__nodes, .t8-canvas-shell [data-canvas-floating-ui="control-rail"]').forEach((element) => {
+      if (!touched.has(element)) touched.set(element, element.inert);
+      element.inert = true;
+    });
+    apply();
+    const observer = new MutationObserver(apply);
+    observer.observe(document.querySelector('.t8-canvas-shell') || document.body, { childList: true, subtree: true });
+    return () => { observer.disconnect(); touched.forEach((prior, element) => { element.inert = prior; }); };
+  }, [archiveReadOnly, loaded]);
 
   useEffect(() => {
     const subscribe = window.t8pc?.onCanvasCloseRequest;
@@ -6346,8 +6429,20 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, onReadinessChange, onR
   // v1.2.10.5: 接入 placeSingleNode 防重叠解析器 ——
   //   期望落点冲突时按螺线 (右→下→左→上 step=80 maxTries=64) 自动避让,
   //   兜底走最右侧 + 写日志 + setCenter 飞镜。
+  const prepareBlankNodeData = useCallback((type: string, explicit: Record<string, unknown> = {}) => {
+    if (useCanvasStore.getState().canvases.find((item) => item.id === useCanvasStore.getState().activeId)?.status === 'archived') return null;
+    try { return createBlankNodeData(type, INITIAL_DATA[type as NodeType] || {}, explicit); }
+    catch {
+      logBus.warn(t('settings:mediaDefaults.notReady'), 'API');
+      onOpenApiSettings?.();
+      return null;
+    }
+  }, [t, onOpenApiSettings]);
+
   const addNode = useCallback(
     (type: NodeType, options?: AddNodeOptions) => {
+      const data = prepareBlankNodeData(type, options?.data || {});
+      if (!data) return;
       const atScreen = options?.atScreen;
       const id = `${type}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
       let cx: number;
@@ -6380,13 +6475,13 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, onReadinessChange, onR
         id,
         type,
         position: { x: finalPos.x, y: finalPos.y },
-        data: { ...(INITIAL_DATA[type] || {}), ...(options?.data || {}) },
+        data,
       };
       setNodes((prev) => [...prev, ...assignActiveNodeSerials([newNode], prev)]);
       trackAchievementEvent({ type: 'node.created', theme: visualStyle, nodeType: type });
       return id;
     },
-    [screenToFlowPosition, nodes, getViewport, setCenter, assignActiveNodeSerials, visualStyle]
+    [screenToFlowPosition, nodes, getViewport, setCenter, assignActiveNodeSerials, visualStyle, prepareBlankNodeData]
   );
 
   const handleCreateGenerationTarget = useCallback(() => {
@@ -7661,6 +7756,10 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, onReadinessChange, onR
       logBus.warn('选区里没有可用于生成的提示词或图片', '选区生成');
       return;
     }
+    const selectionData = prepareBlankNodeData(referenceImages.length ? 'edit' : 'image', {
+      prompt, referenceImages, creativeSourceNodeIds: summary.selectedNodeIds, creativeSelectionBounds: summary.bounds,
+    });
+    if (!selectionData) return;
     const newNode: Node = {
       id: `image-selection-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       type: 'image',
@@ -7672,19 +7771,13 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, onReadinessChange, onR
         { source: 'placement:selection-ai' },
       ),
       selected: true,
-      data: {
-        ...(INITIAL_DATA.image || {}),
-        prompt,
-        referenceImages,
-        creativeSourceNodeIds: summary.selectedNodeIds,
-        creativeSelectionBounds: summary.bounds,
-      },
+      data: selectionData,
     };
     const assigned = assignActiveNodeSerials([newNode], nodesRef.current);
     setNodes([...nodesRef.current.map((node) => ({ ...node, selected: false })), ...assigned]);
     registerPlacementShelfNodes(assigned, '生成');
     logBus.success('已在选区右侧创建图像生成节点', '选区生成');
-  }, [activeId, assignActiveNodeSerials, registerPlacementShelfNodes]);
+  }, [activeId, assignActiveNodeSerials, registerPlacementShelfNodes, prepareBlankNodeData]);
 
   const prepareSubflowFromSelection = useCallback((ids: string[]) => {
     const selectedIds = [...new Set(ids)].filter((id) => id && id !== BULK_PHANTOM_ID);
@@ -9998,9 +10091,14 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, onReadinessChange, onR
         return -1;
       }
       const runControl: ActiveCanvasRunControl = {
+        canvasId: launchCanvasId,
         cancelled: false,
         cancelPersistence: Promise.resolve(),
       };
+      if (useCanvasStore.getState().canvases.find((item) => item.id === launchCanvasId)?.status === 'archived') {
+        logBus.warn(t('shell:archive.readOnly'), 'API');
+        return -1;
+      }
       activeCanvasRunsRef.current.add(runControl);
       setIsRunning(true);
       const releaseLaunchLock = await runLaunchQueueRef.current.acquire();
@@ -11928,6 +12026,12 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, onReadinessChange, onR
   // xyflow 事件
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => {
+      // Dialog controls must stay usable, but document-scoped ReactFlow keys
+      // cannot mutate the canvas underneath an inert application root.
+      if (document.getElementById('root')?.inert) {
+        changes = changes.filter((change) => change.type === 'dimensions');
+        if (changes.length === 0) return;
+      }
       const { runtimeChanges, visibleChanges } = partitionRunReplayRuntimeNodeChanges(
         changes,
         runReplayRuntimeRef.current?.nodes || [],
@@ -11971,12 +12075,16 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, onReadinessChange, onR
     [markManualNodeDeletion]
   );
   const onEdgesChange = useCallback(
-    (changes: EdgeChange[]) => setEdges((eds) => applyEdgeChanges(changes, eds)),
+    (changes: EdgeChange[]) => {
+      if (document.getElementById('root')?.inert) return;
+      setEdges((eds) => applyEdgeChanges(changes, eds));
+    },
     []
   );
 
   const onConnect = useCallback(
     (params: Connection) => {
+      if (document.getElementById('root')?.inert) return;
       resetConnectionPanMode();
       // 批量移线过程中禁止普通连接逻辑(不然会多一条重复边)
       if (bulkReconnectRef.current) return;
@@ -12843,12 +12951,14 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, onReadinessChange, onR
   const handlePickCandidate = useCallback(
     (meta: NodeMeta) => {
       if (!picker) return;
+      const data = prepareBlankNodeData(meta.type);
+      if (!data) return;
       const id = `${meta.type}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
       const newNode: Node = {
         id,
         type: meta.type,
         position: picker.flowPos,
-        data: { ...(INITIAL_DATA[meta.type] || {}) },
+        data,
       };
       const [nodeWithSerial] = assignActiveNodeSerials([newNode], nodes);
       setNodes((prev) => [...prev, nodeWithSerial]);
@@ -12886,7 +12996,7 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, onReadinessChange, onR
       }
       setPicker(null);
     },
-    [picker, nodes, assignActiveNodeSerials, isFarmStory, playFarmSound, pushEdgeConnectFeedback]
+    [picker, nodes, assignActiveNodeSerials, isFarmStory, playFarmSound, pushEdgeConnectFeedback, prepareBlankNodeData]
   );
 
   const handleConnectPickerToNodeId = useCallback(() => {
@@ -13890,6 +14000,7 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, onReadinessChange, onR
       return true;
     };
     const onClipboardKeyCapture = (e: KeyboardEvent) => {
+      if (document.querySelector('[data-canvas-manager="true"], [data-canvas-restore="true"]')) return;
       if (document.getElementById('root')?.inert) {
         // Returning alone still lets ReactFlow's document key listener delete
         // selected nodes. Stop the event before it reaches any lower listener.
@@ -14274,6 +14385,7 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, onReadinessChange, onR
   // mount it from transport readiness alone: the authoritative document,
   // revision, and ReactFlow viewport must all belong to the rendered canvas.
   const creatorAgentCanvasReady = loaded
+    && !archiveReadOnly
     && loadedCanvasId === renderedCanvasId
     && initializedFlowCanvasId === renderedCanvasId
     && activeProjectId != null
@@ -14326,6 +14438,7 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, onReadinessChange, onR
         error: null,
       };
     }
+    if (archiveReadOnly) return { phase: 'archived', canvasId: renderedCanvasId, loadedCanvasId, revision: activeCanvasRevision, flowCanvasId: initializedFlowCanvasId, error: null };
     return {
       phase: 'ready',
       canvasId: renderedCanvasId,
@@ -14342,6 +14455,7 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, onReadinessChange, onR
     loaded,
     loadedCanvasId,
     renderedCanvasId,
+    archiveReadOnly,
   ]);
 
   useEffect(() => {
@@ -14728,9 +14842,23 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, onReadinessChange, onR
       data-canvas-performance-reason={performanceDecision.reason}
       data-canvas-performance-fixture={performanceFixtureSize || undefined}
       style={{ background: bgColor }}
+      data-canvas-archived={archiveReadOnly ? 'true' : undefined}
+      onKeyDownCapture={archiveReadOnly ? (event) => {
+        if (['Delete', 'Backspace'].includes(event.key) || ((event.ctrlKey || event.metaKey) && ['v','x','z','y','d'].includes(event.key.toLowerCase()))) {
+          event.preventDefault(); event.stopPropagation();
+        }
+      } : undefined}
       onContextMenuCapture={onCanvasContextMenuCapture}
       onMouseMove={handleCanvasPointerMove}
     >
+      {archiveReadOnly && <div role="status" className="absolute top-2 left-1/2 -translate-x-1/2 z-[150] flex flex-wrap items-center justify-center gap-3 max-w-[95%] rounded-lg border border-[var(--t8-border)] bg-[var(--bg-secondary)] px-4 py-2 text-sm text-[var(--text-primary)] shadow-lg">
+        <span>{t('shell:archive.readOnly')}</span>
+        <button type="button" className="underline font-semibold" onClick={() => {
+          const item = canvases.find((canvas) => canvas.id === activeId);
+          if (item) setRestoreConfirmation(item);
+        }}>{t('shell:archive.restore')}</button>
+      </div>}
+      {restoreConfirmation && <CanvasRestoreDialog item={restoreConfirmation} onClose={() => setRestoreConfirmation(null)} />}
       {backgroundSaveFailure && (
         <div
           role="alert"
@@ -15255,9 +15383,12 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, onReadinessChange, onR
           onInit={handleAuthoritativeFlowInit}
           nodeTypes={memoNodeTypes}
           edgeTypes={memoEdgeTypes}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onConnect={onConnect}
+          onNodesChange={archiveReadOnly ? undefined : onNodesChange}
+          onEdgesChange={archiveReadOnly ? undefined : onEdgesChange}
+          onConnect={archiveReadOnly ? undefined : onConnect}
+          nodesDraggable={!archiveReadOnly}
+          nodesConnectable={!archiveReadOnly}
+          deleteKeyCode={archiveReadOnly ? null : undefined}
           onConnectStart={onConnectStart}
           onConnectEnd={onConnectEnd}
           isValidConnection={onIsValidConnection}

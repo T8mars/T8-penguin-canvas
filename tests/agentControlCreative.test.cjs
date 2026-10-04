@@ -3155,6 +3155,8 @@ test('built-in creator catalog stays anchored to current LLM, image, video and a
     'backend/src/shared/seedanceNzLlmModels.json',
   ), 'utf8')));
   const imageSource = llmSource;
+  const seedreamContract = require('../backend/src/shared/seedreamNzContract.json');
+  const seedreamModels = new Set([...Object.values(seedreamContract.families).flatMap((family) => family.models), ...seedreamContract.layerModels]);
   const seedanceNzSource = fs.readFileSync(path.join(root, 'backend/src/providers/seedanceNz.js'), 'utf8');
   const videoSource = [
     llmSource,
@@ -3176,7 +3178,7 @@ test('built-in creator catalog stays anchored to current LLM, image, video and a
     item.model,
   ));
   catalog.image.forEach((item) => assert.ok(
-    imageSource.includes(`'${item.model}'`) || seedanceNzSource.includes(`'${item.model}'`),
+    imageSource.includes(`'${item.model}'`) || seedanceNzSource.includes(`'${item.model}'`) || seedreamModels.has(item.model),
     item.model,
   ));
   catalog.video.forEach((item) => assert.ok(videoSource.includes(`'${item.model}'`), item.model));
@@ -3184,6 +3186,30 @@ test('built-in creator catalog stays anchored to current LLM, image, video and a
     audioSource.includes(`'${item.model}'`) || ['xai-tts', 'xai-stt', 'suno'].includes(item.model),
     item.model,
   ));
+});
+
+test('blank Creator image and generic nodes freeze defaults before approval without changing explicit nodes', () => {
+  const state = fixture();
+  let prefs = { version: 1, imageSource: 'seedance-nz', videoSource: 'seedance-nz' };
+  const service = createAgentControlCreativeService({ database: state.database, mediaNodeDefaultsProvider: () => prefs });
+  const plan = service.createPlan({ kind: 'image', prompt: '企鹅图片', candidates: 1 }, scope);
+  assert.equal(plan.brief.imageProvider, 'seedance-nz');
+  const preview = structuredClone(service.requirePlan(plan.planId, scope));
+  const image = preview.patch.operations.find((op) => op.type === 'node.add' && op.payload.node.type === 'image').payload.node;
+  assert.equal(image.data.apiModel, 'zhenzhen-image-g2-t2i');
+  assert.equal(image.data.providerSource, 'zhenzhen');
+  assert.equal(image.data.imageBuiltinSource, 'seedance-nz');
+  prefs = { version: 1, imageSource: 'zhenzhen', videoSource: 'zhenzhen' };
+  assert.deepEqual(service.requirePlan(plan.planId, scope), preview);
+  const explicit = service.createPlan({ kind: 'image', prompt: '企鹅图片', imageModel: 'chosen-model', candidates: 1 }, scope);
+  assert.equal(explicit.brief.imageModel, 'chosen-model');
+  prefs = { version: 1, imageSource: 'seedance-nz', videoSource: 'seedance-nz' };
+  const generic = service.actionPlan('graph.node-add', { type: 'video' }, scope);
+  const node = service.requirePlan(generic.planId, scope).patch.operations[0].payload.node;
+  assert.equal(node.data.videoBuiltinSource, 'seedance-nz');
+  assert.equal(node.data.model, 'zhenzhen-video-gk-v15');
+  assert.equal(state.writes, 0);
+  assert.equal(state.providerPosts, 0);
 });
 
 test('creative plans fail closed after revision changes', () => {

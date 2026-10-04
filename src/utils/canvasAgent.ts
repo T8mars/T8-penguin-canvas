@@ -1,4 +1,5 @@
 import { CANVAS_NODE_SCHEMA_MANIFEST } from '../config/nodeRegistry.ts';
+import { resolveNewMediaNodeData, type MediaNodeDefaults } from './mediaNodeDefaults.ts';
 import { sha256Hex } from './incrementalSha256.ts';
 import type { SubflowDefinition } from './subflows.ts';
 import { validateSubflowDefinition } from './subflows.ts';
@@ -281,6 +282,7 @@ export interface CanvasAgentToolTrace {
 }
 
 export interface BuildCanvasAgentWorkflowPlanInput {
+  mediaNodeDefaults?: MediaNodeDefaults;
   prompt: string;
   projectId: string;
   canvasId: string;
@@ -1025,6 +1027,7 @@ function buildRegisteredFallbackDraft(
   seed: string,
   currentNodes: BuildCanvasAgentWorkflowPlanInput['currentNodes'],
   currentEdges: BuildCanvasAgentWorkflowPlanInput['currentEdges'],
+  mediaNodeDefaults?: MediaNodeDefaults,
 ): CanvasPatchDraft {
   const origin = plannedOrigin(currentNodes);
   const existingNodeIds = new Set((currentNodes || []).map((node) => String(node.id || '')));
@@ -1038,7 +1041,7 @@ function buildRegisteredFallbackDraft(
   const sourceHandle = preferredSourceHandle(generatorType);
   const operations: CanvasPatchDraft['operations'] = [
     { type: 'node.add', node: { id: textId, type: 'text', position: { x: origin.x, y: origin.y }, data: { ...schemaDefaults('text'), text: prompt } } },
-    { type: 'node.add', node: { id: generatorId, type: generatorType, position: { x: origin.x + 360, y: origin.y }, data: schemaDefaults(generatorType) } },
+    { type: 'node.add', node: { id: generatorId, type: generatorType, position: { x: origin.x + 360, y: origin.y }, data: resolveNewMediaNodeData(generatorType, schemaDefaults(generatorType), {}, mediaNodeDefaults) } },
     { type: 'node.add', node: { id: outputId, type: 'output', position: { x: origin.x + 720, y: origin.y }, data: schemaDefaults('output') } },
     { type: 'edge.add', edge: { id: uniqueEdgeId('prompt'), source: textId, target: generatorId } },
     { type: 'edge.add', edge: { id: uniqueEdgeId('output'), source: generatorId, target: outputId, ...(sourceHandle == null ? {} : { sourceHandle }) } },
@@ -1149,7 +1152,7 @@ export function buildCanvasAgentWorkflowPlan(input: BuildCanvasAgentWorkflowPlan
   const graphDigest = assertAgentDigest(input.graphDigest, '画布图摘要');
   const nodeSchemaDigest = assertAgentDigest(input.nodeSchemaDigest, '节点 Schema 摘要');
   const promptDigest = canvasAgentDigest(prompt);
-  const seed = canvasAgentDigest([projectId, canvasId, input.baseRevision, input.generation, prompt]).slice(0, 12);
+  const seed = canvasAgentDigest([projectId, canvasId, input.baseRevision, input.generation, prompt, input.mediaNodeDefaults || null]).slice(0, 12);
   const candidates = input.subflowCandidates || [];
   const intent = classifyCanvasAgentIntent(prompt);
   const rankedCandidates = rankCanvasAgentSubflowCandidates(prompt, candidates);
@@ -1243,7 +1246,7 @@ export function buildCanvasAgentWorkflowPlan(input: BuildCanvasAgentWorkflowPlan
       : '搜索命中同项目固定版本且可独立运行的子工作流。';
   } else if (['image', 'video', 'audio', 'llm'].includes(intent)) {
     mode = 'registered-fallback';
-    patchDraft = buildRegisteredFallbackDraft(prompt, intent as 'image' | 'video' | 'audio' | 'llm', seed, input.currentNodes, input.currentEdges);
+    patchDraft = buildRegisteredFallbackDraft(prompt, intent as 'image' | 'video' | 'audio' | 'llm', seed, input.currentNodes, input.currentEdges, input.mediaNodeDefaults);
     title = '权威 Schema 小型回退计划';
     explanation = candidates.length
       ? eligibleCandidates.length

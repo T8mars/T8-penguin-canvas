@@ -592,7 +592,10 @@ test('B2 schema32 literal contract is deterministic, backup-only, and production
     'utf8',
   );
   assert.match(projectDatabaseSource, /projectDatabaseMigration32/);
-  assert.match(projectDatabaseSource, /PROJECT_DATABASE_SCHEMA_VERSION\s*=\s*32\b/);
+  const { PROJECT_DATABASE_SCHEMA_VERSION, PROJECT_DATABASE_MIGRATIONS } = require('../backend/src/services/projectDatabase');
+  require('./helpers/projectDatabaseVersion.cjs').assertCurrentProjectDatabaseRegistry(PROJECT_DATABASE_SCHEMA_VERSION, PROJECT_DATABASE_MIGRATIONS);
+  assert.equal(PROJECT_DATABASE_SCHEMA_VERSION, 33);
+  assert.equal(PROJECT_DATABASE_MIGRATIONS[31].checksum, EXPECTED_SCHEMA_32_CHECKSUM);
 });
 
 test('B2 schema32 TEMP SQLite contract enforces strict singleton policy and immutable identity', () => {

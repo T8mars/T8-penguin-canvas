@@ -30,7 +30,7 @@ const tree = ts.createSourceFile('ImageNode.tsx', source, ts.ScriptTarget.Latest
 const names = new Set(['localPrompt', 'promptMentions', 'imagePromptAdjustments', 'refImages',
   'excludedMaterialIds', 'visibleUpstreamImages', 'visibleUpstreamTexts', 'localImageMaterials',
   'allImagesUnordered', 'materialOrder', 'orderedImages', 'orderedTexts', 'mentionMaterials',
-  'collectUpstream', 'resolveGenerationInput']);
+  'collectUpstream', 'resolveGenerationInput', 'isQwenImage21Tab']);
 const declarations: string[] = [];
 let capture = '';
 function visit(node: ts.Node) {
@@ -292,7 +292,7 @@ test('Budget Image G history preparation and final fixed-asset draft round-trip 
     const flags = { isZhenzhenBudgetPlatformSelected: true, isZhenzhenBudgetImageSelected: true, isZhenzhenImageG25: true,
       isZhenzhenImageG25Lowprice: lowprice, isZhenzhenImageG25Official: !lowprice, isZhenzhenGrokImageV2: false,
       isZhenzhenGrokImageV2Edit: false, isZhenzhenNb: false, isVosr2ImageTab: false, isSeedreamLayerTab: false,
-      isWanImageTab: false, isQwenImageTab: false, isZhenzhenImageG2: false };
+      isWanImageTab: false, isQwenImageTab: false, isQwenImage21Tab: false, isZhenzhenImageG2: false };
     const data = { prompt: 'Original @image2', referenceImages: ['/files/input/b.png', '/files/input/a.png', '/files/input/b.png'],
       zhenzhenImageG25Size: lowprice ? '16:9' : custom ? 'custom' : 'preserve_reference',
       zhenzhenImageG25Resolution: '4k', zhenzhenImageG25Count: lowprice ? 1 : 4,

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { ApiSettings } from '../types/canvas';
 import * as api from '../services/api';
+import { normalizeMediaNodeDefaults } from '../utils/mediaNodeDefaults';
 
 // 主 Key 的固定 base URL
 export const FIXED_ZHENZHEN_BASE = 'https://ai.t8star.org';
@@ -65,6 +66,7 @@ const DEFAULT: ApiSettings = {
   preferences: { theme: 'dark', uiLocale: 'zh-CN', language: 'zh-CN' },
 };
 
+let settingsRequestGeneration = 0;
 export const useApiKeysStore = create<ApiKeysState>((set) => ({
   settings: DEFAULT,
   loading: false,
@@ -72,9 +74,12 @@ export const useApiKeysStore = create<ApiKeysState>((set) => ({
   loaded: false,
 
   async load() {
+    const generation = ++settingsRequestGeneration;
     set({ loading: true, error: null });
     try {
       const data = await api.getSettings();
+      normalizeMediaNodeDefaults(data.preferences?.mediaNodeDefaults);
+      if (generation !== settingsRequestGeneration) return;
       set({
         settings: {
           ...DEFAULT,
@@ -89,16 +94,20 @@ export const useApiKeysStore = create<ApiKeysState>((set) => ({
         loaded: true,
       });
     } catch (e: any) {
+      if (generation !== settingsRequestGeneration) return;
       set({ loading: false, error: e?.message || '加载设置失败' });
     }
   },
 
   async save(patch) {
+    const generation = ++settingsRequestGeneration;
     set({ loading: true, error: null });
     try {
       await api.updateSettings(patch);
       // 重新拉取(后端会返回脱敏后的 Key)
       const data = await api.getSettings();
+      normalizeMediaNodeDefaults(data.preferences?.mediaNodeDefaults);
+      if (generation !== settingsRequestGeneration) return;
       set({
         settings: {
           ...DEFAULT,
@@ -110,8 +119,10 @@ export const useApiKeysStore = create<ApiKeysState>((set) => ({
           llmBaseUrl: FIXED_ZHENZHEN_BASE,
         },
         loading: false,
+        loaded: true,
       });
     } catch (e: any) {
+      if (generation !== settingsRequestGeneration) return;
       set({ loading: false, error: e?.message || '保存失败' });
     }
   },

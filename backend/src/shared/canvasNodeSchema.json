@@ -2591,10 +2591,15 @@
               "gpt-image-2"
             ]
           },
+          "providerSource": { "type": "string", "enum": ["zhenzhen"] },
+          "providerId": { "type": "string", "enum": [""] },
+          "providerModel": { "type": "string", "enum": [""] },
+          "imageBuiltinSource": { "type": "string", "enum": ["zhenzhen", "seedance-nz"] },
+          "apiModel": { "type": "string", "enum": ["gpt-image-2", "zhenzhen-image-g2-t2i", "zhenzhen-image-g2-i2i"] },
           "aspectRatio": {
             "type": "string",
             "enum": [
-              "1:1"
+              "1:1", "adaptive"
             ]
           },
           "sizeLevel": {
@@ -2815,6 +2820,15 @@
       "generatable": true,
       "generation": {
         "allowedDataFields": {
+          "providerSource": { "type": "string", "enum": ["zhenzhen"] },
+          "providerId": { "type": "string", "enum": [""] },
+          "providerModel": { "type": "string", "enum": [""] },
+          "videoBuiltinSource": { "type": "string", "enum": ["zhenzhen", "seedance-nz"] },
+          "mainId": { "type": "string", "enum": ["grok-video-3"] },
+          "model": { "type": "string", "enum": ["grok-video-3", "zhenzhen-video-gk-v15"] },
+          "ratio": { "type": "string", "enum": ["16:9"] },
+          "duration": { "type": "integer", "enum": [6, 15] },
+          "resolution": { "type": "string", "enum": ["720P", "720p"] },
           "reuseResult": {
             "type": "boolean"
           }

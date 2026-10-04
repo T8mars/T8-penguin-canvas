@@ -1,10 +1,10 @@
 # 当前项目上下文
 
-更新：2026-10-02。仅维护当前事实；长期规则见根 `SKILL.md` 和 `AGENTS.md`。本页预算 80 行 / 8 KiB，旧检查点迁入专题，不追加长日报。
+更新：2026-10-05。仅维护当前事实；长期规则见根 `SKILL.md` 和 `AGENTS.md`。本页预算 80 行 / 8 KiB，旧检查点迁入专题，不追加长日报。
 
 - 默认目录 `E:\PenguinPravite\T8-penguin-canvas`；branch `codex/release-v3.0.8-volcengine-assets-ux`，common dir `.git`。v3.2.4 正式源码与 Tag 固定为 `ecbb4312a55c1bf386f8850c0170117a3b037012`，不得移动；实际开工仍以 git/worktree 门为准。
-- package `3.2.4` 已完成唯一正式 Windows 构建与同源[Mac任务](https://github.com/T8mars/T8-penguin-canvas/actions/runs/36971772927)，稳定 Latest、六资产及两个更新清单完整回下载通过，Windows资产未变、recovery已清除；本轮Mac未因额度延期，事实见[发布专题](release-v3.2.4.md)。旧Tag冻结，后续事实提交不重建包。
-- v3.2.4 安装升级、旧画布与 F8–F10 证据按 `owner-approved-post-release-v3.2.4` 后补，不视为通过；Mac仍保持 ad-hoc 未公证预览。
+- package `3.2.5` 发布准备；用户已授权开发收尾后唯一正式 Windows 构建、推送和自动更新 Release，Mac仅额度不足可延期。当前线上 Latest 仍为 v3.2.4，六资产已完整验证且冻结。新版本进度见[发布专题](release-v3.2.5.md)。
+- v3.2.5 真实UI、安装升级、旧画布、资源负载与 F8–F10 证据按 `owner-approved-post-release-v3.2.5` 后补，不视为通过；Mac仍保持 ad-hoc 未公证预览。
 
 ## 当前检查点
 
@@ -12,6 +12,7 @@
 
 | 事项 | 当前事实与下一步 |
 | --- | --- |
+| 画布归档/新建默认来源 | 两项开发完成：schema33正式迁移、大管理窗口、归档只读/恢复和权威写入门；全局来源只初始化空白通用image/edit/video，不改旧节点。最终功能27/27、持久化25/25、历史保真80/80、生产处理器9/9，组重叠不相加；实际浏览器点击工具无响应，端到端UI未验收。见[功能专题](canvas-archive-media-defaults.md)。 |
 | Seedream Flash | 已随v3.2.4双平台发布：既有 Seedream/分层 Tab 接入国内与海外六路径；真实六任务成功，13/13 结果下载、完整解码并查看，COS 官方别名只读 GET 散列一致。263/263 回归及类型/双语/能力同步门通过；Pro 默认/限制不变，六份无凭据工作流已完成；见[专题](seedream-v5-flash.md)。 |
 | GitHub PR / Issues | 10月1日：0开放PR、5开放Issues。#30 RH真实枚举与#31启动拒绝后卡锁限定修复提交 `276a2c6`，14项新专项及十套回归81/81通过，已随v3.2.3发布；#31具体输入变更来源待复现，5项均保留验收边界。详见[本轮专题](github-issues-20261001.md)；#29历史证据见[前次专题](github-issues-20260918.md)。 |
 | v3.1.9 发布 | Windows 唯一正式链与同源[Mac任务](https://github.com/T8mars/T8-penguin-canvas/actions/runs/35354742555)成功，稳定 Latest/两个更新清单/六资产独立完整回下载通过，Windows资产追加前后不变，recovery已清除；Mac仍未公证，固定Tag不移动。详见[发布专题](release-v3.1.9.md)。 |

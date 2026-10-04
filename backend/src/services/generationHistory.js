@@ -188,7 +188,7 @@ function listGenerationHistory(database, input = {}) {
       nextCursor: hasMore ? Buffer.from(JSON.stringify({ v: 1, scope, time: Number(last.first_at), id: last.group_id })).toString('base64url') : null,
     };
   };
-  return database.db.transaction(query).deferred();
+  return database.withProjectDatabaseReadSnapshot('generation-history.list', query);
 }
 
 module.exports = { listGenerationHistory, GENERATION_HISTORY_SCHEMA: SCHEMA };

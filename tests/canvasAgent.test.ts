@@ -420,6 +420,23 @@ test('registered fallback stays at three known nodes and uses exact audio source
   if (outputEdge?.type === 'edge.add') assert.equal(outputEdge.edge.sourceHandle, 'audio-0');
 });
 
+test('new media Agent plans materialize preferences before simulation and keep old nodes untouched', () => {
+  const mediaNodeDefaults = { version: 1 as const, imageSource: 'seedance-nz' as const, videoSource: 'seedance-nz' as const };
+  for (const prompt of ['生成一张企鹅海报图片', '生成一个企鹅视频']) {
+    const input = { ...baseInput(prompt), mediaNodeDefaults, currentNodes: [{ id: 'old-image', type: 'image', position: { x: 0, y: 0 } }] };
+    const plan = buildCanvasAgentWorkflowPlan(input);
+    assert.ok(plan.patchDraft);
+    const additions = plan.patchDraft.operations.filter((op) => op.type === 'node.add');
+    const media = additions.find((op) => op.node.type === 'image' || op.node.type === 'video')!;
+    assert.equal(media.node.data[media.node.type === 'video' ? 'videoBuiltinSource' : 'imageBuiltinSource'], 'seedance-nz');
+    assert.equal(plan.patchDraft.operations.some((op) => op.type === 'node.patch'), false);
+    const frozen = JSON.stringify(plan.patchDraft);
+    const changed = buildCanvasAgentWorkflowPlan({ ...input, mediaNodeDefaults: { version: 1, imageSource: 'zhenzhen', videoSource: 'zhenzhen' } });
+    assert.notEqual(changed.patchDraft?.id, plan.patchDraft.id);
+    assert.equal(JSON.stringify(plan.patchDraft), frozen);
+  }
+});
+
 test('plan, compact simulation proposal, and authoritative Patch preview produce the same topology', () => {
   const document = normalizeCanvasDocument('canvas-a', {
     schema: 't8-canvas-document', schemaVersion: 2, projectId: 'project-a', canvasId: 'canvas-a', revision: 4,

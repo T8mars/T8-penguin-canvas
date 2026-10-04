@@ -22,6 +22,8 @@ import {
   X,
 } from 'lucide-react';
 import * as api from '../services/api';
+import { normalizeMediaNodeDefaults } from '../utils/mediaNodeDefaults';
+import i18n from '../i18n';
 import type { AssetRef, CanvasPatch, CanvasPatchPreview, CanvasPatchRecord, CollaborationExecutionPolicySnapshot, NodeRunSummary, RunAttemptSummary, RunDetail, RunEventRecord, RunIntent, RunRecoveryOverview, RunRetentionPolicy, RunSummary } from '../types/project';
 import { diffSubflowDefinitions, upgradeSubflowInstances, type SubflowDefinition, type SubflowUpgradeResult } from '../utils/subflows';
 import {
@@ -738,7 +740,11 @@ export default function ProjectWorkbench(props: ProjectWorkbenchProps) {
       const toolDigests = Object.fromEntries(toolResults.map((result) => [result.tool, result.digest]));
       toolDigests.searchSubflows = canvasAgentDigest(searchResults.map((result) => result.digest));
       const graphDigest = canvasAgentDigest(canvasSettled.value.data);
+      const settingsSnapshot = useApiKeysStore.getState();
+      if (!settingsSnapshot.loaded) throw new Error(i18n.t('settings:mediaDefaults.notReady'));
+      const mediaNodeDefaults = normalizeMediaNodeDefaults(settingsSnapshot.settings.preferences?.mediaNodeDefaults);
       const preliminaryPlan = buildCanvasAgentWorkflowPlan({
+        mediaNodeDefaults,
         prompt: agentPrompt,
         projectId: props.projectId,
         canvasId: props.canvasId,
@@ -769,6 +775,7 @@ export default function ProjectWorkbench(props: ProjectWorkbenchProps) {
         estimateRun: estimateResult.digest,
       };
       const finalPlan = buildCanvasAgentWorkflowPlan({
+        mediaNodeDefaults,
         prompt: agentPrompt,
         projectId: props.projectId,
         canvasId: props.canvasId,

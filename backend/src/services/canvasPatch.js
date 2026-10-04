@@ -904,6 +904,9 @@ const PUBLIC_PROJECT_DATABASE_CAPACITY_REASONS = new Set([
 ]);
 
 function mapCanvasMutationError(error, options = {}) {
+  if (/canvas_archived_read_only/.test(String(error?.message || ''))) {
+    return { status: 409, body: { success: false, code: 'canvas_archived_read_only', error: '画布已归档；请先恢复后再编辑或运行' } };
+  }
   const fallbackCode = typeof options.fallbackCode === 'string' ? options.fallbackCode : 'canvas_patch_invalid';
   const code = safeCanvasMutationErrorCode(error, fallbackCode);
   const currentRevisionValue = error?.currentRevision ?? error?.current?.revision;

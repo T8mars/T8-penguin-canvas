@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const multer = require('multer');
 const config = require('../config');
+const { normalizeMediaNodeDefaults } = require('../utils/mediaNodeDefaults');
 const {
   maskAdvancedProviders,
   normalizeAdvancedProviders,
@@ -237,10 +238,11 @@ function maskKey(k) {
   return k ? '****' + String(k).slice(-4) : '';
 }
 
-function loadSettings({ persistMigrations = true } = {}) {
+function loadSettings({ persistMigrations = true, strictPreferences = false } = {}) {
   if (!fs.existsSync(config.SETTINGS_FILE)) return { ...DEFAULT_SETTINGS };
   try {
     const data = JSON.parse(fs.readFileSync(config.SETTINGS_FILE, 'utf-8'));
+    if (strictPreferences) normalizeMediaNodeDefaults(data.preferences?.mediaNodeDefaults);
     // 强制 base URL 与配置一致(防篡改)
     const merged = {
       ...DEFAULT_SETTINGS,
@@ -259,6 +261,7 @@ function loadSettings({ persistMigrations = true } = {}) {
     }
     return migrated.settings;
   } catch {
+    if (strictPreferences) throw Object.assign(new Error('media_node_defaults_not_ready'), { code: 'media_node_defaults_not_ready' });
     return { ...DEFAULT_SETTINGS };
   }
 }
@@ -347,7 +350,9 @@ function scheduleLocalSavePathProbe(settings, fields) {
 
 // GET /api/settings — 获取全部设置(脱敏 Key 仅返回最后4位)
 router.get('/', (_req, res) => {
-  const settings = loadSettings();
+  let settings;
+  try { settings = loadSettings({ strictPreferences: true }); }
+  catch { return res.status(503).json({ success: false, code: 'media_node_defaults_not_ready', error: 'media_node_defaults_not_ready' }); }
   const masked = {
     ...settings,
     zhenzhenApiKey: maskKey(settings.zhenzhenApiKey),
@@ -448,6 +453,13 @@ router.post('/', (req, res) => {
   const { taskCompletionSound: _ignoredTaskCompletionSound, ...safeIncoming } = incoming;
   const hasAdvancedProviders = Object.prototype.hasOwnProperty.call(incoming, 'advancedProviders');
   const hasCloudUploadTargets = Object.prototype.hasOwnProperty.call(incoming, 'cloudUploadTargets');
+  if (Object.prototype.hasOwnProperty.call(incoming.preferences || {}, 'mediaNodeDefaults')) {
+    try {
+      normalizeMediaNodeDefaults(incoming.preferences.mediaNodeDefaults);
+    } catch (error) {
+      return res.status(400).json({ success: false, code: 'media_node_defaults_invalid', error: 'media_node_defaults_invalid' });
+    }
+  }
   const merged = {
     ...current,
     ...safeIncoming,

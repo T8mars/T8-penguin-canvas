@@ -58,6 +58,8 @@ const INTERNAL_COORDINATOR_ASSERTED_METHODS = [
   '_syncCanvasDocumentResourceGrants',
   '_commitCanvasResourceState',
   '_grantCanvasSubflowResource',
+  '_transitionCanvasArchive',
+  '_updateCanvasDirectoryProfile',
   '_invalidateCollaborationTextBindings',
   '_invalidateCollaborationTextForOperation',
   '_compactCanvasSnapshotHistory',
@@ -134,6 +136,8 @@ const INTERNAL_UNRESOLVED_METHODS = [
   '_reconcileTerminalRunSnapshotPins',
 ];
 const STRICT_WRITER_INTERNAL_IMPLEMENTATIONS = new Map([
+  ['transitionCanvasArchive', '_transitionCanvasArchive'],
+  ['updateCanvasDirectoryProfile', '_updateCanvasDirectoryProfile'],
   ['reserveCommonOperationIdentities', '_reserveCommonOperationIdentities'],
   ['insertCommonOperationBatch', '_insertCommonOperationBatch'],
   ['compactCanvasOperationHistory', '_compactCanvasOperationHistory'],
@@ -289,6 +293,9 @@ test('B2 upload and blob writers self-wrap exact coordinator operations', async 
 const BUSINESS_WRITER_OPERATION_GROUPS = [
   ['canvas/core', [
     ['ensureCanvas', 'canvas.ensure'],
+    ['completeCanvasDirectoryHydration', 'canvas.directory.hydration-complete'],
+    ['transitionCanvasArchive', 'canvas.directory.transition'],
+    ['updateCanvasDirectoryProfile', 'canvas.directory.profile'],
     ['compactCanvasSnapshotHistory', 'canvas.snapshot-history.compact', 'maintenance'],
     ['recordCanvasSnapshot', 'canvas.snapshot.record'],
     ['reserveCollaborationOperationIdentity', 'collaboration.operation-identity.reserve'],
@@ -381,27 +388,27 @@ test('B2 writer inventory classifies every ProjectDatabase method while policy s
   assert.equal(inventory.methodClassification.consistencyIssueCount, 0);
   assert.deepEqual(inventory.methodClassification.categories, [...METHOD_CLASSIFICATION_CATEGORIES]);
   assert.deepEqual(inventory.methodClassification.counts, {
-    read: 201,
-    write: 184,
+    read: 204,
+    write: 189,
     maintenance: 45,
-    migration: 32,
+    migration: 33,
     'test-only': 0,
     unclassified: 0,
   });
   assert.deepEqual(inventory.methodClassification.manifestCounts, {
-    read: 201,
-    write: 184,
+    read: 204,
+    write: 189,
     maintenance: 45,
-    migration: 32,
+    migration: 33,
     'test-only': 0,
   });
-  assert.equal(inventory.projectDatabase.methodCount, 462);
+  assert.equal(inventory.projectDatabase.methodCount, 471);
   assert.equal(inventory.writerPolicy.policyCompliant, false);
   assert.deepEqual(inventory.writerPolicy.methodCounts, {
-    compliant: 413,
+    compliant: 421,
     noncompliant: 12,
     unresolved: 5,
-    notApplicable: 32,
+    notApplicable: 33,
   });
   assert.deepEqual(
     inventory.projectDatabase.methods
@@ -431,7 +438,7 @@ test('ProjectDatabase inventory freezes structure and selected known direct writ
   assert.equal(inventory.file, 'backend/src/services/projectDatabase.js');
   assert.equal(inventory.className, 'ProjectDatabase');
   assert.equal(inventory.methods.length, inventory.methodCount);
-  assert.equal(inventory.methodCount, 462);
+  assert.equal(inventory.methodCount, 471);
 
   for (const method of inventory.methods) {
     assert.equal(typeof method.name, 'string');
