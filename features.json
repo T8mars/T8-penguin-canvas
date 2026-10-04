@@ -2,17 +2,19 @@
   "$schema": "本文件为 T8-penguin-canvas 节点清单防丢失锁,任何节点删减都需要在 roadmap.md 中说明并更新本文件。",
   "version": "3.2.5",
   "electronReleaseV325": {
-    "status": "prepared-not-published",
+    "status": "released-dual-platform-verified",
+    "sourceCommit": "3556ae4cc3de40cbb1d47df6397aef0965d8e432",
+    "macWorkflow": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/37240013784",
     "version": "3.2.5",
     "tag": "v3.2.5",
-    "latest": false,
+    "latest": true,
     "evidence": "docs/release-v3.2.5.md",
     "postReleaseEvidence": "owner-approved-post-release-v3.2.5",
     "macBoundary": "same-tag-unsigned-preview; defer-only-if-github-quota-insufficient"
   },
   "canvasArchiveMediaDefaults20261005": {
-    "status": "implemented-offline-verified-release-prepared",
-    "releaseIncluded": false,
+    "status": "released-v3.2.5-offline-verified",
+    "releaseIncluded": true,
     "summary": "Large bounded canvas manager, canonical schema33 archive/restore, pin/opened profile and strict write/Run gates; verified global source defaults initialize only blank generic image/edit/video nodes. Existing, copied, imported, historical and explicit nodes remain unchanged.",
     "details": "docs/canvas-archive-media-defaults.md",
     "verification": "Final functional/lifecycle 27/27; persistence/recovery/data-path 25/25; historical inputs/old node preservation 80/80; production UI handlers 9/9. Type/i18n/generated contracts passed. Groups overlap and must not be summed.",
@@ -24,7 +26,7 @@
     "macWorkflow": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/36971772927",
     "version": "3.2.4",
     "tag": "v3.2.4",
-    "latest": true,
+    "latest": false,
     "evidence": "docs/release-v3.2.4.md",
     "postReleaseEvidence": "owner-approved-post-release-v3.2.4",
     "macBoundary": "same-tag-unsigned-preview; defer-only-if-github-quota-insufficient"
