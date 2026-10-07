@@ -30,6 +30,7 @@ test('background readiness waits for the real deferred startup backup', { timeou
     COLLAB_UPLOAD_TEMP_DIR: path.join(root, 'data', 'collaboration-uploads'),
     PROJECT_DB_FILE: path.join(root, 'data', 'projects.sqlite3'),
     PROJECT_DB_BACKUP_FILE: path.join(root, 'data', 'projects.sqlite3.backup'),
+    PROJECT_DB_STORAGE_POLICY_32: require('./helpers/startupStoragePolicy32.cjs'),
   });
   for (const directory of [config.DATA_DIR, config.INPUT_DIR, config.OUTPUT_DIR, config.THUMBNAILS_DIR]) {
     fs.mkdirSync(directory, { recursive: true });

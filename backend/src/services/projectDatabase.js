@@ -4,7 +4,7 @@ const os = require('os');
 const crypto = require('crypto');
 const { generationInputMetadata, generationReferenceAssets, storedRunInput, runInputWithoutHistory } = require('./generationHistoryInputs');
 const { TextDecoder, types: utilTypes } = require('util');
-const { isMainThread } = require('node:worker_threads');
+const { isMainThread, Worker } = require('node:worker_threads');
 const BetterSqlite3 = require('better-sqlite3');
 const canvasDirectory33 = require('./canvasDirectory33');
 const {
@@ -75,6 +75,7 @@ const {
   projectDatabaseLogicalContentDigest32,
 } = require('./projectDatabaseLogicalDigest32');
 const {
+  ProjectDatabaseCanonicalBackup32Error,
   sealProjectDatabaseCanonicalBackup32,
   verifyProjectDatabaseCanonicalBackup32,
 } = require('./projectDatabaseCanonicalBackup32');
@@ -1204,6 +1205,11 @@ function projectDatabaseInvalidUuidSql(columnSql) {
 }
 
 function inspectProjectDatabaseStableIdentityViolations(database) {
+  return projectDatabaseValidationEvidence(database, 'stable-identity', () => (
+    inspectProjectDatabaseStableIdentityViolationsUncached(database)
+  ));
+}
+function inspectProjectDatabaseStableIdentityViolationsUncached(database) {
   const violations = [];
   const tables = database.prepare(`
     SELECT name FROM sqlite_master
@@ -1486,7 +1492,121 @@ function inspectProjectDatabaseStableIdentityViolations(database) {
   return violations;
 }
 
+// A startup/candidate verification may visit the same history through several
+// schema layers. Reuse read-only evidence only within this synchronous scope
+// and only while SQLite data, schema, local writes and transaction state match.
+// Nothing survives a cold open; writes (including rolled-back writes) invalidate.
+const projectDatabaseValidationScopes = new WeakMap();
+function withProjectDatabaseValidationScope(database, callback) {
+  if (projectDatabaseValidationScopes.has(database)) return callback();
+  projectDatabaseValidationScopes.set(database, new Map());
+  try { return callback(); }
+  finally { projectDatabaseValidationScopes.delete(database); }
+}
+function projectDatabaseValidationEvidence(database, key, inspect) {
+  const scope = projectDatabaseValidationScopes.get(database);
+  // Never retain uncommitted evidence: a rollback followed by another BEGIN
+  // can have the same total_changes and transaction flag as the rolled-back
+  // state. Transactional migration/seal checks always inspect independently.
+  if (!scope || database.inTransaction) return inspect();
+  const token = () => JSON.stringify([
+    database.prepare('SELECT total_changes() AS count').get().count,
+    database.pragma('data_version', { simple: true }),
+    database.pragma('schema_version', { simple: true }),
+    database.inTransaction,
+  ]);
+  const before = token();
+  const cached = scope.get(key);
+  if (cached?.token === before) return cached.value;
+  const value = inspect();
+  if (token() === before) scope.set(key, { token: before, value });
+  return value;
+}
+
+// Only the private backup candidate is opened by a worker. The live writer,
+// owner guard, ACK, publication and backup queue stay in their original owner.
+// A failed worker fails the backup; never fall back to blocking the UI thread.
+function runProjectDatabaseBackupCandidateTask(task, candidateFilename) {
+  return new Promise((resolve, reject) => {
+    const worker = new Worker(`
+      const { parentPort, workerData } = require('node:worker_threads');
+      try {
+        if (workerData.loaderFilename) require(workerData.loaderFilename);
+        const api = require(workerData.databaseModule);
+        const result = api.processProjectDatabaseBackupCandidate(workerData.task, workerData.filename);
+        parentPort.postMessage({ ok: true, result });
+      } catch (error) {
+        parentPort.postMessage({ ok: false, error: {
+          name: error.name, message: error.message, code: error.code, reason: error.reason, details: error.details,
+          status: error.status, statusCode: error.statusCode,
+        } });
+      } finally { parentPort.close(); }
+    `, {
+      eval: true,
+      workerData: {
+        task, filename: candidateFilename, databaseModule: __filename,
+        loaderFilename: __filename.endsWith('.t8c')
+          ? path.join(process.resourcesPath, 'app.asar', 'electron', 'loader.cjs') : null,
+      },
+      resourceLimits: { maxOldGenerationSizeMb: 512, maxYoungGenerationSizeMb: 16 },
+    });
+    let response = null;
+    let failure = null;
+    worker.once('message', (message) => { response = message; });
+    worker.once('error', (error) => { failure = error; });
+    worker.once('exit', (code) => {
+      if (failure) return reject(failure);
+      if (code !== 0 || !response) return reject(Object.assign(new Error('项目数据库备份校验线程未正常完成'), {
+        code: 'project_database_backup_worker_failed',
+      }));
+      if (response.ok === true) return resolve(response.result);
+      const remote = response.error || {};
+      const error = remote.code === 'project_database_schema_invalid'
+        ? new ProjectDatabaseSchemaInvalidError(remote.message, remote.details)
+        : remote.code === 'project_database_canonical_backup_32_invalid'
+        ? new ProjectDatabaseCanonicalBackup32Error(remote.reason, remote.message, remote.details)
+        : Object.assign(new Error(remote.message || '项目数据库备份校验失败'), remote);
+      reject(error);
+    });
+  });
+}
+
+function processProjectDatabaseBackupCandidate(task, filename) {
+  if (isMainThread || !['seal', 'validate'].includes(task)
+    || path.basename(filename) !== 'candidate.sqlite3'
+    || !path.basename(path.dirname(filename)).includes('.owned-')) {
+    throw new Error('备份校验仅允许私有候选与独立线程');
+  }
+  if (task === 'validate') {
+    return ProjectDatabase.prototype.validateRecoveryCandidate.call({}, filename);
+  }
+  let candidate = null;
+  try {
+    candidate = new BetterSqlite3(filename, { fileMustExist: true });
+    return withProjectDatabaseValidationScope(candidate, () => {
+      const schema = inspectProjectDatabaseSchema(candidate, { requireInitialized: true, requireContiguous: true });
+      if (schema.version < PROJECT_DATABASE_MIGRATION_32.version) return null;
+      candidate.pragma('foreign_keys = ON');
+      const receipt = candidate.prepare('SELECT to_fingerprint FROM schema_migration_receipts WHERE version = ?')
+        .get(PROJECT_DATABASE_MIGRATION_32.version);
+      const seal = sealProjectDatabaseCanonicalBackup32(candidate, {
+        targetSchemaFingerprint: receipt?.to_fingerprint,
+        inspectSchemaFingerprint: (database) => assertProjectDatabaseCurrentSchema(database, 'canonical-backup-seal').fingerprint,
+      });
+      candidate.pragma('wal_checkpoint(TRUNCATE)');
+      return seal;
+    });
+  } finally {
+    try { if (candidate?.open) candidate.close(); } catch (_) {}
+  }
+}
+
 function inspectProjectDatabaseTypedCanonicalViolations(database) {
+  return projectDatabaseValidationEvidence(database, 'typed-canonical', () => (
+    inspectProjectDatabaseTypedCanonicalViolationsUncached(database)
+  ));
+}
+function inspectProjectDatabaseTypedCanonicalViolationsUncached(database) {
   const counts = new Map();
   const mark = (table, column) => {
     const key = `${table}\u0000${column}`;
@@ -1642,6 +1762,11 @@ function inspectProjectDatabaseTypedCanonicalViolations(database) {
 }
 
 function inspectProjectDatabaseCurrentSchemaManifest(database, options = {}) {
+  return projectDatabaseValidationEvidence(database, `manifest:${stableJson(options)}`, () => (
+    inspectProjectDatabaseCurrentSchemaManifestUncached(database, options)
+  ));
+}
+function inspectProjectDatabaseCurrentSchemaManifestUncached(database, options = {}) {
   const includedObjectNames = options.includedObjectNames == null
     ? null
     : new Set([...options.includedObjectNames].map(String));
@@ -7329,12 +7454,21 @@ class ProjectDatabase {
   }
 
   initializeDatabase() {
+    let phaseStartedAt = Date.now();
+    const mark = (phase) => {
+      const now = Date.now();
+      if (this.options.startupObservability === true) console.log(`[startup] component=project-db phase=${phase} phaseMs=${Math.max(0, now - phaseStartedAt)}`);
+      phaseStartedAt = now;
+    };
+    return withProjectDatabaseValidationScope(this.db, () => {
     // Re-check the schema on the active connection as a defense in depth after
     // the truly read-only preflight (and after an atomic backup restore).
     const schema = inspectProjectDatabaseSchema(this.db, { requireContiguous: true });
     assertProjectDatabaseCurrentSchemaIfLatest(this.db, schema, 'active-initialize');
+    mark('schema-verified');
     this.configure();
     this.migrate();
+    mark('migration-complete');
     const migratedSchema = inspectProjectDatabaseSchema(this.db, { requireContiguous: true });
     if (migratedSchema.version >= PROJECT_DATABASE_MIGRATION_32.version) {
       const policyRows = this.db.prepare(`
@@ -7354,6 +7488,7 @@ class ProjectDatabase {
       this.bootstrapRecoveryGeneration();
       if (migratedSchema.version === 32) this._migrateSchema32To33();
     }
+    mark('freshness-verified');
     if (migratedSchema.version >= PROJECT_DATABASE_MIGRATION_29.version) {
       // Startup has not entered the public write coordinator yet. Removing
       // derived terminal-Run pins is safe here; the next normal snapshot write
@@ -7372,8 +7507,10 @@ class ProjectDatabase {
       this._assertCanvasPermanentLedgerAccounting({ updatePressureState: false });
       this._assertDurableLedgerAccounting({ updatePressureState: false });
     });
+    mark('history-verified');
     const integrity = this.db.pragma('quick_check', { simple: true });
     if (integrity !== 'ok') throw new Error(`项目数据库完整性检查失败: ${integrity}`);
+    mark('integrity-verified');
     const currentSchema = inspectProjectDatabaseSchema(this.db, { requireContiguous: true });
     if (currentSchema.version >= PROJECT_DATABASE_MIGRATION_32.version) {
       // Schema32 public writers require an acknowledged watermark before the
@@ -7390,6 +7527,8 @@ class ProjectDatabase {
       // only this frozen in-memory state and never repair during a request.
       this.bootstrapRecoveryGeneration();
     }
+    mark('runs-recovered');
+    });
   }
 
   _recoveryArtifactSuffix() {
@@ -8512,6 +8651,7 @@ class ProjectDatabase {
       // backup or primary path, and the handle itself is strictly read-only.
       candidate = new BetterSqlite3(filename, { readonly: true, fileMustExist: true });
       candidate.pragma('query_only = ON');
+      return withProjectDatabaseValidationScope(candidate, () => {
       const schema = inspectProjectDatabaseSchema(candidate, {
         requireInitialized: true,
         requireContiguous: true,
@@ -8555,6 +8695,7 @@ class ProjectDatabase {
         }
       }
       return { schemaVersion: schema.version, integrity, canonicalVerification };
+      });
     } finally {
       try { if (candidate?.open) candidate.close(); } catch (_) {}
     }
@@ -9561,6 +9702,12 @@ class ProjectDatabase {
     let ownedTempDirectory = null;
     let candidateFilename = null;
     let phase = 'prepare';
+    let phaseStartedAt = Date.now();
+    const mark = (name) => {
+      const now = Date.now();
+      if (this.options.startupObservability === true) console.log(`[startup] component=project-db phase=${name} phaseMs=${Math.max(0, now - phaseStartedAt)}`);
+      phaseStartedAt = now;
+    };
     try {
       if (!fs.existsSync(backupDirectory)) {
         throw Object.assign(new Error('项目数据库备份目录不存在'), {
@@ -9606,36 +9753,11 @@ class ProjectDatabase {
       phase = 'write';
       await this.options.beforeDatabaseBackupWrite?.(context);
       const backupResult = await this.db.backup(candidateFilename);
+      mark('backup-written');
 
-      let canonicalSeal = null;
-      let writableCandidate = null;
-      try {
-        writableCandidate = new BetterSqlite3(candidateFilename, { fileMustExist: true });
-        const candidateSchema = inspectProjectDatabaseSchema(writableCandidate, {
-          requireInitialized: true,
-          requireContiguous: true,
-        });
-        if (candidateSchema.version >= PROJECT_DATABASE_MIGRATION_32.version) {
-          writableCandidate.pragma('foreign_keys = ON');
-          const targetReceipt = writableCandidate.prepare(`
-            SELECT to_fingerprint
-            FROM schema_migration_receipts
-            WHERE version = ?
-          `).get(PROJECT_DATABASE_MIGRATION_32.version);
-          canonicalSeal = sealProjectDatabaseCanonicalBackup32(writableCandidate, {
-            targetSchemaFingerprint: targetReceipt?.to_fingerprint,
-            inspectSchemaFingerprint: (database) => (
-              assertProjectDatabaseCurrentSchema(
-                database,
-                'canonical-backup-seal',
-              ).fingerprint
-            ),
-          });
-          writableCandidate.pragma('wal_checkpoint(TRUNCATE)');
-        }
-      } finally {
-        try { if (writableCandidate?.open) writableCandidate.close(); } catch (_) {}
-      }
+      phase = 'seal';
+      const canonicalSeal = await runProjectDatabaseBackupCandidateTask('seal', candidateFilename);
+      mark('backup-sealed');
       for (const suffix of ['-wal', '-shm', '-journal']) {
         if (fs.existsSync(`${candidateFilename}${suffix}`)) {
           throw new ProjectDatabaseSchemaInvalidError(
@@ -9650,7 +9772,8 @@ class ProjectDatabase {
 
       phase = 'validation';
       await this.options.beforeDatabaseBackupValidation?.(context);
-      const validation = this.validateRecoveryCandidate(candidateFilename);
+      const validation = await runProjectDatabaseBackupCandidateTask('validate', candidateFilename);
+      mark('backup-validated');
 
       phase = 'directory_sync_before_replace';
       const candidateDirectorySynced = fsyncProjectDatabaseDirectory(ownedTempDirectory);
@@ -18203,11 +18326,19 @@ class ProjectDatabase {
       `).get(normalizedCanvasId);
       if (!row) return null;
       const snapshot = parseJson(row.snapshot_json, {});
+      // Legacy canvas_list.json was the only name store for some canvases.
+      // Recover only absent names, inside the write fence; never replace a
+      // canonical name/title (including a user's deliberate ID-like name).
+      const recoverMissingName = metadata.recoverMissingLegacyName === true;
+      if (recoverMissingName && canvasDirectory33.get(this.db, normalizedCanvasId)?.status === 'archived') return null;
+      if (recoverMissingName && (snapshot.name || snapshot.title
+        || typeof metadata.name !== 'string' || !metadata.name.trim()
+        || metadata.name.trim() === row.canvas_id || metadata.name.trim().length > 240)) return null;
       const previousName = String(snapshot.name || snapshot.title || row.canvas_id);
       const requestedName = metadata.name == null ? previousName : String(metadata.name).trim();
       const name = String(requestedName || previousName || row.canvas_id).slice(0, 240);
       const nodeCount = Array.isArray(snapshot.nodes) ? snapshot.nodes.length : 0;
-      const updatedAt = Math.max(Date.now(), Number(row.updated_at) || 0);
+      const updatedAt = recoverMissingName ? Number(row.updated_at) : Math.max(Date.now(), Number(row.updated_at) || 0);
       const nextSnapshot = {
         ...snapshot,
         name,
@@ -33639,4 +33770,5 @@ module.exports = {
   onProjectDatabaseReady,
   startProjectDatabaseStartupBackup,
   closeProjectDatabase,
+  processProjectDatabaseBackupCandidate,
 };

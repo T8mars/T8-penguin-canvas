@@ -148,9 +148,8 @@ test('current lifecycle gate freezes seventeen exact boundaries without claiming
     'openSync', 'writeFileSync', 'fsyncSync', 'renameSync', 'rmSync',
   ]);
   assert.equal(methods.get('_createBackupAtomically').async, true);
-  assert.deepEqual(methods.get('_createBackupAtomically').direct.writePragmas, [
-    'foreign_keys = ON', 'wal_checkpoint(TRUNCATE)',
-  ]);
+  assert.deepEqual(methods.get('_createBackupAtomically').direct.writePragmas, []);
+  assert.deepEqual(methods.get('_createBackupAtomically').calledProjectDatabaseMethods, []);
 });
 
 test('temporary ProjectDatabase additions, removals and lifecycle shape drift all fail closed', () => {

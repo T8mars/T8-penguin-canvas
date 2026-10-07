@@ -242,13 +242,11 @@ const LIFECYCLE_METHOD_CONTRACTS = deepFreeze([
   lifecycleContract('_createBackupAtomically', {
     visibility: 'internal',
     async: true,
-    calledProjectDatabaseMethods: ['validateRecoveryCandidate'],
-    calledProjectDatabaseMethodCallCount: 1,
-    hasDirectSqlMutationCandidate: true,
+    // Candidate sealing/verification now execute in private workers. Queue,
+    // file/directory fsync and atomic publication remain in this owner method;
+    // startupHistoryRegression exercises the delegated production boundary.
     hasDirectPersistentMutationCandidate: true,
     direct: {
-      databaseEffectCount: 2,
-      writePragmas: ['foreign_keys = ON', 'wal_checkpoint(TRUNCATE)'],
       filesystemMutationMethods: ['renameSync', 'rmSync'],
       backupCount: 1,
       storageCapacityTranslationCount: 1,
@@ -274,7 +272,6 @@ const LIFECYCLE_METHOD_NAMES = Object.freeze(LIFECYCLE_METHOD_CONTRACTS.map((ent
 const LIFECYCLE_METHOD_NAME_SET = new Set(LIFECYCLE_METHOD_NAMES);
 const LIFECYCLE_MEMBER_NAME_SET = new Set(LIFECYCLE_METHOD_NAMES.filter((name) => name !== 'constructor'));
 const EXPECTED_INTERNAL_LIFECYCLE_CALLS = deepFreeze([
-  { caller: '_createBackupAtomically', callee: 'validateRecoveryCandidate', count: 1 },
   { caller: '_migrateSchema31To32', callee: '_writeRecoveryGenerationState', count: 1 },
   { caller: '_migrateSchema32To33', callee: 'validateRecoveryCandidate', count: 1 },
   { caller: 'bootstrapRecoveryGeneration', callee: '_writeRecoveryGenerationState', count: 4 },

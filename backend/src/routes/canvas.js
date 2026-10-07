@@ -42,10 +42,11 @@ const lastCanvasListMirrorWriteAt = new Map();
 const deletedCanvasListIds = new Set();
 let directoryHydrationFlight = null;
 let directoryHydrationPath = '';
+let directoryNamesRecoveredPath = '';
 function scheduleDirectoryHydration(database) {
   const runtimePath = path.resolve(config.CANVAS_FILE);
-  if (directoryHydrationPath !== runtimePath) { directoryHydrationFlight = null; directoryHydrationPath = runtimePath; }
-  if (database.isCanvasDirectoryHydrated() || directoryHydrationFlight) return;
+  if (directoryHydrationPath !== runtimePath) { directoryHydrationFlight = null; directoryNamesRecoveredPath = ''; directoryHydrationPath = runtimePath; }
+  if ((database.isCanvasDirectoryHydrated() && directoryNamesRecoveredPath === runtimePath) || directoryHydrationFlight) return;
   // No all-document/file scan on the request path. Existing canonical status
   // always wins; legacy JSON can initialize only a previously unknown identity.
   directoryHydrationFlight = new Promise((resolve) => setImmediate(resolve)).then(async () => {
@@ -60,13 +61,19 @@ function scheduleDirectoryHydration(database) {
     for (let offset = 0; offset < state.list.length; offset += CANVAS_LIST_RECOVERY_BATCH_SIZE) {
       if (path.resolve(config.CANVAS_FILE) !== runtimePath) return;
       for (const item of state.list.slice(offset, offset + CANVAS_LIST_RECOVERY_BATCH_SIZE)) {
-        if (!item?.id || deletedCanvasListIds.has(item.id) || database.getCanvasDirectoryEntry(item.id)) continue;
-        if (!ensurePatchCanvas(database, item.id)) throw new Error('旧画布目录项缺少可验证文档');
+        if (!item?.id || deletedCanvasListIds.has(item.id)) continue;
+        const entry = database.getCanvasDirectoryEntry(item.id);
+        if (entry?.status === 'archived') continue;
+        if (!entry && !ensurePatchCanvas(database, item.id)) throw new Error('旧画布目录项缺少可验证文档');
+        if ((!entry || entry.name === entry.id) && typeof item.name === 'string' && item.name !== item.id) database.updateCanvasCatalogMetadata(item.id, {
+          name: item.name, recoverMissingLegacyName: true,
+        });
       }
       canvasListRecoveryState.scanned = Math.min(state.list.length, offset + CANVAS_LIST_RECOVERY_BATCH_SIZE);
       await yieldCanvasListRecovery();
     }
-    database.completeCanvasDirectoryHydration();
+    if (!database.isCanvasDirectoryHydrated()) database.completeCanvasDirectoryHydration();
+    directoryNamesRecoveredPath = runtimePath;
     canvasListRecoveryState = { ...canvasListRecoveryState, status: 'ready', completedAt: Date.now() };
   }).catch(() => {
     canvasListRecoveryState = { ...canvasListRecoveryState, status: 'failed', completedAt: Date.now() };
@@ -1610,7 +1617,7 @@ router.get('/directory', (req, res) => {
     scheduleDirectoryHydration(database);
     const page = database.listCanvasDirectoryPage(undefined, { limit: req.query.limit, cursor: req.query.cursor, query: req.query.q, status: req.query.status, sort: req.query.sort });
     const activeItem = req.query.activeId ? database.getCanvasDirectoryEntry(req.query.activeId) : null;
-    const ready = database.isCanvasDirectoryHydrated();
+    const ready = database.isCanvasDirectoryHydrated() && directoryNamesRecoveredPath === path.resolve(config.CANVAS_FILE);
     return res.json({ success: true, data: page.items, meta: { version: 2, total: page.total, hasMore: page.hasMore, nextCursor: page.nextCursor,
       counts: page.counts, partial: !ready, searchUnavailable: !ready, activeItem,
       recovery: ready ? { status: 'ready', reason: null, scanned: 0, total: 0, recovered: 0, startedAt: null, completedAt: null } : { ...canvasListRecoveryState, status: canvasListRecoveryState.status === 'failed' ? 'failed' : 'running' } } });

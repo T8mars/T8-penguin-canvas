@@ -10,7 +10,7 @@ const MAX_FILE_BYTES = 256 * 1024;
 const PHASES = Object.freeze({
   electron: new Set(['session-start', 'startup-shell-visible', 'backend-start-requested', 'backend-module-ready', 'backend-transport-ready', 'startup-failed', 'main-window-visible', 'main-window-loaded', 'main-window-local-error', 'frontend-url-ready', 'frontend-url-fallback-ready', 'frontend-url-failed', 'frontend-load-still-in-progress']),
   backend: new Set(['routes-mounted', 'transport-listening', 'frontend-interactive', 'background-scheduled', 'background-started', 'background-ready', 'background-deferred']),
-  'project-db': new Set(['owner-acquired', 'clean-active-fast-path', 'preflight-verified', 'active-initialized', 'startup-backup-complete']),
+  'project-db': new Set(['owner-acquired', 'clean-active-fast-path', 'preflight-verified', 'active-initialized', 'startup-backup-complete', 'schema-verified', 'migration-complete', 'freshness-verified', 'history-verified', 'integrity-verified', 'runs-recovered', 'backup-written', 'backup-sealed', 'backup-validated']),
   renderer: new Set(['connecting', 'backend-error', 'catalog', 'catalog-error', 'empty', 'document', 'flow', 'canvas-error', 'ready', 'event-loop-delay', 'renderer-error', 'renderer-rejection']),
 });
 

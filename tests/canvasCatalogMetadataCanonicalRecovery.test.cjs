@@ -8,6 +8,7 @@ const {
   ProjectDatabase,
   ProjectDatabaseSchemaInvalidError,
 } = require('../backend/src/services/projectDatabase');
+const fixtureOptions = { autoBackup: false, projectDatabaseStoragePolicy32: require('./helpers/startupStoragePolicy32.cjs') };
 
 function temporaryProject(prefix) {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
@@ -77,7 +78,7 @@ test('canvas catalog rename persists canonical updatedAt and survives a cold reo
   let database = null;
   let reopened = null;
   try {
-    database = new ProjectDatabase(fixture.filename, { autoBackup: false });
+    database = new ProjectDatabase(fixture.filename, fixtureOptions);
     seedCanvas(database, 'catalog-canonical-write');
     const before = database.getCanvas('catalog-canonical-write');
     waitForLaterTimestamp(before.updatedAt);
@@ -97,7 +98,7 @@ test('canvas catalog rename persists canonical updatedAt and survives a cold reo
 
     await database.close();
     database = null;
-    reopened = new ProjectDatabase(fixture.filename, { autoBackup: false });
+    reopened = new ProjectDatabase(fixture.filename, fixtureOptions);
     const persisted = reopened.getCanvas('catalog-canonical-write');
     assert.equal(persisted.name, 'Canonical Rename');
     assert.equal(persisted.updatedAt, row.updated_at);
@@ -113,13 +114,13 @@ test('known v2.9.2-v2.9.6 catalog timestamp drift reopens read-only without rewr
   let database = null;
   let reopened = null;
   try {
-    database = new ProjectDatabase(fixture.filename, { autoBackup: false });
+    database = new ProjectDatabase(fixture.filename, fixtureOptions);
     seedCanvas(database, 'catalog-legacy-recovery');
     const drift = writeLegacyCatalogMetadataDrift(database, 'catalog-legacy-recovery');
     await database.close();
     database = null;
 
-    reopened = new ProjectDatabase(fixture.filename, { autoBackup: false });
+    reopened = new ProjectDatabase(fixture.filename, fixtureOptions);
     const recovered = reopened.getCanvas('catalog-legacy-recovery');
     assert.equal(recovered.name, 'Legacy Renamed Canvas');
     assert.equal(recovered.updatedAt, drift.updatedAt);
@@ -143,7 +144,7 @@ test('non-matching catalog timestamp corruption still fails closed', async () =>
   let database = null;
   let unexpectedOpen = null;
   try {
-    database = new ProjectDatabase(fixture.filename, { autoBackup: false });
+    database = new ProjectDatabase(fixture.filename, fixtureOptions);
     seedCanvas(database, 'catalog-invalid-drift');
     writeLegacyCatalogMetadataDrift(database, 'catalog-invalid-drift', {
       invalidNodeCount: true,
@@ -153,7 +154,7 @@ test('non-matching catalog timestamp corruption still fails closed', async () =>
 
     assert.throws(
       () => {
-        unexpectedOpen = new ProjectDatabase(fixture.filename, { autoBackup: false });
+        unexpectedOpen = new ProjectDatabase(fixture.filename, fixtureOptions);
       },
       (error) => error instanceof ProjectDatabaseSchemaInvalidError
         && error.code === 'project_database_schema_invalid'

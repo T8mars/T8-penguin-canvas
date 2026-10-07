@@ -32,6 +32,9 @@ test('only fixed startup phases and finite timings survive privacy filtering', (
 test('existing Electron/backend/database startup lines are captured without details or console payloads', () => {
   assert.deepEqual(parseStartupLine('[12:13:14] [startup] component=electron phase=startup-failed elapsedMs=512 details=sk-secret C:\\private\\file'), { component: 'electron', phase: 'startup-failed', elapsedMs: 512 });
   assert.deepEqual(parseStartupLine('[startup] component=project-db phase=active-initialized phaseMs=345 totalMs=678'), { component: 'project-db', phase: 'active-initialized', phaseMs: 345, totalMs: 678 });
+  for (const phase of ['schema-verified', 'migration-complete', 'freshness-verified', 'history-verified', 'integrity-verified', 'runs-recovered', 'backup-written', 'backup-sealed', 'backup-validated']) {
+    assert.deepEqual(parseStartupLine(`[startup] component=project-db phase=${phase} phaseMs=7 details=private`), { component: 'project-db', phase, phaseMs: 7 });
+  }
   assert.equal(parseStartupLine('[provider] sk-secret'), null);
   assert.equal(parseStartupLine('[startup] component=backend phase=sk-secret elapsedMs=1'), null);
   assert.equal(parseStartupLine('x'.repeat(4097)), null);

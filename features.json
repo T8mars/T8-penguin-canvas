@@ -1,16 +1,33 @@
 {
   "$schema": "本文件为 T8-penguin-canvas 节点清单防丢失锁,任何节点删减都需要在 roadmap.md 中说明并更新本文件。",
-  "version": "3.2.8",
+  "version": "3.2.9",
+  "electronReleaseV329": {
+    "status": "authorized-source-prepared-build-pending",
+    "version": "3.2.9",
+    "tag": "v3.2.9",
+    "latest": false,
+    "evidence": "docs/release-v3.2.9.md",
+    "postReleaseEvidence": "owner-approved-post-release-v3.2.9",
+    "macBoundary": "same-tag-unsigned-preview; defer-only-if-quota-insufficient"
+  },
   "electronReleaseV328": {
     "status": "released-dual-platform-verified",
     "version": "3.2.8",
     "tag": "v3.2.8",
-    "latest": true,
+    "latest": false,
     "evidence": "docs/release-v3.2.8.md",
     "postReleaseEvidence": "owner-approved-post-release-v3.2.8",
     "macBoundary": "same-tag-unsigned-preview; defer-only-if-quota-insufficient",
     "sourceCommit": "af3530b84ae821695c96c1bce03de432fd1dfb9f",
-    "macWorkflow": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/37657034423"
+    "macWorkflow": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/37657034423",
+    "assets": {
+      "windowsInstaller": { "name": "T8-PenguinCanvas-Setup-3.2.8.exe", "bytes": 1375947434, "sha256": "cbd217f2c3aa6366f4a5a0d2e90ab6c8a2c04879474ae92c314add50d7c0d90f" },
+      "windowsBlockmap": { "name": "T8-PenguinCanvas-Setup-3.2.8.exe.blockmap", "bytes": 1435481, "sha256": "34dfa55237bbe9e9a3c60e97d4c2bf65e5d85938759b9cc58eb73ff332b3143f" },
+      "windowsUpdater": { "name": "latest.yml", "bytes": 362, "sha256": "301f83b712c0fe04cb8e482de40a768cad8191c1fd9147e277096a0c973ca722" },
+      "macDmg": { "name": "T8-PenguinCanvas-3.2.8-mac-arm64.dmg", "bytes": 514559138, "sha256": "51e26d604a34602f24820afbe7d0de04ba2455f369fb9583531aefe1c642ca92" },
+      "macZip": { "name": "T8-PenguinCanvas-3.2.8-mac-arm64.zip", "bytes": 506536854, "sha256": "d011451255d44328bb30c2d4968876cc174ddfa0e2801af57c44e8bd16489f22" },
+      "macUpdater": { "name": "latest-mac.yml", "bytes": 536, "sha256": "b0b98f8546d5df5e574c2a7de151ae65238a416f56d7e0fc11e103722086f392" }
+    }
   },
   "electronReleaseV327": {
     "status": "prebuild-capability-drift-failed-no-installer",
@@ -21,6 +38,13 @@
     "evidence": "docs/release-v3.2.7.md",
     "postReleaseEvidence": "owner-approved-post-release-v3.2.7",
     "macBoundary": "same-tag-unsigned-preview; defer-only-if-quota-insufficient"
+  },
+  "startupHistoryFix20261008": {
+    "status": "authorized-v3.2.9-targeted-verified-build-pending",
+    "releaseIncluded": false,
+    "summary": "Scoped unchanged-data startup evidence reuse; private backup seal/verify workers; recover missing active-canvas legacy names without replacing canonical names or loosening archive guards.",
+    "verification": "51 distinct targeted/adjacent tests passed; synthetic 8-canvas/2000-node reopen 1316ms to 547ms, typed-history scans 3 to 1. User installation and complete packaged-backend acceptance pending.",
+    "details": "docs/startup-history-fix-20261008.md"
   },
   "startupDiagnostics20261008": {
     "status": "released-v3.2.8-dual-platform-targeted-verified",
@@ -3327,59 +3351,24 @@
     ]
   },
   "release": {
-    "status": "released-v3.2.8-dual-platform-verified",
-    "version": "3.2.8",
+    "status": "authorized-v3.2.9-build-pending",
+    "version": "3.2.9",
     "date": "2026-10-08",
-    "tag": "v3.2.8",
-    "latest": true,
-    "sourceCommit": "af3530b84ae821695c96c1bce03de432fd1dfb9f",
-    "publishedAt": "2026-10-07T17:09:33Z",
-    "draft": false,
+    "tag": "v3.2.9",
+    "latest": false,
     "prerelease": false,
-    "url": "https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.2.8",
-    "details": "docs/release-v3.2.8.md",
+    "url": "https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.2.9",
+    "details": "docs/release-v3.2.9.md",
     "verification": [
-      "Unique Windows build and same-tag macos-15 arm64 workflow succeeded. All six assets independently downloaded and checked against GitHub size/SHA-256; both updater manifests matched artifact size/SHA-512. Windows assets remained unchanged after Mac append; fixed Tag and source target preserved.",
-      "Installed/native-dialog, affected-user and F8-F10 evidence remains deferred under owner-approved-post-release-v3.2.8, not passed."
+      "Startup/name targeted checks passed; unique production Windows build and same-tag Mac release pending.",
+      "Installed/affected-user and F8-F10 evidence deferred under owner-approved-post-release-v3.2.9, not passed."
     ],
-    "assets": {
-      "windowsInstaller": {
-        "name": "T8-PenguinCanvas-Setup-3.2.8.exe",
-        "bytes": 1375947434,
-        "sha256": "cbd217f2c3aa6366f4a5a0d2e90ab6c8a2c04879474ae92c314add50d7c0d90f"
-      },
-      "windowsBlockmap": {
-        "name": "T8-PenguinCanvas-Setup-3.2.8.exe.blockmap",
-        "bytes": 1435481,
-        "sha256": "34dfa55237bbe9e9a3c60e97d4c2bf65e5d85938759b9cc58eb73ff332b3143f"
-      },
-      "windowsUpdater": {
-        "name": "latest.yml",
-        "bytes": 362,
-        "sha256": "301f83b712c0fe04cb8e482de40a768cad8191c1fd9147e277096a0c973ca722"
-      },
-      "macDmg": {
-        "name": "T8-PenguinCanvas-3.2.8-mac-arm64.dmg",
-        "bytes": 514559138,
-        "sha256": "51e26d604a34602f24820afbe7d0de04ba2455f369fb9583531aefe1c642ca92"
-      },
-      "macZip": {
-        "name": "T8-PenguinCanvas-3.2.8-mac-arm64.zip",
-        "bytes": 506536854,
-        "sha256": "d011451255d44328bb30c2d4968876cc174ddfa0e2801af57c44e8bd16489f22"
-      },
-      "macUpdater": {
-        "name": "latest-mac.yml",
-        "bytes": 536,
-        "sha256": "b0b98f8546d5df5e574c2a7de151ae65238a416f56d7e0fc11e103722086f392"
-      }
-    },
-    "macWorkflow": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/37657034423"
+    "assets": {}
   },
   "versionSequencePolicy": {
     "status": "active",
     "date": "2026-07-30",
-    "currentVersion": "3.2.8",
+    "currentVersion": "3.2.9",
     "rules": [
       "版本号每一段只使用 0-9；v2.6.9 的下一正式版本固定为 v2.7.0。",
       "禁止创建、打包、推送、打 tag、发布或写入自动更新元数据为 v2.6.10。",
