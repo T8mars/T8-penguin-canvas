@@ -1,6 +1,6 @@
 # RH 媒体字段被误判为旧枚举值
 
-日期：2026-10-07。基线 package `3.2.5`、HEAD `f16fb8eddc3db8ae949424de8d3910738e350cad`，canonical core；本轮只修复源码，不升级、打包、推送或发布。
+日期：2026-10-07。基线 package `3.2.5`、HEAD `f16fb8eddc3db8ae949424de8d3910738e350cad`，canonical core；以下为只修源码阶段的记录。其后单独获授权并纳入 [v3.2.6 双平台发布](release-v3.2.6.md)，本专题不重复发布过程。
 
 ## 根因与修复
 

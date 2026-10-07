@@ -2,27 +2,29 @@
   "$schema": "本文件为 T8-penguin-canvas 节点清单防丢失锁,任何节点删减都需要在 roadmap.md 中说明并更新本文件。",
   "version": "3.2.6",
   "electronReleaseV326": {
-    "status": "release-authorized-postrelease-evidence-pending",
+    "status": "released-dual-platform-verified",
+    "sourceCommit": "b3fde7706eb7aca96e90ce6c5a25f1a2aaab3fe0",
+    "macWorkflow": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/37635136926",
     "version": "3.2.6",
     "tag": "v3.2.6",
-    "latest": false,
+    "latest": true,
     "evidence": "docs/release-v3.2.6.md",
     "postReleaseEvidence": "owner-approved-post-release-v3.2.6",
     "macBoundary": "same-tag-unsigned-preview; defer-only-if-quota-insufficient"
   },
   "nanoBanana21Workshop20261007": {
-    "status": "implemented-unreleased-targeted-live-verified",
-    "releaseIncluded": false,
+    "status": "released-v3.2.6-targeted-live-verified",
+    "releaseIncluded": true,
     "model": "gemini-nano-banana-2.1",
     "summary": "One option added to the existing workshop Nano Banana 2 family; legacy defaults, parameters and production protocols unchanged. Live T2I/I2I verified.",
     "evidence": "docs/nano-banana21-workshop.md"
   },
   "rhMediaFieldValidation20261007": {
-    "status": "implemented-unreleased-targeted-live-verified",
-    "releaseIncluded": false,
+    "status": "released-v3.2.6-targeted-live-verified",
+    "releaseIncluded": true,
     "summary": "Explicit IMAGE/VIDEO/AUDIO fields retain media upload semantics, not closed filename enums; real enum validation and saved inputs remain unchanged.",
     "verification": "RH production-handler/parser 18/18, adjacent 40/40, type/contracts passed. Two real app-info snapshots reproduce the old rejection; one real resource upload/task/result decoded successfully.",
-    "boundary": "One live domestic app, not all RH apps or installed clients. Startup slowness deferred pending user details; no packaging or release.",
+    "boundary": "One live domestic app, not all RH apps or installed clients. Startup slowness deferred pending user details; dual-platform publication is recorded in docs/release-v3.2.6.md.",
     "evidence": "docs/rh-media-field-validation-20261007.md"
   },
   "electronReleaseV325": {
@@ -31,7 +33,7 @@
     "macWorkflow": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/37240013784",
     "version": "3.2.5",
     "tag": "v3.2.5",
-    "latest": true,
+    "latest": false,
     "evidence": "docs/release-v3.2.5.md",
     "postReleaseEvidence": "owner-approved-post-release-v3.2.5",
     "macBoundary": "same-tag-unsigned-preview; defer-only-if-github-quota-insufficient"
@@ -3264,23 +3266,54 @@
     ]
   },
   "release": {
-    "status": "release-authorized-postrelease-evidence-pending",
+    "status": "released-v3.2.6-dual-platform-verified",
     "version": "3.2.6",
     "date": "2026-10-07",
     "tag": "v3.2.6",
-    "latest": false,
-    "sourceCommit": "",
-    "publishedAt": "",
+    "latest": true,
+    "sourceCommit": "b3fde7706eb7aca96e90ce6c5a25f1a2aaab3fe0",
+    "publishedAt": "2026-10-07T14:14:43Z",
     "draft": false,
     "prerelease": false,
     "url": "https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.2.6",
     "details": "docs/release-v3.2.6.md",
     "verification": [
-      "Publication authorized; fixed-source Windows and same-tag Mac technical gates remain required. Historical v3.2.1 facts are preserved in docs/release-v3.2.1.md.",
+      "Unique Windows formal chain and same-tag macos-15 arm64 workflow succeeded. All six assets independently downloaded and checked against GitHub size/SHA-256; both updater manifests matched artifact size/SHA-512. Windows assets remained unchanged after Mac append; fixed Tag and target preserved.",
       "Affected-user, installed upgrade and F8-F10 evidence remains deferred under owner-approved-post-release-v3.2.6, not passed."
     ],
-    "assets": {},
-    "macWorkflow": ""
+    "assets": {
+      "windowsInstaller": {
+        "name": "T8-PenguinCanvas-Setup-3.2.6.exe",
+        "bytes": 1375944008,
+        "sha256": "c735a999f2f0b7d3213ebc0b021a5d843bd9addf0c150c6a9716df3e60e16c21"
+      },
+      "windowsBlockmap": {
+        "name": "T8-PenguinCanvas-Setup-3.2.6.exe.blockmap",
+        "bytes": 1435195,
+        "sha256": "464b1781a49a4bbfca542cb3324867f0d2d7a41151b7b1fe0bebcfbbe7155195"
+      },
+      "windowsUpdater": {
+        "name": "latest.yml",
+        "bytes": 362,
+        "sha256": "f9a35b8f3e4e4914542f8e922066dbee2c8d7d24e8339f119f5945c032dff1a7"
+      },
+      "macDmg": {
+        "name": "T8-PenguinCanvas-3.2.6-mac-arm64.dmg",
+        "bytes": 514534853,
+        "sha256": "4e68cfdb976165e900d7f1977884ab2b9b134a7c085df2649664ccd580bf1ff8"
+      },
+      "macZip": {
+        "name": "T8-PenguinCanvas-3.2.6-mac-arm64.zip",
+        "bytes": 506532537,
+        "sha256": "433f2499b72cdd9cfb01641813b4f4c526696fa63ed7f0011ecc87206cd6928f"
+      },
+      "macUpdater": {
+        "name": "latest-mac.yml",
+        "bytes": 536,
+        "sha256": "b8b73ce00615368ba281b57ffc808509d9d61358ecd8d129b1cb8c8f0bea286e"
+      }
+    },
+    "macWorkflow": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/37635136926"
   },
   "versionSequencePolicy": {
     "status": "active",
