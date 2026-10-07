@@ -339,7 +339,7 @@ test('current owner-approved deferral accepts only a missing manifest and never 
     assert.equal(result.reason, 'owner-approved-post-release-evidence');
     assert.equal(Object.hasOwn(result, 'checkCount'), false);
 
-    for (const version of ['3.1.9', '3.2.0', '3.2.1', '3.2.2', '3.2.3', '3.2.4', '3.2.5', '3.2.7']) {
+    for (const version of ['3.1.9', '3.2.0', '3.2.1', '3.2.2', '3.2.3', '3.2.4', '3.2.5', '3.2.6', '3.2.8']) {
       assert.throws(() => assertCollaborationReleaseEvidenceForPublish({
         root: path.resolve(__dirname, '..'),
         evidencePath,
@@ -353,7 +353,7 @@ test('current owner-approved deferral accepts only a missing manifest and never 
       evidencePath,
       version: VERSION,
       target: TARGET,
-      deferralApproval: 'owner-approved-post-release-v3.2.5',
+      deferralApproval: 'owner-approved-post-release-v3.2.6',
     }), /manifest is missing/);
 
     assert.throws(() => assertCollaborationReleaseEvidenceForPublish({

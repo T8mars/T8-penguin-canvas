@@ -1,6 +1,22 @@
 {
   "$schema": "本文件为 T8-penguin-canvas 节点清单防丢失锁,任何节点删减都需要在 roadmap.md 中说明并更新本文件。",
-  "version": "3.2.6",
+  "version": "3.2.7",
+  "electronReleaseV327": {
+    "status": "authorized-pending-unique-formal-build",
+    "version": "3.2.7",
+    "tag": "v3.2.7",
+    "latest": false,
+    "evidence": "docs/release-v3.2.7.md",
+    "postReleaseEvidence": "owner-approved-post-release-v3.2.7",
+    "macBoundary": "same-tag-unsigned-preview; defer-only-if-quota-insufficient"
+  },
+  "startupDiagnostics20261008": {
+    "status": "implemented-local-targeted-verified",
+    "releaseIncluded": false,
+    "summary": "Settings startup-log export; two bounded desktop sessions, fixed startup timings and renderer delay stages only. No credentials or canvas content; no database/startup/name repair.",
+    "verification": "17/17 targeted including scoped semantic types; 36/36 adjacent; bilingual check passed. Full type-check exhausted 768 MiB; installed/native UI not verified.",
+    "details": "docs/startup-diagnostics.md"
+  },
   "electronReleaseV326": {
     "status": "released-dual-platform-verified",
     "sourceCommit": "b3fde7706eb7aca96e90ce6c5a25f1a2aaab3fe0",
@@ -3318,7 +3334,7 @@
   "versionSequencePolicy": {
     "status": "active",
     "date": "2026-07-30",
-    "currentVersion": "3.2.6",
+    "currentVersion": "3.2.7",
     "rules": [
       "版本号每一段只使用 0-9；v2.6.9 的下一正式版本固定为 v2.7.0。",
       "禁止创建、打包、推送、打 tag、发布或写入自动更新元数据为 v2.6.10。",

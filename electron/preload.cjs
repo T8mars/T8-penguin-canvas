@@ -43,6 +43,16 @@ contextBridge.exposeInMainWorld('t8pc', {
     };
   },
   getInfo: () => ipcRenderer.invoke('t8pc:get-info'),
+  startupDiagnostics: {
+    record: (event) => ipcRenderer.send('t8pc:startup-diagnostics:record', {
+      component: 'renderer',
+      phase: typeof event?.phase === 'string' ? event.phase.slice(0, 80) : '',
+      elapsedMs: typeof event?.elapsedMs === 'number' ? event.elapsedMs : 0,
+      phaseMs: typeof event?.phaseMs === 'number' ? event.phaseMs : undefined,
+      delayMs: typeof event?.delayMs === 'number' ? event.delayMs : undefined,
+    }),
+    save: () => ipcRenderer.invoke('t8pc:startup-diagnostics:save'),
+  },
   storage: {
     status: () => ipcRenderer.invoke('t8pc:storage:status'),
     chooseAndRestart: () => ipcRenderer.invoke('t8pc:storage:choose'),

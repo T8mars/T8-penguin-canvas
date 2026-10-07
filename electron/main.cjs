@@ -39,6 +39,7 @@ const {
 
 const APP_VERSION = require('../package.json').version;
 const { createDataStorage } = require('./dataStorage.cjs');
+const { createStartupDiagnostics, installStartupConsoleCapture, registerStartupDiagnosticsIpc } = require('./startupDiagnostics.cjs');
 let desktopDataStorage = null;
 let dataStorageRestartPending = false;
 const ELECTRON_BACKEND_SHUTDOWN_DEADLINE_MS = 15_000;
@@ -53,6 +54,16 @@ const MAIN_WINDOW_STARTUP_BACKEND_URL = 'https://t8pc.startup.local/backend';
 const electronStartupStartedAt = Date.now();
 const ELECTRON_SINGLE_INSTANCE_OWNER = app.requestSingleInstanceLock();
 if (!ELECTRON_SINGLE_INSTANCE_OWNER) app.quit();
+let startupDiagnostics;
+try {
+  startupDiagnostics = createStartupDiagnostics({
+    directory: ELECTRON_SINGLE_INSTANCE_OWNER ? path.join(app.getPath('userData'), 'logs', 'startup') : undefined,
+    version: APP_VERSION,
+  });
+} catch {
+  startupDiagnostics = createStartupDiagnostics({ version: APP_VERSION });
+}
+if (ELECTRON_SINGLE_INSTANCE_OWNER) installStartupConsoleCapture(startupDiagnostics);
 
 // 允许在 Linux/某些机型上规避 GPU 沙盒导致的启动延迟
 app.commandLine.appendSwitch('disable-features', 'OutOfBlinkCors');
@@ -2642,6 +2653,12 @@ ipcMain.handle('t8pc:get-info', () => ({
   locale: getElectronLocale(),
   updater: updaterState,
 }));
+
+registerStartupDiagnosticsIpc({
+  ipcMain, getWindow: () => mainWindow, assertTrusted: assertTrustedMainRenderer,
+  dialog, diagnostics: startupDiagnostics,
+  title: () => getElectronLocale() === 'en-US' ? 'Save startup log' : '保存启动日志',
+});
 
 ipcMain.handle('t8pc:storage:status', (event) => {
   assertTrustedMainRenderer(event);

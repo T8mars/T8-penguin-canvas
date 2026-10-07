@@ -37,6 +37,7 @@ import { portraitResourceToNodeData } from './utils/portraitResource';
 import { createUploadDataFromItems, type MediaKind } from './utils/mediaCollection';
 import { applyUiFontPreference } from './utils/uiFont';
 import { markCanvasPerformance } from './utils/canvasPerformanceProbe';
+import { observeRendererStartup, recordRendererStartupStage } from './utils/startupDiagnostics';
 import {
   deriveCanvasStartupReadiness,
   INITIAL_CANVAS_SURFACE_READINESS,
@@ -466,6 +467,9 @@ function App() {
       default: return t('shell:startup.preparing');
     }
   }, [canvasStartupReadiness.stage, t]);
+
+  useEffect(() => observeRendererStartup(), []);
+  useEffect(() => { recordRendererStartupStage(canvasStartupReadiness.stage); }, [canvasStartupReadiness.stage]);
 
   const showStartupNotice = useCallback((text: string) => {
     setStartupNotice({ id: Date.now(), text });

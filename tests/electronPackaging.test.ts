@@ -34,6 +34,7 @@ test('Electron package files include every static local CommonJS startup depende
     'electron/loader.cjs',
     'electron/systemFetchBridge.cjs',
     'electron/dataStorage.cjs',
+    'electron/startupDiagnostics.cjs',
   ];
   for (const entrypoint of requiredEntrypoints) {
     assert.ok(packagedFiles.has(entrypoint), `missing Electron entrypoint from build.files: ${entrypoint}`);
@@ -81,6 +82,7 @@ test('Windows and macOS post-build gates enforce the shared app.asar startup con
     'electron/loader.cjs',
     'electron/systemFetchBridge.cjs',
     'electron/dataStorage.cjs',
+    'electron/startupDiagnostics.cjs',
     'package.json',
   ]);
   assert.ok(contract.REQUIRED_ELECTRON_ASAR_ENTRIES.includes('electron/i18n.cjs'));
