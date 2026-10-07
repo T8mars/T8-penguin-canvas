@@ -1,0 +1,28 @@
+{
+  "observedAt": "2026-10-07",
+  "source": "RunningHub domestic apiCallDemo, authenticated live GET; credential and default file hashes omitted",
+  "apps": [
+    {
+      "webappId": "2066002530877927426",
+      "httpStatus": 200,
+      "code": 0,
+      "fields": [{
+        "nodeId": "46",
+        "fieldName": "image",
+        "fieldType": "IMAGE",
+        "fieldData": "[[\"example.png\", \"None\", \"example.png\", \"keep_this_dic\"], {\"image_upload\": true}]"
+      }]
+    },
+    {
+      "webappId": "2066353965784199169",
+      "httpStatus": 200,
+      "code": 0,
+      "fields": [{
+        "nodeId": "5",
+        "fieldName": "image",
+        "fieldType": "IMAGE",
+        "fieldData": "[[\"example.png\", \"None\", \"example.png\", \"keep_this_dic\"], {\"image_upload\": true}]"
+      }]
+    }
+  ]
+}

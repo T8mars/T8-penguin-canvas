@@ -1,6 +1,6 @@
 {
   "schema": "t8-creative-runtime-catalog-v1",
-  "sourceDigest": "ad5eb239a1205fc51ba41b9998ff6da7bb7de1d152ec7f110740d18a3285463b",
+  "sourceDigest": "541eb29bb2d3fa6eb927852ec50a5166bedd25f7faaf4b8e18d92764f7c42c3f",
   "generatedFrom": [
     "src/providers/models.ts",
     "src/config/seedance.ts",
@@ -1810,6 +1810,55 @@
       "available": true,
       "parameters": {
         "label": "gemini-3.1-flash-lite-image",
+        "platformLabel": "贞贞的AI工坊",
+        "family": "nano-banana-2",
+        "available": true,
+        "tabLabel": "香蕉2",
+        "capabilities": [
+          "t2i",
+          "i2i"
+        ],
+        "parameterKind": "banana-ratio",
+        "aspectRatios": [
+          "Auto",
+          "1:1",
+          "16:9",
+          "4:3",
+          "4:5",
+          "3:2",
+          "2:3",
+          "3:4",
+          "5:4",
+          "9:16",
+          "21:9",
+          "9:21",
+          "1:4",
+          "4:1",
+          "1:8",
+          "8:1"
+        ],
+        "defaultAspectRatio": "1:1",
+        "sizes": [
+          "1K",
+          "2K",
+          "4K"
+        ],
+        "defaultSize": "2K",
+        "supportsReference": true,
+        "maxReferenceImages": 5,
+        "description": "高速生成,适合迭代"
+      }
+    },
+    {
+      "id": "image:zhenzhen:gemini-nano-banana-2.1",
+      "provider": "zhenzhen",
+      "platformLabel": "贞贞的AI工坊",
+      "model": "gemini-nano-banana-2.1",
+      "label": "gemini-nano-banana-2.1",
+      "family": "nano-banana-2",
+      "available": true,
+      "parameters": {
+        "label": "gemini-nano-banana-2.1",
         "platformLabel": "贞贞的AI工坊",
         "family": "nano-banana-2",
         "available": true,
@@ -9948,7 +9997,7 @@
   ],
   "counts": {
     "llm": 34,
-    "image": 62,
+    "image": 63,
     "video": 131,
     "audio": 17,
     "actions": 61

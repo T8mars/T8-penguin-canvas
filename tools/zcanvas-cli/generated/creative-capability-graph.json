@@ -24,14 +24,14 @@
     "i18nNodeCatalog": "0479653284399372bba58f69d528e45ed9de267f9a1d7107347401ab75f60676",
     "i18nRendererResources": "8231207da4cadb3c7812ff79c8cf40982a0d15e884f4d6370fea3b2e4e36de50",
     "i18nElectronCatalog": "afffcf09bb10690b6db48236fe826dcadab9070a6dc9540ae1c730b1aab38836",
-    "runtimeCatalogSources": "ad5eb239a1205fc51ba41b9998ff6da7bb7de1d152ec7f110740d18a3285463b",
-    "runtimeCatalogArtifact": "f1d3c8767086b6a6de342eb2116ba306b9a8cfebece19becc2540b40234dd33a",
+    "runtimeCatalogSources": "541eb29bb2d3fa6eb927852ec50a5166bedd25f7faaf4b8e18d92764f7c42c3f",
+    "runtimeCatalogArtifact": "f1efe9793e9b9f8c6e128a9f35b25ec8f1d4be5dddba0fc7835994a5d3245b67",
     "handlerBindings": "3cd8cde3c05d1642d72ce8cbfae2874d1bdf986592ae431ef7d66b043da257b5",
     "capabilityGraphCompiler": "a3716d239b91e1c4775f5996b3865ba3ab8fd652263138feef0a56de40851c24",
     "coverageReceiptCompiler": "68c02167cb5317107edd346223a5e5999168e447bacbb977ff8e9678e6753fe7",
     "canonicalTextDigestCompiler": "b0afcf28a257fbbd8f391edc117348f8f2ede1b4a039ae91bce25a8d563ac0cf"
   },
-  "aggregateDigest": "728c339ea3496627abcfa512bdb4d1a3739b046443954270cf2fa687e3cb5cac",
+  "aggregateDigest": "688858f219fbf13d4a6ef08841509e05e893c7df1ff9a4aeda3115a700115843",
   "principles": {
     "oneSentenceStart": true,
     "directCanvasMutation": false,
@@ -55,10 +55,10 @@
     "accountedNodes": 83,
     "unexplainedNodes": 0,
     "fullyOperableNodes": 20,
-    "runtimeEntries": 305,
+    "runtimeEntries": 306,
     "runtimeByKind": {
       "llm": 34,
-      "image": 62,
+      "image": 63,
       "video": 131,
       "audio": 17,
       "actions": 61
@@ -66,7 +66,7 @@
     "runtimeByProvider": {
       "grok-oauth": 2,
       "seedance-nz": 233,
-      "zhenzhen": 63,
+      "zhenzhen": 64,
       "fal": 7
     },
     "operations": 196,
@@ -7402,7 +7402,7 @@
   ],
   "runtime": {
     "schema": "t8-creative-runtime-catalog-v1",
-    "sourceDigest": "ad5eb239a1205fc51ba41b9998ff6da7bb7de1d152ec7f110740d18a3285463b",
+    "sourceDigest": "541eb29bb2d3fa6eb927852ec50a5166bedd25f7faaf4b8e18d92764f7c42c3f",
     "platforms": [
       {
         "id": "zhenzhen",
@@ -9828,6 +9828,26 @@
         "platformLabel": "贞贞的AI工坊",
         "model": "gemini-3.1-flash-lite-image",
         "label": "gemini-3.1-flash-lite-image",
+        "family": "nano-banana-2",
+        "available": true,
+        "catalogSection": "image",
+        "compatibility": {
+          "known": true,
+          "installed": true,
+          "credentialReady": null,
+          "regionReady": true,
+          "executable": false,
+          "available": true,
+          "requiresRuntimeCheck": true
+        }
+      },
+      {
+        "id": "image:zhenzhen:gemini-nano-banana-2.1",
+        "kind": "image",
+        "provider": "zhenzhen",
+        "platformLabel": "贞贞的AI工坊",
+        "model": "gemini-nano-banana-2.1",
+        "label": "gemini-nano-banana-2.1",
         "family": "nano-banana-2",
         "available": true,
         "catalogSection": "image",
@@ -13916,6 +13936,7 @@
       "image:zhenzhen:gemini-3-pro-image",
       "image:zhenzhen:gemini-3.1-flash-image",
       "image:zhenzhen:gemini-3.1-flash-lite-image",
+      "image:zhenzhen:gemini-nano-banana-2.1",
       "image:zhenzhen:gpt-image-2",
       "image:zhenzhen:gpt-image-2-2K",
       "image:zhenzhen:gpt-image-2-4K",
@@ -14110,7 +14131,7 @@
     "sourceDigests": {
       "capabilityManifest": "569f2c8be144e05120ca629b2826383a06c4d6565ab3896c2dc61807bb9f7c27",
       "nodeSchema": "1a4453bd8a931407e3bb367826e5973faf4fd8957d6c32dd7f03a93e10cd3258",
-      "runtimeCatalog": "ad5eb239a1205fc51ba41b9998ff6da7bb7de1d152ec7f110740d18a3285463b",
+      "runtimeCatalog": "541eb29bb2d3fa6eb927852ec50a5166bedd25f7faaf4b8e18d92764f7c42c3f",
       "handlerBindings": "3cd8cde3c05d1642d72ce8cbfae2874d1bdf986592ae431ef7d66b043da257b5",
       "receiptCompiler": "68c02167cb5317107edd346223a5e5999168e447bacbb977ff8e9678e6753fe7"
     },
@@ -14122,7 +14143,7 @@
       },
       "runtime": {
         "llm": 34,
-        "image": 62,
+        "image": 63,
         "video": 131,
         "audio": 17,
         "actions": 61
@@ -14139,6 +14160,6 @@
       "missingCompatibilityEdges": []
     },
     "complete": true,
-    "digest": "534d129b7778db66cc84820579635a08b6143527cba02e54a73cfe698c200069"
+    "digest": "d02358a6bd6bef82d67981597e42acc290a3efe011699059121898194c631eca"
   }
 }

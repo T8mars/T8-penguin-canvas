@@ -25,6 +25,11 @@ const OPTION_KEYS = ['options', 'list', 'values', 'enum', 'choices', 'items', 's
 
 /** Exact Provider values only. Field names cannot tell us a workflow's enum. */
 export function extractRhFieldOptions(field: any): RhFieldOption[] | null {
+  // RH media widgets can expose the workflow server's existing filenames in
+  // fieldData/options. Those are defaults, not an exhaustive enum: new media
+  // must retain its upload valueType and be replaced by RH's returned fileName.
+  // Use the authoritative type, never a field name or a URL-shaped input.
+  if (/^(IMAGE|VIDEO|AUDIO)$/i.test(String(field?.fieldType || ''))) return null;
   for (const candidate of [field?.fieldData, ...OPTION_KEYS.map((key) => field?.[key])]) {
     const parsed = parseMetadata(candidate);
     const direct = optionList(parsed);

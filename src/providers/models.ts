@@ -338,6 +338,7 @@ export const IMAGE_MODELS: ImageModelDef[] = [
       { value: 'gemini-3.1-flash-image', label: 'nano-banana-2 (Flash)' },
       { value: 'gemini-3.1-flash-lite-image', label: 'gemini-3.1-flash-lite-image' },
       { value: 'nano-banana-2-fal', label: 'nano-banana-2-fal' },
+      { value: 'gemini-nano-banana-2.1', label: 'gemini-nano-banana-2.1' },
     ],
     aspectRatios: BANANA_FLASH_RATIOS,
     defaultAspectRatio: '1:1',
