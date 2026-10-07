@@ -22,6 +22,6 @@ GitHub仓库已查为public，workflow使用标准macos-15；[官方规则](http
 - [同Tag Mac workflow 37635136926](https://github.com/T8mars/T8-penguin-canvas/actions/runs/37635136926) 成功，绑定上述源码：合同6/6、原生依赖、私有源恢复、ad-hoc签名、8项app.asar启动合同、FFmpeg/FFprobe及DMG/ZIP/清单检查通过；仅追加三项Mac资产，runner完整回下载通过。Release正文保留 `macSource` 精确绑定与未公证边界，本轮未因额度延期。
 - 本机 `release:mac:verify` 与Mac追加后的 `release:verify` 均返回0：六资产再次完整回下载并核对GitHub size/SHA-256，两个更新清单的产物size/SHA-512一致；Windows资产追加前后相同，Tag/target固定，Latest保持本版。初次Mac直连下载持续低速，被主动中止并清理其临时目录；保留失败记录后，仅验证进程使用已有系统代理完成重验，未改变系统设置或重建包。
 
-六资产精确名称、bytes和SHA-256保留机器兼容结构，集中维护在 `features.json#release.assets`（查询：`node scripts/read-project-context.cjs feature release assets`），不在多份文档复制长散列表。
+六资产精确名称、bytes和SHA-256保留在 `features.json#electronReleaseV326.assets`（查询：`node scripts/read-project-context.cjs feature electronReleaseV326 assets`）；新发布推进当前release记录后，历史资产仍完整保留，不重复长散列表。
 
 私有过程证据：`local-private/release-v3.2.6/windows-formal.log`、`mac-independent-verify.log`（慢直连中止）、`mac-independent-proxy-verify.log`与`windows-final-verify.log`；不公开凭据、恢复nonce、签名URL或用户数据。用户安装升级、反馈现场及F8–F10仍按上述授权后补，不视为通过。
