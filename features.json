@@ -1,8 +1,18 @@
 {
   "$schema": "本文件为 T8-penguin-canvas 节点清单防丢失锁,任何节点删减都需要在 roadmap.md 中说明并更新本文件。",
-  "version": "3.2.7",
-  "electronReleaseV327": {
+  "version": "3.2.8",
+  "electronReleaseV328": {
     "status": "authorized-pending-unique-formal-build",
+    "version": "3.2.8",
+    "tag": "v3.2.8",
+    "latest": false,
+    "evidence": "docs/release-v3.2.8.md",
+    "postReleaseEvidence": "owner-approved-post-release-v3.2.8",
+    "macBoundary": "same-tag-unsigned-preview; defer-only-if-quota-insufficient"
+  },
+  "electronReleaseV327": {
+    "status": "prebuild-capability-drift-failed-no-installer",
+    "sourceCommit": "0b9e63f6a07d3ee32b3f93814cdb076e945bd8cb",
     "version": "3.2.7",
     "tag": "v3.2.7",
     "latest": false,
@@ -3334,7 +3344,7 @@
   "versionSequencePolicy": {
     "status": "active",
     "date": "2026-07-30",
-    "currentVersion": "3.2.7",
+    "currentVersion": "3.2.8",
     "rules": [
       "版本号每一段只使用 0-9；v2.6.9 的下一正式版本固定为 v2.7.0。",
       "禁止创建、打包、推送、打 tag、发布或写入自动更新元数据为 v2.6.10。",
