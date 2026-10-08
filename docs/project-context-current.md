@@ -3,8 +3,8 @@
 更新：2026-10-08。仅维护当前事实；长期规则见根 `SKILL.md` 和 `AGENTS.md`。本页预算 80 行 / 8 KiB，旧检查点迁入专题，不追加长日报。
 
 - 默认目录 `E:\PenguinPravite\T8-penguin-canvas`；branch `codex/release-v3.0.8-volcengine-assets-ux`，common dir `.git`。开工以git/worktree门为准；正式源码/Tag固定后记录在发布专题，不移动。
-- package `3.2.9` 已从固定源码 `bf1dbff365cc169d242d5f8cb1d5358469ff4d83` 双平台发布为稳定Latest：唯一Windows构建、加密Worker probe、同Tag Mac成功，六资产及两个更新清单独立完整回下载通过，见[发布专题](release-v3.2.9.md)。旧Tag/资产保留。
-- 本版安装升级、反馈用户现场和 F8–F10 按 `owner-approved-post-release-v3.2.9` 后补，不视为通过；Mac仍为 ad-hoc 未公证预览，仅额度不足可延期。
+- package `3.3.0` 获当前发布授权，固定源码、唯一Windows构建、同Tag Mac与资产校验待完成，见[发布专题](release-v3.3.0.md)。历史v3.2.9双平台与六资产校验已完成，旧Tag/资产保留。
+- 本版安装升级、反馈用户现场和 F8–F10 按 `owner-approved-post-release-v3.3.0` 后补，不视为通过；Mac仍为 ad-hoc 未公证预览，仅额度不足可延期。
 
 ## 当前检查点
 
@@ -12,6 +12,7 @@
 
 | 事项 | 当前事实与下一步 |
 | --- | --- |
+| 自动更新退出 | 限定验证完成，待v3.3.0发布；Git对象已备份修复，完整检查通过。先保存/关闭后台，安装器只等待、不强杀；现场升级待验收，见[专题](auto-update-exit-fix-20261008.md)。 |
 | 启动诊断/修复 | 日志随v3.2.8发布；同次校验复用、候选备份独立线程、活动旧名补回随v3.2.9双平台发布。修复51项、发布前55/55及打包22/22通过，组重叠不相加；合成库重开1316→547ms，不替代用户现场，见[修复](startup-history-fix-20261008.md)及[日志](startup-diagnostics.md)。 |
 | 工坊香蕉2.1 | 已随v3.2.6双平台发布，仅新增模型，旧默认/参数不变；真实文生图与图生图通过。见[专题](nano-banana21-workshop.md)。 |
 | RH 媒体误判 | 已随v3.2.6双平台发布：媒体保留上传；专项18/18、相邻40/40通过。两个应用真实元数据确认误判，一个真实素材上传/任务/结果完整解码成功；安装版未复验。见[专题](rh-media-field-validation-20261007.md)。 |

@@ -47,7 +47,7 @@ function bridgeUnavailableStatus(t: TFunction<'electron'>, info?: Partial<T8Desk
 }
 
 function statusTone(status: T8UpdaterStatusCode): 'idle' | 'busy' | 'good' | 'warn' | 'bad' {
-  if (status === 'checking' || status === 'downloading' || status === 'installing') return 'busy';
+  if (status === 'checking' || status === 'downloading' || status === 'preparing-install' || status === 'installing') return 'busy';
   if (status === 'available' || status === 'downloaded') return 'warn';
   if (status === 'not-available') return 'good';
   if (status === 'error') return 'bad';
@@ -62,6 +62,7 @@ function statusLabel(status: T8UpdaterStatus, t: TFunction<'electron'>): string 
     return `${Math.max(0, Math.min(100, percent)).toFixed(0)}%`;
   }
   if (status.status === 'downloaded') return t('updater.labels.downloaded');
+  if (status.status === 'preparing-install') return t('updater.labels.preparingInstall');
   if (status.status === 'installing') return t('updater.labels.installing');
   if (status.status === 'not-available') return t('updater.labels.update');
   if (status.status === 'error') return t('updater.labels.failed');
@@ -70,6 +71,7 @@ function statusLabel(status: T8UpdaterStatus, t: TFunction<'electron'>): string 
 }
 
 function primaryLabel(status: T8UpdaterStatus, t: TFunction<'electron'>): string {
+  if (status.status === 'preparing-install') return t('updater.labels.preparingInstall');
   if (status.status === 'available') return t('updater.labels.download');
   if (status.status === 'downloaded' || status.downloaded) return t('updater.labels.openInstaller');
   if (status.status === 'checking') return t('updater.labels.checking');
@@ -78,7 +80,7 @@ function primaryLabel(status: T8UpdaterStatus, t: TFunction<'electron'>): string
 }
 
 function PrimaryIcon({ status, size }: { status: T8UpdaterStatusCode; size: number }) {
-  if (status === 'checking' || status === 'downloading' || status === 'installing') {
+  if (status === 'checking' || status === 'downloading' || status === 'preparing-install' || status === 'installing') {
     return <Loader2 size={size} className="animate-spin" />;
   }
   if (status === 'available') return <Download size={size} />;
@@ -163,8 +165,10 @@ export default function AppUpdaterButton({ isPixel, isDark }: AppUpdaterButtonPr
   const disabled =
     updaterUnavailable ||
     busy ||
+    status.messageKey === 'updater.installFailedRestart' ||
     status.status === 'checking' ||
     status.status === 'downloading' ||
+    status.status === 'preparing-install' ||
     status.status === 'installing';
 
   const buttonClass = useMemo(() => {

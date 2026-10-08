@@ -6,7 +6,7 @@
     "capabilityGraph": "tools/zcanvas-cli/generated/creative-capability-graph.json"
   },
   "sourceDigest": "569f2c8be144e05120ca629b2826383a06c4d6565ab3896c2dc61807bb9f7c27",
-  "capabilityGraphDigest": "c409f2a17080a706b04b88144ebcf3ad36dc14b5ae549dc9b2628f6f00559dcc",
+  "capabilityGraphDigest": "9d2cdf7e70846db705476b90e6de412da57ab1cb4fad5efb04d0577647f59232",
   "counts": {
     "capabilities": 39,
     "agentTools": 39,

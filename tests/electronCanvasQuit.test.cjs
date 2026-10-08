@@ -21,7 +21,7 @@ function fixture({ owner = true, throwingGate = false } = {}) {
     shutdownBackendForElectron: reason => { const d = deferred(); shutdowns.push({ ...d, reason }); return d.promise; },
     dbgLog: message => logs.push(message),
   });
-  vm.runInContext(`let electronQuitRequested=false, electronQuitReady=false, electronQuitFinalizationPromise=null; ${hook}`, context);
+  vm.runInContext(`let updaterInstallPromise=null, updaterInstallQueued=false; let electronQuitRequested=false, electronQuitReady=false, electronQuitFinalizationPromise=null; ${hook}`, context);
   return { app, approvals, shutdowns, logs,
     state: () => vm.runInContext('({requested:electronQuitRequested,ready:electronQuitReady,pending:!!electronQuitFinalizationPromise})', context),
     get acceptedExits() { return acceptedExits; } };

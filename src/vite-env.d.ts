@@ -18,6 +18,7 @@ type T8UpdaterStatusCode =
   | 'available'
   | 'downloading'
   | 'downloaded'
+  | 'preparing-install'
   | 'installing'
   | 'error';
 
