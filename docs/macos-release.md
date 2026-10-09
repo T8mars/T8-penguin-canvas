@@ -10,6 +10,11 @@
 - Windows 专用 `remove-ai-watermarks` / ParseHub Python 离线归档不会塞进 Mac 包；相关本地工具需要用户自行安装兼容 Python 环境。其缺失不得影响普通画布和云端节点启动。
 - 首个未公证预览升级到未来 Developer ID 正式版时，按手动覆盖安装处理；配置正式签名后，后续版本才把 `latest-mac.yml` + ZIP 视为可交付的 Mac 自动更新链路。
 
+## v3.3.1 已发布结果
+
+- 同正式 Tag / 源码 `66b13a38a5129ffe3aac82decaa80b0806701d59` 的 [Apple Silicon workflow 37976089033](https://github.com/T8mars/T8-penguin-canvas/actions/runs/37976089033) 成功；runner 及本机独立 Mac 三资产完整回下载通过，追加后的 Windows 三资产也完整复核且 ID/size/SHA-256 未变。六资产详情见[专题](release-v3.3.1.md)。
+- Mac 仍为 ad-hoc 未公证预览，本轮实际发布成功、未因额度延期；用户安装升级、现场及 F8–F10 后补，不记通过。
+
 ## v3.3.0 已发布结果
 
 - 同正式 Tag / 源码 `f8d01582b1ae0a4e182656de8c4abf51b1eac68c` 的 [Apple Silicon workflow 37728202199](https://github.com/T8mars/T8-penguin-canvas/actions/runs/37728202199) 成功；runner 与本机独立 Mac 三资产完整回下载通过。追加后的 Windows 三资产也独立完整回下载，原 ID/size/SHA-256 未变；精确六资产见[专题](release-v3.3.0.md)。

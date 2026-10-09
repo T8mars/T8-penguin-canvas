@@ -2,16 +2,18 @@
   "$schema": "本文件为 T8-penguin-canvas 节点清单防丢失锁,任何节点删减都需要在 roadmap.md 中说明并更新本文件。",
   "version": "3.3.1",
   "electronReleaseV331": {
-    "status": "authorized-preparing",
+    "status": "released-dual-platform-verified",
     "version": "3.3.1",
     "tag": "v3.3.1",
-    "latest": false,
+    "latest": true,
     "evidence": "docs/release-v3.3.1.md",
     "postReleaseEvidence": "owner-approved-post-release-v3.3.1",
-    "macBoundary": "same-tag-unsigned-preview; defer-only-if-quota-insufficient"
+    "macBoundary": "same-tag-unsigned-preview; no-quota-deferral-used",
+    "sourceCommit": "66b13a38a5129ffe3aac82decaa80b0806701d59",
+    "macWorkflow": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/37976089033"
   },
   "nb21FluxViduQ420261010": {
-    "status": "live-verified-release-v3.3.1-preparing",
+    "status": "released-v3.3.1-dual-platform-live-verified",
     "date": "2026-10-10",
     "releaseIncluded": true,
     "provider": "seedance-nz",
@@ -24,7 +26,7 @@
       "report": "local-private/nb21-flux-viduq4-live-20261010/report.json",
       "tests": "local-private/nb21-flux-viduq4-live-20261010/regression-tests.log"
     },
-    "boundary": "v3.3.1 publication authorized; see release topic for actual build and publication state. No installed-client, browser end-to-end or model-quality benchmark claimed. Credentials and original live task identities remain private."
+    "boundary": "Released in v3.3.1 with six assets and two updater manifests fully download-verified. Installed-client, browser end-to-end, user environment and F8-F10 evidence deferred, not passed. No model-quality benchmark claimed. Credentials and original live task identities remain private."
   },
   "electronReleaseV330": {
     "status": "released-dual-platform-verified",
@@ -238,7 +240,7 @@
     "releaseIncluded": true,
     "version": "3.2.1",
     "tag": "v3.2.1",
-    "latest": true,
+    "latest": false,
     "sourceCommit": "2dc205dfe6dc743195eeb5aa57db27c0da1fa29f",
     "publishedAt": "2026-09-28T20:12:11Z",
     "url": "https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.2.1",
