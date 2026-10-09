@@ -1,6 +1,7 @@
 const canvasNodeSchema = require('../shared/canvasNodeSchema.json');
 const seedanceNzLlmModels = require('../shared/seedanceNzLlmModels.json');
 const seedreamNzContract = require('../shared/seedreamNzContract.json');
+const nb21FluxViduContract = require('../shared/nb21FluxViduQ4Contract.json');
 
 const RUN_INTENT_AUTHORITY_SCHEMA = 't8-run-intent-authority-v1';
 const MAX_CANVAS_NODES = 20_000;
@@ -64,7 +65,7 @@ const IMAGE_RUNTIME_MODELS = Object.freeze({
     defaultModel: 'gemini-3.1-flash-image',
     models: [
       'gemini-3.1-flash-image', 'gemini-3.1-flash-lite-image', 'nano-banana-2-fal',
-      'zhenzhen-image-nb-2-lite', 'zhenzhen-image-nb-2',
+      'zhenzhen-image-nb-2-lite', 'zhenzhen-image-nb-2', nb21FluxViduContract.banana21.model,
     ],
   },
   'nano-banana-pro': {
@@ -77,6 +78,10 @@ const IMAGE_RUNTIME_MODELS = Object.freeze({
   'grok-image': {
     defaultModel: 'grok-4.2-image',
     models: ['grok-4.2-image', 'zhenzhen-image-gk-v15', 'zhenzhen-image-gk-v15-edit'],
+  },
+  'flux-3-image': {
+    defaultModel: nb21FluxViduContract.flux.model,
+    models: [nb21FluxViduContract.flux.model],
   },
   'seedream-v5-pro': {
     defaultModel: 'seedream-v5-pro',
@@ -137,9 +142,17 @@ const VIDEO_RUNTIME_MODELS = Object.freeze({
   'seedance-2.0': ['seedance-2.0'],
   'vosr2-video-upscale': ['vosr2-video-upscale'],
   'animate-motion-transfer': ['animate-motion-transfer'],
+  'vidu-q3': [
+    'vidu-q3-turbo-t2v', 'vidu-q3-pro-t2v', 'vidu-q3-pro-fast-t2v',
+    'vidu-q3-turbo-i2v', 'vidu-q3-pro-i2v', 'vidu-q3-pro-fast-i2v',
+    'vidu-q3-turbo-start-end', 'vidu-q3-pro-start-end', 'vidu-q3-pro-fast-start-end',
+    'vidu-q3-r2v', 'vidu-q3-mix-r2v', 'vidu-q3-ad-r2v', 'vidu-q3-drama-r2v',
+    'vidu-q3-drama-short-play', 'vidu-q3-ad-short-play', ...nb21FluxViduContract.viduQ4.models,
+  ],
 });
 
 const SEEDANCE_NZ_IMAGE_RUNTIME_MODELS = new Set([
+  nb21FluxViduContract.banana21.model, nb21FluxViduContract.flux.model,
   ...seedreamNzContract.layerModels,
   'zhenzhen-image-g2-t2i',
   'zhenzhen-image-g2-i2i',
@@ -153,6 +166,7 @@ const SEEDANCE_NZ_IMAGE_RUNTIME_MODELS = new Set([
   'qwen-image-global-2.1',
 ]);
 const SEEDANCE_NZ_VIDEO_RUNTIME_MODELS = new Set([
+  ...nb21FluxViduContract.viduQ4.models,
   'zhenzhen-video-g-omni-flash',
   'zhenzhen-video-gk-v15',
   'zhenzhen-video-v31-fast',

@@ -1,5 +1,5 @@
 import type { Edge, Node } from '@xyflow/react';
-import { IMAGE_MODELS, VIDEO_MODELS, isFalModel, isFalVideoModel } from '../providers/models.ts';
+import { IMAGE_MODELS, VIDEO_MODELS, isFalModel, isFalVideoModel, ZHENZHEN_IMAGE_NB_21_MODEL, FLUX3_IMAGE_MODEL } from '../providers/models.ts';
 import type { ApiSettings, AdvancedProviderConfig } from '../types/canvas.ts';
 import type { AssetRef, CollaborationExecutionPolicySnapshot } from '../types/project.ts';
 import { advancedProviderModelOptions, hasAdvancedProviderSecret } from './advancedProviders.ts';
@@ -350,6 +350,11 @@ function builtInCredentialNotice(node: Node, settings: ApiSettings): RunPrefligh
 
   if (node.type === 'image') {
     const { definition, apiModel } = imageModelSelection(data);
+    if (definition?.id === FLUX3_IMAGE_MODEL || data.apiModel === ZHENZHEN_IMAGE_NB_21_MODEL) {
+      return configuredSecret(settings.zhenzhenSd2ApiKey)
+        ? null
+        : capabilityNotice(node, 'provider.seedance-nz-credential-missing', missingDomesticCredentialMessage());
+    }
     if (definition?.paramKind === 'seedream-v5' && data.seedreamApiSource === 'seedance-nz') {
       return configuredSecret(settings.zhenzhenSd2ApiKey)
         ? null

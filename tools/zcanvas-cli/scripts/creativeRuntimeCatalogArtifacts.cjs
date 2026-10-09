@@ -26,6 +26,7 @@ const SOURCE_PATHS = [
   SEEDANCE_NZ_LLM_SOURCE,
   SEEDANCE_NZ_PROVIDER_SOURCE,
   SEEDREAM_NZ_CONTRACT_SOURCE,
+  path.join(ROOT, 'backend', 'src', 'shared', 'nb21FluxViduQ4Contract.json'),
 ];
 
 const PLATFORM_META = Object.freeze({
@@ -234,7 +235,8 @@ function buildRuntimeCatalog() {
   for (const rawModel of seedanceNz.IMAGE_MODELS || []) {
     const model = String(rawModel || '').trim();
     if (!model) continue;
-    const family = seedanceNz.QWEN_IMAGE_30_MODELS?.has(model)
+    const family = model === seedanceNz.FLUX3_IMAGE_MODEL ? 'flux-3-image'
+      : seedanceNz.QWEN_IMAGE_30_MODELS?.has(model)
       ? 'qwen-image-3.0'
       : model === seedanceNz.VOSR2_IMAGE_UPSCALE_MODEL
         ? 'vosr2-image-upscale'
@@ -249,6 +251,7 @@ function buildRuntimeCatalog() {
       : model === seedanceNz.ZHENZHEN_IMAGE_NB_PRO_MODEL
         ? 'nano-banana-pro'
         : model === seedanceNz.ZHENZHEN_IMAGE_NB_2_MODEL
+          || model === seedanceNz.ZHENZHEN_IMAGE_NB_21_MODEL
           || model === seedanceNz.ZHENZHEN_IMAGE_NB_2_LITE_MODEL
           ? 'nano-banana-2'
       : model === seedanceNz.ZHENZHEN_IMAGE_GK_V2_MODEL
@@ -260,7 +263,7 @@ function buildRuntimeCatalog() {
           || model === seedanceNz.ZHENZHEN_IMAGE_GK_V2_REGION_EDIT_MODEL
           ? 'grok-image-tools'
         : 'seedream-v5-pro';
-    const maxReferenceImages = family === 'seedream-layer-decomposition' || family === 'vosr2-image-upscale'
+    const maxReferenceImages = family === 'flux-3-image' ? 10 : family === 'seedream-layer-decomposition' || family === 'vosr2-image-upscale'
       ? 1
       : family === 'qwen-image-3.0'
         ? (model.endsWith('-i2i') ? 3 : 0)
@@ -289,7 +292,7 @@ function buildRuntimeCatalog() {
       model,
       family,
       {
-        tabLabel: family === 'grok-image' || family === 'grok-image-tools'
+        tabLabel: family === 'flux-3-image' ? 'Flux' : family === 'grok-image' || family === 'grok-image-tools'
           ? 'Grok'
           : family === 'wan-image'
             ? 'Wan Image'
@@ -311,7 +314,7 @@ function buildRuntimeCatalog() {
           : family === 'vosr2-image-upscale'
             ? ['i2i']
           : maxReferenceImages === 0 ? ['t2i'] : ['t2i', 'i2i', 'edit'],
-        parameterKind: family === 'grok-image-tools'
+        parameterKind: family === 'flux-3-image' ? 'flux-image' : family === 'grok-image-tools'
           ? (model === seedanceNz.ZHENZHEN_IMAGE_GK_V2_SEGMENT_MODEL ? 'grok-segment' : 'grok-region-edit')
           : seedanceNz.ZHENZHEN_IMAGE_G25_MODELS?.has(model)
             ? (model === seedanceNz.ZHENZHEN_IMAGE_G25_LOWPRICE_MODEL
@@ -330,6 +333,13 @@ function buildRuntimeCatalog() {
                 : 'seedance-nz-image',
         supportsReference: maxReferenceImages !== 0,
         maxReferenceImages,
+        ...(model === seedanceNz.FLUX3_IMAGE_MODEL || model === seedanceNz.ZHENZHEN_IMAGE_NB_21_MODEL
+          ? (() => {
+            const contract = require(path.join(ROOT, 'backend/src/shared/nb21FluxViduQ4Contract.json'));
+            const specification = model === seedanceNz.FLUX3_IMAGE_MODEL ? contract.flux : contract.banana21;
+            return { sizes: specification.resolutions, aspectRatios: specification.ratios,
+              defaultSize: '1k', defaultAspectRatio: model === seedanceNz.FLUX3_IMAGE_MODEL ? 'auto' : '1:1', maxOutputs: 1 };
+          })() : {}),
         description: '贞贞的平价AI小屋图像模型',
       },
     ));

@@ -1,0 +1,145 @@
+{
+  "schema": "t8-workflow-fragment",
+  "version": 1,
+  "title": "vidu-q4-preview-r2v",
+  "nodes": [
+    {
+      "id": "source-image",
+      "type": "upload",
+      "position": {
+        "x": 0,
+        "y": 40
+      },
+      "data": {
+        "label": "上传参考图 / Upload reference image",
+        "uploadType": "image",
+        "lockedUploadType": "image"
+      }
+    },
+    {
+      "id": "source-audio",
+      "type": "upload",
+      "position": {
+        "x": 0,
+        "y": 440
+      },
+      "data": {
+        "label": "可选参考音频 / Optional reference audio (converted to MP3)",
+        "uploadType": "audio",
+        "lockedUploadType": "audio"
+      }
+    },
+    {
+      "id": "generation",
+      "type": "video",
+      "position": {
+        "x": 430,
+        "y": 80
+      },
+      "data": {
+        "label": "vidu-q4-preview-r2v",
+        "providerSource": "zhenzhen",
+        "mainId": "vidu-q3",
+        "model": "vidu-q4-preview-r2v",
+        "videoBuiltinSource": "seedance-nz",
+        "ratio": "1:1",
+        "duration": 3,
+        "resolution": "540p",
+        "generateAudio": true,
+        "viduQ4IsRec": true,
+        "viduQ4Watermark": false,
+        "localRefImages": [],
+        "localRefVideos": [],
+        "localRefAudios": [],
+        "prompt": "The penguin gently waves beside the yellow cup. Locked camera, preserve the scene.",
+        "referenceImages": [],
+        "reuseResult": false
+      }
+    },
+    {
+      "id": "output",
+      "type": "output",
+      "position": {
+        "x": 850,
+        "y": 80
+      },
+      "data": {
+        "label": "结果 / Result"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "image-edge",
+      "source": "source-image",
+      "target": "generation"
+    },
+    {
+      "id": "audio-edge",
+      "source": "source-audio",
+      "target": "generation"
+    },
+    {
+      "id": "output-edge",
+      "source": "generation",
+      "target": "output"
+    }
+  ],
+  "nodeCount": 4,
+  "edgeCount": 3,
+  "nodeTypes": [
+    "upload",
+    "video",
+    "output"
+  ],
+  "topologyPreview": {
+    "nodes": [
+      {
+        "id": "source-image",
+        "type": "upload",
+        "label": "上传参考图 / Upload reference image",
+        "x": 50,
+        "y": 90
+      },
+      {
+        "id": "source-audio",
+        "type": "upload",
+        "label": "可选参考音频 / Optional reference audio (converted to MP3)",
+        "x": 50,
+        "y": 490
+      },
+      {
+        "id": "generation",
+        "type": "video",
+        "label": "vidu-q4-preview-r2v",
+        "x": 480,
+        "y": 130
+      },
+      {
+        "id": "output",
+        "type": "output",
+        "label": "结果 / Result",
+        "x": 900,
+        "y": 130
+      }
+    ],
+    "edges": [
+      {
+        "id": "image-edge",
+        "source": "source-image",
+        "target": "generation"
+      },
+      {
+        "id": "audio-edge",
+        "source": "source-audio",
+        "target": "generation"
+      },
+      {
+        "id": "output-edge",
+        "source": "generation",
+        "target": "output"
+      }
+    ]
+  },
+  "savedAt": "2026-10-10T00:00:00.000Z"
+}

@@ -335,6 +335,8 @@ export interface SeedreamNzSubmitRequest {
     | 'zhenzhen-image-gk-v15-edit'
     | 'zhenzhen-image-nb-2-lite'
     | 'zhenzhen-image-nb-2'
+    | 'zhenzhen-image-nb-2.1'
+    | 'flux-3-image'
     | 'zhenzhen-image-nb-pro'
     | 'qwen-image-3.0-t2i'
     | 'qwen-image-3.0-i2i'
@@ -354,7 +356,7 @@ export interface SeedreamNzSubmitRequest {
     | 'dola-seedream-5.0-flash-layer-decomposition'
     | 'vosr2-image-upscale';
   modelFamily?: 'domestic' | 'overseas' | 'domestic-flash' | 'overseas-flash';
-  resolution?: 'auto' | '0.5k' | '1k' | '1.5k' | '2k' | '4k';
+  resolution?: 'auto' | '0.5k' | '768sq' | '1k' | '1.5k' | '2k' | '4k';
   ratio?: 'adaptive' | '16:9' | '4:3' | '1:1' | '3:4' | '9:16' | '21:9' | '2:3' | '3:2' | '4:5' | '5:4';
   size?: string;
   n?: number;
@@ -372,6 +374,8 @@ export interface SeedreamNzSubmitRequest {
   height?: number;
   thinking_mode?: boolean;
   aspect_ratio?: string;
+  grounding?: boolean;
+  safety_tolerance?: number;
   nsfw_check?: boolean;
   operation?: 'segment' | 'region_edit';
   source_task_id?: string;
@@ -1396,16 +1400,24 @@ export type ViduQ3Model =
   | 'vidu-q3-ad-r2v'
   | 'vidu-q3-drama-r2v'
   | 'vidu-q3-drama-short-play'
-  | 'vidu-q3-ad-short-play';
+  | 'vidu-q3-ad-short-play'
+  | 'vidu-q4-preview-global-i2v'
+  | 'vidu-q4-preview-global-r2v'
+  | 'vidu-q4-preview-i2v'
+  | 'vidu-q4-preview-r2v';
 
 export interface ViduSubmitRequest {
   model: ViduQ3Model;
   prompt?: string;
   duration: number;
   ratio: string;
-  resolution: 'default' | '720p' | '1080p';
+  resolution: 'default' | '540p' | '720p' | '1080p' | '2k' | '4k';
   seed?: number;
   images?: string[];
+  audios?: string[];
+  generateAudio?: boolean;
+  isRec?: boolean;
+  watermark?: boolean;
   scriptName?: string;
   style?: string;
   assetType?: 'character' | 'scene' | 'prop';
@@ -1423,14 +1435,14 @@ export async function submitVidu(req: ViduSubmitRequest, transport: ProviderSubm
     headers: providerSubmissionHeaders(transport),
     body: JSON.stringify(req),
   });
-  const data = await safeJsonResponse(r, 'Vidu Q3 提交');
+  const data = await safeJsonResponse(r, 'Vidu 提交');
   if (!r.ok || !data.success) throw providerResponseError(r, data);
   return withProviderTransportTrace(data.data, r);
 }
 
-export async function queryVidu(taskId: string): Promise<HappyHorseQueryResult> {
-  const r = await fetch(`/api/proxy/video/vidu/status/${encodeURIComponent(taskId)}`);
-  const data = await safeJsonResponse(r, 'Vidu Q3 查询');
+export async function queryVidu(taskId: string, model?: string): Promise<HappyHorseQueryResult> {
+  const r = await fetch(`/api/proxy/video/vidu/status/${encodeURIComponent(taskId)}${model ? `?model=${encodeURIComponent(model)}` : ''}`);
+  const data = await safeJsonResponse(r, 'Vidu 查询');
   if (!r.ok || !data.success) throw providerResponseError(r, data);
   return withProviderTransportTrace(data.data, r);
 }

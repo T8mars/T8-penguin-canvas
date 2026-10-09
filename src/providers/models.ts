@@ -3,6 +3,12 @@
  * 后续要新增模型只需在对应数组里追加即可
  */
 
+import NB_FLUX_VIDU from '../../backend/src/shared/nb21FluxViduQ4Contract.json';
+export const NB_FLUX_VIDU_CONTRACT = NB_FLUX_VIDU;
+export const FLUX3_IMAGE_MODEL = NB_FLUX_VIDU.flux.model;
+export const ZHENZHEN_IMAGE_NB_21_MODEL = NB_FLUX_VIDU.banana21.model;
+export const VIDU_Q4_MODELS = NB_FLUX_VIDU.viduQ4.models;
+export function isViduQ4Model(model: string): boolean { return VIDU_Q4_MODELS.includes(model); }
 export type ProviderType = 'zhenzhen' | 'llm-direct' | 'runninghub';
 
 // ========== 图像 ==========
@@ -18,7 +24,7 @@ export type ProviderType = 'zhenzhen' | 'llm-direct' | 'runninghub';
 //  - 'wan-image'   : Wan 2.7 Global 图像协议,T2I 使用宽高/思考模式,I2I 使用 1-9 张参考图
 //  - 'vosr2-upscale': Vosr2 单图超分协议,只发送 model + images[1]
 //  - 'mj'          : Midjourney 协议,走专属 /api/proxy/mj/* 路由(speed_map + sref/oref)
-export type ImageParamKind = 'gpt-size' | 'gpt-image-2.5' | 'banana-ratio' | 'grok-image' | 'seedream-v5' | 'seedream-layer' | 'qwen-image-3.0' | 'qwen-image-global-2.1' | 'wan-image' | 'vosr2-upscale' | 'mj';
+export type ImageParamKind = 'gpt-size' | 'gpt-image-2.5' | 'banana-ratio' | 'grok-image' | 'seedream-v5' | 'seedream-layer' | 'qwen-image-3.0' | 'qwen-image-global-2.1' | 'flux-image' | 'wan-image' | 'vosr2-upscale' | 'mj';
 
 export interface ImageModelDef {
   id: string;             // 节点内部 id(如 'gpt-image-2')
@@ -168,12 +174,15 @@ export const ZHENZHEN_BUDGET_GROK_MODEL_OPTIONS = [
 export const ZHENZHEN_BUDGET_BANANA_2_MODEL_OPTIONS = [
   { value: ZHENZHEN_IMAGE_NB_2_MODEL, label: ZHENZHEN_IMAGE_NB_2_MODEL },
   { value: ZHENZHEN_IMAGE_NB_2_LITE_MODEL, label: ZHENZHEN_IMAGE_NB_2_LITE_MODEL },
+  { value: ZHENZHEN_IMAGE_NB_21_MODEL, label: ZHENZHEN_IMAGE_NB_21_MODEL },
 ] as const;
 export const ZHENZHEN_BUDGET_BANANA_PRO_MODEL_OPTIONS = [
   { value: ZHENZHEN_IMAGE_NB_PRO_MODEL, label: ZHENZHEN_IMAGE_NB_PRO_MODEL },
 ] as const;
 export const ZHENZHEN_IMAGE_G2_MODEL_OPTIONS = ZHENZHEN_BUDGET_GPT2_MODEL_OPTIONS.slice(0, 2);
 export const ZHENZHEN_APIMART_IMAGE_MODELS = [
+  FLUX3_IMAGE_MODEL,
+  ZHENZHEN_IMAGE_NB_21_MODEL,
   ZHENZHEN_IMAGE_G_V2_LOWPRICE_MODEL,
   ...ZHENZHEN_IMAGE_G25_MODELS,
   ZHENZHEN_IMAGE_GK_V2_MODEL,
@@ -370,6 +379,15 @@ export const IMAGE_MODELS: ImageModelDef[] = [
     supportsReference: true,
     maxReferenceImages: 5,
     description: '高品质 Pro 版本',
+  },
+  {
+    id: FLUX3_IMAGE_MODEL, apiModel: FLUX3_IMAGE_MODEL,
+    label: 'FLUX 3 Image', tabLabel: 'Flux', provider: 'zhenzhen', paramKind: 'flux-image',
+    capabilities: ['t2i', 'i2i', 'edit'],
+    apiModelOptions: [{ value: FLUX3_IMAGE_MODEL, label: FLUX3_IMAGE_MODEL }],
+    aspectRatios: NB_FLUX_VIDU.flux.ratios, defaultAspectRatio: 'auto',
+    sizes: NB_FLUX_VIDU.flux.resolutions, defaultSize: '1k',
+    supportsReference: true, maxReferenceImages: NB_FLUX_VIDU.flux.maxImages,
   },
   {
     id: 'grok-image',
@@ -1428,6 +1446,14 @@ export const VIDEO_MODELS: VideoModelDef[] = [
       { value: 'vidu-q3-drama-r2v', label: 'vidu-q3-drama-r2v（上游当前不可用）', disabled: true },
       { value: 'vidu-q3-drama-short-play', label: 'vidu-q3-drama-short-play（上游当前不可用）', disabled: true },
       { value: 'vidu-q3-ad-short-play', label: 'vidu-q3-ad-short-play（上游当前不可用）', disabled: true },
+      ...VIDU_Q4_MODELS.map((value) => ({
+        value, label: value,
+        ratios: value.endsWith('-r2v') ? NB_FLUX_VIDU.viduQ4.ratios : [], defaultRatio: '16:9',
+        durations: NB_FLUX_VIDU.viduQ4.durations, defaultDuration: 5,
+        resolutions: NB_FLUX_VIDU.viduQ4.resolutions, defaultResolution: '720p',
+        supportImages: true, maxRefImages: value.endsWith('-r2v') ? 15 : 1,
+        supportAudios: value.endsWith('-r2v'), maxRefAudios: value.endsWith('-r2v') ? 3 : 0,
+      })),
     ],
     ratios: ['adaptive', '16:9', '4:3', '1:1', '3:4', '9:16', '21:9'],
     defaultRatio: '16:9',

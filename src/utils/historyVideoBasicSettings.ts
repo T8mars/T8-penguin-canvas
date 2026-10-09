@@ -4,6 +4,8 @@ const requiredStrings = ['mainId', 'model', 'videoBuiltinSource', 'ratio', 'reso
   'providerSource', 'providerId', 'providerModel'] as const;
 const requiredNumbers = ['duration', 'seed'] as const;
 export const VIDEO_HISTORY_EXTRA_FIELDS: Record<string, { label: string; type: 'boolean' | 'string' | 'number' | 'number-or-api-default' }> = {
+  viduQ4IsRec: { label: 'Vidu Q4 is_rec', type: 'boolean' },
+  viduQ4Watermark: { label: 'Vidu Q4 watermark', type: 'boolean' },
   soraPrivate: { label: 'Sora 私密模式', type: 'boolean' },
   enhancePrompt: { label: '提示词增强', type: 'boolean' },
   enableUpsample: { label: '视频超采样', type: 'boolean' },

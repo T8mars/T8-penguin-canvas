@@ -164,7 +164,7 @@ test('APIMart images are isolated in their matching budget-house tabs', () => {
   );
   assert.deepEqual(
     ZHENZHEN_BUDGET_BANANA_2_MODEL_OPTIONS.map((option) => option.value),
-    [ZHENZHEN_IMAGE_NB_2_MODEL, ZHENZHEN_IMAGE_NB_2_LITE_MODEL],
+    [ZHENZHEN_IMAGE_NB_2_MODEL, ZHENZHEN_IMAGE_NB_2_LITE_MODEL, 'zhenzhen-image-nb-2.1'],
   );
   assert.deepEqual(
     ZHENZHEN_BUDGET_BANANA_PRO_MODEL_OPTIONS.map((option) => option.value),

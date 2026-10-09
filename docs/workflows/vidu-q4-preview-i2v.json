@@ -1,0 +1,115 @@
+{
+  "schema": "t8-workflow-fragment",
+  "version": 1,
+  "title": "vidu-q4-preview-i2v",
+  "nodes": [
+    {
+      "id": "source-image",
+      "type": "upload",
+      "position": {
+        "x": 0,
+        "y": 40
+      },
+      "data": {
+        "label": "上传参考图 / Upload reference image",
+        "uploadType": "image",
+        "lockedUploadType": "image"
+      }
+    },
+    {
+      "id": "generation",
+      "type": "video",
+      "position": {
+        "x": 430,
+        "y": 80
+      },
+      "data": {
+        "label": "vidu-q4-preview-i2v",
+        "providerSource": "zhenzhen",
+        "mainId": "vidu-q3",
+        "model": "vidu-q4-preview-i2v",
+        "videoBuiltinSource": "seedance-nz",
+        "ratio": "1:1",
+        "duration": 3,
+        "resolution": "540p",
+        "generateAudio": true,
+        "viduQ4IsRec": true,
+        "viduQ4Watermark": false,
+        "localRefImages": [],
+        "localRefVideos": [],
+        "localRefAudios": [],
+        "prompt": "The penguin gently waves beside the yellow cup. Locked camera, preserve the scene.",
+        "referenceImages": [],
+        "reuseResult": false
+      }
+    },
+    {
+      "id": "output",
+      "type": "output",
+      "position": {
+        "x": 850,
+        "y": 80
+      },
+      "data": {
+        "label": "结果 / Result"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "image-edge",
+      "source": "source-image",
+      "target": "generation"
+    },
+    {
+      "id": "output-edge",
+      "source": "generation",
+      "target": "output"
+    }
+  ],
+  "nodeCount": 3,
+  "edgeCount": 2,
+  "nodeTypes": [
+    "upload",
+    "video",
+    "output"
+  ],
+  "topologyPreview": {
+    "nodes": [
+      {
+        "id": "source-image",
+        "type": "upload",
+        "label": "上传参考图 / Upload reference image",
+        "x": 50,
+        "y": 90
+      },
+      {
+        "id": "generation",
+        "type": "video",
+        "label": "vidu-q4-preview-i2v",
+        "x": 480,
+        "y": 130
+      },
+      {
+        "id": "output",
+        "type": "output",
+        "label": "结果 / Result",
+        "x": 900,
+        "y": 130
+      }
+    ],
+    "edges": [
+      {
+        "id": "image-edge",
+        "source": "source-image",
+        "target": "generation"
+      },
+      {
+        "id": "output-edge",
+        "source": "generation",
+        "target": "output"
+      }
+    ]
+  },
+  "savedAt": "2026-10-10T00:00:00.000Z"
+}

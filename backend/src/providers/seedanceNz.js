@@ -21,7 +21,11 @@ const {
   safeRemoteMediaFetch,
 } = require('../utils/safeRemoteMediaFetch');
 const { providerIdempotencyHeaders } = require('../services/providerSubmissionContext');
-const { resolveBundledFfprobe } = require('./llmMedia');
+const { resolveBundledFfprobe, resolveBundledFfmpeg } = require('./llmMedia');
+const NB_FLUX_VIDU = require('../shared/nb21FluxViduQ4Contract.json');
+const ZHENZHEN_IMAGE_NB_21_MODEL = NB_FLUX_VIDU.banana21.model;
+const FLUX3_IMAGE_MODEL = NB_FLUX_VIDU.flux.model;
+const VIDU_Q4_MODELS = new Set(NB_FLUX_VIDU.viduQ4.models);
 const { withFfmpegProcessSlot } = require('../utils/ffmpegProcessQueue');
 const {
   MIN_PROVIDER_MEDIA_TIMEOUT_MS,
@@ -115,11 +119,13 @@ const ZHENZHEN_IMAGE_NB_2_LITE_MODEL = 'zhenzhen-image-nb-2-lite';
 const ZHENZHEN_IMAGE_NB_2_MODEL = 'zhenzhen-image-nb-2';
 const ZHENZHEN_IMAGE_NB_PRO_MODEL = 'zhenzhen-image-nb-pro';
 const ZHENZHEN_IMAGE_NB_MODELS = new Set([
+  ZHENZHEN_IMAGE_NB_21_MODEL,
   ZHENZHEN_IMAGE_NB_2_LITE_MODEL,
   ZHENZHEN_IMAGE_NB_2_MODEL,
   ZHENZHEN_IMAGE_NB_PRO_MODEL,
 ]);
 const ZHENZHEN_APIMART_IMAGE_MODELS = new Set([
+  FLUX3_IMAGE_MODEL,
   ZHENZHEN_IMAGE_G_V2_LOWPRICE_MODEL,
   ...ZHENZHEN_IMAGE_G25_MODELS,
   ZHENZHEN_IMAGE_GK_V2_MODEL,
@@ -1767,6 +1773,40 @@ async function mediaBuffer(source, kind, maxBytes, options = {}) {
   return { buffer, mime, fileName };
 }
 
+async function transcodeAudioMp3(buffer, options = {}) {
+  return withFfmpegProcessSlot(() => new Promise((resolve, reject) => {
+    if (options.signal?.aborted) return reject(options.signal.reason || new Error('音频转换已取消'));
+    const chunks = [];
+    let size = 0;
+    let settled = false;
+    const maxBytes = Number(options.maxBytes) || 50 * 1024 * 1024;
+    const child = spawn(resolveBundledFfmpeg(), [
+      '-hide_banner', '-loglevel', 'error', '-threads', '1', '-i', 'pipe:0',
+      '-vn', '-c:a', 'libmp3lame', '-b:a', '128k', '-f', 'mp3', 'pipe:1',
+    ], { windowsHide: true, stdio: ['pipe', 'pipe', 'ignore'] });
+    const finish = (error, result) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      options.signal?.removeEventListener('abort', abort);
+      if (error) { child.kill(); reject(error); } else resolve(result);
+    };
+    const abort = () => finish(new Error('Vidu Q4 音频转换已取消'));
+    const timer = setTimeout(() => finish(new Error('Vidu Q4 本地 MP3 转换超时')), 60_000);
+    options.signal?.addEventListener('abort', abort, { once: true });
+    child.on('error', () => finish(new Error('Vidu Q4 音频转换需要可用的 FFmpeg')));
+    child.stdin.on('error', () => {});
+    child.stdout.on('data', (chunk) => {
+      size += chunk.length;
+      if (size > maxBytes) return finish(new Error('Vidu Q4 MP3 参考音频超出文件限制'));
+      chunks.push(chunk);
+    });
+    child.once('close', (code) => code === 0 && size > 0
+      ? finish(null, Buffer.concat(chunks)) : finish(new Error('Vidu Q4 参考音频无法转换为 MP3')));
+    child.stdin.end(buffer);
+  }), { isCancelled: () => options.signal?.aborted === true });
+}
+
 async function uploadMedia(source, kind, apiKey, options = {}) {
   const text = normalizeT8LocalMediaRef(source);
   if (!text) throw new Error(`未收到参考${mediaKindLabel(kind)}，请重新选择或上传素材`);
@@ -1799,6 +1839,12 @@ async function uploadMedia(source, kind, apiKey, options = {}) {
         mime: 'image/png',
         fileName: String(options.fileName || 'picture.png'),
       };
+    }
+    if (kind === 'audio' && options.normalizeAudioMp3 === true) {
+      // Q4 accepts MP3, not WAV bytes renamed to .mp3. Keep other upload paths unchanged.
+      const buffer = await transcodeAudioMp3(file.buffer, options);
+      ensureSize(buffer, kind, options.maxBytes);
+      file = { ...file, buffer, mime: 'audio/mpeg', fileName: 'vidu-q4-reference.mp3' };
     }
     if (Array.isArray(options.allowedMimes) && !options.allowedMimes.includes(String(file.mime || '').toLowerCase())) {
       throw new Error(`seedance.nz 不支持该${kind}格式`);
@@ -2839,6 +2885,21 @@ async function buildApimartImagePayload(request, apiKey, options = {}) {
   const n = normalizePositiveInteger(request.n, 1, 1, maxOutputs, 'APIMart 图片生成数量 n ');
   const payload = { model, prompt, n };
 
+  if (model === FLUX3_IMAGE_MODEL) {
+    const contract = NB_FLUX_VIDU.flux;
+    if (refs.length > contract.maxImages) throw new Error(`${model} 最多支持 ${contract.maxImages} 张参考图`);
+    if (n !== 1) throw new Error(`${model} 图片数量 n 固定为 1`);
+    const resolution = String(request.resolution || '1k').trim().toLowerCase();
+    const aspectRatio = String(request.aspect_ratio || request.ratio || request.size || 'auto').trim().toLowerCase();
+    if (!contract.resolutions.includes(resolution)) throw new Error(`${model} 不支持分辨率 ${resolution}`);
+    if (!contract.ratios.includes(aspectRatio)) throw new Error(`${model} 不支持比例 ${aspectRatio}`);
+    const safetyTolerance = normalizePositiveInteger(request.safety_tolerance ?? request.safetyTolerance, 2, 0, 4, 'Flux safety_tolerance ');
+    Object.assign(payload, { resolution, aspect_ratio: aspectRatio,
+      grounding: normalizeAudioBoolean(request.grounding, true), safety_tolerance: safetyTolerance });
+    if (refs.length) payload.images = await uploadApimartImages(refs, apiKey, options);
+    return { payload, model, taskType: refs.length ? 'i2i' : 't2i' };
+  }
+
   if (model === ZHENZHEN_IMAGE_GK_V2_EDIT_MODEL) {
     if (refs.length < 1 || refs.length > ZHENZHEN_IMAGE_GK_V2_EDIT_MAX_IMAGES) {
       throw new Error(`${model} 必须按顺序提供 1-${ZHENZHEN_IMAGE_GK_V2_EDIT_MAX_IMAGES} 张参考图`);
@@ -2876,6 +2937,9 @@ async function buildApimartImagePayload(request, apiKey, options = {}) {
 
   const size = String(request.size || request.ratio || '1:1').trim().toLowerCase();
   if (ZHENZHEN_IMAGE_NB_MODELS.has(model)) {
+    if (model === ZHENZHEN_IMAGE_NB_21_MODEL && (prompt.length < 5 || prompt.length > 5000)) {
+      throw new Error(`${model} 提示词必须为 5-5000 字符`);
+    }
     if (refs.length > 14) throw new Error(`${model} 最多支持 14 张参考图`);
     const resolution = String(request.resolution || '1k').trim().toLowerCase();
     const allowedResolutions = model === ZHENZHEN_IMAGE_NB_2_MODEL
@@ -2886,7 +2950,9 @@ async function buildApimartImagePayload(request, apiKey, options = {}) {
     if (!allowedResolutions.has(resolution)) {
       throw new Error(`${model} 不支持分辨率 ${resolution || '(空)'}`);
     }
-    const allowedRatios = model === ZHENZHEN_IMAGE_NB_PRO_MODEL
+    const allowedRatios = model === ZHENZHEN_IMAGE_NB_21_MODEL
+      ? new Set(NB_FLUX_VIDU.banana21.ratios)
+      : model === ZHENZHEN_IMAGE_NB_PRO_MODEL
       ? ZHENZHEN_IMAGE_NB_STANDARD_RATIOS
       : ZHENZHEN_IMAGE_NB_EXTREME_RATIOS;
     if (!allowedRatios.has(size)) {
@@ -4398,8 +4464,52 @@ async function uploadViduImages(sources, apiKey, options = {}) {
   return images;
 }
 
+async function buildViduQ4Payload(request, apiKey, options = {}) {
+  const contract = NB_FLUX_VIDU.viduQ4;
+  const model = String(request.model || '').trim();
+  if (!VIDU_Q4_MODELS.has(model)) throw new Error('未知 Vidu Q4 模型');
+  const taskType = model.endsWith('-r2v') ? 'r2v' : 'i2v';
+  const prompt = String(request.prompt || '').trim();
+  const sources = normalizeList(request.images);
+  const audios = taskType === 'r2v' ? normalizeList(request.audios || request.audio_urls) : [];
+  const seconds = Number(request.duration ?? request.seconds ?? 5);
+  const resolution = String(request.resolution || '720p').toLowerCase();
+  const ratio = String(request.ratio || '16:9');
+  // Complete scalar/count validation before uploading any reference.
+  if (taskType === 'r2v' && !prompt) throw new Error('Vidu Q4 参考生视频必须填写提示词');
+  if (sources.length < 1 || sources.length > (taskType === 'i2v' ? 1 : contract.maxImages)) {
+    throw new Error(taskType === 'i2v' ? 'Vidu Q4 图生视频必须且只能提供 1 张图' : 'Vidu Q4 参考生视频需要 1-15 张图');
+  }
+  if (audios.length > contract.maxAudios) throw new Error('Vidu Q4 最多支持 3 个参考音频');
+  if (normalizeList(request.videos).length) throw new Error('Vidu Q4 不接受参考视频');
+  if (!contract.durations.includes(seconds)) throw new Error('Vidu Q4 时长必须是 3-16 秒的整数');
+  if (!contract.resolutions.includes(resolution)) throw new Error('Vidu Q4 不支持该分辨率');
+  if (taskType === 'r2v' && !contract.ratios.includes(ratio)) throw new Error('Vidu Q4 不支持该比例');
+  const metadata = {
+    resolution,
+    generate_audio: normalizeAudioBoolean(request.generateAudio ?? request.generate_audio, true),
+    is_rec: normalizeAudioBoolean(request.isRec ?? request.is_rec, true),
+    watermark: normalizeAudioBoolean(request.watermark, false),
+  };
+  if (taskType === 'r2v') metadata.ratio = ratio;
+  const payload = { model, seconds: String(seconds), metadata };
+  if (prompt) payload.prompt = prompt;
+  payload.images = await uploadViduImages(sources, apiKey, options);
+  if (audios.length) {
+    metadata.audio_urls = [];
+    for (const source of audios) {
+      metadata.audio_urls.push(await uploadMedia(source, 'audio', apiKey, {
+        ...options, maxBytes: 50 * 1024 * 1024, normalizeAudioMp3: true,
+        cacheVariant: 'vidu-q4-mp3-v1', allowedMimes: ['audio/mpeg'],
+      }));
+    }
+  }
+  return { payload, model, taskType };
+}
+
 async function buildViduPayload(request, apiKey, options = {}) {
   const model = String(request.model || '').trim();
+  if (VIDU_Q4_MODELS.has(model)) return buildViduQ4Payload(request, apiKey, options);
   if (!VIDU_Q3_MODELS.has(model)) throw new Error(`未知 Vidu Q3 模型：${model || '(空)'}`);
 
   const taskType = deriveViduTaskType(model);
@@ -4751,17 +4861,18 @@ async function submitViduTask(request, apiKey, options = {}) {
   const fetchImpl = getFetchImpl(options);
   const baseUrl = cleanBaseUrl(options.baseUrl);
   const built = await buildViduPayload(request, apiKey, options);
-  const response = await fetchProviderResponse(fetchImpl, `${baseUrl}/v1/videos`, {
+  const endpoint = VIDU_Q4_MODELS.has(built.model) ? '/v1/video/generations' : '/v1/videos';
+  const response = await fetchProviderResponse(fetchImpl, `${baseUrl}${endpoint}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify(built.payload),
-  }, options, 'seedance.nz Vidu Q3 任务提交');
-  const data = await responseJson(response, 'seedance.nz Vidu Q3 任务提交');
+  }, options, 'seedance.nz Vidu 任务提交');
+  const data = await responseJson(response, 'seedance.nz Vidu 任务提交');
   if (!response.ok) throw createUpstreamError(data, response);
-  const taskId = requiredTaskId(data?.id || data?.task_id || data?.data?.id, 'seedance.nz Vidu Q3 任务提交', response);
+  const taskId = requiredTaskId(data?.id || data?.task_id || data?.data?.id || data?.data?.task_id, 'seedance.nz Vidu 任务提交', response);
   return { taskId, model: built.model, taskType: built.taskType, ...safeProviderTrace(response, data, { pollCount: 0 }) };
 }
 
@@ -6129,7 +6240,7 @@ async function queryFashVsrTask(taskId, apiKey, options = {}) {
   };
 }
 
-async function queryVosr2VideoTask(taskId, apiKey, options = {}) {
+async function queryLegacyVideoTask(taskId, apiKey, options = {}, label = 'Vosr2 视频超分') {
   if (!String(apiKey || '').trim()) throw new Error('缺少贞贞的平价AI小屋 API Key');
   const fetchImpl = getFetchImpl(options);
   const baseUrl = cleanBaseUrl(options.baseUrl);
@@ -6138,9 +6249,9 @@ async function queryVosr2VideoTask(taskId, apiKey, options = {}) {
     `${baseUrl}/v1/video/generations/${encodeURIComponent(taskId)}`,
     { headers: { Authorization: `Bearer ${apiKey}` } },
     options,
-    'seedance.nz Vosr2 视频超分任务查询',
+    `seedance.nz ${label}任务查询`,
   );
-  const data = await responseJson(response, 'seedance.nz Vosr2 视频超分任务查询');
+  const data = await responseJson(response, `seedance.nz ${label}任务查询`);
   if (!response.ok) throw createUpstreamError(data, response);
   const body = data?.data && typeof data.data === 'object' ? data.data : data;
   const status = normalizeStatus(body?.status || body?.data?.status);
@@ -6158,9 +6269,19 @@ async function queryVosr2VideoTask(taskId, apiKey, options = {}) {
     status,
     progress: safeProgress(body?.progress ?? body?.data?.progress),
     videoUrl: status === 'succeeded' ? videoUrl || null : null,
-    failReason: status === 'failed' ? 'Vosr2 视频超分任务失败' : null,
+    failReason: status === 'failed' ? `${label}任务失败` : null,
     ...safeProviderTrace(response, data),
   };
+}
+
+async function queryVosr2VideoTask(taskId, apiKey, options = {}) {
+  return queryLegacyVideoTask(taskId, apiKey, options);
+}
+
+async function queryViduTask(taskId, apiKey, options = {}) {
+  if (!VIDU_Q4_MODELS.has(String(options.model || ''))) return queryTask(taskId, apiKey, options);
+  // Same documented legacy envelope; Q3 keeps its existing modern route.
+  return queryLegacyVideoTask(taskId, apiKey, options, 'Vidu Q4 ');
 }
 
 function animateMotionTransferResultUrl(body) {
@@ -6219,6 +6340,11 @@ function resetCachesForTests() {
 }
 
 module.exports = {
+  VIDU_Q4_MODELS,
+  FLUX3_IMAGE_MODEL,
+  ZHENZHEN_IMAGE_NB_21_MODEL,
+  buildViduQ4Payload,
+  queryViduTask,
   BASE_URL,
   HAILUO23_I2V_MODELS,
   HAILUO23_MODELS,

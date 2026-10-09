@@ -98,7 +98,7 @@ export function inferRunRecoveryDescriptor(payload: Record<string, unknown>): Ru
   if (provider === 'seedance-nz') {
     const lowerModel = model.toLowerCase();
     if (lowerModel.includes('seed-audio')) return { version: 1, kind: 'seed-audio', taskId, model, pollIntervalMs, maxPolls };
-    if (lowerModel.includes('seedream') || lowerModel === 'vosr2-image-upscale') {
+    if (lowerModel.includes('seedream') || lowerModel === 'vosr2-image-upscale' || lowerModel === 'flux-3-image' || lowerModel === 'zhenzhen-image-nb-2.1') {
       return { version: 1, kind: 'seedream-nz', taskId, model, pollIntervalMs, maxPolls };
     }
     if (lowerModel.startsWith('wan-')) return { version: 1, kind: 'wan', taskId, model, pollIntervalMs, maxPolls };

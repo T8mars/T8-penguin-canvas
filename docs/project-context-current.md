@@ -1,10 +1,10 @@
 # 当前项目上下文
 
-更新：2026-10-08。仅维护当前事实；长期规则见根 `SKILL.md` 和 `AGENTS.md`。本页预算 80 行 / 8 KiB，旧检查点迁入专题，不追加长日报。
+更新：2026-10-10。仅维护当前事实；长期规则见根 `SKILL.md` 和 `AGENTS.md`。本页预算 80 行 / 8 KiB，旧检查点迁入专题，不追加长日报。
 
 - 默认目录 `E:\PenguinPravite\T8-penguin-canvas`；branch `codex/release-v3.0.8-volcengine-assets-ux`，common dir `.git`。开工以git/worktree门为准；正式源码/Tag固定后记录在发布专题，不移动。
-- package `3.3.0` 已从固定源码 `f8d01582b1ae0a4e182656de8c4abf51b1eac68c` 双平台发布为稳定Latest；唯一Windows构建、同Tag Mac及六资产/两个更新清单完整回下载通过，见[发布专题](release-v3.3.0.md)。旧Tag/资产保留。
-- 本版安装升级、反馈用户现场和 F8–F10 按 `owner-approved-post-release-v3.3.0` 后补，不视为通过；Mac仍为 ad-hoc 未公证预览，仅额度不足可延期。
+- package `3.3.1` 获当前用户授权，正在发布前检查，尚未打包/发布；见[发布专题](release-v3.3.1.md)。上一稳定版v3.3.0源码/Tag及六资产冻结，见[旧发布](release-v3.3.0.md)。
+- 本版安装升级、用户现场和 F8–F10 按 `owner-approved-post-release-v3.3.1` 后补，不视为通过；Mac仍为 ad-hoc 未公证预览，仅额度不足可延期。
 
 ## 当前检查点
 
@@ -12,6 +12,7 @@
 
 | 事项 | 当前事实与下一步 |
 | --- | --- |
+| 平价香蕉2.1 / Flux / Vidu Q4 | 六模型开发完成，v3.3.1发布准备中；Flux新Tab，旧默认不变。八条实网成功并完整解码，R2V转MP3；159/159回归、独立后端49/49及类型/双语/能力同步通过。八份无凭据工作流见[专题](nb21-flux-viduq4.md)；安装版及端到端UI未验收。 |
 | 自动更新退出 | 已随v3.3.0双平台发布；74项限定用例及正式包probe通过。先保存/关闭后台，安装器不强杀；Git对象恢复及现场升级边界见[专题](auto-update-exit-fix-20261008.md)。 |
 | 启动诊断/修复 | 日志随v3.2.8发布；同次校验复用、候选备份独立线程、活动旧名补回随v3.2.9双平台发布。修复51项、发布前55/55及打包22/22通过，组重叠不相加；合成库重开1316→547ms，不替代用户现场，见[修复](startup-history-fix-20261008.md)及[日志](startup-diagnostics.md)。 |
 | 工坊香蕉2.1 | 已随v3.2.6双平台发布，仅新增模型，旧默认/参数不变；真实文生图与图生图通过。见[专题](nano-banana21-workshop.md)。 |
@@ -19,8 +20,6 @@
 | 画布归档/新建默认来源 | 已随v3.2.5双平台发布：schema33正式迁移、大管理窗口、归档只读/恢复和权威写入门；全局来源只初始化空白通用image/edit/video，不改旧节点。最终功能27/27、持久化25/25、历史保真80/80、生产处理器9/9，组重叠不相加；浏览器点击工具无响应，端到端UI未验收。见[功能专题](canvas-archive-media-defaults.md)。 |
 | Seedream Flash | 已随v3.2.4双平台发布：既有 Seedream/分层 Tab 接入国内与海外六路径；真实六任务成功，13/13 结果下载、完整解码并查看，COS 官方别名只读 GET 散列一致。263/263 回归及类型/双语/能力同步门通过；Pro 默认/限制不变，六份无凭据工作流已完成；见[专题](seedream-v5-flash.md)。 |
 | GitHub PR / Issues | 10月1日：0开放PR、5开放Issues。#30 RH真实枚举与#31启动拒绝后卡锁限定修复提交 `276a2c6`，14项新专项及十套回归81/81通过，已随v3.2.3发布；#31具体输入变更来源待复现，5项均保留验收边界。详见[本轮专题](github-issues-20261001.md)；#29历史证据见[前次专题](github-issues-20260918.md)。 |
-| v3.1.9 历史发布 | 双平台发布与六资产校验完成；历史Tag/资产冻结不移动，详见[发布专题](release-v3.1.9.md)。 |
-| v3.1.8 历史发布 | 双平台发布与首次主机崩溃恢复事实保留在 `feature electronReleaseV318` 与[Mac流程](macos-release.md)；历史Tag/资产冻结不移动。 |
 | 文档轻量化 | 已完成：根手册与当前上下文均在预算内，原文逐字节归档；features/roadmap 按需读。8组校验通过，1353份源码/配置/原测试/技能散列未变，详见[校验记录](../local-private/context-maintenance/verification.json)。后续遵守手册开头预算。 |
 | 生成历史 | 当前支持范围已随 v3.1.6 发布；19个完整客户端场景/25项、React UI 13项、限定回归56/56通过，通过进程正常退出/强制0/残留0。完整状态与剩余范围见[验收清单](generation-history-acceptance-status.md)及[证据索引](generation-history-acceptance-20260912.md)。 |
 | Provider 超时策略 | 已随 v3.1.7 发布：移除媒体生成通用代理 90 秒边界，并覆盖扩展适配器、工具箱自定义轮询、导演分镜与崩溃恢复；媒体全链路最低 15 分钟，LLM 默认且最长 3 分钟，连接探测/重试间隔不变。详情用 `feature providerTimeoutPolicy20260913` 查询。 |

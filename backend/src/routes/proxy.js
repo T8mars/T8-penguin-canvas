@@ -4522,7 +4522,7 @@ router.post('/video/vidu/submit', async (req, res) => {
     proxyRouteError('proxy/video/vidu/submit 错误', error, [apiKey]);
     return res.status(status >= 400 && status < 600 ? status : 500).json({
       success: false,
-      error: proxyPublicError(error, 'Vidu Q3 请求失败', [apiKey]),
+      error: proxyPublicError(error, 'Vidu 请求失败', [apiKey]),
       ...seedanceNzTrace(error),
     });
   }
@@ -4534,7 +4534,10 @@ router.get('/video/vidu/status/:tid', async (req, res) => {
   const apiKey = String(remembered?.apiKey || settings?.zhenzhenSd2ApiKey || '').trim();
   if (!apiKey) return res.status(400).json({ success: false, error: '缺少贞贞的平价AI小屋 API Key' });
   try {
-    const result = await seedanceNz.queryTask(req.params.tid, apiKey);
+    const model = remembered?.model || String(req.query.model || '');
+    const result = seedanceNz.VIDU_Q4_MODELS.has(model)
+      ? await seedanceNz.queryViduTask(req.params.tid, apiKey, { model })
+      : await seedanceNz.queryTask(req.params.tid, apiKey);
     const materialized = await materializeRemoteTaskOutput({
       status: result.status,
       remoteUrl: result.videoUrl,
@@ -4547,16 +4550,16 @@ router.get('/video/vidu/status/:tid', async (req, res) => {
       progress: safeDiagnosticText(result.progress || '', 80, [apiKey]),
       videoUrl: materialized.url,
       failReason: result.status === 'failed'
-        ? safeDiagnosticText(result.failReason || 'Vidu Q3 任务失败', 240, [apiKey])
+        ? safeDiagnosticText(result.failReason || 'Vidu 任务失败', 240, [apiKey])
         : '',
-      model: remembered?.model || '',
+      model,
       taskType: remembered?.taskType || '',
       ...seedanceNzTrace(result),
     };
     if (materialized.failure) {
       return sendCompletedRemoteOutputFailure(res, materialized.failure, responseData, {
         defaultCode: 'vidu_output_unusable',
-        defaultMessage: 'Vidu Q3 视频结果无法保存。',
+        defaultMessage: 'Vidu 视频结果无法保存。',
       });
     }
     return res.json({
@@ -4569,7 +4572,7 @@ router.get('/video/vidu/status/:tid', async (req, res) => {
     if (sendTaskResultQueryRecovery(res, error, { taskId: req.params.tid })) return;
     return res.status(status >= 400 && status < 600 ? status : 500).json({
       success: false,
-      error: proxyPublicError(error, 'Vidu Q3 查询失败', [apiKey]),
+      error: proxyPublicError(error, 'Vidu 查询失败', [apiKey]),
       ...seedanceNzTrace(error),
     });
   }

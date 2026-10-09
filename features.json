@@ -1,6 +1,31 @@
 {
   "$schema": "本文件为 T8-penguin-canvas 节点清单防丢失锁,任何节点删减都需要在 roadmap.md 中说明并更新本文件。",
-  "version": "3.3.0",
+  "version": "3.3.1",
+  "electronReleaseV331": {
+    "status": "authorized-preparing",
+    "version": "3.3.1",
+    "tag": "v3.3.1",
+    "latest": false,
+    "evidence": "docs/release-v3.3.1.md",
+    "postReleaseEvidence": "owner-approved-post-release-v3.3.1",
+    "macBoundary": "same-tag-unsigned-preview; defer-only-if-quota-insufficient"
+  },
+  "nb21FluxViduQ420261010": {
+    "status": "live-verified-release-v3.3.1-preparing",
+    "date": "2026-10-10",
+    "releaseIncluded": true,
+    "provider": "seedance-nz",
+    "models": ["zhenzhen-image-nb-2.1", "flux-3-image", "vidu-q4-preview-global-i2v", "vidu-q4-preview-global-r2v", "vidu-q4-preview-i2v", "vidu-q4-preview-r2v"],
+    "summary": "Budget-only Banana 2.1 in Banana 2, new Flux image tab, four Q4 models in Vidu. Exact per-model parameters, genuine MP3 references, original-task recovery and eight credential-free workflows; old defaults retained.",
+    "details": "docs/nb21-flux-viduq4.md",
+    "verification": {
+      "live": "8/8 succeeded with HTTP 200; four images and four videos downloaded and fully decoded; both R2V paths tested WAV-to-MP3 upload",
+      "offline": "159/159 model, route, workflow, history, preflight, recovery and production-handler regressions; 49/49 separate Electron backend tests; type-check, i18n and capability sync passed",
+      "report": "local-private/nb21-flux-viduq4-live-20261010/report.json",
+      "tests": "local-private/nb21-flux-viduq4-live-20261010/regression-tests.log"
+    },
+    "boundary": "v3.3.1 publication authorized; see release topic for actual build and publication state. No installed-client, browser end-to-end or model-quality benchmark claimed. Credentials and original live task identities remain private."
+  },
   "electronReleaseV330": {
     "status": "released-dual-platform-verified",
     "version": "3.3.0",

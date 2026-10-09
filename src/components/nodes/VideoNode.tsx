@@ -6,6 +6,7 @@ import { useCanvasNodeRenderMode } from '../CanvasNodeRenderMode';
 import historyInputContract from '../../../backend/src/shared/generationHistoryInputContract.json';
 import {
   VIDEO_MODELS,
+  isViduQ4Model, NB_FLUX_VIDU_CONTRACT,
   inferVideoBuiltinSource,
   isZhenzhenApimartVideoModel,
   videoModelOptionsForSource,
@@ -78,6 +79,7 @@ import {
   type KlingModel,
   type UpscalerResolution,
   type ViduQ3Model,
+  type ViduSubmitRequest,
   type WanSubmitRequest,
 } from '../../services/generation';
 import { useUpdateNodeData } from './useUpdateNodeData';
@@ -292,6 +294,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
   const isVosr2 = isUpscaler && apiModel === VOSR2_VIDEO_UPSCALE_MODEL;
   const isAnimate = !isExternalSelected && modelDef.kind === 'animate' && apiModel === ANIMATE_MOTION_TRANSFER_MODEL;
   const isVidu = !isExternalSelected && modelDef.kind === 'vidu';
+  const isViduQ4 = isVidu && isViduQ4Model(apiModel);
   const isWan = !isExternalSelected && modelDef.kind === 'wan';
   const isWan30 = isWan && apiModel.startsWith('wan-3.0-');
   const wan30Mode: 'i2v' | 'r2v' = (WAN30_I2V_MODELS as readonly string[]).includes(apiModel)
@@ -345,7 +348,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
         : apiModel.endsWith('-i2v')
           ? 'i2v'
           : 't2v';
-  const isViduUpstreamUnavailable = isVidu && (viduMode === 'r2v' || viduMode === 'short-play');
+  const isViduUpstreamUnavailable = isVidu && !isViduQ4 && (viduMode === 'r2v' || viduMode === 'short-play');
   const isKlingUpstreamUnavailable = isKling && ['kling-o3-std-r2v', 'kling-o3-pro-r2v'].includes(apiModel);
   const isSeedanceNzVideo = !isExternalSelected && videoBuiltinSource === 'seedance-nz';
   // 各参数(跳过着调用 update 默认值)
@@ -396,16 +399,20 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
   const flux3DraftCacheResult = typeof d?.flux3DraftCacheResult === 'string' ? d.flux3DraftCacheResult : '';
   const klingDuration: 5 | 10 = Number(duration) === 10 ? 10 : 5;
   const klingNegativePrompt: string = typeof d?.klingNegativePrompt === 'string' ? d.klingNegativePrompt : '';
-  const viduDuration = viduMode === 'short-play'
+  const viduDuration = isViduQ4 ? Math.max(3, Math.min(16, Math.trunc(Number(duration) || 5))) : viduMode === 'short-play'
     ? Math.max(8, Math.min(12, Number(duration) || 8))
     : Math.max(4, Math.min(15, Number(duration) || 4));
-  const viduResolution: 'default' | '720p' | '1080p' = viduMode === 'short-play'
+  const viduResolution = isViduQ4
+    ? NB_FLUX_VIDU_CONTRACT.viduQ4.resolutions.includes(resolution) ? resolution : '720p'
+    : viduMode === 'short-play'
     ? '1080p'
     : resolution === '720p' || resolution === '1080p' ? resolution : 'default';
-  const viduRatio = viduMode === 'short-play'
+  const viduRatio = isViduQ4 ? (NB_FLUX_VIDU_CONTRACT.viduQ4.ratios.includes(ratio) ? ratio : '16:9') : viduMode === 'short-play'
     ? ratio === '16:9' ? '16:9' : '9:16'
     : ratio;
   const viduSeed: number = Number.isInteger(d?.viduSeed) ? d.viduSeed : -1;
+  const viduQ4IsRec = d?.viduQ4IsRec !== false;
+  const viduQ4Watermark = d?.viduQ4Watermark === true;
   const viduScriptName: string = typeof d?.viduScriptName === 'string' ? d.viduScriptName : 'Vidu short play';
   const viduStyle: string = typeof d?.viduStyle === 'string' ? d.viduStyle : 'realistic';
   const viduAssetType: 'character' | 'scene' | 'prop' = ['character', 'scene', 'prop'].includes(d?.viduAssetType)
@@ -630,7 +637,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
       : isKling
       ? klingMode === 'i2v' ? 2 : klingMode === 'r2v' ? 4 : 0
       : isVidu
-      ? viduMode === 't2v' ? 0 : viduMode === 'i2v' ? 1 : viduMode === 'start-end' ? 2 : viduMode === 'r2v' ? 9 : 14
+      ? viduMode === 't2v' ? 0 : viduMode === 'i2v' ? 1 : viduMode === 'start-end' ? 2 : viduMode === 'r2v' ? isViduQ4 ? 15 : 9 : 14
       : isSeedance25
       ? seedance25Mode === 't2v' ? 0 : seedance25Mode === 'i2v' ? 2 : SEEDANCE25_MULTI_MAX_IMAGES
       : isFlux3
@@ -689,7 +696,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
     : isApimartOmniLowprice && apimartOmniLowpriceMode === 'reference_video'
     ? 1
     : isJimengSeedanceSelected ? jimengSeedanceLimits.videos : 0;
-  const maxMentionAudios = isMinimaxH3V2
+  const maxMentionAudios = isViduQ4 && viduMode === 'r2v' ? 3 : isMinimaxH3V2
     ? 4
     : isSeedance25 && seedance25Mode === 'multi'
     ? SEEDANCE25_MULTI_MAX_AUDIOS
@@ -738,6 +745,8 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
         ? ['text', 'video']
       : isFlux3 && flux3Mode === 'i2v'
         ? ['text', 'image']
+      : isViduQ4 && viduMode === 'r2v'
+        ? ['text', 'image', 'audio']
       : isMinimaxH3V2
         ? ['text', 'image', 'video', 'audio']
       : isMinimaxH3OwAudioDrive
@@ -745,7 +754,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
       : isHailuoH3 && hailuoMode === 'multi'
         ? ['text', 'image', 'video', 'audio']
         : ['text', 'image']),
-    [modelDef.kind, isJimengSeedanceSelected, isApimartOmni, isApimartOmniLowprice, apimartOmniLowpriceMode, isAnimate, isUpscaler, isWan30, wan30Mode, isKling, klingMode, isSeedance25, seedance25Mode, isFlux3, flux3Mode, isMinimaxH3V2, isMinimaxH3OwAudioDrive, isHailuoH3, hailuoMode],
+    [modelDef.kind, isJimengSeedanceSelected, isApimartOmni, isApimartOmniLowprice, apimartOmniLowpriceMode, isAnimate, isUpscaler, isWan30, wan30Mode, isKling, klingMode, isSeedance25, seedance25Mode, isFlux3, flux3Mode, isViduQ4, viduMode, isMinimaxH3V2, isMinimaxH3OwAudioDrive, isHailuoH3, hailuoMode],
   );
 
   // 收集上游 prompt + 参考图/视频/音频 (按用户拖拽顺序), 合并本地拖入素材
@@ -761,9 +770,9 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
     };
     return {
       prompt: prompts.join('\n').trim(),
-      imageUrls: dedupe([...upImageUrls, ...localRefImages]),
+      imageUrls: isViduQ4 ? [...upImageUrls, ...localRefImages] : dedupe([...upImageUrls, ...localRefImages]),
       videoUrls: dedupe([...upVideoUrls, ...localRefVideos]),
-      audioUrls: dedupe([...upAudioUrls, ...localRefAudios]),
+      audioUrls: isViduQ4 ? [...upAudioUrls, ...localRefAudios] : dedupe([...upAudioUrls, ...localRefAudios]),
     };
   };
 
@@ -921,7 +930,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
             : isUpscaler
               ? isVosr2 ? await queryVosr2Video(tid) : isFashVsr ? await queryFashVsr(tid) : await queryUpscaler(tid)
             : isVidu
-              ? await queryVidu(tid)
+              ? await queryVidu(tid, apiModel)
             : isHappyHorse
               ? await queryHappyHorse(tid)
             : isApimartBudgetVideo
@@ -1208,6 +1217,11 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
     if (status === 'submitting' || status === 'polling' || reporter?.signal?.aborted) return;
     setError(null);
     const { prompt: upstreamPrompt, imageUrls, videoUrls, audioUrls } = collectUpstream();
+    if (isViduQ4 && (imageUrls.length < 1 || imageUrls.length > (viduMode === 'i2v' ? 1 : 15)
+      || videoUrls.length > 0 || (viduMode === 'r2v' && audioUrls.length > 3))) {
+      setError(translate('nodes:generation.newBudgetModels.viduReferences'));
+      return;
+    }
     const resolvedLocalPrompt = resolveMediaMentions(localPrompt, promptMentions, mentionMaterials);
     const finalPrompt = (upstreamPrompt || resolvedLocalPrompt || '').trim();
     const animateImageSources = [...new Set([...imageUrls, animateImageUrl].filter(Boolean))];
@@ -1235,7 +1249,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
       && !(isSeedance25 && seedance25Mode === 'i2v')
       && !(isFlux3 && flux3Mode === 'draft-enhance')
       && !(isKling && klingMode === 'i2v')
-      && !(isVidu && !['t2v', 'short-play'].includes(viduMode))
+      && !(isVidu && !['t2v', 'short-play'].includes(viduMode) && (!isViduQ4 || viduMode === 'i2v'))
       && !(isApimartOmni && (imageUrls.length > 0 || videoUrls.length > 0))
       && !(isJimengSeedanceSelected
         && jimengSeedanceMode === 'omni'
@@ -2176,9 +2190,9 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
       if (isVidu) {
         const viduImages = viduMode === 't2v'
           ? []
-          : imageUrls.slice(0, viduMode === 'i2v' ? 1 : viduMode === 'start-end' ? 2 : viduMode === 'r2v' ? 9 : 14);
+          : isViduQ4 ? imageUrls : imageUrls.slice(0, viduMode === 'i2v' ? 1 : viduMode === 'start-end' ? 2 : viduMode === 'r2v' ? 9 : 14);
         logBus.info(
-          `提交 Vidu Q3: ${apiModel} · ${viduDuration}s · ${viduResolution} · ${viduRatio} · refs=${viduImages.length}`,
+          `提交 Vidu: ${apiModel} · ${viduDuration}s · ${viduResolution} · ${viduRatio} · refs=${viduImages.length}`,
           src,
         );
         const result = await submitVidu({
@@ -2186,8 +2200,10 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
           prompt: finalPrompt || undefined,
           duration: viduDuration,
           ratio: viduRatio,
-          resolution: viduResolution,
-          seed: viduSeed,
+          resolution: viduResolution as ViduSubmitRequest['resolution'],
+          seed: isViduQ4 ? undefined : viduSeed,
+          ...(isViduQ4 ? { generateAudio, isRec: viduQ4IsRec, watermark: viduQ4Watermark,
+            audios: viduMode === 'r2v' ? audioUrls : undefined } : {}),
           images: viduImages.length ? viduImages : undefined,
           ...(viduMode === 'short-play'
             ? {
@@ -2212,7 +2228,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
         });
         if (!isCurrentGenerationRun(runId) || reporter?.signal?.aborted) return;
         update({ status: 'polling', taskId: result.taskId, progress: '0%' });
-        logBus.info('Vidu Q3 任务已提交，开始轮询', src);
+        logBus.info('Vidu 任务已提交，开始轮询', src);
         return await startPolling(result.taskId, runId, reporter, isUpscaler ? '' : finalPrompt);
       }
 
@@ -2533,7 +2549,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
             ...(isApimartBudgetVideo && isApimartOmniLowprice ? { apimartOmniLowpriceMode, apimartOmniLowpriceNsfwCheck } : {}),
             ...(isSeedance25 ? { generateAudio, returnLastFrame } : {}),
             ...(isKling && klingMode !== 'edit' ? { klingNegativePrompt } : {}),
-            ...(isVidu ? { viduSeed,
+            ...(isVidu ? { ...(isViduQ4 ? { generateAudio, viduQ4IsRec, viduQ4Watermark } : { viduSeed }),
               ...(viduMode === 'short-play' ? { viduScriptName, viduStyle, viduAssetType, viduAssetNamePrefix, viduAssetDescription } : {}),
             } : {}),
             ...(isFlux3 && flux3Mode !== 'draft-enhance' ? { flux3Draft, flux3AudioMode, flux3SafetyTolerance } : {}),
@@ -2888,6 +2904,8 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
                      : {}),
                    ...(nextModel.endsWith('-short-play')
                      ? { ratio: '9:16', duration: 8, resolution: '1080p' }
+                     : isViduQ4Model(nextModel)
+                       ? { ratio: '16:9', duration: 5, resolution: '720p', generateAudio: true, viduQ4IsRec: true, viduQ4Watermark: false }
                      : nextModel.startsWith('vidu-q3-')
                        ? { ratio: '16:9', duration: 4, resolution: 'default' }
                        : {}),
@@ -3362,7 +3380,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
 
         {isVidu && (
           <div className="rounded border border-violet-300/20 bg-violet-400/[0.06] px-2 py-1.5 text-[10px] leading-relaxed text-white/55">
-            {viduMode === 't2v'
+            {isViduQ4 ? translate('nodes:generation.newBudgetModels.viduDescription') : viduMode === 't2v'
               ? '文生视频只提交提示词，不发送参考图。'
               : viduMode === 'i2v'
                 ? '图生视频使用排序后的第 1 张图作为首帧，提示词可选。'
@@ -3372,7 +3390,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
                     ? '参考生视频使用 1-9 张图片，按画布素材顺序提交。'
                     : '短剧成片把 Prompt 作为脚本内容，并使用 1-14 张图片构造参考资产。'}
             <div className="mt-1 text-white/35">
-              贞贞的平价AI小屋 API · 按次计费 · {viduMode === 'short-play' ? '8-12 秒 · 固定 1080p' : '4-15 秒 · default / 720p / 1080p'}
+              {isViduQ4 ? '3–16s · 540p / 720p / 1080p / 2k / 4k' : <>贞贞的平价AI小屋 API · 按次计费 · {viduMode === 'short-play' ? '8-12 秒 · 固定 1080p' : '4-15 秒 · default / 720p / 1080p'}</>}
             </div>
           </div>
         )}
@@ -3866,11 +3884,12 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
               <div>
                 <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.aspectRatio')}</label>
                 <select
-                  value={viduRatio}
+                  value={isViduQ4 && viduMode === 'i2v' ? 'input-image' : viduRatio}
+                  disabled={isViduQ4 && viduMode === 'i2v'}
                   onChange={(e) => update({ ratio: e.target.value })}
                   className="w-full rounded bg-white/5 border border-white/10 px-2 py-1 text-xs text-white outline-none focus:border-violet-300/40"
                 >
-                  {(viduMode === 'short-play' ? ['9:16', '16:9'] : ratioOptions).map((item) => (
+                  {isViduQ4 && viduMode === 'i2v' ? <option className="bg-zinc-900" value="input-image">{translate('nodes:generation.newBudgetModels.inputImageRatio')}</option> : (isViduQ4 ? NB_FLUX_VIDU_CONTRACT.viduQ4.ratios : viduMode === 'short-play' ? ['9:16', '16:9'] : ratioOptions).map((item) => (
                     <option key={item} value={item} className="bg-zinc-900">{item}</option>
                   ))}
                 </select>
@@ -3882,7 +3901,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
                   onChange={(e) => update({ duration: Number(e.target.value) })}
                   className="w-full rounded bg-white/5 border border-white/10 px-2 py-1 text-xs text-white outline-none focus:border-violet-300/40"
                 >
-                  {(viduMode === 'short-play' ? [8, 9, 10, 11, 12] : [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]).map((item) => (
+                  {(isViduQ4 ? NB_FLUX_VIDU_CONTRACT.viduQ4.durations : viduMode === 'short-play' ? [8, 9, 10, 11, 12] : [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]).map((item) => (
                     <option key={item} value={item} className="bg-zinc-900">{item}s</option>
                   ))}
                 </select>
@@ -3897,7 +3916,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
                   onChange={(e) => update({ resolution: e.target.value })}
                   className="w-full rounded bg-white/5 border border-white/10 px-2 py-1 text-xs text-white outline-none focus:border-violet-300/40 disabled:opacity-60"
                 >
-                  {(viduMode === 'short-play' ? ['1080p'] : ['default', '720p', '1080p']).map((item) => (
+                  {(isViduQ4 ? NB_FLUX_VIDU_CONTRACT.viduQ4.resolutions : viduMode === 'short-play' ? ['1080p'] : ['default', '720p', '1080p']).map((item) => (
                     <option key={item} value={item} className="bg-zinc-900">{item}</option>
                   ))}
                 </select>
@@ -3915,7 +3934,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
                     ))}
                   </select>
                 </div>
-              ) : (
+              ) : !isViduQ4 && (
                 <div>
                   <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.seedRandom')}</label>
                   <input
@@ -3929,6 +3948,12 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
                 </div>
               )}
             </div>
+            {isViduQ4 && <div className="nodrag nowheel space-y-2 text-xs">
+              <div>{translate('nodes:generation.newBudgetModels.viduDescription')}</div>
+              <label className="flex items-center gap-2"><input type="checkbox" checked={generateAudio} onChange={(e) => update({ generateAudio: e.target.checked })} />{translate('nodes:generation.newBudgetModels.generateAudio')}</label>
+              <label className="flex items-center gap-2"><input type="checkbox" checked={viduQ4IsRec} onChange={(e) => update({ viduQ4IsRec: e.target.checked })} />{translate('nodes:generation.newBudgetModels.isRec')}</label>
+              <label className="flex items-center gap-2"><input type="checkbox" checked={viduQ4Watermark} onChange={(e) => update({ viduQ4Watermark: e.target.checked })} />{translate('nodes:generation.newBudgetModels.watermark')}</label>
+            </div>}
             {viduMode === 'short-play' && (
               <>
                 <div>

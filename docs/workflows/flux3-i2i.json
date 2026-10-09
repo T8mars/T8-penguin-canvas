@@ -1,0 +1,112 @@
+{
+  "schema": "t8-workflow-fragment",
+  "version": 1,
+  "title": "flux3-i2i",
+  "nodes": [
+    {
+      "id": "source-image",
+      "type": "upload",
+      "position": {
+        "x": 0,
+        "y": 40
+      },
+      "data": {
+        "label": "上传参考图 / Upload reference image",
+        "uploadType": "image",
+        "lockedUploadType": "image"
+      }
+    },
+    {
+      "id": "generation",
+      "type": "image",
+      "position": {
+        "x": 430,
+        "y": 80
+      },
+      "data": {
+        "label": "flux-3-image",
+        "providerSource": "zhenzhen",
+        "model": "flux-3-image",
+        "apiModel": "flux-3-image",
+        "imageBuiltinSource": "seedance-nz",
+        "aspectRatio": "1:1",
+        "sizeLevel": "768sq",
+        "apimartImageCount": 1,
+        "imageOnlyOutput": true,
+        "fluxImageGrounding": true,
+        "fluxImageSafetyTolerance": 2,
+        "prompt": "Keep the penguin and the yellow cup. Change the background to a soft pink studio, preserving the composition.",
+        "referenceImages": [],
+        "reuseResult": false
+      }
+    },
+    {
+      "id": "output",
+      "type": "output",
+      "position": {
+        "x": 850,
+        "y": 80
+      },
+      "data": {
+        "label": "结果 / Result"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "image-edge",
+      "source": "source-image",
+      "target": "generation"
+    },
+    {
+      "id": "output-edge",
+      "source": "generation",
+      "target": "output"
+    }
+  ],
+  "nodeCount": 3,
+  "edgeCount": 2,
+  "nodeTypes": [
+    "upload",
+    "image",
+    "output"
+  ],
+  "topologyPreview": {
+    "nodes": [
+      {
+        "id": "source-image",
+        "type": "upload",
+        "label": "上传参考图 / Upload reference image",
+        "x": 50,
+        "y": 90
+      },
+      {
+        "id": "generation",
+        "type": "image",
+        "label": "flux-3-image",
+        "x": 480,
+        "y": 130
+      },
+      {
+        "id": "output",
+        "type": "output",
+        "label": "结果 / Result",
+        "x": 900,
+        "y": 130
+      }
+    ],
+    "edges": [
+      {
+        "id": "image-edge",
+        "source": "source-image",
+        "target": "generation"
+      },
+      {
+        "id": "output-edge",
+        "source": "generation",
+        "target": "output"
+      }
+    ]
+  },
+  "savedAt": "2026-10-10T00:00:00.000Z"
+}

@@ -15,6 +15,7 @@ import { resolveMediaMentions, type MediaMention } from './mediaMentions';
 import historyInputContract from '../../../backend/src/shared/generationHistoryInputContract.json';
 import { SEEDREAM_NZ_FAMILIES, seedreamNzFamily, seedreamNzFamilyChange, seedreamNzRuntimeModel, seedreamNzValidation, type SeedreamNzResolution } from '../../utils/seedreamNzContract';
 import {
+  FLUX3_IMAGE_MODEL, ZHENZHEN_IMAGE_NB_21_MODEL, NB_FLUX_VIDU_CONTRACT,
   IMAGE_MODELS,
   FAL_REGISTRY,
   GPT_FAL_SIZES,
@@ -464,7 +465,9 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
   const isBudgetImageTab = modelDef.id === 'gpt-image-2'
     || modelDef.id === 'nano-banana-2'
     || modelDef.id === 'nano-banana-pro'
-    || modelDef.id === 'grok-image';
+    || modelDef.id === 'grok-image'
+    || modelDef.id === FLUX3_IMAGE_MODEL;
+  const isFluxImage = !isExternalSelected && modelDef.id === FLUX3_IMAGE_MODEL;
   const isQwenImageTab = modelDef.paramKind === 'qwen-image-3.0';
   const isQwenImage21Tab = modelDef.paramKind === 'qwen-image-global-2.1';
   const isSeedreamLayerTab = modelDef.paramKind === 'seedream-layer';
@@ -472,7 +475,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
   const isVosr2ImageTab = modelDef.paramKind === 'vosr2-upscale';
   const isZhenzhenBudgetImageSelected = !isExternalSelected
     && isBudgetImageTab
-    && (d?.imageBuiltinSource === 'seedance-nz' || isZhenzhenBudgetImageModel(savedApiModel));
+    && (isFluxImage || d?.imageBuiltinSource === 'seedance-nz' || isZhenzhenBudgetImageModel(savedApiModel));
   const isZhenzhenBudgetMjSelected = !isExternalSelected
     && modelDef.paramKind === 'mj'
     && d?.imageBuiltinSource === 'seedance-nz';
@@ -483,7 +486,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
     || isSeedreamLayerTab
     || isWanImageTab
     || isVosr2ImageTab;
-  const budgetDefaultApiModel = modelDef.id === 'grok-image'
+  const budgetDefaultApiModel = isFluxImage ? FLUX3_IMAGE_MODEL : modelDef.id === 'grok-image'
     ? ZHENZHEN_IMAGE_GK_V15_MODEL
     : modelDef.id === 'nano-banana-2'
       ? ZHENZHEN_IMAGE_NB_2_MODEL
@@ -491,7 +494,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
         ? ZHENZHEN_IMAGE_NB_PRO_MODEL
         : ZHENZHEN_IMAGE_G2_T2I_MODEL;
   const builtinApiModelOptions = isZhenzhenBudgetImageSelected
-    ? modelDef.id === 'grok-image'
+    ? isFluxImage ? modelDef.apiModelOptions : modelDef.id === 'grok-image'
       ? ZHENZHEN_BUDGET_GROK_MODEL_OPTIONS
       : modelDef.id === 'nano-banana-2'
         ? ZHENZHEN_BUDGET_BANANA_2_MODEL_OPTIONS
@@ -515,8 +518,11 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
   const isZhenzhenGrokImageEdit = apiModel === ZHENZHEN_IMAGE_GK_V15_EDIT_MODEL;
   const isZhenzhenNb2Lite = apiModel === ZHENZHEN_IMAGE_NB_2_LITE_MODEL;
   const isZhenzhenNb2 = apiModel === ZHENZHEN_IMAGE_NB_2_MODEL;
+  const isZhenzhenNb21 = apiModel === ZHENZHEN_IMAGE_NB_21_MODEL;
   const isZhenzhenNbPro = apiModel === ZHENZHEN_IMAGE_NB_PRO_MODEL;
-  const isZhenzhenNb = isZhenzhenNb2Lite || isZhenzhenNb2 || isZhenzhenNbPro;
+  const isZhenzhenNb = isZhenzhenNb2Lite || isZhenzhenNb2 || isZhenzhenNb21 || isZhenzhenNbPro;
+  const fluxImageGrounding = d?.fluxImageGrounding !== false;
+  const fluxImageSafetyTolerance = [0, 1, 2, 3, 4].includes(d?.fluxImageSafetyTolerance) ? d.fluxImageSafetyTolerance : 2;
   const isQwenImageI2I = isQwenImageTab && isQwenImage30I2IModel(apiModel);
   const isWanImageI2I = isWanImageTab && isWan27GlobalI2IModel(apiModel);
   const zhenzhenNbImageCount = isZhenzhenNb2Lite
@@ -532,6 +538,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
     : '贞贞的平价AI小屋';
   const effectiveAspectRatios = isZhenzhenImageG2
     ? ZHENZHEN_IMAGE_G2_RATIOS
+    : isZhenzhenNb21 ? NB_FLUX_VIDU_CONTRACT.banana21.ratios
     : isZhenzhenGrokImageV2Edit
       ? [...ZHENZHEN_IMAGE_GK_V2_EDIT_RATIOS]
     : isZhenzhenGrokImageV2
@@ -556,7 +563,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
         ? ['0.5K', '1K', '2K', '4K']
         : isZhenzhenNb2Lite
           ? ['1K']
-          : isZhenzhenNbPro
+          : isZhenzhenNbPro || isZhenzhenNb21
             ? ['1K', '2K', '4K']
       : (isZhenzhenGrokImageV2 || isZhenzhenGrokImageV2Edit || isZhenzhenGrokImage || isZhenzhenGrokImageEdit)
         ? []
@@ -567,7 +574,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
       ? '1K'
       : isZhenzhenNb2 && !['0.5K', '1K', '2K', '4K'].includes(sizeLevel)
         ? '1K'
-        : (isZhenzhenLowpriceImage || isZhenzhenNbPro) && !['1K', '2K', '4K'].includes(sizeLevel)
+        : (isZhenzhenLowpriceImage || isZhenzhenNbPro || isZhenzhenNb21) && !['1K', '2K', '4K'].includes(sizeLevel)
           ? '1K'
           : sizeLevel;
 
@@ -824,6 +831,11 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
   // 切换模型时,如果当前比例/尺寸不在新模型选项里则重置
   const switchModel = (mId: string) => {
     const newDef = IMAGE_MODELS.find((m) => m.id === mId) || IMAGE_MODELS[0];
+    if (newDef.id === FLUX3_IMAGE_MODEL) {
+      update({ model: newDef.id, apiModel: FLUX3_IMAGE_MODEL, imageBuiltinSource: 'seedance-nz',
+        aspectRatio: newDef.defaultAspectRatio, sizeLevel: newDef.defaultSize });
+      return;
+    }
     if (newDef.paramKind === 'vosr2-upscale') {
       update({
         model: newDef.id,
@@ -981,12 +993,17 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
         || nextApiModel === ZHENZHEN_IMAGE_GK_V15_MODEL
         || nextApiModel === ZHENZHEN_IMAGE_GK_V15_EDIT_MODEL
         ? 'grok-image'
-        : nextApiModel === ZHENZHEN_IMAGE_NB_2_MODEL || nextApiModel === ZHENZHEN_IMAGE_NB_2_LITE_MODEL
+        : nextApiModel === FLUX3_IMAGE_MODEL ? FLUX3_IMAGE_MODEL
+        : nextApiModel === ZHENZHEN_IMAGE_NB_2_MODEL || nextApiModel === ZHENZHEN_IMAGE_NB_2_LITE_MODEL || nextApiModel === ZHENZHEN_IMAGE_NB_21_MODEL
           ? 'nano-banana-2'
           : nextApiModel === ZHENZHEN_IMAGE_NB_PRO_MODEL
             ? 'nano-banana-pro'
             : 'gpt-image-2';
-      const nextRatio = isZhenzhenImageG2Model(nextApiModel)
+      const nextRatio = nextApiModel === FLUX3_IMAGE_MODEL
+        ? (NB_FLUX_VIDU_CONTRACT.flux.ratios.includes(aspectRatio) ? aspectRatio : 'auto')
+        : nextApiModel === ZHENZHEN_IMAGE_NB_21_MODEL
+        ? (NB_FLUX_VIDU_CONTRACT.banana21.ratios.includes(aspectRatio) ? aspectRatio : '1:1')
+        : isZhenzhenImageG2Model(nextApiModel)
         ? (ZHENZHEN_IMAGE_G2_RATIOS.includes(aspectRatio) ? aspectRatio : 'adaptive')
         : nextApiModel === ZHENZHEN_IMAGE_GK_V2_EDIT_MODEL
           ? ((ZHENZHEN_IMAGE_GK_V2_EDIT_RATIOS as readonly string[]).includes(aspectRatio) ? aspectRatio : 'auto')
@@ -1001,7 +1018,11 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
         model: nextModel,
         apiModel: nextApiModel,
         imageBuiltinSource: 'seedance-nz',
-        sizeLevel: nextApiModel === ZHENZHEN_IMAGE_G_V2_LOWPRICE_MODEL || isZhenzhenImageG25Model(nextApiModel)
+        sizeLevel: nextApiModel === FLUX3_IMAGE_MODEL
+          ? (NB_FLUX_VIDU_CONTRACT.flux.resolutions.includes(sizeLevel) ? sizeLevel : '1k')
+          : nextApiModel === ZHENZHEN_IMAGE_NB_21_MODEL
+          ? (['1K', '2K', '4K'].includes(sizeLevel) ? sizeLevel : '1K')
+          : nextApiModel === ZHENZHEN_IMAGE_G_V2_LOWPRICE_MODEL || isZhenzhenImageG25Model(nextApiModel)
           ? (['1K', '2K', '4K'].includes(sizeLevel) ? sizeLevel : '1K')
           : nextApiModel === ZHENZHEN_IMAGE_NB_2_MODEL
             ? (['0.5K', '1K', '2K', '4K'].includes(sizeLevel) ? sizeLevel : '1K')
@@ -1052,7 +1073,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
     void getNodes;
     return {
       prompt: prompts.join('\n').trim(),
-      images: images.slice(0, maxRefs),
+      images: isFluxImage || isZhenzhenNb21 ? images : images.slice(0, maxRefs),
     };
   };
 
@@ -1144,6 +1165,14 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
     setDownloadNotice(null);
     const { upstreamImages, basePrompt, compiledPrompt, finalPrompt } = resolveGenerationInput();
     const src = `image:${id.slice(0, 6)}`;
+    if ((isFluxImage || isZhenzhenNb21) && upstreamImages.length > maxRefs) {
+      setError(translate('nodes:generation.newBudgetModels.tooManyImages', { count: maxRefs }));
+      return;
+    }
+    if (isZhenzhenNb21 && (finalPrompt.length < 5 || finalPrompt.length > 5000)) {
+      setError(translate('nodes:generation.newBudgetModels.bananaPrompt'));
+      return;
+    }
     const promptRequired = !isSeedreamLayerTab && !isVosr2ImageTab && (
       !isZhenzhenBudgetMjSelected
       || midjourneyNzRequiresPrompt(mjNzOperation, mjNzVideoSource)
@@ -2086,6 +2115,8 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
               | 'zhenzhen-image-gk-v15-edit'
               | 'zhenzhen-image-nb-2-lite'
               | 'zhenzhen-image-nb-2'
+              | 'zhenzhen-image-nb-2.1'
+              | 'flux-3-image'
               | 'zhenzhen-image-nb-pro'
             : undefined,
           modelFamily: isZhenzhenBudgetImageSelected || isQwenImageTab || isQwenImage21Tab || isSeedreamLayerTab || isWanImageTab ? undefined : seedreamNzModelFamily,
@@ -2101,6 +2132,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
             ? '1k'
             : isZhenzhenImageG25
               ? zhenzhenImageG25Size === 'custom' ? undefined : zhenzhenImageG25Resolution
+            : isFluxImage ? effectiveSizeLevel as '768sq' | '1k' | '1.5k' | '2k' | '4k'
             : isZhenzhenLowpriceImage
               ? effectiveSizeLevel.toLowerCase() as '1k' | '2k' | '4k'
               : isZhenzhenNb
@@ -2152,7 +2184,9 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
           width: isWanImageTab && !isWanImageI2I ? wanImageWidth : undefined,
           height: isWanImageTab && !isWanImageI2I ? wanImageHeight : undefined,
           thinking_mode: isWanImageTab && !isWanImageI2I ? wanImageThinkingMode : undefined,
-          aspect_ratio: isZhenzhenGrokImageV2Edit ? effectiveAspectRatio : undefined,
+          aspect_ratio: isZhenzhenGrokImageV2Edit || isFluxImage ? effectiveAspectRatio : undefined,
+          grounding: isFluxImage ? fluxImageGrounding : undefined,
+          safety_tolerance: isFluxImage ? fluxImageSafetyTolerance : undefined,
           nsfw_check: isZhenzhenImageG25Lowprice
             ? zhenzhenImageG25NsfwCheck
             : isZhenzhenGrokImageV2Edit ? grokV2EditNsfwCheck : undefined,
@@ -2477,6 +2511,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
             ...(isZhenzhenGrokImageV2 || isZhenzhenGrokImageV2Edit ? { grokV2ImageCount } : {}),
             ...(isZhenzhenGrokImageV2Edit ? { grokV2EditResolution, grokV2EditNsfwCheck } : {}),
             ...(isZhenzhenNb ? { apimartImageCount: zhenzhenNbImageCount } : {}),
+            ...(isFluxImage ? { fluxImageGrounding, fluxImageSafetyTolerance } : {}),
           } : {}),
           ...(!isExternalSelected && isQwenImageTab ? { qwenSizingMode, qwenResolution, qwenCustomSize,
             qwenImageCount, qwenSeed, qwenNegativePrompt, qwenPromptExtend } : {}),
@@ -2607,7 +2642,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
                           || isSeedreamLayerTab
                           || isWanImageTab
                           || isVosr2ImageTab;
-                        const leavingDedicatedBudgetTab = isQwenImageTab || isQwenImage21Tab || isSeedreamLayerTab || isWanImageTab || isVosr2ImageTab;
+                        const leavingDedicatedBudgetTab = isFluxImage || isQwenImageTab || isQwenImage21Tab || isSeedreamLayerTab || isWanImageTab || isVosr2ImageTab;
                         const fallbackModel = IMAGE_MODELS[0];
                         update({
                           providerSource: 'zhenzhen',
@@ -3116,10 +3151,12 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
             style={isPixel ? { background: 'var(--px-muted)', border: '1.5px solid var(--px-ink)' } : undefined}
           >
             {IMAGE_MODELS
+              .filter((m) => m.id !== FLUX3_IMAGE_MODEL || isZhenzhenBudgetPlatformSelected)
               .filter((m) => !isZhenzhenBudgetPlatformSelected
                 || m.id === 'gpt-image-2'
                 || m.id === 'nano-banana-2'
                 || m.id === 'nano-banana-pro'
+                || m.id === FLUX3_IMAGE_MODEL
                 || m.id === 'grok-image'
                 || m.id === 'qwen-image-3.0'
                 || m.id === QWEN_IMAGE_GLOBAL_21_MODEL
@@ -3213,7 +3250,9 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
           <div className="rounded border border-cyan-400/25 bg-cyan-500/5 px-2 py-1.5 text-[10px] leading-4 text-cyan-100/80">
             <div>{`贞贞的平价AI小屋 · ${apiModel}`}</div>
             <div>
-              {isZhenzhenImageG2
+              {isFluxImage ? translate('nodes:generation.newBudgetModels.fluxDescription')
+                : isZhenzhenNb21 ? translate('nodes:generation.newBudgetModels.bananaDescription')
+                : isZhenzhenImageG2
                 ? isZhenzhenImageG2I2I
                   ? '图生图模式：必须提供 1–10 张参考图；固定 1K。'
                   : '文生图模式：只使用 Prompt，已连接的参考图不会发送；固定 1K。'
@@ -3241,6 +3280,20 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
           </div>
         )}
 
+        {isFluxImage && (
+          <div className="nodrag nowheel rounded border border-cyan-400/25 p-2 space-y-2">
+            <label className="flex items-center gap-2 text-xs">
+              <input type="checkbox" checked={fluxImageGrounding} onChange={(e) => update({ fluxImageGrounding: e.target.checked })} />
+              {translate('nodes:generation.newBudgetModels.grounding')}
+            </label>
+            <label className="block text-xs">{translate('nodes:generation.newBudgetModels.safetyTolerance')}
+              <select className="ml-2 rounded bg-white/5" value={fluxImageSafetyTolerance}
+                onChange={(e) => update({ fluxImageSafetyTolerance: Number(e.target.value) })}>
+                {[0, 1, 2, 3, 4].map((value) => <option className="bg-zinc-900" key={value} value={value}>{value}</option>)}
+              </select>
+            </label>
+          </div>
+        )}
         {isZhenzhenImageG25 && !isExternalSelected && (
           <div className="space-y-2 rounded border border-cyan-400/25 bg-cyan-500/5 p-2">
             <div className="grid grid-cols-2 gap-2">

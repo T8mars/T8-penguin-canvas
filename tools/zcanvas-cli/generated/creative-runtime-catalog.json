@@ -1,13 +1,14 @@
 {
   "schema": "t8-creative-runtime-catalog-v1",
-  "sourceDigest": "541eb29bb2d3fa6eb927852ec50a5166bedd25f7faaf4b8e18d92764f7c42c3f",
+  "sourceDigest": "bbdf3901583c3dae8f4da34e667ed4fcb2520e0ec5783c73b37af2a316a9ee78",
   "generatedFrom": [
     "src/providers/models.ts",
     "src/config/seedance.ts",
     "src/utils/midjourneyNz.ts",
     "backend/src/shared/seedanceNzLlmModels.json",
     "backend/src/providers/seedanceNz.js",
-    "backend/src/shared/seedreamNzContract.json"
+    "backend/src/shared/seedreamNzContract.json",
+    "backend/src/shared/nb21FluxViduQ4Contract.json"
   ],
   "platforms": [
     {
@@ -886,6 +887,59 @@
       }
     },
     {
+      "id": "image:seedance-nz:flux-3-image",
+      "provider": "seedance-nz",
+      "platformLabel": "贞贞的平价AI小屋",
+      "model": "flux-3-image",
+      "label": "flux-3-image",
+      "family": "flux-3-image",
+      "available": true,
+      "parameters": {
+        "label": "flux-3-image",
+        "platformLabel": "贞贞的平价AI小屋",
+        "family": "flux-3-image",
+        "available": true,
+        "tabLabel": "Flux",
+        "capabilities": [
+          "t2i",
+          "i2i",
+          "edit"
+        ],
+        "parameterKind": "flux-image",
+        "supportsReference": true,
+        "maxReferenceImages": 10,
+        "sizes": [
+          "768sq",
+          "1k",
+          "1.5k",
+          "2k",
+          "4k"
+        ],
+        "aspectRatios": [
+          "auto",
+          "16:9",
+          "1:1",
+          "1:2",
+          "21:9",
+          "2:1",
+          "2:3",
+          "3:2",
+          "3:4",
+          "4:3",
+          "4:5",
+          "5:4",
+          "5:7",
+          "7:5",
+          "9:16",
+          "9:21"
+        ],
+        "defaultSize": "1k",
+        "defaultAspectRatio": "auto",
+        "maxOutputs": 1,
+        "description": "贞贞的平价AI小屋图像模型"
+      }
+    },
+    {
       "id": "image:seedance-nz:qwen-image-3.0-global-i2i",
       "provider": "seedance-nz",
       "platformLabel": "贞贞的平价AI小屋",
@@ -1677,6 +1731,52 @@
         "parameterKind": "seedance-nz-image",
         "supportsReference": true,
         "maxReferenceImages": 14,
+        "description": "贞贞的平价AI小屋图像模型"
+      }
+    },
+    {
+      "id": "image:seedance-nz:zhenzhen-image-nb-2.1",
+      "provider": "seedance-nz",
+      "platformLabel": "贞贞的平价AI小屋",
+      "model": "zhenzhen-image-nb-2.1",
+      "label": "zhenzhen-image-nb-2.1",
+      "family": "nano-banana-2",
+      "available": true,
+      "parameters": {
+        "label": "zhenzhen-image-nb-2.1",
+        "platformLabel": "贞贞的平价AI小屋",
+        "family": "nano-banana-2",
+        "available": true,
+        "tabLabel": "香蕉2",
+        "capabilities": [
+          "t2i",
+          "i2i",
+          "edit"
+        ],
+        "parameterKind": "seedance-nz-image",
+        "supportsReference": true,
+        "maxReferenceImages": 14,
+        "sizes": [
+          "1k",
+          "2k",
+          "4k"
+        ],
+        "aspectRatios": [
+          "auto",
+          "1:1",
+          "2:3",
+          "3:2",
+          "3:4",
+          "4:3",
+          "4:5",
+          "5:4",
+          "9:16",
+          "16:9",
+          "21:9"
+        ],
+        "defaultSize": "1k",
+        "defaultAspectRatio": "1:1",
+        "maxOutputs": 1,
         "description": "贞贞的平价AI小屋图像模型"
       }
     },
@@ -6412,6 +6512,218 @@
       }
     },
     {
+      "id": "video:seedance-nz:vidu-q4-preview-global-i2v",
+      "provider": "seedance-nz",
+      "platformLabel": "贞贞的平价AI小屋",
+      "model": "vidu-q4-preview-global-i2v",
+      "label": "vidu-q4-preview-global-i2v",
+      "family": "vidu-q3",
+      "available": true,
+      "parameters": {
+        "label": "vidu-q4-preview-global-i2v",
+        "platformLabel": "贞贞的平价AI小屋",
+        "family": "vidu-q3",
+        "available": true,
+        "nodeKind": "vidu",
+        "ratios": [],
+        "defaultRatio": "16:9",
+        "durations": [
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "defaultDuration": 5,
+        "resolutions": [
+          "540p",
+          "720p",
+          "1080p",
+          "2k",
+          "4k"
+        ],
+        "defaultResolution": "720p",
+        "supportsImages": true,
+        "supportsVideos": false,
+        "supportsAudios": false,
+        "maxReferenceImages": 1,
+        "maxReferenceVideos": 0,
+        "maxReferenceAudios": 0,
+        "description": "Vidu Q3 · 文生/图生/首尾帧/参考生视频/短剧成片"
+      }
+    },
+    {
+      "id": "video:seedance-nz:vidu-q4-preview-global-r2v",
+      "provider": "seedance-nz",
+      "platformLabel": "贞贞的平价AI小屋",
+      "model": "vidu-q4-preview-global-r2v",
+      "label": "vidu-q4-preview-global-r2v",
+      "family": "vidu-q3",
+      "available": true,
+      "parameters": {
+        "label": "vidu-q4-preview-global-r2v",
+        "platformLabel": "贞贞的平价AI小屋",
+        "family": "vidu-q3",
+        "available": true,
+        "nodeKind": "vidu",
+        "ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ],
+        "defaultRatio": "16:9",
+        "durations": [
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "defaultDuration": 5,
+        "resolutions": [
+          "540p",
+          "720p",
+          "1080p",
+          "2k",
+          "4k"
+        ],
+        "defaultResolution": "720p",
+        "supportsImages": true,
+        "supportsVideos": false,
+        "supportsAudios": true,
+        "maxReferenceImages": 15,
+        "maxReferenceVideos": 0,
+        "maxReferenceAudios": 3,
+        "description": "Vidu Q3 · 文生/图生/首尾帧/参考生视频/短剧成片"
+      }
+    },
+    {
+      "id": "video:seedance-nz:vidu-q4-preview-i2v",
+      "provider": "seedance-nz",
+      "platformLabel": "贞贞的平价AI小屋",
+      "model": "vidu-q4-preview-i2v",
+      "label": "vidu-q4-preview-i2v",
+      "family": "vidu-q3",
+      "available": true,
+      "parameters": {
+        "label": "vidu-q4-preview-i2v",
+        "platformLabel": "贞贞的平价AI小屋",
+        "family": "vidu-q3",
+        "available": true,
+        "nodeKind": "vidu",
+        "ratios": [],
+        "defaultRatio": "16:9",
+        "durations": [
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "defaultDuration": 5,
+        "resolutions": [
+          "540p",
+          "720p",
+          "1080p",
+          "2k",
+          "4k"
+        ],
+        "defaultResolution": "720p",
+        "supportsImages": true,
+        "supportsVideos": false,
+        "supportsAudios": false,
+        "maxReferenceImages": 1,
+        "maxReferenceVideos": 0,
+        "maxReferenceAudios": 0,
+        "description": "Vidu Q3 · 文生/图生/首尾帧/参考生视频/短剧成片"
+      }
+    },
+    {
+      "id": "video:seedance-nz:vidu-q4-preview-r2v",
+      "provider": "seedance-nz",
+      "platformLabel": "贞贞的平价AI小屋",
+      "model": "vidu-q4-preview-r2v",
+      "label": "vidu-q4-preview-r2v",
+      "family": "vidu-q3",
+      "available": true,
+      "parameters": {
+        "label": "vidu-q4-preview-r2v",
+        "platformLabel": "贞贞的平价AI小屋",
+        "family": "vidu-q3",
+        "available": true,
+        "nodeKind": "vidu",
+        "ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ],
+        "defaultRatio": "16:9",
+        "durations": [
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "defaultDuration": 5,
+        "resolutions": [
+          "540p",
+          "720p",
+          "1080p",
+          "2k",
+          "4k"
+        ],
+        "defaultResolution": "720p",
+        "supportsImages": true,
+        "supportsVideos": false,
+        "supportsAudios": true,
+        "maxReferenceImages": 15,
+        "maxReferenceVideos": 0,
+        "maxReferenceAudios": 3,
+        "description": "Vidu Q3 · 文生/图生/首尾帧/参考生视频/短剧成片"
+      }
+    },
+    {
       "id": "video:seedance-nz:vosr2-video-upscale",
       "provider": "seedance-nz",
       "platformLabel": "贞贞的平价AI小屋",
@@ -9997,8 +10309,8 @@
   ],
   "counts": {
     "llm": 34,
-    "image": 63,
-    "video": 131,
+    "image": 65,
+    "video": 135,
     "audio": 17,
     "actions": 61
   }

@@ -996,6 +996,8 @@ class CreatorActionExecutor {
         model: action.modelSnapshot.modelId,
         prompt: action.prompt,
         ratio: action.parameters.ratio || '16:9',
+        ...(['flux-3-image', 'zhenzhen-image-nb-2.1'].includes(action.modelSnapshot.modelId)
+          ? { resolution: action.parameters.resolution || '1k' } : {}),
         n: Math.max(1, Math.min(4, Number(action.parameters.count) || 1)),
         ...(grouped.images.length ? { images: grouped.images } : {}),
       }, apiKey, { baseUrl });
@@ -1086,6 +1088,8 @@ class CreatorActionExecutor {
         ? await this.provider.queryImageTask(taskId, apiKey, { baseUrl })
         : modelId === 'MiniMax-H3'
           ? await this.provider.queryMinimaxH3V2Task(taskId, apiKey, { baseUrl })
+          : seedanceNz.VIDU_Q4_MODELS.has(modelId)
+            ? await this.provider.queryViduTask(taskId, apiKey, { baseUrl, model: modelId })
           : await this.provider.queryTask(taskId, apiKey, { baseUrl });
       pollCount += 1;
       if (result.status === 'failed') throw new CreatorActionExecutorError('CREATOR_PROVIDER_TASK_FAILED', bounded(result.failReason, 500) || '生成任务失败');

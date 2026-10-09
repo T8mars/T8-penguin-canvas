@@ -1,0 +1,24 @@
+{
+  "banana21": {
+    "model": "zhenzhen-image-nb-2.1",
+    "resolutions": ["1k", "2k", "4k"],
+    "ratios": ["auto", "1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"],
+    "maxImages": 14,
+    "promptMin": 5,
+    "promptMax": 5000
+  },
+  "flux": {
+    "model": "flux-3-image",
+    "resolutions": ["768sq", "1k", "1.5k", "2k", "4k"],
+    "ratios": ["auto", "16:9", "1:1", "1:2", "21:9", "2:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "5:7", "7:5", "9:16", "9:21"],
+    "maxImages": 10
+  },
+  "viduQ4": {
+    "models": ["vidu-q4-preview-global-i2v", "vidu-q4-preview-global-r2v", "vidu-q4-preview-i2v", "vidu-q4-preview-r2v"],
+    "resolutions": ["540p", "720p", "1080p", "2k", "4k"],
+    "ratios": ["16:9", "9:16", "1:1", "4:3", "3:4"],
+    "durations": [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
+    "maxImages": 15,
+    "maxAudios": 3
+  }
+}

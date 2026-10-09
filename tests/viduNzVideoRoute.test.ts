@@ -33,6 +33,7 @@ test('Vidu proxy uses the domestic key and keeps task polling in its own authori
   const originals = {
     submitViduTask: seedanceNz.submitViduTask,
     queryTask: seedanceNz.queryTask,
+    queryViduTask: seedanceNz.queryViduTask,
   };
   let submittedRequest: any;
   let submittedKey = '';
@@ -80,4 +81,18 @@ test('Vidu proxy uses the domestic key and keeps task polling in its own authori
   assert.equal(status.data.progress, '50');
   assert.equal(queriedKey, 'domestic-vidu-key');
   assert.doesNotMatch(JSON.stringify({ submit, status }), /domestic-vidu-key|legacy-key-must-not-be-used/);
+  const coldQueries: any[] = [];
+  seedanceNz.queryViduTask = async (taskId: string, apiKey: string, options: any) => {
+    coldQueries.push({ taskId, apiKey, model: options.model });
+    return { status: 'running', progress: 50, videoUrl: null, failReason: null };
+  };
+  for (const model of seedanceNz.VIDU_Q4_MODELS) {
+    const cold = await fetch(`${base}/api/proxy/video/vidu/status/cold-${model}?model=${encodeURIComponent(model)}`)
+      .then((response) => response.json());
+    assert.equal(cold.success, true);
+    assert.equal(cold.data.model, model);
+    assert.equal(cold.data.status, 'running');
+    assert.deepEqual(coldQueries.at(-1), { taskId: `cold-${model}`, apiKey: 'domestic-vidu-key', model });
+    assert.doesNotMatch(JSON.stringify(cold), /domestic-vidu-key|legacy-key-must-not-be-used/);
+  }
 });

@@ -12,7 +12,8 @@
       "src/utils/midjourneyNz.ts",
       "backend/src/shared/seedanceNzLlmModels.json",
       "backend/src/providers/seedanceNz.js",
-      "backend/src/shared/seedreamNzContract.json"
+      "backend/src/shared/seedreamNzContract.json",
+      "backend/src/shared/nb21FluxViduQ4Contract.json"
     ],
     "handlerRegistry": "backend/src/services/agentControlCapabilityHandlers.js",
     "coverageReceiptCompiler": "tools/zcanvas-cli/src/capabilityCoverage.cjs"
@@ -22,16 +23,16 @@
     "canvasNodeSchema": "1a4453bd8a931407e3bb367826e5973faf4fd8957d6c32dd7f03a93e10cd3258",
     "canvasNodeSchemaFile": "b360a1633459b5531f9fd66dbac0fa9b80022321a5dbd00feb2e61333bb0eee5",
     "i18nNodeCatalog": "0479653284399372bba58f69d528e45ed9de267f9a1d7107347401ab75f60676",
-    "i18nRendererResources": "aa058e4ecd96c96a95512a1d8261bd9ff48f249cde25b423173ca4c12521b6df",
+    "i18nRendererResources": "a7d3f8ba2faa1cfdd5a656f43a22b23280b55d7c12e47e8a31a8e42197389cd8",
     "i18nElectronCatalog": "f58f14c3e2c0ead3383f53de33f97ab2fabe4281d8b6520855f03a4b015ec44c",
-    "runtimeCatalogSources": "541eb29bb2d3fa6eb927852ec50a5166bedd25f7faaf4b8e18d92764f7c42c3f",
-    "runtimeCatalogArtifact": "f1efe9793e9b9f8c6e128a9f35b25ec8f1d4be5dddba0fc7835994a5d3245b67",
+    "runtimeCatalogSources": "bbdf3901583c3dae8f4da34e667ed4fcb2520e0ec5783c73b37af2a316a9ee78",
+    "runtimeCatalogArtifact": "b43b50fd529eabcd7a6f13a0aafd92ca644dac7ea8412bc20d21e6acda302e01",
     "handlerBindings": "3cd8cde3c05d1642d72ce8cbfae2874d1bdf986592ae431ef7d66b043da257b5",
     "capabilityGraphCompiler": "a3716d239b91e1c4775f5996b3865ba3ab8fd652263138feef0a56de40851c24",
     "coverageReceiptCompiler": "68c02167cb5317107edd346223a5e5999168e447bacbb977ff8e9678e6753fe7",
     "canonicalTextDigestCompiler": "b0afcf28a257fbbd8f391edc117348f8f2ede1b4a039ae91bce25a8d563ac0cf"
   },
-  "aggregateDigest": "9d2cdf7e70846db705476b90e6de412da57ab1cb4fad5efb04d0577647f59232",
+  "aggregateDigest": "ce220765aec741515740dcd4836f1c16140617e2c74833cdce0aeae17794c750",
   "principles": {
     "oneSentenceStart": true,
     "directCanvasMutation": false,
@@ -55,17 +56,17 @@
     "accountedNodes": 83,
     "unexplainedNodes": 0,
     "fullyOperableNodes": 20,
-    "runtimeEntries": 306,
+    "runtimeEntries": 312,
     "runtimeByKind": {
       "llm": 34,
-      "image": 63,
-      "video": 131,
+      "image": 65,
+      "video": 135,
       "audio": 17,
       "actions": 61
     },
     "runtimeByProvider": {
       "grok-oauth": 2,
-      "seedance-nz": 233,
+      "seedance-nz": 239,
       "zhenzhen": 64,
       "fal": 7
     },
@@ -7402,7 +7403,7 @@
   ],
   "runtime": {
     "schema": "t8-creative-runtime-catalog-v1",
-    "sourceDigest": "541eb29bb2d3fa6eb927852ec50a5166bedd25f7faaf4b8e18d92764f7c42c3f",
+    "sourceDigest": "bbdf3901583c3dae8f4da34e667ed4fcb2520e0ec5783c73b37af2a316a9ee78",
     "platforms": [
       {
         "id": "zhenzhen",
@@ -8808,6 +8809,26 @@
         }
       },
       {
+        "id": "image:seedance-nz:flux-3-image",
+        "kind": "image",
+        "provider": "seedance-nz",
+        "platformLabel": "贞贞的平价AI小屋",
+        "model": "flux-3-image",
+        "label": "flux-3-image",
+        "family": "flux-3-image",
+        "available": true,
+        "catalogSection": "image",
+        "compatibility": {
+          "known": true,
+          "installed": true,
+          "credentialReady": null,
+          "regionReady": true,
+          "executable": false,
+          "available": true,
+          "requiresRuntimeCheck": true
+        }
+      },
+      {
         "id": "image:seedance-nz:midjourney-blend",
         "kind": "image",
         "provider": "seedance-nz",
@@ -9748,6 +9769,26 @@
         "platformLabel": "贞贞的平价AI小屋",
         "model": "zhenzhen-image-nb-2-lite",
         "label": "zhenzhen-image-nb-2-lite",
+        "family": "nano-banana-2",
+        "available": true,
+        "catalogSection": "image",
+        "compatibility": {
+          "known": true,
+          "installed": true,
+          "credentialReady": null,
+          "regionReady": true,
+          "executable": false,
+          "available": true,
+          "requiresRuntimeCheck": true
+        }
+      },
+      {
+        "id": "image:seedance-nz:zhenzhen-image-nb-2.1",
+        "kind": "image",
+        "provider": "seedance-nz",
+        "platformLabel": "贞贞的平价AI小屋",
+        "model": "zhenzhen-image-nb-2.1",
+        "label": "zhenzhen-image-nb-2.1",
         "family": "nano-banana-2",
         "available": true,
         "catalogSection": "image",
@@ -12608,6 +12649,86 @@
         }
       },
       {
+        "id": "video:seedance-nz:vidu-q4-preview-global-i2v",
+        "kind": "video",
+        "provider": "seedance-nz",
+        "platformLabel": "贞贞的平价AI小屋",
+        "model": "vidu-q4-preview-global-i2v",
+        "label": "vidu-q4-preview-global-i2v",
+        "family": "vidu-q3",
+        "available": true,
+        "catalogSection": "video",
+        "compatibility": {
+          "known": true,
+          "installed": true,
+          "credentialReady": null,
+          "regionReady": true,
+          "executable": false,
+          "available": true,
+          "requiresRuntimeCheck": true
+        }
+      },
+      {
+        "id": "video:seedance-nz:vidu-q4-preview-global-r2v",
+        "kind": "video",
+        "provider": "seedance-nz",
+        "platformLabel": "贞贞的平价AI小屋",
+        "model": "vidu-q4-preview-global-r2v",
+        "label": "vidu-q4-preview-global-r2v",
+        "family": "vidu-q3",
+        "available": true,
+        "catalogSection": "video",
+        "compatibility": {
+          "known": true,
+          "installed": true,
+          "credentialReady": null,
+          "regionReady": true,
+          "executable": false,
+          "available": true,
+          "requiresRuntimeCheck": true
+        }
+      },
+      {
+        "id": "video:seedance-nz:vidu-q4-preview-i2v",
+        "kind": "video",
+        "provider": "seedance-nz",
+        "platformLabel": "贞贞的平价AI小屋",
+        "model": "vidu-q4-preview-i2v",
+        "label": "vidu-q4-preview-i2v",
+        "family": "vidu-q3",
+        "available": true,
+        "catalogSection": "video",
+        "compatibility": {
+          "known": true,
+          "installed": true,
+          "credentialReady": null,
+          "regionReady": true,
+          "executable": false,
+          "available": true,
+          "requiresRuntimeCheck": true
+        }
+      },
+      {
+        "id": "video:seedance-nz:vidu-q4-preview-r2v",
+        "kind": "video",
+        "provider": "seedance-nz",
+        "platformLabel": "贞贞的平价AI小屋",
+        "model": "vidu-q4-preview-r2v",
+        "label": "vidu-q4-preview-r2v",
+        "family": "vidu-q3",
+        "available": true,
+        "catalogSection": "video",
+        "compatibility": {
+          "known": true,
+          "installed": true,
+          "credentialReady": null,
+          "regionReady": true,
+          "executable": false,
+          "available": true,
+          "requiresRuntimeCheck": true
+        }
+      },
+      {
         "id": "video:seedance-nz:vosr2-video-upscale",
         "kind": "video",
         "provider": "seedance-nz",
@@ -13885,6 +14006,7 @@
       "image:seedance-nz:dola-seedream-5.0-pro-i2i",
       "image:seedance-nz:dola-seedream-5.0-pro-layer-decomposition",
       "image:seedance-nz:dola-seedream-5.0-pro-t2i",
+      "image:seedance-nz:flux-3-image",
       "image:seedance-nz:midjourney-blend",
       "image:seedance-nz:midjourney-edits",
       "image:seedance-nz:midjourney-high-variation",
@@ -13932,6 +14054,7 @@
       "image:seedance-nz:zhenzhen-image-gk-v2-segment",
       "image:seedance-nz:zhenzhen-image-nb-2",
       "image:seedance-nz:zhenzhen-image-nb-2-lite",
+      "image:seedance-nz:zhenzhen-image-nb-2.1",
       "image:seedance-nz:zhenzhen-image-nb-pro",
       "image:zhenzhen:gemini-3-pro-image",
       "image:zhenzhen:gemini-3.1-flash-image",
@@ -14074,6 +14197,10 @@
       "video:seedance-nz:vidu-q3-turbo-i2v",
       "video:seedance-nz:vidu-q3-turbo-start-end",
       "video:seedance-nz:vidu-q3-turbo-t2v",
+      "video:seedance-nz:vidu-q4-preview-global-i2v",
+      "video:seedance-nz:vidu-q4-preview-global-r2v",
+      "video:seedance-nz:vidu-q4-preview-i2v",
+      "video:seedance-nz:vidu-q4-preview-r2v",
       "video:seedance-nz:vosr2-video-upscale",
       "video:seedance-nz:wan-2.7-spicy-i2v",
       "video:seedance-nz:wan-3.0-global-i2v",
@@ -14131,7 +14258,7 @@
     "sourceDigests": {
       "capabilityManifest": "569f2c8be144e05120ca629b2826383a06c4d6565ab3896c2dc61807bb9f7c27",
       "nodeSchema": "1a4453bd8a931407e3bb367826e5973faf4fd8957d6c32dd7f03a93e10cd3258",
-      "runtimeCatalog": "541eb29bb2d3fa6eb927852ec50a5166bedd25f7faaf4b8e18d92764f7c42c3f",
+      "runtimeCatalog": "bbdf3901583c3dae8f4da34e667ed4fcb2520e0ec5783c73b37af2a316a9ee78",
       "handlerBindings": "3cd8cde3c05d1642d72ce8cbfae2874d1bdf986592ae431ef7d66b043da257b5",
       "receiptCompiler": "68c02167cb5317107edd346223a5e5999168e447bacbb977ff8e9678e6753fe7"
     },
@@ -14143,8 +14270,8 @@
       },
       "runtime": {
         "llm": 34,
-        "image": 63,
-        "video": 131,
+        "image": 65,
+        "video": 135,
         "audio": 17,
         "actions": 61
       },
@@ -14160,6 +14287,6 @@
       "missingCompatibilityEdges": []
     },
     "complete": true,
-    "digest": "d02358a6bd6bef82d67981597e42acc290a3efe011699059121898194c631eca"
+    "digest": "c7a212a9b95574004996ce2f7e0d48b7c5ae8191021a1ed5a6d17b629d510018"
   }
 }

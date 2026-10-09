@@ -6,6 +6,8 @@ const required = ['model', 'apiModel', 'aspectRatio', 'sizeLevel', 'imageBuiltin
   'providerSource', 'providerId', 'providerModel'] as const;
 const optional = ['seedreamApiSource'] as const;
 export const IMAGE_HISTORY_EXTRA_FIELDS: Record<string, { label: string; type: 'string' | 'number' | 'boolean' }> = {
+  fluxImageGrounding: { label: 'FLUX grounding', type: 'boolean' },
+  fluxImageSafetyTolerance: { label: 'FLUX safety_tolerance', type: 'number' },
   mjVersion: { label: 'MJ 版本', type: 'string' }, mjAr: { label: 'MJ 比例', type: 'string' },
   mjSpeed: { label: 'MJ 速度', type: 'string' }, mjC: { label: 'MJ 混乱度', type: 'number' },
   mjS: { label: 'MJ 风格化', type: 'number' }, mjIw: { label: 'MJ 图像权重', type: 'number' },
@@ -64,6 +66,7 @@ export function historyImageBasicSettings(data: Record<string, unknown>): Record
       || typeof settings[key] !== (IMAGE_HISTORY_EXTRA_FIELDS[key]?.type || 'string')
       || (typeof settings[key] === 'number' && !Number.isFinite(settings[key])))
     || !['zhenzhen', 'seedance-nz'].includes(settings.imageBuiltinSource as string)
+    || (Object.hasOwn(settings, 'fluxImageSafetyTolerance') && ![0, 1, 2, 3, 4].includes(settings.fluxImageSafetyTolerance as number))
     || (Object.hasOwn(settings, 'seedreamApiSource') && !['zhenzhen', 'seedance-nz'].includes(settings.seedreamApiSource as string))
     || (settings.providerSource !== 'zhenzhen' && (!settings.providerSource || !settings.providerId || !settings.providerModel))) throw invalid();
   return { ...settings } as Record<string, string | number | boolean>;

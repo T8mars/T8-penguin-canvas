@@ -1,0 +1,81 @@
+{
+  "schema": "t8-workflow-fragment",
+  "version": 1,
+  "title": "flux3-t2i",
+  "nodes": [
+    {
+      "id": "generation",
+      "type": "image",
+      "position": {
+        "x": 430,
+        "y": 80
+      },
+      "data": {
+        "label": "flux-3-image",
+        "providerSource": "zhenzhen",
+        "model": "flux-3-image",
+        "apiModel": "flux-3-image",
+        "imageBuiltinSource": "seedance-nz",
+        "aspectRatio": "1:1",
+        "sizeLevel": "768sq",
+        "apimartImageCount": 1,
+        "imageOnlyOutput": true,
+        "fluxImageGrounding": true,
+        "fluxImageSafetyTolerance": 2,
+        "prompt": "A friendly penguin standing next to a yellow ceramic cup, soft pale blue background, clean detailed illustration, no text.",
+        "referenceImages": [],
+        "reuseResult": false
+      }
+    },
+    {
+      "id": "output",
+      "type": "output",
+      "position": {
+        "x": 850,
+        "y": 80
+      },
+      "data": {
+        "label": "结果 / Result"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "output-edge",
+      "source": "generation",
+      "target": "output"
+    }
+  ],
+  "nodeCount": 2,
+  "edgeCount": 1,
+  "nodeTypes": [
+    "image",
+    "output"
+  ],
+  "topologyPreview": {
+    "nodes": [
+      {
+        "id": "generation",
+        "type": "image",
+        "label": "flux-3-image",
+        "x": 480,
+        "y": 130
+      },
+      {
+        "id": "output",
+        "type": "output",
+        "label": "结果 / Result",
+        "x": 900,
+        "y": 130
+      }
+    ],
+    "edges": [
+      {
+        "id": "output-edge",
+        "source": "generation",
+        "target": "output"
+      }
+    ]
+  },
+  "savedAt": "2026-10-10T00:00:00.000Z"
+}
