@@ -18,11 +18,13 @@ const {
 const { providerTrace } = require('./providerTrace');
 const {
   resolveTunPublicDns,
+  isPrivateAddress,
   safeRemoteMediaFetch,
 } = require('../utils/safeRemoteMediaFetch');
 const { providerIdempotencyHeaders } = require('../services/providerSubmissionContext');
 const { resolveBundledFfprobe, resolveBundledFfmpeg } = require('./llmMedia');
 const NB_FLUX_VIDU = require('../shared/nb21FluxViduQ4Contract.json');
+const TOPAZ_VIDEO_CONTRACT = require('../shared/topazVideoContract.json');
 const ZHENZHEN_IMAGE_NB_21_MODEL = NB_FLUX_VIDU.banana21.model;
 const FLUX3_IMAGE_MODEL = NB_FLUX_VIDU.flux.model;
 const VIDU_Q4_MODELS = new Set(NB_FLUX_VIDU.viduQ4.models);
@@ -4687,6 +4689,42 @@ async function submitHailuoTask(request, apiKey, options = {}) {
   return { taskId, model: built.model, taskType: built.taskType, ...safeProviderTrace(response, data, { pollCount: 0 }) };
 }
 
+async function buildTopazVideoPayload(request, apiKey, options = {}) {
+  if (request.model !== TOPAZ_VIDEO_CONTRACT.model) throw boundaryError('未知 Topaz 视频修复模型', 'TOPAZ_INVALID_MODEL', 400);
+  const resolution = request.resolution ?? TOPAZ_VIDEO_CONTRACT.defaultResolution;
+  const quality = request.quality ?? TOPAZ_VIDEO_CONTRACT.defaultQuality;
+  if (!TOPAZ_VIDEO_CONTRACT.resolutions.includes(resolution)) throw boundaryError('Topaz 分辨率必须为 720p / 1080p / 2K / 4K', 'TOPAZ_INVALID_RESOLUTION', 400);
+  if (!TOPAZ_VIDEO_CONTRACT.qualities.includes(quality)) throw boundaryError('Topaz 修复模型必须为 Ultra / Max / High / Medium / Low', 'TOPAZ_INVALID_QUALITY', 400);
+  const sources = normalizeList(request.videos);
+  if (sources.length !== 1) throw boundaryError('Topaz 必须提供且只能提供 1 个 MP4 视频', 'TOPAZ_INVALID_SOURCE_COUNT', 400);
+  const source = normalizeT8LocalMediaRef(sources[0]);
+  let videoUrl;
+  if (/^https?:\/\//i.test(source)) {
+    // A documented public URL is forwarded, not downloaded and re-uploaded.
+    // The 50 MiB cap belongs to local uploads; never add it to direct URLs.
+    let parsed;
+    try { parsed = new URL(source); } catch { throw boundaryError('Topaz 视频直链必须是公开 http(s) URL', 'TOPAZ_INVALID_URL', 400); }
+    const host = parsed.hostname.replace(/^\[|\]$/g, '').replace(/\.$/, '').toLowerCase();
+    if (!host || parsed.username || parsed.password || (net.isIP(host) ? isPrivateAddress(host)
+      : !host.includes('.') || /(?:^|\.)(?:local|internal|localhost|home\.arpa)$/.test(host))) {
+      throw boundaryError('Topaz 视频直链必须是公开 http(s) URL', 'TOPAZ_INVALID_URL', 400);
+    }
+    videoUrl = source;
+  } else {
+    videoUrl = await uploadMedia(source, 'video', apiKey, {
+      ...options,
+      maxBytes: TOPAZ_VIDEO_CONTRACT.maxUploadBytes,
+      allowedMimes: ['video/mp4'],
+      cacheVariant: 'topaz-video-mp4-v1',
+      validateBuffer: (buffer) => {
+        if (buffer.length < 12 || buffer.toString('ascii', 4, 8) !== 'ftyp') throw new Error('Topaz 仅支持有效 MP4 视频');
+      },
+    });
+  }
+  return { payload: { model: TOPAZ_VIDEO_CONTRACT.model, metadata: { video_url: [videoUrl], resolution, quality } },
+    model: TOPAZ_VIDEO_CONTRACT.model, taskType: 'upscale' };
+}
+
 async function buildVosr2VideoPayload(request, apiKey, options = {}) {
   const model = String(request.model || '').trim().toLowerCase();
   if (model !== VOSR2_VIDEO_UPSCALE_MODEL) {
@@ -5265,6 +5303,18 @@ async function querySunoMusicTask(taskId, apiKey, options = {}) {
     taskId: safeTaskId,
     ...safeProviderTrace(response, data),
   };
+}
+
+async function submitTopazVideoTask(request, apiKey, options = {}) {
+  if (!String(apiKey || '').trim()) throw new Error('缺少贞贞的平价AI小屋 API Key');
+  const built = await buildTopazVideoPayload(request, apiKey, options);
+  const response = await fetchProviderResponse(getFetchImpl(options), `${cleanBaseUrl(options.baseUrl)}${TOPAZ_VIDEO_CONTRACT.submitPath}`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` }, body: JSON.stringify(built.payload),
+  }, options, 'seedance.nz Topaz 任务提交');
+  const data = await responseJson(response, 'seedance.nz Topaz 任务提交');
+  if (!response.ok) throw createUpstreamError(data, response);
+  const taskId = requiredTaskId(data?.id || data?.task_id || data?.data?.id || data?.data?.task_id, 'seedance.nz Topaz 任务提交', response);
+  return { taskId, model: built.model, taskType: built.taskType, ...safeProviderTrace(response, data, { pollCount: 0 }) };
 }
 
 async function submitVosr2VideoTask(request, apiKey, options = {}) {
@@ -6265,13 +6315,22 @@ async function queryLegacyVideoTask(taskId, apiKey, options = {}, label = 'Vosr2
     || body?.content?.video_url
     || '',
   ).trim();
+  const listed = body?.data?.content?.video_urls || body?.content?.video_urls || body?.metadata?.video_urls;
+  const videoUrls = Array.isArray(listed) ? listed.filter((value) => typeof value === 'string' && value.trim()).map((value) => value.trim()) : [];
+  if (!videoUrls.length && videoUrl) videoUrls.push(videoUrl);
   return {
     status,
     progress: safeProgress(body?.progress ?? body?.data?.progress),
-    videoUrl: status === 'succeeded' ? videoUrl || null : null,
+    videoUrl: status === 'succeeded' ? (options.preserveVideoUrls ? videoUrls[0] : videoUrl) || null : null,
+    ...(options.preserveVideoUrls ? { videoUrls: status === 'succeeded' ? videoUrls : [] } : {}),
     failReason: status === 'failed' ? `${label}任务失败` : null,
     ...safeProviderTrace(response, data),
   };
+}
+
+async function queryTopazVideoTask(taskId, apiKey, options = {}) {
+  // Reuse the legacy transport/status mapping, while preserving the full Topaz output list.
+  return queryLegacyVideoTask(taskId, apiKey, { ...options, preserveVideoUrls: true }, 'Topaz 视频修复');
 }
 
 async function queryVosr2VideoTask(taskId, apiKey, options = {}) {
@@ -6567,6 +6626,10 @@ module.exports = {
   buildUpscalerPayload,
   buildFashVsrPayload,
   buildVosr2ImagePayload,
+  TOPAZ_VIDEO_CONTRACT,
+  buildTopazVideoPayload,
+  submitTopazVideoTask,
+  queryTopazVideoTask,
   buildVosr2VideoPayload,
   buildAnimateMotionTransferPayload,
   buildViduPayload,

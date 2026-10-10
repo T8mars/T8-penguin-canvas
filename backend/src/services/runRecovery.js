@@ -16,6 +16,7 @@ const RECOVERY_KINDS = new Set([
   'upscaler',
   'fashvsr',
   'vosr2',
+  'topaz',
   'animate',
   'vidu',
   'seed-audio',
@@ -140,6 +141,7 @@ function recoveryRequest(baseUrl, descriptor) {
   if (descriptor.kind === 'upscaler') return get(`/api/proxy/video/upscaler/status/${taskId}`);
   if (descriptor.kind === 'fashvsr') return get(`/api/proxy/video/fashvsr/status/${taskId}`);
   if (descriptor.kind === 'vosr2') return get(`/api/proxy/video/vosr2/status/${taskId}`);
+  if (descriptor.kind === 'topaz') return get(`/api/proxy/video/topaz/status/${taskId}`);
   if (descriptor.kind === 'animate') return get(`/api/proxy/video/animate/status/${taskId}`);
   if (descriptor.kind === 'vidu') return get(`/api/proxy/video/vidu/status/${taskId}${viduQ4Models.has(descriptor.model) ? `?model=${encodeURIComponent(descriptor.model)}` : ''}`);
   if (descriptor.kind === 'seed-audio') return get(`/api/proxy/audio/seed-audio/status/${taskId}`);
@@ -161,7 +163,7 @@ function normalizedState(value) {
 
 function outputKindForDescriptor(descriptor) {
   if (descriptor.kind === 'seed-audio' || descriptor.kind === 'suno') return 'audio';
-  if (['seedance', 'wan', 'happyhorse', 'hailuo', 'flux3', 'kling', 'upscaler', 'fashvsr', 'vosr2', 'animate', 'vidu', 'video', 'video-fal'].includes(descriptor.kind)) return 'video';
+  if (['seedance', 'wan', 'happyhorse', 'hailuo', 'flux3', 'kling', 'upscaler', 'fashvsr', 'vosr2', 'topaz', 'animate', 'vidu', 'video', 'video-fal'].includes(descriptor.kind)) return 'video';
   return 'image';
 }
 
@@ -184,7 +186,8 @@ function normalizeRecoveryPayload(payload, descriptor) {
   const kind = outputKindForDescriptor(descriptor);
   return {
     state,
-    outputs: [...new Set(rawUrls)].map((sourceUrl, index) => ({
+    outputs: (descriptor.kind === 'topaz' && Array.isArray(data?.videoUrls) && data.videoUrls.length
+      ? data.videoUrls.map((url) => boundedText(url, 16384)).filter(Boolean) : [...new Set(rawUrls)]).map((sourceUrl, index) => ({
       kind,
       sourceUrl,
       filename: `recovered-${descriptor.kind}-${index + 1}`,

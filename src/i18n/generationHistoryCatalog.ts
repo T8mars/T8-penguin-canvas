@@ -72,6 +72,7 @@ const entries = {
   field_apiModel: ['子模型', 'Model variant'], field_mainId: ['模型分类', 'Model family'],
   field_imageBuiltinSource: ['内置渠道', 'Built-in provider'], field_videoBuiltinSource: ['内置渠道', 'Built-in provider'],
   field_seedreamApiSource: ['Seedream 渠道', 'Seedream provider'],
+  field_topazQuality: ['Topaz 修复模型', 'Topaz restoration model'],
   field_gptImageQuality: ['图像质量', 'Image quality'], field_gptImageModeration: ['内容审核', 'Moderation'],
   field_gptImage25Size: ['图像规格', 'Image dimensions'], field_gptImage25CustomWidth: ['自定义宽度', 'Custom width'],
   field_gptImage25CustomHeight: ['自定义高度', 'Custom height'], field_gptImage25Count: ['生成数量', 'Image count'],

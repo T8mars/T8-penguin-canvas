@@ -21,6 +21,7 @@ import {
   ZHENZHEN_VIDEO_V31_QUALITY_MODEL,
   FASHVSR_VIDEO_UPSCALE_MODEL,
   VOSR2_VIDEO_UPSCALE_MODEL,
+  TOPAZ_VIDEO_CONTRACT, TOPAZ_VIDEO_UPSCALE_MODEL,
   ANIMATE_MOTION_TRANSFER_MODEL,
   ANIMATE_MOTION_TRANSFER_POSE_METHODS,
   MINIMAX_H3_V2_MODEL,
@@ -60,6 +61,7 @@ import {
   queryFashVsr,
   submitVosr2Video,
   queryVosr2Video,
+  submitTopazVideo, queryTopazVideo, type TopazVideoSubmitRequest,
   submitAnimateMotionTransfer,
   queryAnimateMotionTransfer,
   submitVidu,
@@ -89,6 +91,7 @@ import { useRunTrigger } from '../../hooks/useRunTrigger';
 import { requestCanvasNodeRun } from '../../utils/canvasRunRequest';
 import { assertFreshGenerationCompleted, beginVideoRegeneration, completeVideoRegeneration } from '../../utils/generationResultRetention';
 import PreviousGenerationNotice from './PreviousGenerationNotice';
+import TopazVideoControls from './TopazVideoControls';
 import { collectRunOutputAssets } from '../../utils/runProviderTrace';
 import type { RunNodeLifecycleReporter } from '../../types/project';
 import { logBus } from '../../stores/logs';
@@ -292,6 +295,9 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
   const isUpscaler = !isExternalSelected && modelDef.kind === 'upscaler';
   const isFashVsr = isUpscaler && apiModel === FASHVSR_VIDEO_UPSCALE_MODEL;
   const isVosr2 = isUpscaler && apiModel === VOSR2_VIDEO_UPSCALE_MODEL;
+  const isTopaz = isUpscaler && apiModel === TOPAZ_VIDEO_UPSCALE_MODEL;
+  const topazQuality = TOPAZ_VIDEO_CONTRACT.qualities.includes(d?.topazQuality) ? d.topazQuality : TOPAZ_VIDEO_CONTRACT.defaultQuality;
+  const topazVideoUrl = typeof d?.topazVideoUrl === 'string' ? d.topazVideoUrl.trim() : '';
   const isAnimate = !isExternalSelected && modelDef.kind === 'animate' && apiModel === ANIMATE_MOTION_TRANSFER_MODEL;
   const isVidu = !isExternalSelected && modelDef.kind === 'vidu';
   const isViduQ4 = isVidu && isViduQ4Model(apiModel);
@@ -771,7 +777,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
     return {
       prompt: prompts.join('\n').trim(),
       imageUrls: isViduQ4 ? [...upImageUrls, ...localRefImages] : dedupe([...upImageUrls, ...localRefImages]),
-      videoUrls: dedupe([...upVideoUrls, ...localRefVideos]),
+      videoUrls: isTopaz ? [...upVideoUrls, ...localRefVideos, ...(topazVideoUrl ? [topazVideoUrl] : [])] : dedupe([...upVideoUrls, ...localRefVideos]),
       audioUrls: isViduQ4 ? [...upAudioUrls, ...localRefAudios] : dedupe([...upAudioUrls, ...localRefAudios]),
     };
   };
@@ -827,6 +833,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
       ratio: def.defaultRatio,
       duration: def.defaultDuration ?? def.durations?.[0],
       resolution: def.defaultResolution || '',
+      ...(nextModel === TOPAZ_VIDEO_UPSCALE_MODEL ? { topazQuality: TOPAZ_VIDEO_CONTRACT.defaultQuality } : {}),
       ...(nextModel === 'grok-imagine-video-1.5' ? { gkfMode: 'image_to_video' } : {}),
       ...(isGrokVideo15NewModel(nextModel) ? { ratio: '16:9', resolution: '' } : {}),
       ...(nextModel.startsWith('vidu-q3-') ? { viduSeed: -1 } : {}),
@@ -928,7 +935,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
             : isKling
               ? await queryKling(tid)
             : isUpscaler
-              ? isVosr2 ? await queryVosr2Video(tid) : isFashVsr ? await queryFashVsr(tid) : await queryUpscaler(tid)
+              ? isTopaz ? await queryTopazVideo(tid, { signal: reporter?.signal }) : isVosr2 ? await queryVosr2Video(tid) : isFashVsr ? await queryFashVsr(tid) : await queryUpscaler(tid)
             : isVidu
               ? await queryVidu(tid, apiModel)
             : isHappyHorse
@@ -943,7 +950,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
             model: apiModel,
             taskId: tid,
             recovery: {
-              kind: isWan ? 'wan' : isAnimate ? 'animate' : isSeedance25 ? 'seedance' : isFlux3 ? 'flux3' : isHailuo ? 'hailuo' : isKling ? 'kling' : isVosr2 ? 'vosr2' : isFashVsr ? 'fashvsr' : isUpscaler ? 'upscaler' : isVidu ? 'vidu' : isHappyHorse ? 'happyhorse' : isApimartBudgetVideo ? 'seedance' : 'video',
+              kind: isWan ? 'wan' : isAnimate ? 'animate' : isSeedance25 ? 'seedance' : isFlux3 ? 'flux3' : isHailuo ? 'hailuo' : isKling ? 'kling' : isTopaz ? 'topaz' : isVosr2 ? 'vosr2' : isFashVsr ? 'fashvsr' : isUpscaler ? 'upscaler' : isVidu ? 'vidu' : isHappyHorse ? 'happyhorse' : isApimartBudgetVideo ? 'seedance' : 'video',
               taskId: tid, model: apiModel, pollIntervalMs: POLL_INT, maxPolls: MAX,
             },
             requestId: r.requestId,
@@ -978,7 +985,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
             const completedDraftCache = isFlux3 ? String((r as any).draftCache || '').trim() : '';
             stopPoll();
             const completedPatch = {
-              ...completeVideoRegeneration([r.videoUrl], completedPrompt),
+              ...completeVideoRegeneration(isTopaz && 'videoUrls' in r && r.videoUrls?.length ? r.videoUrls : [r.videoUrl], completedPrompt),
               progress: '100%',
               provider: isSeedanceNzVideo ? 'seedance-nz' : 'zhenzhen',
               apiModel,
@@ -1476,7 +1483,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
       return;
     }
     if (isUpscaler && videoUrls.length !== 1) {
-      setError(isVosr2
+      setError(isTopaz ? translate('nodes:generation.topaz.inputRequired') : isVosr2
         ? translate('nodes:generation.vosr2.videoInputRequired')
         : isFashVsr
         ? 'FlashVSR 必须连接或拖入且只能保留 1 个 480P、3-15 秒视频'
@@ -2117,6 +2124,19 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
       }
 
       if (isUpscaler) {
+        if (isTopaz) {
+          logBus.info(`提交 Topaz: ${resolution} · ${topazQuality}`, src);
+          const result = await submitTopazVideo({ model: 'Topaz-Upscale-LowPirce', videos: videoUrls,
+            resolution: resolution as TopazVideoSubmitRequest['resolution'], quality: topazQuality,
+          }, { submissionKey: reporter?.providerSubmissionKey, signal: reporter?.signal });
+          if (!isCurrentGenerationRun(runId) || reporter?.signal?.aborted) return;
+          await reporter?.providerSubmitted({ provider: traceProvider, model: traceModel, upstreamTaskId: result.taskId,
+            requestId: result.requestId, transportHttpStatus: result.transportHttpStatus, upstreamHttpStatus: result.upstreamHttpStatus,
+            usage: result.usage, httpStatusSource: 'local-backend' });
+          if (!isCurrentGenerationRun(runId) || reporter?.signal?.aborted) return;
+          update({ status: 'polling', taskId: result.taskId, progress: '0%' });
+          return await startPolling(result.taskId, runId, reporter, '');
+        }
         if (isVosr2) {
           logBus.info('提交 Vosr2: 单个视频，固定输出 2K', src);
           const result = await submitVosr2Video({
@@ -2546,6 +2566,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
             ...(falReg.paramKind === 'sora-fal' ? { soraMode, soraRatio, soraDuration, soraResolution, soraDeleteVideo, soraBlockIp } : {}),
           } : {}),
           ...(!isExternalSelected ? {
+            ...(isTopaz ? { topazQuality } : {}),
             ...(isApimartBudgetVideo && isApimartOmniLowprice ? { apimartOmniLowpriceMode, apimartOmniLowpriceNsfwCheck } : {}),
             ...(isSeedance25 ? { generateAudio, returnLastFrame } : {}),
             ...(isKling && klingMode !== 'edit' ? { klingNegativePrompt } : {}),
@@ -3362,13 +3383,13 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
 
         {isUpscaler && (
           <div className="rounded border border-emerald-300/20 bg-emerald-400/[0.06] px-2 py-1.5 text-[10px] leading-relaxed text-white/55">
-            {isVosr2
+            {isTopaz ? translate('nodes:generation.topaz.description') : isVosr2
               ? translate('nodes:generation.vosr2.videoDescription')
               : isFashVsr
               ? '连接或拖入恰好 1 个 480P、3-15 秒视频；无需 Prompt，也没有分辨率参数，模型按固定协议执行超分。'
               : '连接或拖入恰好 1 个 MP4 视频，选择目标分辨率后执行高清化；无需 Prompt，时长由输入视频读取。'}
             <div className="mt-1 text-white/35">
-              {isVosr2
+              {isTopaz ? translate('nodes:generation.topaz.channel') : isVosr2
                 ? translate('nodes:generation.vosr2.videoChannel')
                 : isFashVsr
                 ? '贞贞的平价AI小屋 API · FlashVSR_video_upscale · 固定 ¥1/次'
@@ -3377,6 +3398,8 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
             {isVosr2 && <div className="mt-1 text-white/35">{translate('nodes:generation.vosr2.actualBilling')}</div>}
           </div>
         )}
+
+        {isTopaz && <TopazVideoControls quality={topazQuality} videoUrl={topazVideoUrl} update={update} />}
 
         {isVidu && (
           <div className="rounded border border-violet-300/20 bg-violet-400/[0.06] px-2 py-1.5 text-[10px] leading-relaxed text-white/55">

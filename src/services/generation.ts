@@ -1173,6 +1173,7 @@ export interface HappyHorseQueryResult extends ProviderTransportTrace {
   status: 'pending' | 'running' | 'succeeded' | 'failed' | string;
   progress?: string | number;
   videoUrl?: string | null;
+  videoUrls?: string[];
   failReason?: string | null;
   error?: string;
   code?: string;
@@ -1577,6 +1578,29 @@ export interface SeedanceQueryResult extends ProviderTransportTrace {
   taskProvider?: Exclude<SeedanceTaskProvider, 'auto'>;
   model?: string;
   taskType?: 't2v' | 'i2v' | 'v2v' | 'multi';
+}
+
+export interface TopazVideoSubmitRequest {
+  model: 'Topaz-Upscale-LowPirce';
+  videos: string[];
+  resolution: '720p' | '1080p' | '2K' | '4K';
+  quality: 'Ultra' | 'Max' | 'High' | 'Medium' | 'Low';
+}
+
+export async function submitTopazVideo(req: TopazVideoSubmitRequest, transport: ProviderSubmissionTransport = {}) {
+  const r = await fetch('/api/proxy/video/topaz/submit', {
+    method: 'POST', headers: providerSubmissionHeaders(transport), body: JSON.stringify(req), signal: transport.signal,
+  });
+  const data = await safeJsonResponse(r, 'Topaz 视频修复提交');
+  if (!r.ok || !data.success) throw providerResponseError(r, data);
+  return withProviderTransportTrace(data.data as { taskId: string; model: string; taskType: string }, r);
+}
+
+export async function queryTopazVideo(taskId: string, transport: ProviderSubmissionTransport = {}): Promise<HappyHorseQueryResult> {
+  const r = await fetch(`/api/proxy/video/topaz/status/${encodeURIComponent(taskId)}`, { signal: transport.signal });
+  const data = await safeJsonResponse(r, 'Topaz 视频修复查询');
+  if (!r.ok || !data.success) throw providerResponseError(r, data);
+  return withProviderTransportTrace(data.data, r);
 }
 
 export interface Vosr2VideoSubmitRequest {

@@ -12,6 +12,7 @@ export type RunRecoveryKind =
   | 'upscaler'
   | 'fashvsr'
   | 'vosr2'
+  | 'topaz'
   | 'animate'
   | 'vidu'
   | 'seed-audio'
@@ -38,7 +39,7 @@ export interface RunRecoveryDescriptor {
 }
 const RECOVERY_KINDS = new Set<RunRecoveryKind>([
   'runninghub', 'seedance', 'seedream-nz', 'wan', 'happyhorse', 'hailuo', 'flux3', 'kling', 'upscaler', 'fashvsr', 'vosr2', 'animate', 'vidu', 'seed-audio', 'suno',
-  'image', 'mj', 'video', 'image-fal', 'video-fal',
+  'topaz', 'image', 'mj', 'video', 'image-fal', 'video-fal',
 ]);
 
 function text(value: unknown, maxLength: number): string {
@@ -112,6 +113,7 @@ export function inferRunRecoveryDescriptor(payload: Record<string, unknown>): Ru
     if (lowerModel === 'vosr2-video-upscale') {
       return { version: 1, kind: 'vosr2', taskId, model, pollIntervalMs, maxPolls };
     }
+    if (model === 'Topaz-Upscale-LowPirce') return { version: 1, kind: 'topaz', taskId, model, pollIntervalMs, maxPolls };
     if (lowerModel === 'animate-motion-transfer') {
       return { version: 1, kind: 'animate', taskId, model, pollIntervalMs, maxPolls };
     }

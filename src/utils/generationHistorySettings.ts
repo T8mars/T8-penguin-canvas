@@ -121,7 +121,7 @@ export function prepareHistorySettingsDraft(archive: GenerationHistoryInputArchi
   const referenceWarning = snapshot.upstreamNodes.length > 0 || snapshot.incomingEdges.length > 0
     || Boolean(scope.currentEdges?.some(edge => edge.target === target.id))
     || referenceKeys.some(key => [saved[key], before[key]].some(value => Array.isArray(value) && value.length > 0))
-    || ['wanAudioUrl', 'wan30FileUrl', 'wan30LinkUrl', 'gkfReferenceUrls', 'soraCharacterIds', 'mjNzCref', 'mjNzSref', 'mjNzDref'].some(key => [saved[key], before[key]].some(value => typeof value === 'string' && value.trim().length > 0));
+    || ['topazVideoUrl', 'wanAudioUrl', 'wan30FileUrl', 'wan30LinkUrl', 'gkfReferenceUrls', 'soraCharacterIds', 'mjNzCref', 'mjNzSref', 'mjNzDref'].some(key => [saved[key], before[key]].some(value => typeof value === 'string' && value.trim().length > 0));
   return { prompt: typeof saved.prompt === 'string' ? saved.prompt : '', fields, referenceWarning,
     nodeId: target.id, nodeEntityUid: binding.nodeEntityUid, dataPatch, dataUnsetKeys };
 }

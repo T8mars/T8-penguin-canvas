@@ -1,6 +1,6 @@
 {
   "schema": "t8-creative-runtime-catalog-v1",
-  "sourceDigest": "bbdf3901583c3dae8f4da34e667ed4fcb2520e0ec5783c73b37af2a316a9ee78",
+  "sourceDigest": "9a1f801ed9a7c0db6b519ef67e5d5d17b1ba991cd90864aa3914a011055fd75b",
   "generatedFrom": [
     "src/providers/models.ts",
     "src/config/seedance.ts",
@@ -5702,6 +5702,51 @@
       }
     },
     {
+      "id": "video:seedance-nz:Topaz-Upscale-LowPirce",
+      "provider": "seedance-nz",
+      "platformLabel": "贞贞的平价AI小屋",
+      "model": "Topaz-Upscale-LowPirce",
+      "label": "Topaz-Upscale-LowPirce",
+      "family": "Topaz-Upscale-LowPirce",
+      "available": true,
+      "parameters": {
+        "label": "Topaz-Upscale-LowPirce",
+        "platformLabel": "贞贞的平价AI小屋",
+        "family": "Topaz-Upscale-LowPirce",
+        "available": true,
+        "nodeKind": "upscaler",
+        "ratios": [],
+        "defaultRatio": "",
+        "durations": [],
+        "resolutions": [
+          "720p",
+          "1080p",
+          "2K",
+          "4K"
+        ],
+        "defaultResolution": "1080p",
+        "supportsImages": false,
+        "supportsVideos": true,
+        "supportsAudios": false,
+        "maxReferenceImages": 0,
+        "maxReferenceVideos": 1,
+        "maxReferenceAudios": 0,
+        "description": "Topaz · 单个 MP4 视频高清修复，保持原始宽高比",
+        "restorationModels": [
+          "Ultra",
+          "Max",
+          "High",
+          "Medium",
+          "Low"
+        ],
+        "defaultRestorationModel": "Max",
+        "restorationModelField": "topazQuality",
+        "inputVideoUrlField": "topazVideoUrl",
+        "endpoint": "/v1/video/generations",
+        "noPrompt": true
+      }
+    },
+    {
       "id": "video:seedance-nz:vidu-q3-ad-r2v",
       "provider": "seedance-nz",
       "platformLabel": "贞贞的平价AI小屋",
@@ -10310,7 +10355,7 @@
   "counts": {
     "llm": 34,
     "image": 65,
-    "video": 135,
+    "video": 136,
     "audio": 17,
     "actions": 61
   }

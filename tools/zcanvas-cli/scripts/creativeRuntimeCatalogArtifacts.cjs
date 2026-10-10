@@ -375,6 +375,12 @@ function buildRuntimeCatalog() {
           maxReferenceVideos: option.maxRefVideos ?? (family.supportVideos === true ? 1 : 0),
           maxReferenceAudios: option.maxRefAudios ?? 0,
           description: option.description ?? family.description,
+          ...(option.value === models.TOPAZ_VIDEO_UPSCALE_MODEL ? {
+            restorationModels: models.TOPAZ_VIDEO_CONTRACT.qualities,
+            defaultRestorationModel: models.TOPAZ_VIDEO_CONTRACT.defaultQuality,
+            restorationModelField: 'topazQuality', inputVideoUrlField: 'topazVideoUrl',
+            endpoint: models.TOPAZ_VIDEO_CONTRACT.submitPath, noPrompt: true,
+          } : {}),
         },
         option.disabled !== true,
       ));

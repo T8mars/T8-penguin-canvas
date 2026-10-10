@@ -604,7 +604,7 @@ class CreatorActionExecutor {
           taskType: submitted.taskType || action.type,
           recovery: {
             version: 1,
-            kind: action.type === 'image' ? 'image' : 'video',
+            kind: action.modelSnapshot.modelId === seedanceNz.TOPAZ_VIDEO_CONTRACT.model ? 'topaz' : action.type === 'image' ? 'image' : 'video',
             taskId: submitted.taskId,
             model: action.modelSnapshot.modelId,
             taskProvider: 'seedance-nz',
@@ -1003,6 +1003,12 @@ class CreatorActionExecutor {
       }, apiKey, { baseUrl });
     }
     const modelId = action.modelSnapshot.modelId;
+    if (modelId === seedanceNz.TOPAZ_VIDEO_CONTRACT.model) {
+      return this.provider.submitTopazVideoTask({ model: modelId, videos: grouped.videos,
+        resolution: action.parameters.resolution || seedanceNz.TOPAZ_VIDEO_CONTRACT.defaultResolution,
+        quality: action.parameters.topazQuality || seedanceNz.TOPAZ_VIDEO_CONTRACT.defaultQuality,
+      }, apiKey, { baseUrl });
+    }
     const parameters = modelEntry?.parameters && typeof modelEntry.parameters === 'object'
       ? modelEntry.parameters : {};
     const family = String(parameters.family || modelEntry?.family || '').trim().toLowerCase();
@@ -1086,6 +1092,8 @@ class CreatorActionExecutor {
     while (Date.now() < deadline) {
       const result = action.type === 'image'
         ? await this.provider.queryImageTask(taskId, apiKey, { baseUrl })
+        : modelId === seedanceNz.TOPAZ_VIDEO_CONTRACT.model
+          ? await this.provider.queryTopazVideoTask(taskId, apiKey, { baseUrl })
         : modelId === 'MiniMax-H3'
           ? await this.provider.queryMinimaxH3V2Task(taskId, apiKey, { baseUrl })
           : seedanceNz.VIDU_Q4_MODELS.has(modelId)
@@ -1096,7 +1104,8 @@ class CreatorActionExecutor {
       if (result.status === 'succeeded') {
         const urls = action.type === 'image'
           ? [...new Set([...(Array.isArray(result.imageUrls) ? result.imageUrls : []), result.imageUrl].map((url) => bounded(url, 4_000)).filter(Boolean))].slice(0, 4)
-          : [bounded(result.videoUrl, 4_000)].filter(Boolean);
+          : (modelId === seedanceNz.TOPAZ_VIDEO_CONTRACT.model && result.videoUrls?.length
+            ? result.videoUrls.map((url) => bounded(url, 4_000)) : [bounded(result.videoUrl, 4_000)]).filter(Boolean);
         if (!urls.length) throw new CreatorActionExecutorError('CREATOR_PROVIDER_RESULT_MISSING', '生成任务完成但没有返回结果');
         return { url: urls[0], urls, pollCount, result };
       }
@@ -1254,7 +1263,7 @@ class CreatorActionExecutor {
           taskType: submitted.taskType || action.type,
           recovery: {
             version: 1,
-            kind: action.type === 'image' ? 'image' : 'video',
+            kind: action.modelSnapshot.modelId === seedanceNz.TOPAZ_VIDEO_CONTRACT.model ? 'topaz' : action.type === 'image' ? 'image' : 'video',
             taskId: submitted.taskId,
             model: snapshot.modelId,
             taskProvider: 'seedance-nz',

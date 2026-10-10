@@ -4,6 +4,9 @@
  */
 
 import NB_FLUX_VIDU from '../../backend/src/shared/nb21FluxViduQ4Contract.json';
+import TOPAZ_VIDEO from '../../backend/src/shared/topazVideoContract.json';
+export const TOPAZ_VIDEO_CONTRACT = TOPAZ_VIDEO;
+export const TOPAZ_VIDEO_UPSCALE_MODEL = TOPAZ_VIDEO.model;
 export const NB_FLUX_VIDU_CONTRACT = NB_FLUX_VIDU;
 export const FLUX3_IMAGE_MODEL = NB_FLUX_VIDU.flux.model;
 export const ZHENZHEN_IMAGE_NB_21_MODEL = NB_FLUX_VIDU.banana21.model;
@@ -1556,6 +1559,23 @@ export const VIDEO_MODELS: VideoModelDef[] = [
     durations: [],
     resolutions: [],
     defaultResolution: '',
+    supportImages: false,
+    supportVideos: true,
+    maxRefImages: 0,
+  },
+  {
+    id: TOPAZ_VIDEO_UPSCALE_MODEL,
+    label: 'Topaz',
+    kind: 'upscaler',
+    provider: 'zhenzhen',
+    builtinSource: 'seedance-nz',
+    description: 'Topaz · 单个 MP4 视频高清修复，保持原始宽高比',
+    apiModelOptions: [{ value: TOPAZ_VIDEO_UPSCALE_MODEL, label: TOPAZ_VIDEO_UPSCALE_MODEL }],
+    ratios: [],
+    defaultRatio: '',
+    durations: [],
+    resolutions: TOPAZ_VIDEO.resolutions,
+    defaultResolution: TOPAZ_VIDEO.defaultResolution,
     supportImages: false,
     supportVideos: true,
     maxRefImages: 0,

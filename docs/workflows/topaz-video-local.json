@@ -1,0 +1,114 @@
+{
+  "schema": "t8-workflow-fragment",
+  "version": 1,
+  "title": "topaz-video-local",
+  "nodes": [
+    {
+      "id": "source-video",
+      "type": "upload",
+      "position": {
+        "x": 0,
+        "y": 80
+      },
+      "data": {
+        "label": "上传 MP4 视频 / Upload MP4 video",
+        "uploadType": "video",
+        "lockedUploadType": "video"
+      }
+    },
+    {
+      "id": "generation",
+      "type": "video",
+      "position": {
+        "x": 430,
+        "y": 80
+      },
+      "data": {
+        "label": "Topaz · 本地 MP4 / Local MP4",
+        "providerSource": "zhenzhen",
+        "videoBuiltinSource": "seedance-nz",
+        "mainId": "Topaz-Upscale-LowPirce",
+        "model": "Topaz-Upscale-LowPirce",
+        "resolution": "720p",
+        "topazQuality": "Low",
+        "topazVideoUrl": "",
+        "localRefImages": [],
+        "localRefVideos": [],
+        "localRefAudios": [],
+        "prompt": "",
+        "ratio": "",
+        "duration": 0,
+        "seed": 0,
+        "reuseResult": false
+      }
+    },
+    {
+      "id": "output",
+      "type": "output",
+      "position": {
+        "x": 850,
+        "y": 80
+      },
+      "data": {
+        "label": "修复结果 / Restored video"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "video-edge",
+      "source": "source-video",
+      "target": "generation"
+    },
+    {
+      "id": "output-edge",
+      "source": "generation",
+      "target": "output"
+    }
+  ],
+  "nodeCount": 3,
+  "edgeCount": 2,
+  "nodeTypes": [
+    "upload",
+    "video",
+    "output"
+  ],
+  "topologyPreview": {
+    "nodes": [
+      {
+        "id": "source-video",
+        "type": "upload",
+        "label": "上传 MP4 视频 / Upload MP4 video",
+        "x": 50,
+        "y": 130
+      },
+      {
+        "id": "generation",
+        "type": "video",
+        "label": "Topaz · 本地 MP4 / Local MP4",
+        "x": 480,
+        "y": 130
+      },
+      {
+        "id": "output",
+        "type": "output",
+        "label": "修复结果 / Restored video",
+        "x": 900,
+        "y": 130
+      }
+    ],
+    "edges": [
+      {
+        "id": "video-edge",
+        "source": "source-video",
+        "target": "generation"
+      },
+      {
+        "id": "output-edge",
+        "source": "generation",
+        "target": "output"
+      }
+    ]
+  },
+  "savedAt": "2026-10-11T00:00:00.000Z"
+}

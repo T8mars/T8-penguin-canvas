@@ -4341,6 +4341,51 @@ router.get('/video/fashvsr/status/:tid', async (req, res) => {
   }
 });
 
+router.post('/video/topaz/submit', async (req, res) => {
+  const apiKey = String(loadRawSettings()?.zhenzhenSd2ApiKey || '').trim();
+  if (!apiKey) return res.status(400).json({ success: false, error: '缺少贞贞的平价AI小屋 API Key' });
+  try {
+    const result = await seedanceNz.submitTopazVideoTask(req.body || {}, apiKey, { signal: req.t8AbortSignal });
+    rememberTaskKey(result.taskId, apiKey, { provider: 'topaz-nz', model: result.model, taskType: result.taskType });
+    return res.json({ success: true, data: { taskId: result.taskId, model: result.model, taskType: result.taskType, ...seedanceNzTrace(result) } });
+  } catch (error) {
+    proxyRouteError('proxy/video/topaz/submit 错误', error, [apiKey]);
+    const status = Number(error?.status || 500);
+    return res.status(status >= 400 && status < 600 ? status : 500).json({ success: false,
+      error: proxyPublicError(error, 'Topaz 视频修复提交失败', [apiKey]), ...seedanceNzTrace(error) });
+  }
+});
+
+router.get('/video/topaz/status/:tid', async (req, res) => {
+  const remembered = recallTaskMeta(req.params.tid, 'topaz-nz');
+  const apiKey = String(remembered?.apiKey || loadRawSettings()?.zhenzhenSd2ApiKey || '').trim();
+  if (!apiKey) return res.status(400).json({ success: false, error: '缺少贞贞的平价AI小屋 API Key' });
+  try {
+    const result = await seedanceNz.queryTopazVideoTask(req.params.tid, apiKey, { signal: req.t8AbortSignal });
+    const videoUrls = [];
+    // An empty successful response must also pass through the shared failure boundary.
+    const sources = result.videoUrls?.length ? result.videoUrls : [result.videoUrl];
+    for (const [index, remoteUrl] of sources.entries()) {
+      const materialized = await materializeRemoteTaskOutput({ status: result.status, remoteUrl, kind: 'video',
+        materializationKey: `topaz-nz:${req.params.tid}:${index}`, providerFetchImpl: seedanceNz.fetchRemote, signal: req.t8AbortSignal });
+      if (materialized.failure) return sendCompletedRemoteOutputFailure(res, materialized.failure, {
+        status: result.status, videoUrl: null, videoUrls: [], ...seedanceNzTrace(result),
+      }, { defaultCode: 'topaz_output_unusable', defaultMessage: 'Topaz 视频结果暂时无法保存，请继续查询原任务。' });
+      if (materialized.url) videoUrls.push(materialized.url);
+    }
+    return res.json({ success: true, data: { status: result.status, progress: safeDiagnosticText(result.progress || '', 80, [apiKey]),
+      videoUrl: videoUrls[0] || null, videoUrls,
+      failReason: result.status === 'failed' ? 'Topaz 视频修复任务失败' : '',
+      model: seedanceNz.TOPAZ_VIDEO_CONTRACT.model, taskType: 'upscale', ...seedanceNzTrace(result) } });
+  } catch (error) {
+    proxyRouteError('proxy/video/topaz/status 错误', error, [apiKey]);
+    if (sendTaskResultQueryRecovery(res, error, { taskId: req.params.tid })) return;
+    const status = Number(error?.status || 500);
+    return res.status(status >= 400 && status < 600 ? status : 500).json({ success: false,
+      error: proxyPublicError(error, 'Topaz 视频修复查询失败', [apiKey]), ...seedanceNzTrace(error) });
+  }
+});
+
 router.post('/video/vosr2/submit', async (req, res) => {
   const settings = loadRawSettings();
   const apiKey = String(settings?.zhenzhenSd2ApiKey || '').trim();

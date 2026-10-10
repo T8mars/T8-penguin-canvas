@@ -1,0 +1,10 @@
+{
+  "model": "Topaz-Upscale-LowPirce",
+  "resolutions": ["720p", "1080p", "2K", "4K"],
+  "qualities": ["Ultra", "Max", "High", "Medium", "Low"],
+  "defaultResolution": "1080p",
+  "defaultQuality": "Max",
+  "submitPath": "/v1/video/generations",
+  "queryPath": "/v1/video/generations/",
+  "maxUploadBytes": 52428800
+}

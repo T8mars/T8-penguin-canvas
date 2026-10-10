@@ -185,6 +185,13 @@ export const zhCN = {
         viduReferences: 'Vidu Q4：图生需恰好 1 张图，参考生需 1–15 张图、最多 3 段音频；不接受参考视频',
         generateAudio: '生成音频', isRec: '启用 is_rec（官方默认开启）', watermark: '添加水印',
       },
+      topaz: {
+        restorationModel: '修复模型', videoUrl: '公开 MP4 直链（与素材输入二选一）',
+        urlPlaceholder: '连接或拖入视频时留空',
+        inputRequired: 'Topaz 需要恰好 1 个 MP4；素材输入与公开直链不能同时使用',
+        description: '连接或拖入一条 MP4，或填写公开直链。选择修复模型和目标分辨率；按总像素预算保留原始宽高比，无需提示词、时长或 Seed。',
+        channel: '贞贞的平价AI小屋 · Topaz-Upscale-LowPirce · 720p / 1080p / 2K / 4K',
+      },
       gptImage25: {
         channel: '贞贞的AI工坊 · GPT Image 2.5',
         description: '无参考图为文生图；有参考图为编辑，按连接/上传顺序最多输入 14 张；单次可输出 1–10 张。',
@@ -802,6 +809,13 @@ export const enUS = {
         viduDescription: 'Vidu Q4: I2V requires exactly one image, uses its ratio, and allows an empty prompt. R2V requires a prompt and 1–15 images; optionally add up to 3 audios (converted to MP3).',
         viduReferences: 'Vidu Q4: I2V needs exactly 1 image; R2V needs 1–15 images and up to 3 audios. Reference videos are not supported.',
         generateAudio: 'Generate audio', isRec: 'Enable is_rec (official default: on)', watermark: 'Add watermark',
+      },
+      topaz: {
+        restorationModel: 'Restoration model', videoUrl: 'Public MP4 URL (instead of material input)',
+        urlPlaceholder: 'Leave empty when connecting or dropping a video',
+        inputRequired: 'Topaz requires exactly one MP4. Do not combine a material input with a public URL.',
+        description: 'Connect or drop one MP4, or enter a public URL. Select a restoration model and output pixel budget; the source aspect ratio is preserved. No prompt, duration, or seed is sent.',
+        channel: 'Zhenzhen Budget AI House · Topaz-Upscale-LowPirce · 720p / 1080p / 2K / 4K',
       },
       gptImage25: {
         channel: 'Zhenzhen AI Workshop · GPT Image 2.5',

@@ -1,6 +1,25 @@
 {
   "$schema": "本文件为 T8-penguin-canvas 节点清单防丢失锁,任何节点删减都需要在 roadmap.md 中说明并更新本文件。",
-  "version": "3.3.1",
+  "version": "3.3.2",
+  "electronReleaseV332": {
+    "status": "authorized-preparing",
+    "version": "3.3.2",
+    "tag": "v3.3.2",
+    "latest": false,
+    "evidence": "docs/release-v3.3.2.md",
+    "postReleaseEvidence": "owner-approved-post-release-v3.3.2",
+    "macBoundary": "same-tag-unsigned-preview; defer-only-if-quota-insufficient"
+  },
+  "topazVideo20261011": {
+    "status": "release-v3.3.2-authorized-live-verified",
+    "provider": "seedance-nz",
+    "model": "Topaz-Upscale-LowPirce",
+    "summary": "Separate Topaz video tab, exact resolution/restoration options, local MP4 or direct public URL, original-task recovery, complete output persistence and two credential-free workflows; old defaults unchanged.",
+    "details": "docs/topaz-video-upscale.md",
+    "verification": "One real 720p/Low local-MP4 task succeeded with HTTP 200; output downloaded and fully decoded. 157/157 frontend/protocol regressions, 42/42 backend cases and separate 10/10 capability checks passed.",
+    "report": "local-private/topaz-live-20261011/report.json",
+    "boundary": "v3.3.2 release authorized; see release topic for publication status. Direct URL and other parameter combinations are offline-verified only; UI end-to-end, installed-client and user-environment checks remain pending."
+  },
   "electronReleaseV331": {
     "status": "released-dual-platform-verified",
     "version": "3.3.1",
@@ -256,7 +275,7 @@
     "releaseIncluded": true,
     "version": "3.2.0",
     "tag": "v3.2.0",
-    "latest": true,
+    "latest": false,
     "sourceCommit": "dfb388c2d2dbae4df3186ea268f69cca96d793ac",
     "publishedAt": "2026-09-22T15:58:45Z",
     "url": "https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.2.0",

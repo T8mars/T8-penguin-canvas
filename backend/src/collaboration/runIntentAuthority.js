@@ -2,6 +2,7 @@ const canvasNodeSchema = require('../shared/canvasNodeSchema.json');
 const seedanceNzLlmModels = require('../shared/seedanceNzLlmModels.json');
 const seedreamNzContract = require('../shared/seedreamNzContract.json');
 const nb21FluxViduContract = require('../shared/nb21FluxViduQ4Contract.json');
+const topazVideoContract = require('../shared/topazVideoContract.json');
 
 const RUN_INTENT_AUTHORITY_SCHEMA = 't8-run-intent-authority-v1';
 const MAX_CANVAS_NODES = 20_000;
@@ -141,6 +142,7 @@ const VIDEO_RUNTIME_MODELS = Object.freeze({
   'happyhorse-1.1': ['happyhorse-1.1-t2v', 'happyhorse-1.1-i2v', 'happyhorse-1.1-r2v'],
   'seedance-2.0': ['seedance-2.0'],
   'vosr2-video-upscale': ['vosr2-video-upscale'],
+  [topazVideoContract.model]: [topazVideoContract.model],
   'animate-motion-transfer': ['animate-motion-transfer'],
   'vidu-q3': [
     'vidu-q3-turbo-t2v', 'vidu-q3-pro-t2v', 'vidu-q3-pro-fast-t2v',
@@ -166,6 +168,7 @@ const SEEDANCE_NZ_IMAGE_RUNTIME_MODELS = new Set([
   'qwen-image-global-2.1',
 ]);
 const SEEDANCE_NZ_VIDEO_RUNTIME_MODELS = new Set([
+  topazVideoContract.model,
   ...nb21FluxViduContract.viduQ4.models,
   'zhenzhen-video-g-omni-flash',
   'zhenzhen-video-gk-v15',

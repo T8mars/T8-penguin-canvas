@@ -43,6 +43,7 @@ test('video built-in sources keep workshop and budget-house catalogs independent
       'zhenzhen-upscaler',
       'fashvsr-video-upscale',
       'vosr2-video-upscale',
+      'Topaz-Upscale-LowPirce',
       'animate-motion-transfer',
       'seedance-2.5',
     ],

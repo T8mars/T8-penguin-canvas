@@ -1,9 +1,11 @@
 import contract from '../../backend/src/shared/generationHistoryInputContract.json';
+import topazContract from '../../backend/src/shared/topazVideoContract.json';
 
 const requiredStrings = ['mainId', 'model', 'videoBuiltinSource', 'ratio', 'resolution',
   'providerSource', 'providerId', 'providerModel'] as const;
 const requiredNumbers = ['duration', 'seed'] as const;
 export const VIDEO_HISTORY_EXTRA_FIELDS: Record<string, { label: string; type: 'boolean' | 'string' | 'number' | 'number-or-api-default' }> = {
+  topazQuality: { label: 'Topaz 修复模型', type: 'string' },
   viduQ4IsRec: { label: 'Vidu Q4 is_rec', type: 'boolean' },
   viduQ4Watermark: { label: 'Vidu Q4 watermark', type: 'boolean' },
   soraPrivate: { label: 'Sora 私密模式', type: 'boolean' },
@@ -56,6 +58,7 @@ export function historyVideoBasicSettings(data: Record<string, unknown>): Record
         : typeof settings[key] !== VIDEO_HISTORY_EXTRA_FIELDS[key].type))
       || (typeof settings[key] === 'number' && !Number.isFinite(settings[key])))
     || !['zhenzhen', 'seedance-nz'].includes(settings.videoBuiltinSource as string)
+    || (Object.hasOwn(settings, 'topazQuality') && !topazContract.qualities.includes(settings.topazQuality as string))
     // Only the standard Grok New branch currently captures this optional field.
     // An absent legacy value stays absent; never derive it from today's ratio.
     || (Object.hasOwn(settings, 'size') && !['1280x720', '720x1280'].includes(settings.size as string))

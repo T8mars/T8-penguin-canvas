@@ -1,7 +1,7 @@
 {
   "name": "t8-penguin-canvas",
   "private": false,
-  "version": "3.3.1",
+  "version": "3.3.2",
   "type": "module",
   "main": "electron/main.cjs",
   "description": "T8-penguin-canvas — AI 节点画布工作流工具（Web + Electron 桌面端）",
@@ -58,6 +58,9 @@
     "verify:minimax-h3-v2:live": "node scripts/verify-minimax-h3-v2-live.cjs",
     "verify:gpt-image-25:live": "node scripts/verify-gpt-image-25-live.cjs",
     "verify:vosr2:live": "node scripts/verify-vosr2-live.cjs",
+    "preverify:topaz:live": "node scripts/worktree-role.cjs development",
+    "verify:topaz:live": "node scripts/verify-topaz-live.cjs --launch",
+    "workflows:topaz": "node scripts/generate-topaz-workflows.cjs",
     "verify:qwen21-animate:live": "node scripts/verify-qwen21-animate-live.cjs",
     "preverify:nb21-flux-viduq4:live": "node scripts/worktree-role.cjs development",
     "verify:nb21-flux-viduq4:live": "node scripts/verify-nb21-flux-viduq4-live.cjs --launch",

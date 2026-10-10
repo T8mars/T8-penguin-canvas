@@ -1,0 +1,83 @@
+{
+  "schema": "t8-workflow-fragment",
+  "version": 1,
+  "title": "topaz-video-url",
+  "nodes": [
+    {
+      "id": "generation",
+      "type": "video",
+      "position": {
+        "x": 430,
+        "y": 80
+      },
+      "data": {
+        "label": "Topaz · 填写公开 MP4 直链 / Enter public MP4 URL",
+        "providerSource": "zhenzhen",
+        "videoBuiltinSource": "seedance-nz",
+        "mainId": "Topaz-Upscale-LowPirce",
+        "model": "Topaz-Upscale-LowPirce",
+        "resolution": "1080p",
+        "topazQuality": "Max",
+        "topazVideoUrl": "",
+        "localRefImages": [],
+        "localRefVideos": [],
+        "localRefAudios": [],
+        "prompt": "",
+        "ratio": "",
+        "duration": 0,
+        "seed": 0,
+        "reuseResult": false
+      }
+    },
+    {
+      "id": "output",
+      "type": "output",
+      "position": {
+        "x": 850,
+        "y": 80
+      },
+      "data": {
+        "label": "修复结果 / Restored video"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "output-edge",
+      "source": "generation",
+      "target": "output"
+    }
+  ],
+  "nodeCount": 2,
+  "edgeCount": 1,
+  "nodeTypes": [
+    "video",
+    "output"
+  ],
+  "topologyPreview": {
+    "nodes": [
+      {
+        "id": "generation",
+        "type": "video",
+        "label": "Topaz · 填写公开 MP4 直链 / Enter public MP4 URL",
+        "x": 480,
+        "y": 130
+      },
+      {
+        "id": "output",
+        "type": "output",
+        "label": "修复结果 / Restored video",
+        "x": 900,
+        "y": 130
+      }
+    ],
+    "edges": [
+      {
+        "id": "output-edge",
+        "source": "generation",
+        "target": "output"
+      }
+    ]
+  },
+  "savedAt": "2026-10-11T00:00:00.000Z"
+}
