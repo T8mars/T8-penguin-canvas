@@ -10,9 +10,10 @@
 - Windows 专用 `remove-ai-watermarks` / ParseHub Python 离线归档不会塞进 Mac 包；相关本地工具需要用户自行安装兼容 Python 环境。其缺失不得影响普通画布和云端节点启动。
 - 首个未公证预览升级到未来 Developer ID 正式版时，按手动覆盖安装处理；配置正式签名后，后续版本才把 `latest-mac.yml` + ZIP 视为可交付的 Mac 自动更新链路。
 
-## v3.3.2 发布授权
+## v3.3.2 已发布结果
 
-2026-10-11 用户授权同正式 Tag 发布 Topaz 视频修复、DMG/ZIP 与更新清单；仅 GitHub 额度不足可延期，不以权限不足的额度 API 404 作为延期证据。当前进度及技术验证统一见[发布专题](release-v3.3.2.md)。
+- 同正式 Tag / 源码 `954b717f983853805a943df1d5e77468592bcbf8` 的 [Apple Silicon workflow 38077432260](https://github.com/T8mars/T8-penguin-canvas/actions/runs/38077432260) 成功；runner 及本机独立 Mac 三资产完整回下载通过，追加后的 Windows 三资产也完整复核且 ID/size/SHA-256 未变。六资产详情见[专题](release-v3.3.2.md)。
+- Mac 仍为 ad-hoc 未公证预览；额度 API 404 不代表额度不足，本轮正常发布、未延期。安装升级、用户现场及 F8–F10 后补，不记通过。
 
 ## v3.3.1 已发布结果
 

@@ -2,29 +2,32 @@
   "$schema": "本文件为 T8-penguin-canvas 节点清单防丢失锁,任何节点删减都需要在 roadmap.md 中说明并更新本文件。",
   "version": "3.3.2",
   "electronReleaseV332": {
-    "status": "authorized-preparing",
+    "status": "released-dual-platform-verified",
     "version": "3.3.2",
     "tag": "v3.3.2",
-    "latest": false,
+    "latest": true,
     "evidence": "docs/release-v3.3.2.md",
     "postReleaseEvidence": "owner-approved-post-release-v3.3.2",
-    "macBoundary": "same-tag-unsigned-preview; defer-only-if-quota-insufficient"
+    "macBoundary": "same-tag-unsigned-preview; no-quota-deferral-used",
+    "sourceCommit": "954b717f983853805a943df1d5e77468592bcbf8",
+    "macWorkflow": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/38077432260"
   },
   "topazVideo20261011": {
-    "status": "release-v3.3.2-authorized-live-verified",
+    "status": "released-v3.3.2-dual-platform-live-verified",
+    "releaseIncluded": true,
     "provider": "seedance-nz",
     "model": "Topaz-Upscale-LowPirce",
     "summary": "Separate Topaz video tab, exact resolution/restoration options, local MP4 or direct public URL, original-task recovery, complete output persistence and two credential-free workflows; old defaults unchanged.",
     "details": "docs/topaz-video-upscale.md",
     "verification": "One real 720p/Low local-MP4 task succeeded with HTTP 200; output downloaded and fully decoded. 157/157 frontend/protocol regressions, 42/42 backend cases and separate 10/10 capability checks passed.",
     "report": "local-private/topaz-live-20261011/report.json",
-    "boundary": "v3.3.2 release authorized; see release topic for publication status. Direct URL and other parameter combinations are offline-verified only; UI end-to-end, installed-client and user-environment checks remain pending."
+    "boundary": "Released in v3.3.2 with six assets and two updater manifests fully download-verified. Direct URL and other parameter combinations are offline-verified only; UI end-to-end, installed-client, user-environment and F8-F10 evidence remain pending under owner-approved-post-release-v3.3.2, not passed."
   },
   "electronReleaseV331": {
     "status": "released-dual-platform-verified",
     "version": "3.3.1",
     "tag": "v3.3.1",
-    "latest": true,
+    "latest": false,
     "evidence": "docs/release-v3.3.1.md",
     "postReleaseEvidence": "owner-approved-post-release-v3.3.1",
     "macBoundary": "same-tag-unsigned-preview; no-quota-deferral-used",
