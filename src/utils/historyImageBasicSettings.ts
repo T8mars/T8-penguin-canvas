@@ -6,6 +6,10 @@ const required = ['model', 'apiModel', 'aspectRatio', 'sizeLevel', 'imageBuiltin
   'providerSource', 'providerId', 'providerModel'] as const;
 const optional = ['seedreamApiSource'] as const;
 export const IMAGE_HISTORY_EXTRA_FIELDS: Record<string, { label: string; type: 'string' | 'number' | 'boolean' }> = {
+  maiSize: { label: 'Mai 尺寸模式', type: 'string' }, maiResolution: { label: 'Mai 分辨率', type: 'string' },
+  maiCustomRatio: { label: 'Mai 自定义比例', type: 'string' }, maiWidth: { label: 'Mai 宽度', type: 'number' },
+  maiHeight: { label: 'Mai 高度', type: 'number' }, maiAutoAspectRatio: { label: 'Mai 自动画幅', type: 'boolean' },
+  maiWebGrounding: { label: 'Mai 联网检索', type: 'boolean' },
   fluxImageGrounding: { label: 'FLUX grounding', type: 'boolean' },
   fluxImageSafetyTolerance: { label: 'FLUX safety_tolerance', type: 'number' },
   mjVersion: { label: 'MJ 版本', type: 'string' }, mjAr: { label: 'MJ 比例', type: 'string' },

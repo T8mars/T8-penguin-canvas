@@ -5,6 +5,10 @@
 
 import NB_FLUX_VIDU from '../../backend/src/shared/nb21FluxViduQ4Contract.json';
 import TOPAZ_VIDEO from '../../backend/src/shared/topazVideoContract.json';
+import MAI_IMAGE from '../../backend/src/shared/maiImageContract.json';
+export const MAI_IMAGE_MODELS = MAI_IMAGE.models;
+export const MAI_IMAGE_TAB = MAI_IMAGE.models[0];
+export const isMaiImageModel = (model: string) => MAI_IMAGE_MODELS.includes(model);
 export const TOPAZ_VIDEO_CONTRACT = TOPAZ_VIDEO;
 export const TOPAZ_VIDEO_UPSCALE_MODEL = TOPAZ_VIDEO.model;
 export const NB_FLUX_VIDU_CONTRACT = NB_FLUX_VIDU;
@@ -27,7 +31,7 @@ export type ProviderType = 'zhenzhen' | 'llm-direct' | 'runninghub';
 //  - 'wan-image'   : Wan 2.7 Global 图像协议,T2I 使用宽高/思考模式,I2I 使用 1-9 张参考图
 //  - 'vosr2-upscale': Vosr2 单图超分协议,只发送 model + images[1]
 //  - 'mj'          : Midjourney 协议,走专属 /api/proxy/mj/* 路由(speed_map + sref/oref)
-export type ImageParamKind = 'gpt-size' | 'gpt-image-2.5' | 'banana-ratio' | 'grok-image' | 'seedream-v5' | 'seedream-layer' | 'qwen-image-3.0' | 'qwen-image-global-2.1' | 'flux-image' | 'wan-image' | 'vosr2-upscale' | 'mj';
+export type ImageParamKind = 'gpt-size' | 'gpt-image-2.5' | 'banana-ratio' | 'grok-image' | 'seedream-v5' | 'seedream-layer' | 'qwen-image-3.0' | 'qwen-image-global-2.1' | 'flux-image' | 'mai-image' | 'wan-image' | 'vosr2-upscale' | 'mj';
 
 export interface ImageModelDef {
   id: string;             // 节点内部 id(如 'gpt-image-2')
@@ -184,6 +188,7 @@ export const ZHENZHEN_BUDGET_BANANA_PRO_MODEL_OPTIONS = [
 ] as const;
 export const ZHENZHEN_IMAGE_G2_MODEL_OPTIONS = ZHENZHEN_BUDGET_GPT2_MODEL_OPTIONS.slice(0, 2);
 export const ZHENZHEN_APIMART_IMAGE_MODELS = [
+  ...MAI_IMAGE_MODELS,
   FLUX3_IMAGE_MODEL,
   ZHENZHEN_IMAGE_NB_21_MODEL,
   ZHENZHEN_IMAGE_G_V2_LOWPRICE_MODEL,
@@ -391,6 +396,14 @@ export const IMAGE_MODELS: ImageModelDef[] = [
     aspectRatios: NB_FLUX_VIDU.flux.ratios, defaultAspectRatio: 'auto',
     sizes: NB_FLUX_VIDU.flux.resolutions, defaultSize: '1k',
     supportsReference: true, maxReferenceImages: NB_FLUX_VIDU.flux.maxImages,
+  },
+  {
+    id: MAI_IMAGE_TAB, apiModel: MAI_IMAGE_TAB,
+    label: 'MAI Image 2.6 / Flash', tabLabel: 'Mai', provider: 'zhenzhen', paramKind: 'mai-image',
+    capabilities: ['t2i', 'i2i', 'edit'],
+    apiModelOptions: MAI_IMAGE_MODELS.map((value) => ({ value, label: value })),
+    aspectRatios: [], defaultAspectRatio: '', sizes: [], defaultSize: '',
+    supportsReference: true, maxReferenceImages: MAI_IMAGE.maxImages,
   },
   {
     id: 'grok-image',

@@ -1,6 +1,26 @@
 {
   "$schema": "本文件为 T8-penguin-canvas 节点清单防丢失锁,任何节点删减都需要在 roadmap.md 中说明并更新本文件。",
-  "version": "3.3.2",
+  "version": "3.3.3",
+  "electronReleaseV333": {
+    "status": "authorized-preparing",
+    "version": "3.3.3",
+    "tag": "v3.3.3",
+    "latest": false,
+    "evidence": "docs/release-v3.3.3.md",
+    "postReleaseEvidence": "owner-approved-post-release-v3.3.3",
+    "macBoundary": "same-tag-unsigned-preview; defer-only-if-github-quota-insufficient"
+  },
+  "maiImage20261011": {
+    "status": "release-authorized-v3.3.3-live-verified",
+    "releaseIncluded": true,
+    "provider": "seedance-nz",
+    "models": ["mai-image-2-6", "mai-image-2-6-flash"],
+    "summary": "Budget-only Mai image tab, exact sizing/grounding contract, ordered 0-5 PNG references, original-task recovery, history and six credential-free workflows; old defaults unchanged.",
+    "details": "docs/mai-image.md",
+    "verification": "6/6 real tasks succeeded with HTTP 200; six PNG outputs fully downloaded, decoded and checked nonblank. 135/135 frontend/protocol/history/workflow regressions and 49/49 backend checks passed, alongside type-check, i18n and capability sync.",
+    "report": "local-private/mai-live-20261011/report.json",
+    "boundary": "v3.3.3 release authorized, technical publication checks pending. Browser end-to-end, installed-client, user environment, full live parameter matrix and F8-F10 remain unverified under owner-approved-post-release-v3.3.3. Credentials and live task identities are private."
+  },
   "electronReleaseV332": {
     "status": "released-dual-platform-verified",
     "version": "3.3.2",

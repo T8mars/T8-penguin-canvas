@@ -996,6 +996,8 @@ class CreatorActionExecutor {
         model: action.modelSnapshot.modelId,
         prompt: action.prompt,
         ratio: action.parameters.ratio || '16:9',
+        ...(seedanceNz.MAI_IMAGE_MODELS.has(action.modelSnapshot.modelId)
+          ? { size: action.parameters.ratio || '1:1', resolution: action.parameters.resolution || '1k' } : {}),
         ...(['flux-3-image', 'zhenzhen-image-nb-2.1'].includes(action.modelSnapshot.modelId)
           ? { resolution: action.parameters.resolution || '1k' } : {}),
         n: Math.max(1, Math.min(4, Number(action.parameters.count) || 1)),

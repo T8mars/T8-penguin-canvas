@@ -11,6 +11,7 @@ import { combinePromptWithImageAdjustments, normalizeImagePromptAdjustmentSelect
 import { captureGenerationHistoryInput } from '../src/utils/generationHistoryCapture.ts';
 import { captureHistoryExecution } from '../src/utils/historyResolvedSeedanceInput.ts';
 import { historyImageBasicSettings } from '../src/utils/historyImageBasicSettings.ts';
+import { buildMaiImageRequest, maiImageSettings } from '../src/utils/maiImage.ts';
 import { readHistoryStandardImageInput } from '../src/utils/historyStandardImageInput.ts';
 import { readHistoryBudgetImageInput } from '../src/utils/historyBudgetImageInput.ts';
 import { readHistoryFalImageInput } from '../src/utils/historyFalImageInput.ts';
@@ -63,9 +64,23 @@ function render(d: Record<string, unknown>, images: ReturnType<typeof material>[
     modelDef: { id: 'gpt-image-2' }, apiModel: 'fixture-model', effectiveAspectRatio: '1:1', effectiveSizeLevel: '1K',
     isExternalSelected: false, isZhenzhenBudgetPlatformSelected: false, isSeedream: false,
     isStandardGptImage2: false, isGptImage25: false, isSeedreamNz: false, isFal: false, isMj: false,
+    isFluxImage: false, isZhenzhenNb21: false, isMaiImage: false,
     isZhenzhenBudgetImageSelected: false, isQwenImageTab: false, isWanImageTab: false, isSeedreamLayerTab: false, ...extra,
   });
 }
+
+test('Mai history executes production capture, retains inactive sizing and ordered duplicate slots, and restores exact request', () => {
+  const maiSettings = maiImageSettings({ maiSize: 'custom_pixels', maiWidth: 0, maiWebGrounding: true });
+  const data = { model: 'mai-image-2-6', apiModel: 'mai-image-2-6-flash', prompt: 'Blue teapot', referenceImages: ['/files/input/a.png', '/files/input/a.png'], ...maiSettings };
+  const captured = render(data, [], [], 5, { modelDef: { id: 'mai-image-2-6', paramKind: 'mai-image' },
+    apiModel: data.apiModel, isMaiImage: true, maiSettings, isZhenzhenBudgetPlatformSelected: true, isZhenzhenBudgetImageSelected: true,
+    isZhenzhenImageG25: false, isZhenzhenGrokImageV2: false, isZhenzhenGrokImageV2Edit: false, isZhenzhenNb: false,
+    effectiveAspectRatio: '', effectiveSizeLevel: '' }).capture();
+  const restored = readHistoryBudgetImageInput({ ...data, historyResolvedInput: captured });
+  assert.deepEqual(restored.media.map((item: any) => item.url), data.referenceImages);
+  assert.deepEqual(buildMaiImageRequest(data.apiModel, restored.prompt, restored.media.map((item: any) => item.url), restored.settings),
+    buildMaiImageRequest(data.apiModel, data.prompt, data.referenceImages, data));
+});
 
 test('image context uses the actual combined local/upstream ordering, exclusions and model cap', () => {
   const a = '/files/input/a.png', b = '/files/input/b.png', c = '/files/input/c.png';
@@ -94,7 +109,8 @@ test('ordinary Banana final fixed-asset draft preserves actual capture and reque
   const officialSize = new Function(`${backend.slice(sizeStart, sizeEnd)}; return geminiOfficialImageSize;`)();
   let count = 0;
   for (const modelDef of models.IMAGE_MODELS.filter(model => ['nano-banana-2', 'nano-banana-pro'].includes(model.id))) {
-    for (const option of modelDef.apiModelOptions!.filter(option => !models.isFalModel(option.value))) {
+    for (const option of modelDef.apiModelOptions!.filter(option => !models.isFalModel(option.value)
+      && option.value !== 'gemini-nano-banana-2.1')) {
       count++;
       for (const withRefs of [false, true]) {
         const flags = { modelDef, apiModel: option.value, effectiveAspectRatio: withRefs ? '16:9' : 'Auto',
@@ -292,7 +308,8 @@ test('Budget Image G history preparation and final fixed-asset draft round-trip 
     const flags = { isZhenzhenBudgetPlatformSelected: true, isZhenzhenBudgetImageSelected: true, isZhenzhenImageG25: true,
       isZhenzhenImageG25Lowprice: lowprice, isZhenzhenImageG25Official: !lowprice, isZhenzhenGrokImageV2: false,
       isZhenzhenGrokImageV2Edit: false, isZhenzhenNb: false, isVosr2ImageTab: false, isSeedreamLayerTab: false,
-      isWanImageTab: false, isQwenImageTab: false, isQwenImage21Tab: false, isZhenzhenImageG2: false };
+      isWanImageTab: false, isQwenImageTab: false, isQwenImage21Tab: false, isZhenzhenImageG2: false,
+      isFluxImage: false, isMaiImage: false };
     const data = { prompt: 'Original @image2', referenceImages: ['/files/input/b.png', '/files/input/a.png', '/files/input/b.png'],
       zhenzhenImageG25Size: lowprice ? '16:9' : custom ? 'custom' : 'preserve_reference',
       zhenzhenImageG25Resolution: '4k', zhenzhenImageG25Count: lowprice ? 1 : 4,

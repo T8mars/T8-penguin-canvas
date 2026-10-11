@@ -153,7 +153,7 @@ test('Creator action executor records one real Run lineage and every returned im
     assert.equal(updates.attempts.find((entry) => entry.patch.metadata?.recovery)?.patch.metadata.recovery.taskId, 'upstream-executor');
   } finally {
     repository.close();
-    if (path.resolve(tempRoot).startsWith(path.resolve(os.tmpdir()))) fs.rmSync(tempRoot, { recursive: true, force: true });
+    if (path.resolve(tempRoot).startsWith(path.resolve(os.tmpdir()))) fs.rmSync(tempRoot, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
   }
 });
 
@@ -341,7 +341,7 @@ test('Creator five-shot batch preserves four videos and retry submits only the f
   } finally {
     repository.close();
     if (path.resolve(tempRoot).startsWith(path.resolve(os.tmpdir()))) {
-      fs.rmSync(tempRoot, { recursive: true, force: true });
+      fs.rmSync(tempRoot, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
     }
   }
 });
@@ -652,7 +652,7 @@ test('Creator retries a completed task download from the original upstream task 
     assert.equal(state.run.summary.recoveredWithoutResubmit, true);
   } finally {
     repository.close();
-    if (path.resolve(tempRoot).startsWith(path.resolve(os.tmpdir()))) fs.rmSync(tempRoot, { recursive: true, force: true });
+    if (path.resolve(tempRoot).startsWith(path.resolve(os.tmpdir()))) fs.rmSync(tempRoot, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
   }
 });
 
@@ -703,7 +703,7 @@ test('Creator ambiguous action resumes the original upstream task without anothe
     assert.equal(state.run.summary.recoveredWithoutResubmit, true);
   } finally {
     repository.close();
-    if (path.resolve(tempRoot).startsWith(path.resolve(os.tmpdir()))) fs.rmSync(tempRoot, { recursive: true, force: true });
+    if (path.resolve(tempRoot).startsWith(path.resolve(os.tmpdir()))) fs.rmSync(tempRoot, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
   }
 });
 

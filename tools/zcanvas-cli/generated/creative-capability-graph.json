@@ -13,7 +13,8 @@
       "backend/src/shared/seedanceNzLlmModels.json",
       "backend/src/providers/seedanceNz.js",
       "backend/src/shared/seedreamNzContract.json",
-      "backend/src/shared/nb21FluxViduQ4Contract.json"
+      "backend/src/shared/nb21FluxViduQ4Contract.json",
+      "backend/src/shared/maiImageContract.json"
     ],
     "handlerRegistry": "backend/src/services/agentControlCapabilityHandlers.js",
     "coverageReceiptCompiler": "tools/zcanvas-cli/src/capabilityCoverage.cjs"
@@ -23,16 +24,16 @@
     "canvasNodeSchema": "1a4453bd8a931407e3bb367826e5973faf4fd8957d6c32dd7f03a93e10cd3258",
     "canvasNodeSchemaFile": "b360a1633459b5531f9fd66dbac0fa9b80022321a5dbd00feb2e61333bb0eee5",
     "i18nNodeCatalog": "0479653284399372bba58f69d528e45ed9de267f9a1d7107347401ab75f60676",
-    "i18nRendererResources": "d6c788b41dcb03a644abb161d6217d2e31030b2f4747d535a7c2c1f2e7175073",
+    "i18nRendererResources": "8364d6b19854bf913aac308f096db2328e34ef8abafa2c6a353e8e06117d5fe1",
     "i18nElectronCatalog": "f58f14c3e2c0ead3383f53de33f97ab2fabe4281d8b6520855f03a4b015ec44c",
-    "runtimeCatalogSources": "9a1f801ed9a7c0db6b519ef67e5d5d17b1ba991cd90864aa3914a011055fd75b",
-    "runtimeCatalogArtifact": "2a3e9053a7268cf7b0b6cd9a110cf3fe8ff882657c026f83da137d003e7ed0f1",
+    "runtimeCatalogSources": "55befbba55accb0beb18ebbaa5dca878087db00aa5f10d4a3712c50ab15439f5",
+    "runtimeCatalogArtifact": "73e19d55af65de227f7ada803ec1356eeac99b7d7e11b5070666f3532f62c257",
     "handlerBindings": "3cd8cde3c05d1642d72ce8cbfae2874d1bdf986592ae431ef7d66b043da257b5",
     "capabilityGraphCompiler": "a3716d239b91e1c4775f5996b3865ba3ab8fd652263138feef0a56de40851c24",
     "coverageReceiptCompiler": "68c02167cb5317107edd346223a5e5999168e447bacbb977ff8e9678e6753fe7",
     "canonicalTextDigestCompiler": "b0afcf28a257fbbd8f391edc117348f8f2ede1b4a039ae91bce25a8d563ac0cf"
   },
-  "aggregateDigest": "c26d44bf60b3996d78bda1e1aafb857232b800bd97fd022a9e1f45535f436341",
+  "aggregateDigest": "8f98fea6fe8a8b104add3ee72f9549d0f56b1521fa23fbdc1d3b7d25791a327b",
   "principles": {
     "oneSentenceStart": true,
     "directCanvasMutation": false,
@@ -56,17 +57,17 @@
     "accountedNodes": 83,
     "unexplainedNodes": 0,
     "fullyOperableNodes": 20,
-    "runtimeEntries": 313,
+    "runtimeEntries": 315,
     "runtimeByKind": {
       "llm": 34,
-      "image": 65,
+      "image": 67,
       "video": 136,
       "audio": 17,
       "actions": 61
     },
     "runtimeByProvider": {
       "grok-oauth": 2,
-      "seedance-nz": 240,
+      "seedance-nz": 242,
       "zhenzhen": 64,
       "fal": 7
     },
@@ -7403,7 +7404,7 @@
   ],
   "runtime": {
     "schema": "t8-creative-runtime-catalog-v1",
-    "sourceDigest": "9a1f801ed9a7c0db6b519ef67e5d5d17b1ba991cd90864aa3914a011055fd75b",
+    "sourceDigest": "55befbba55accb0beb18ebbaa5dca878087db00aa5f10d4a3712c50ab15439f5",
     "platforms": [
       {
         "id": "zhenzhen",
@@ -8816,6 +8817,46 @@
         "model": "flux-3-image",
         "label": "flux-3-image",
         "family": "flux-3-image",
+        "available": true,
+        "catalogSection": "image",
+        "compatibility": {
+          "known": true,
+          "installed": true,
+          "credentialReady": null,
+          "regionReady": true,
+          "executable": false,
+          "available": true,
+          "requiresRuntimeCheck": true
+        }
+      },
+      {
+        "id": "image:seedance-nz:mai-image-2-6",
+        "kind": "image",
+        "provider": "seedance-nz",
+        "platformLabel": "贞贞的平价AI小屋",
+        "model": "mai-image-2-6",
+        "label": "mai-image-2-6",
+        "family": "mai-image-2-6",
+        "available": true,
+        "catalogSection": "image",
+        "compatibility": {
+          "known": true,
+          "installed": true,
+          "credentialReady": null,
+          "regionReady": true,
+          "executable": false,
+          "available": true,
+          "requiresRuntimeCheck": true
+        }
+      },
+      {
+        "id": "image:seedance-nz:mai-image-2-6-flash",
+        "kind": "image",
+        "provider": "seedance-nz",
+        "platformLabel": "贞贞的平价AI小屋",
+        "model": "mai-image-2-6-flash",
+        "label": "mai-image-2-6-flash",
+        "family": "mai-image-2-6",
         "available": true,
         "catalogSection": "image",
         "compatibility": {
@@ -14027,6 +14068,8 @@
       "image:seedance-nz:dola-seedream-5.0-pro-layer-decomposition",
       "image:seedance-nz:dola-seedream-5.0-pro-t2i",
       "image:seedance-nz:flux-3-image",
+      "image:seedance-nz:mai-image-2-6",
+      "image:seedance-nz:mai-image-2-6-flash",
       "image:seedance-nz:midjourney-blend",
       "image:seedance-nz:midjourney-edits",
       "image:seedance-nz:midjourney-high-variation",
@@ -14279,7 +14322,7 @@
     "sourceDigests": {
       "capabilityManifest": "569f2c8be144e05120ca629b2826383a06c4d6565ab3896c2dc61807bb9f7c27",
       "nodeSchema": "1a4453bd8a931407e3bb367826e5973faf4fd8957d6c32dd7f03a93e10cd3258",
-      "runtimeCatalog": "9a1f801ed9a7c0db6b519ef67e5d5d17b1ba991cd90864aa3914a011055fd75b",
+      "runtimeCatalog": "55befbba55accb0beb18ebbaa5dca878087db00aa5f10d4a3712c50ab15439f5",
       "handlerBindings": "3cd8cde3c05d1642d72ce8cbfae2874d1bdf986592ae431ef7d66b043da257b5",
       "receiptCompiler": "68c02167cb5317107edd346223a5e5999168e447bacbb977ff8e9678e6753fe7"
     },
@@ -14291,7 +14334,7 @@
       },
       "runtime": {
         "llm": 34,
-        "image": 65,
+        "image": 67,
         "video": 136,
         "audio": 17,
         "actions": 61
@@ -14308,6 +14351,6 @@
       "missingCompatibilityEdges": []
     },
     "complete": true,
-    "digest": "2428b153278bda1bd93d572b2aab225a13d1740c78514fb19799dc1733b7a186"
+    "digest": "8aef515e8de1c367046d26ad766d4907aca0b1ee6126173f36cb7a0dd2280c27"
   }
 }

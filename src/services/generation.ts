@@ -337,6 +337,8 @@ export interface SeedreamNzSubmitRequest {
     | 'zhenzhen-image-nb-2'
     | 'zhenzhen-image-nb-2.1'
     | 'flux-3-image'
+    | 'mai-image-2-6'
+    | 'mai-image-2-6-flash'
     | 'zhenzhen-image-nb-pro'
     | 'qwen-image-3.0-t2i'
     | 'qwen-image-3.0-i2i'
@@ -375,6 +377,8 @@ export interface SeedreamNzSubmitRequest {
   thinking_mode?: boolean;
   aspect_ratio?: string;
   grounding?: boolean;
+  web_grounding?: boolean;
+  auto_aspect_ratio?: boolean;
   safety_tolerance?: number;
   nsfw_check?: boolean;
   operation?: 'segment' | 'region_edit';

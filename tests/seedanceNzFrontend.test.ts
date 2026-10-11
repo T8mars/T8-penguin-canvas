@@ -347,14 +347,15 @@ test('Seedream NZ selector distinguishes domestic and Dola overseas model famili
   const generation = read('../src/services/generation.ts');
   const provider = read('../backend/src/providers/seedanceNz.js');
 
-  assert.match(node, /Seedream v5 Pro（国内模型）/);
-  assert.match(node, /Dola Seedream 5\.0 Pro（海外模型）/);
-  assert.match(node, /dola-seedream-5\.0-pro-t2i/);
-  assert.match(node, /dola-seedream-5\.0-pro-i2i/);
+  const contract = JSON.parse(read('../backend/src/shared/seedreamNzContract.json'));
+  assert.equal(contract.families.domestic.region, 'domestic');
+  assert.equal(contract.families.overseas.region, 'overseas');
+  assert.deepEqual(contract.families.overseas.models, ['dola-seedream-5.0-pro-t2i', 'dola-seedream-5.0-pro-i2i']);
+  assert.match(node, /Object\.entries\(SEEDREAM_NZ_FAMILIES\)/);
+  assert.match(node, /selected\.label/);
   assert.match(node, /modelFamily: isZhenzhenBudgetImageSelected \|\| isQwenImageTab \|\| isQwenImage21Tab \|\| isSeedreamLayerTab \|\| isWanImageTab \? undefined : seedreamNzModelFamily/);
   assert.match(generation, /modelFamily\?: 'domestic' \| 'overseas'/);
-  assert.match(provider, /dola-seedream-5\.0-pro-t2i/);
-  assert.match(provider, /dola-seedream-5\.0-pro-i2i/);
+  assert.match(provider, /require\('\.\.\/shared\/seedreamNzContract\.json'\)/);
 });
 
 test('audio node exposes Seed Audio without replacing Suno and supports image/audio references', () => {

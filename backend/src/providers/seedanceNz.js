@@ -25,6 +25,8 @@ const { providerIdempotencyHeaders } = require('../services/providerSubmissionCo
 const { resolveBundledFfprobe, resolveBundledFfmpeg } = require('./llmMedia');
 const NB_FLUX_VIDU = require('../shared/nb21FluxViduQ4Contract.json');
 const TOPAZ_VIDEO_CONTRACT = require('../shared/topazVideoContract.json');
+const MAI_IMAGE_CONTRACT = require('../shared/maiImageContract.json');
+const MAI_IMAGE_MODELS = new Set(MAI_IMAGE_CONTRACT.models);
 const ZHENZHEN_IMAGE_NB_21_MODEL = NB_FLUX_VIDU.banana21.model;
 const FLUX3_IMAGE_MODEL = NB_FLUX_VIDU.flux.model;
 const VIDU_Q4_MODELS = new Set(NB_FLUX_VIDU.viduQ4.models);
@@ -127,6 +129,7 @@ const ZHENZHEN_IMAGE_NB_MODELS = new Set([
   ZHENZHEN_IMAGE_NB_PRO_MODEL,
 ]);
 const ZHENZHEN_APIMART_IMAGE_MODELS = new Set([
+  ...MAI_IMAGE_MODELS,
   FLUX3_IMAGE_MODEL,
   ZHENZHEN_IMAGE_G_V2_LOWPRICE_MODEL,
   ...ZHENZHEN_IMAGE_G25_MODELS,
@@ -2809,6 +2812,50 @@ async function buildApimartImagePayload(request, apiKey, options = {}) {
     };
   }
   const prompt = normalizeApimartPrompt(request.prompt, model);
+  if (MAI_IMAGE_MODELS.has(model)) {
+    const contract = MAI_IMAGE_CONTRACT;
+    const refs = normalizeList(request.images || request.refImages);
+    if (refs.length > contract.maxImages) throw new Error('Mai 最多支持 5 张参考图');
+    if (request.n !== undefined && request.n !== 1) throw new Error('Mai 图片数量 n 固定为 1');
+    const webGrounding = request.web_grounding ?? false;
+    if (typeof webGrounding !== 'boolean') throw new Error('Mai web_grounding 必须是布尔值');
+    const payload = { model, prompt, n: 1, web_grounding: webGrounding };
+    if (refs.length) {
+      // All parameter validation precedes uploads. Normalize even GIF/WebP to actual PNG bytes.
+      payload.images = [];
+      for (const source of refs) payload.images.push(await uploadMedia(source, 'image', apiKey, {
+        ...options, maxBytes: IMAGE_REFERENCE_MAX_BYTES, normalizeImagePng: true,
+        cacheVariant: 'mai-png', fileName: 'mai-reference.png', allowedMimes: ['image/png'],
+      }));
+      return { payload, model, taskType: 'i2i' };
+    }
+    const auto = request.auto_aspect_ratio ?? false;
+    if (typeof auto !== 'boolean') throw new Error('Mai auto_aspect_ratio 必须是布尔值');
+    const size = auto ? 'auto' : String(request.size ?? '1:1').trim();
+    const exact = /^(\d+)[xX*×](\d+)$/.exec(size);
+    const hasPixels = !auto && (request.width !== undefined || request.height !== undefined || exact);
+    if (hasPixels) {
+      const explicit = request.width !== undefined || request.height !== undefined;
+      const width = explicit ? request.width : (exact ? Number(exact[1]) : undefined);
+      const height = explicit ? request.height : (exact ? Number(exact[2]) : undefined);
+      if (!Number.isSafeInteger(width) || !Number.isSafeInteger(height) || Math.min(width, height) < contract.minEdge
+        || width * height > contract.maxPixels) throw new Error('Mai 每边至少 768，整数宽高总像素不得超过 2359296');
+      payload.width = Math.floor(width / contract.pixelStep) * contract.pixelStep;
+      payload.height = Math.floor(height / contract.pixelStep) * contract.pixelStep;
+    } else {
+      const resolution = String(request.resolution ?? '1k').toLowerCase();
+      if (!contract.resolutions.includes(resolution)) throw new Error('Mai 分辨率只支持 1k 或 2k');
+      if (size !== 'auto') {
+        const match = /^(\d+):(\d+)$/.exec(size);
+        const width = match ? Number(match[1]) : 0, height = match ? Number(match[2]) : 0;
+        if (!Number.isSafeInteger(width) || !Number.isSafeInteger(height) || Math.min(width, height) < 1
+          || width > height * contract.maxAspectRatio || height > width * contract.maxAspectRatio)
+          throw new Error('Mai 画幅必须为 auto 或 1:4 至 4:1 的正整数宽高比');
+      }
+      Object.assign(payload, { size, resolution, auto_aspect_ratio: auto });
+    }
+    return { payload, model, taskType: 't2i' };
+  }
   if (ZHENZHEN_IMAGE_G25_MODELS.has(model)) {
     if (model === ZHENZHEN_IMAGE_G25_LOWPRICE_MODEL && prompt.length > ZHENZHEN_IMAGE_G25_PROMPT_MAX_LENGTH) {
       throw new Error(`${model} 提示词最多 ${ZHENZHEN_IMAGE_G25_PROMPT_MAX_LENGTH} 字符`);
@@ -6401,6 +6448,8 @@ function resetCachesForTests() {
 module.exports = {
   VIDU_Q4_MODELS,
   FLUX3_IMAGE_MODEL,
+  MAI_IMAGE_CONTRACT,
+  MAI_IMAGE_MODELS,
   ZHENZHEN_IMAGE_NB_21_MODEL,
   buildViduQ4Payload,
   queryViduTask,

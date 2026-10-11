@@ -1,0 +1,116 @@
+{
+  "schema": "t8-workflow-fragment",
+  "version": 1,
+  "title": "mai-image-2-6-flash-i2i",
+  "nodes": [
+    {
+      "id": "reference-1",
+      "type": "upload",
+      "position": {
+        "x": 0,
+        "y": 40
+      },
+      "data": {
+        "label": "参考图 1 / Reference 1",
+        "uploadType": "image",
+        "lockedUploadType": "image"
+      }
+    },
+    {
+      "id": "generation",
+      "type": "image",
+      "position": {
+        "x": 430,
+        "y": 80
+      },
+      "data": {
+        "label": "mai-image-2-6-flash",
+        "model": "mai-image-2-6",
+        "apiModel": "mai-image-2-6-flash",
+        "providerSource": "zhenzhen",
+        "imageBuiltinSource": "seedance-nz",
+        "aspectRatio": "",
+        "sizeLevel": "",
+        "maiResolution": "1k",
+        "maiSize": "1:1",
+        "maiCustomRatio": "16:9",
+        "maiWidth": 1536,
+        "maiHeight": 1024,
+        "maiAutoAspectRatio": false,
+        "maiWebGrounding": false,
+        "prompt": "Keep the penguin and the yellow ceramic cup. Change the background to a soft pink studio, preserving the composition.",
+        "referenceImages": [],
+        "imageOnlyOutput": true,
+        "reuseResult": false
+      }
+    },
+    {
+      "id": "output",
+      "type": "output",
+      "position": {
+        "x": 850,
+        "y": 80
+      },
+      "data": {
+        "label": "结果 / Result"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "reference-edge-1",
+      "source": "reference-1",
+      "target": "generation"
+    },
+    {
+      "id": "output-edge",
+      "source": "generation",
+      "target": "output"
+    }
+  ],
+  "nodeCount": 3,
+  "edgeCount": 2,
+  "nodeTypes": [
+    "upload",
+    "image",
+    "output"
+  ],
+  "topologyPreview": {
+    "nodes": [
+      {
+        "id": "reference-1",
+        "type": "upload",
+        "label": "参考图 1 / Reference 1",
+        "x": 50,
+        "y": 90
+      },
+      {
+        "id": "generation",
+        "type": "image",
+        "label": "mai-image-2-6-flash",
+        "x": 480,
+        "y": 130
+      },
+      {
+        "id": "output",
+        "type": "output",
+        "label": "结果 / Result",
+        "x": 900,
+        "y": 130
+      }
+    ],
+    "edges": [
+      {
+        "id": "reference-edge-1",
+        "source": "reference-1",
+        "target": "generation"
+      },
+      {
+        "id": "output-edge",
+        "source": "generation",
+        "target": "output"
+      }
+    ]
+  },
+  "savedAt": "2026-10-11T00:00:00.000Z"
+}

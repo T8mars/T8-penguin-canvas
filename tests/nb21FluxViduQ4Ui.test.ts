@@ -17,7 +17,7 @@ function execute(source: ts.SourceFile, select: (node: ts.Node) => ts.Expression
   const javascript = ts.transpileModule(`(${matches[0].getText(source)})`, {
     compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS },
   }).outputText;
-  return vm.runInNewContext(javascript, { ...models, ...bindings });
+  return vm.runInNewContext(javascript, { ...models, isMaiImage: false, isTopaz: false, ...bindings });
 }
 function closure(name: string, declaration: string, bindings: Record<string, unknown>) {
   const source = component(name);

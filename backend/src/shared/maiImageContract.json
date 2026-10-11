@@ -1,0 +1,12 @@
+{
+  "models": ["mai-image-2-6", "mai-image-2-6-flash"],
+  "resolutions": ["1k", "2k"],
+  "sizes": ["auto", "1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3", "4:5", "5:4", "21:9", "9:21", "1:4", "4:1", "custom_ratio", "custom_pixels"],
+  "maxImages": 5,
+  "minEdge": 768,
+  "maxPixels": 2359296,
+  "pixelStep": 32,
+  "maxAspectRatio": 4,
+  "defaultSize": "1:1",
+  "defaultResolution": "1k"
+}
