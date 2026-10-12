@@ -2179,6 +2179,8 @@ export interface SeedAudioSubmitRequest {
 }
 
 export type SeedanceNzAudioModel =
+  | 'doubao-voice-clone'
+  | 'doubao-seed-icl-2.0'
   | 'doubao-seed-audio-1.0'
   | 'qwen3-tts-flash'
   | 'qwen3-tts-instruct-flash'
@@ -2191,6 +2193,8 @@ export type SeedanceNzAudioModel =
 
 export interface SeedanceNzAudioSubmitRequest {
   model: SeedanceNzAudioModel;
+  doubaoVoice?: Record<string, string | number | boolean>;
+  audioUrl?: string;
   prompt?: string;
   speaker?: string;
   outputFormat?: 'wav' | 'mp3' | 'pcm' | 'ogg_opus' | 'flac';
@@ -2247,7 +2251,7 @@ export interface SeedanceNzAudioQueryResult extends ProviderTransportTrace {
 export async function submitSeedanceNzAudio(
   req: SeedanceNzAudioSubmitRequest,
   transport: ProviderSubmissionTransport = {},
-): Promise<{ taskId: string; model: string } & ProviderTransportTrace> {
+): Promise<{ taskId: string; model: string; outputFormat?: string; sampleRate?: string } & ProviderTransportTrace> {
   const r = await fetch('/api/proxy/audio/seed-audio/submit', {
     method: 'POST',
     headers: providerSubmissionHeaders(transport),
@@ -2262,8 +2266,14 @@ export async function submitSeedanceNzAudio(
 export async function querySeedanceNzAudio(
   taskId: string,
   transport: ProviderSubmissionTransport = {},
+  recipe: { model?: string; outputFormat?: string; sampleRate?: string } = {},
 ): Promise<SeedanceNzAudioQueryResult> {
-  const r = await fetch(`/api/proxy/audio/seed-audio/status/${encodeURIComponent(taskId)}`, { signal: transport.signal });
+  const query = new URLSearchParams();
+  if (recipe.model === 'doubao-voice-clone' || recipe.model === 'doubao-seed-icl-2.0') query.set('model', recipe.model);
+  if (recipe.model === 'doubao-seed-icl-2.0' && recipe.outputFormat === 'pcm') {
+    query.set('outputFormat', 'pcm'); query.set('sampleRate', recipe.sampleRate || '24000');
+  }
+  const r = await fetch(`/api/proxy/audio/seed-audio/status/${encodeURIComponent(taskId)}${query.size ? `?${query}` : ''}`, { signal: transport.signal });
   const data = await safeJsonResponse(r, '贞贞的平价AI小屋音频任务查询');
   if (!r.ok || !data.success) throw providerResponseError(r, data);
   return withProviderTransportTrace(data.data, r);

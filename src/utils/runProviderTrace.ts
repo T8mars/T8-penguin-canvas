@@ -1,3 +1,5 @@
+import nbDoubao from '../../backend/src/shared/nbLowpriceDoubaoContract.json';
+
 export interface RunProviderTrace {
   provider?: string;
   model?: string;
@@ -130,11 +132,11 @@ export function collectRunOutputAssets(value: unknown): RunOutputAssetCandidate[
   const record = value && typeof value === 'object' ? value as Record<string, unknown> : {};
   const result: RunOutputAssetCandidate[] = [];
   const seen = new Set<string>();
-  const addMedia = (kind: RunOutputAssetCandidate['kind'], candidate: unknown, field: string) => {
+  const addMedia = (kind: RunOutputAssetCandidate['kind'], candidate: unknown, field: string, preserveSlot = false) => {
     const url = urlFromItem(candidate);
     if (!url) return;
     const key = `${kind}:${url}`;
-    if (seen.has(key) || result.length >= 100) return;
+    if ((!preserveSlot && seen.has(key)) || result.length >= 100) return;
     seen.add(key);
     result.push({ kind, sourceUrl: url, filename: filenameFor(url, kind, result.length), metadata: { field } });
   };
@@ -148,7 +150,12 @@ export function collectRunOutputAssets(value: unknown): RunOutputAssetCandidate[
 
   addFields('image', ['imageUrl'], ['imageUrls', 'generatedImages', 'outputImages']);
   addFields('video', ['videoUrl'], ['videoUrls', 'outputVideos']);
-  addFields('audio', ['audioUrl'], ['audioUrls', 'tracks', 'outputAudios']);
+  if ([record.apiModel, record.model].includes(nbDoubao.audio.cloneModel)) {
+    const previews = Array.isArray(record.audioUrls) && record.audioUrls.length ? record.audioUrls
+      : Array.isArray(record.tracks) && record.tracks.length ? record.tracks : [record.audioUrl];
+    if (previews.length >= 100) throw new Error('Doubao preview list exceeds the shared Run artifact capacity; outputs were not truncated');
+    previews.forEach(item => addMedia('audio', item, 'audioUrls', true));
+  } else addFields('audio', ['audioUrl'], ['audioUrls', 'tracks', 'outputAudios']);
   addFields('model3d', ['modelUrl', 'glbUrl'], ['modelUrls', 'outputModels']);
 
   for (const field of ['outputText', 'reply']) {

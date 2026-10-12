@@ -1,6 +1,17 @@
 {
   "$schema": "本文件为 T8-penguin-canvas 节点清单防丢失锁,任何节点删减都需要在 roadmap.md 中说明并更新本文件。",
   "version": "3.3.3",
+  "nbLowpriceDoubaoAndCrispNodes20261013": {
+    "status": "development-live-verified-not-released",
+    "releaseIncluded": false,
+    "provider": "seedance-nz",
+    "models": ["zhenzhen-image-nb-pro-lowprice", "zhenzhen-image-nb-2.1-lowprice", "doubao-voice-clone", "doubao-seed-icl-2.0"],
+    "summary": "Budget-only Banana 2 / Seed Audio additions, authoritative speaker connection, ordered outputs, exact metadata, PCM playback, original-task recovery, nine safe workflows and unconditional crisp node UI.",
+    "details": "docs/nb-lowprice-doubao.md",
+    "verification": "8/8 real tasks with complete output decoding; 672 Chromium style combinations and production control interactions passed. Targeted protocol, route, authority, Creator and recovery regressions passed; overlapping suites are not summed.",
+    "report": "local-private/nb-lowprice-doubao-live-20261013/report.json",
+    "boundary": "No version change, production build, push or release this turn. Full live parameter matrix, affected user GPU, complete App/installed-client and F8-F10 remain unverified. Live credentials/task/speaker identities stay private."
+  },
   "electronReleaseV333": {
     "status": "released-dual-platform-verified",
     "version": "3.3.3",

@@ -1,0 +1,499 @@
+{
+  "schema": "t8-workflow-fragment",
+  "version": 1,
+  "title": "zhenzhen-image-nb-2.1-lowprice-multi-reference",
+  "nodes": [
+    {
+      "id": "reference-1",
+      "type": "upload",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "data": {
+        "label": "Reference 1",
+        "uploadType": "image",
+        "lockedUploadType": "image"
+      }
+    },
+    {
+      "id": "reference-2",
+      "type": "upload",
+      "position": {
+        "x": 0,
+        "y": 280
+      },
+      "data": {
+        "label": "Reference 2",
+        "uploadType": "image",
+        "lockedUploadType": "image"
+      }
+    },
+    {
+      "id": "reference-3",
+      "type": "upload",
+      "position": {
+        "x": 0,
+        "y": 560
+      },
+      "data": {
+        "label": "Reference 3",
+        "uploadType": "image",
+        "lockedUploadType": "image"
+      }
+    },
+    {
+      "id": "reference-4",
+      "type": "upload",
+      "position": {
+        "x": 0,
+        "y": 840
+      },
+      "data": {
+        "label": "Reference 4",
+        "uploadType": "image",
+        "lockedUploadType": "image"
+      }
+    },
+    {
+      "id": "reference-5",
+      "type": "upload",
+      "position": {
+        "x": 0,
+        "y": 1120
+      },
+      "data": {
+        "label": "Reference 5",
+        "uploadType": "image",
+        "lockedUploadType": "image"
+      }
+    },
+    {
+      "id": "reference-6",
+      "type": "upload",
+      "position": {
+        "x": 0,
+        "y": 1400
+      },
+      "data": {
+        "label": "Reference 6",
+        "uploadType": "image",
+        "lockedUploadType": "image"
+      }
+    },
+    {
+      "id": "reference-7",
+      "type": "upload",
+      "position": {
+        "x": 0,
+        "y": 1680
+      },
+      "data": {
+        "label": "Reference 7",
+        "uploadType": "image",
+        "lockedUploadType": "image"
+      }
+    },
+    {
+      "id": "reference-8",
+      "type": "upload",
+      "position": {
+        "x": 0,
+        "y": 1960
+      },
+      "data": {
+        "label": "Reference 8",
+        "uploadType": "image",
+        "lockedUploadType": "image"
+      }
+    },
+    {
+      "id": "reference-9",
+      "type": "upload",
+      "position": {
+        "x": 0,
+        "y": 2240
+      },
+      "data": {
+        "label": "Reference 9",
+        "uploadType": "image",
+        "lockedUploadType": "image"
+      }
+    },
+    {
+      "id": "reference-10",
+      "type": "upload",
+      "position": {
+        "x": 0,
+        "y": 2520
+      },
+      "data": {
+        "label": "Reference 10",
+        "uploadType": "image",
+        "lockedUploadType": "image"
+      }
+    },
+    {
+      "id": "reference-11",
+      "type": "upload",
+      "position": {
+        "x": 0,
+        "y": 2800
+      },
+      "data": {
+        "label": "Reference 11",
+        "uploadType": "image",
+        "lockedUploadType": "image"
+      }
+    },
+    {
+      "id": "reference-12",
+      "type": "upload",
+      "position": {
+        "x": 0,
+        "y": 3080
+      },
+      "data": {
+        "label": "Reference 12",
+        "uploadType": "image",
+        "lockedUploadType": "image"
+      }
+    },
+    {
+      "id": "reference-13",
+      "type": "upload",
+      "position": {
+        "x": 0,
+        "y": 3360
+      },
+      "data": {
+        "label": "Reference 13",
+        "uploadType": "image",
+        "lockedUploadType": "image"
+      }
+    },
+    {
+      "id": "reference-14",
+      "type": "upload",
+      "position": {
+        "x": 0,
+        "y": 3640
+      },
+      "data": {
+        "label": "Reference 14",
+        "uploadType": "image",
+        "lockedUploadType": "image"
+      }
+    },
+    {
+      "id": "generation",
+      "type": "image",
+      "position": {
+        "x": 440,
+        "y": 80
+      },
+      "data": {
+        "label": "zhenzhen-image-nb-2.1-lowprice",
+        "model": "nano-banana-2",
+        "apiModel": "zhenzhen-image-nb-2.1-lowprice",
+        "providerSource": "zhenzhen",
+        "imageBuiltinSource": "seedance-nz",
+        "aspectRatio": "auto",
+        "sizeLevel": "1K",
+        "apimartImageCount": 1,
+        "imageOnlyOutput": true,
+        "reuseResult": false,
+        "prompt": "Keep the penguin and ceramic cup from the ordered references. Arrange them in one clean pastel studio scene and make the background pink. Preserve their designs."
+      }
+    },
+    {
+      "id": "output",
+      "type": "output",
+      "position": {
+        "x": 870,
+        "y": 80
+      },
+      "data": {
+        "label": "Result"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "reference-edge-1",
+      "source": "reference-1",
+      "target": "generation"
+    },
+    {
+      "id": "reference-edge-2",
+      "source": "reference-2",
+      "target": "generation"
+    },
+    {
+      "id": "reference-edge-3",
+      "source": "reference-3",
+      "target": "generation"
+    },
+    {
+      "id": "reference-edge-4",
+      "source": "reference-4",
+      "target": "generation"
+    },
+    {
+      "id": "reference-edge-5",
+      "source": "reference-5",
+      "target": "generation"
+    },
+    {
+      "id": "reference-edge-6",
+      "source": "reference-6",
+      "target": "generation"
+    },
+    {
+      "id": "reference-edge-7",
+      "source": "reference-7",
+      "target": "generation"
+    },
+    {
+      "id": "reference-edge-8",
+      "source": "reference-8",
+      "target": "generation"
+    },
+    {
+      "id": "reference-edge-9",
+      "source": "reference-9",
+      "target": "generation"
+    },
+    {
+      "id": "reference-edge-10",
+      "source": "reference-10",
+      "target": "generation"
+    },
+    {
+      "id": "reference-edge-11",
+      "source": "reference-11",
+      "target": "generation"
+    },
+    {
+      "id": "reference-edge-12",
+      "source": "reference-12",
+      "target": "generation"
+    },
+    {
+      "id": "reference-edge-13",
+      "source": "reference-13",
+      "target": "generation"
+    },
+    {
+      "id": "reference-edge-14",
+      "source": "reference-14",
+      "target": "generation"
+    },
+    {
+      "id": "output-edge",
+      "source": "generation",
+      "target": "output"
+    }
+  ],
+  "nodeCount": 16,
+  "edgeCount": 15,
+  "nodeTypes": [
+    "upload",
+    "image",
+    "output"
+  ],
+  "topologyPreview": {
+    "nodes": [
+      {
+        "id": "reference-1",
+        "type": "upload",
+        "label": "Reference 1",
+        "x": 50,
+        "y": 50
+      },
+      {
+        "id": "reference-2",
+        "type": "upload",
+        "label": "Reference 2",
+        "x": 50,
+        "y": 330
+      },
+      {
+        "id": "reference-3",
+        "type": "upload",
+        "label": "Reference 3",
+        "x": 50,
+        "y": 610
+      },
+      {
+        "id": "reference-4",
+        "type": "upload",
+        "label": "Reference 4",
+        "x": 50,
+        "y": 890
+      },
+      {
+        "id": "reference-5",
+        "type": "upload",
+        "label": "Reference 5",
+        "x": 50,
+        "y": 1170
+      },
+      {
+        "id": "reference-6",
+        "type": "upload",
+        "label": "Reference 6",
+        "x": 50,
+        "y": 1450
+      },
+      {
+        "id": "reference-7",
+        "type": "upload",
+        "label": "Reference 7",
+        "x": 50,
+        "y": 1730
+      },
+      {
+        "id": "reference-8",
+        "type": "upload",
+        "label": "Reference 8",
+        "x": 50,
+        "y": 2010
+      },
+      {
+        "id": "reference-9",
+        "type": "upload",
+        "label": "Reference 9",
+        "x": 50,
+        "y": 2290
+      },
+      {
+        "id": "reference-10",
+        "type": "upload",
+        "label": "Reference 10",
+        "x": 50,
+        "y": 2570
+      },
+      {
+        "id": "reference-11",
+        "type": "upload",
+        "label": "Reference 11",
+        "x": 50,
+        "y": 2850
+      },
+      {
+        "id": "reference-12",
+        "type": "upload",
+        "label": "Reference 12",
+        "x": 50,
+        "y": 3130
+      },
+      {
+        "id": "reference-13",
+        "type": "upload",
+        "label": "Reference 13",
+        "x": 50,
+        "y": 3410
+      },
+      {
+        "id": "reference-14",
+        "type": "upload",
+        "label": "Reference 14",
+        "x": 50,
+        "y": 3690
+      },
+      {
+        "id": "generation",
+        "type": "image",
+        "label": "zhenzhen-image-nb-2.1-lowprice",
+        "x": 490,
+        "y": 130
+      },
+      {
+        "id": "output",
+        "type": "output",
+        "label": "Result",
+        "x": 920,
+        "y": 130
+      }
+    ],
+    "edges": [
+      {
+        "id": "reference-edge-1",
+        "source": "reference-1",
+        "target": "generation"
+      },
+      {
+        "id": "reference-edge-2",
+        "source": "reference-2",
+        "target": "generation"
+      },
+      {
+        "id": "reference-edge-3",
+        "source": "reference-3",
+        "target": "generation"
+      },
+      {
+        "id": "reference-edge-4",
+        "source": "reference-4",
+        "target": "generation"
+      },
+      {
+        "id": "reference-edge-5",
+        "source": "reference-5",
+        "target": "generation"
+      },
+      {
+        "id": "reference-edge-6",
+        "source": "reference-6",
+        "target": "generation"
+      },
+      {
+        "id": "reference-edge-7",
+        "source": "reference-7",
+        "target": "generation"
+      },
+      {
+        "id": "reference-edge-8",
+        "source": "reference-8",
+        "target": "generation"
+      },
+      {
+        "id": "reference-edge-9",
+        "source": "reference-9",
+        "target": "generation"
+      },
+      {
+        "id": "reference-edge-10",
+        "source": "reference-10",
+        "target": "generation"
+      },
+      {
+        "id": "reference-edge-11",
+        "source": "reference-11",
+        "target": "generation"
+      },
+      {
+        "id": "reference-edge-12",
+        "source": "reference-12",
+        "target": "generation"
+      },
+      {
+        "id": "reference-edge-13",
+        "source": "reference-13",
+        "target": "generation"
+      },
+      {
+        "id": "reference-edge-14",
+        "source": "reference-14",
+        "target": "generation"
+      },
+      {
+        "id": "output-edge",
+        "source": "generation",
+        "target": "output"
+      }
+    ]
+  },
+  "savedAt": "2026-10-13T00:00:00.000Z"
+}

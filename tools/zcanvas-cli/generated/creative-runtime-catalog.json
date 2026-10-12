@@ -1,6 +1,6 @@
 {
   "schema": "t8-creative-runtime-catalog-v1",
-  "sourceDigest": "55befbba55accb0beb18ebbaa5dca878087db00aa5f10d4a3712c50ab15439f5",
+  "sourceDigest": "823a244216287379c8246884145f7506044b45433c06d4cc20541db52dd97f38",
   "generatedFrom": [
     "src/providers/models.ts",
     "src/config/seedance.ts",
@@ -9,7 +9,8 @@
     "backend/src/providers/seedanceNz.js",
     "backend/src/shared/seedreamNzContract.json",
     "backend/src/shared/nb21FluxViduQ4Contract.json",
-    "backend/src/shared/maiImageContract.json"
+    "backend/src/shared/maiImageContract.json",
+    "backend/src/shared/nbLowpriceDoubaoContract.json"
   ],
   "platforms": [
     {
@@ -1888,6 +1889,60 @@
       }
     },
     {
+      "id": "image:seedance-nz:zhenzhen-image-nb-2.1-lowprice",
+      "provider": "seedance-nz",
+      "platformLabel": "贞贞的平价AI小屋",
+      "model": "zhenzhen-image-nb-2.1-lowprice",
+      "label": "zhenzhen-image-nb-2.1-lowprice",
+      "family": "nano-banana-2",
+      "available": true,
+      "parameters": {
+        "label": "zhenzhen-image-nb-2.1-lowprice",
+        "platformLabel": "贞贞的平价AI小屋",
+        "family": "nano-banana-2",
+        "available": true,
+        "tabLabel": "香蕉2",
+        "aspectRatios": [
+          "auto",
+          "1:1",
+          "2:3",
+          "3:2",
+          "3:4",
+          "4:3",
+          "4:5",
+          "5:4",
+          "9:16",
+          "16:9",
+          "21:9",
+          "1:4",
+          "4:1",
+          "1:8",
+          "8:1"
+        ],
+        "sizes": [
+          "1K",
+          "2K",
+          "4K"
+        ],
+        "defaultSize": "1K",
+        "defaultAspectRatio": "1:1",
+        "fixedOutputCount": 1,
+        "promptCharacters": {
+          "min": 1,
+          "max": 5000
+        },
+        "capabilities": [
+          "t2i",
+          "i2i",
+          "edit"
+        ],
+        "parameterKind": "seedance-nz-image",
+        "supportsReference": true,
+        "maxReferenceImages": 14,
+        "description": "贞贞的平价AI小屋图像模型"
+      }
+    },
+    {
       "id": "image:seedance-nz:zhenzhen-image-nb-pro",
       "provider": "seedance-nz",
       "platformLabel": "贞贞的平价AI小屋",
@@ -1901,6 +1956,56 @@
         "family": "nano-banana-pro",
         "available": true,
         "tabLabel": "香蕉Pro",
+        "capabilities": [
+          "t2i",
+          "i2i",
+          "edit"
+        ],
+        "parameterKind": "seedance-nz-image",
+        "supportsReference": true,
+        "maxReferenceImages": 14,
+        "description": "贞贞的平价AI小屋图像模型"
+      }
+    },
+    {
+      "id": "image:seedance-nz:zhenzhen-image-nb-pro-lowprice",
+      "provider": "seedance-nz",
+      "platformLabel": "贞贞的平价AI小屋",
+      "model": "zhenzhen-image-nb-pro-lowprice",
+      "label": "zhenzhen-image-nb-pro-lowprice",
+      "family": "nano-banana-2",
+      "available": true,
+      "parameters": {
+        "label": "zhenzhen-image-nb-pro-lowprice",
+        "platformLabel": "贞贞的平价AI小屋",
+        "family": "nano-banana-2",
+        "available": true,
+        "tabLabel": "香蕉2",
+        "aspectRatios": [
+          "auto",
+          "1:1",
+          "2:3",
+          "3:2",
+          "3:4",
+          "4:3",
+          "4:5",
+          "5:4",
+          "9:16",
+          "16:9",
+          "21:9"
+        ],
+        "sizes": [
+          "1K",
+          "2K",
+          "4K"
+        ],
+        "defaultSize": "1K",
+        "defaultAspectRatio": "1:1",
+        "fixedOutputCount": 1,
+        "promptCharacters": {
+          "min": 1,
+          "max": 5000
+        },
         "capabilities": [
           "t2i",
           "i2i",
@@ -9035,6 +9140,267 @@
       }
     },
     {
+      "id": "audio:seedance-nz:doubao-seed-icl-2.0",
+      "provider": "seedance-nz",
+      "platformLabel": "贞贞的平价AI小屋",
+      "model": "doubao-seed-icl-2.0",
+      "label": "doubao-seed-icl-2.0",
+      "family": "seed-audio",
+      "available": true,
+      "parameters": {
+        "label": "doubao-seed-icl-2.0",
+        "platformLabel": "贞贞的平价AI小屋",
+        "family": "seed-audio",
+        "available": true,
+        "tabLabel": "Seed Audio",
+        "orderedMultiOutput": true,
+        "requiresSameAccountSpeaker": true,
+        "speakerInputHandle": "speaker",
+        "promptCharacters": {
+          "min": 1,
+          "max": 10000
+        },
+        "metadataFields": {
+          "voice_model": {
+            "kind": "select",
+            "default": "seed-tts-2.0-standard",
+            "options": [
+              "api_default",
+              "seed-tts-2.0-standard",
+              "seed-tts-2.0-expressive"
+            ]
+          },
+          "format": {
+            "kind": "select",
+            "default": "mp3",
+            "options": [
+              "mp3",
+              "pcm",
+              "ogg_opus",
+              "wav"
+            ]
+          },
+          "sample_rate": {
+            "kind": "select",
+            "default": "24000",
+            "options": [
+              "8000",
+              "16000",
+              "22050",
+              "24000",
+              "32000",
+              "44100",
+              "48000"
+            ]
+          },
+          "speech_rate": {
+            "kind": "number",
+            "min": -50,
+            "max": 100,
+            "default": 0
+          },
+          "loudness_rate": {
+            "kind": "number",
+            "min": -50,
+            "max": 100,
+            "default": 0
+          },
+          "pitch": {
+            "kind": "number",
+            "min": -12,
+            "max": 12,
+            "default": 0
+          },
+          "explicit_language": {
+            "kind": "select",
+            "options": [
+              "api_default",
+              "zh-cn",
+              "en",
+              "ja",
+              "es-mx",
+              "id",
+              "pt-br",
+              "pt",
+              "ko",
+              "de",
+              "fr",
+              "th",
+              "vi",
+              "ru",
+              "fil",
+              "ms",
+              "ar"
+            ]
+          },
+          "context_texts": {
+            "kind": "textarea",
+            "max": 500
+          },
+          "bit_rate": {
+            "kind": "number",
+            "min": 16000,
+            "max": 160000,
+            "integer": true,
+            "advanced": true
+          },
+          "max_length_to_filter_parenthesis": {
+            "kind": "select",
+            "numeric": true,
+            "options": [
+              "api_default",
+              "0",
+              "100"
+            ],
+            "advanced": true
+          },
+          "silence_duration": {
+            "kind": "number",
+            "min": 0,
+            "max": 30000,
+            "default": 0,
+            "advanced": true
+          },
+          "enable_subtitle": {
+            "kind": "boolean",
+            "advanced": true
+          },
+          "disable_markdown_filter": {
+            "kind": "boolean",
+            "advanced": true
+          },
+          "disable_emoji_filter": {
+            "kind": "boolean",
+            "advanced": true
+          },
+          "enable_latex_tn": {
+            "kind": "boolean",
+            "advanced": true
+          },
+          "aigc_watermark": {
+            "kind": "boolean",
+            "advanced": true
+          },
+          "disable_default_bit_rate": {
+            "kind": "boolean",
+            "advanced": true
+          },
+          "tone_fidelity": {
+            "kind": "boolean",
+            "advanced": true
+          },
+          "aigc_metadata_enable": {
+            "kind": "boolean",
+            "advanced": true
+          },
+          "latex_parser": {
+            "kind": "select",
+            "options": [
+              "api_default",
+              "v2"
+            ],
+            "advanced": true
+          },
+          "section_id": {
+            "kind": "text",
+            "max": 128,
+            "advanced": true
+          },
+          "aigc_metadata_content_producer": {
+            "kind": "text",
+            "max": 128,
+            "advanced": true
+          },
+          "aigc_metadata_produce_id": {
+            "kind": "text",
+            "max": 128,
+            "advanced": true
+          },
+          "aigc_metadata_content_propagator": {
+            "kind": "text",
+            "max": 128,
+            "advanced": true
+          },
+          "aigc_metadata_propagate_id": {
+            "kind": "text",
+            "max": 128,
+            "advanced": true
+          }
+        }
+      }
+    },
+    {
+      "id": "audio:seedance-nz:doubao-voice-clone",
+      "provider": "seedance-nz",
+      "platformLabel": "贞贞的平价AI小屋",
+      "model": "doubao-voice-clone",
+      "label": "doubao-voice-clone",
+      "family": "seed-audio",
+      "available": true,
+      "parameters": {
+        "label": "doubao-voice-clone",
+        "platformLabel": "贞贞的平价AI小屋",
+        "family": "seed-audio",
+        "available": true,
+        "tabLabel": "Seed Audio",
+        "orderedMultiOutput": true,
+        "speakerResultField": "result_text",
+        "exactAudioReferences": 1,
+        "encodedSampleMaxBytes": 10485760,
+        "promptCharacters": {
+          "min": 4,
+          "max": 300
+        },
+        "metadataFields": {
+          "custom_speaker_id": {
+            "kind": "text",
+            "max": 256
+          },
+          "language": {
+            "kind": "select",
+            "options": [
+              "api_default",
+              "0",
+              "1",
+              "2",
+              "3",
+              "4",
+              "5",
+              "6",
+              "7",
+              "8",
+              "9",
+              "10",
+              "11",
+              "12",
+              "13",
+              "14",
+              "15",
+              "16",
+              "17",
+              "19",
+              "20",
+              "21"
+            ]
+          },
+          "reference_text": {
+            "kind": "textarea",
+            "max": 2000
+          },
+          "enable_audio_denoise": {
+            "kind": "boolean"
+          },
+          "disable_volume_normalization": {
+            "kind": "boolean"
+          },
+          "speaker_id": {
+            "kind": "text",
+            "advanced": true
+          }
+        }
+      }
+    },
+    {
       "id": "audio:seedance-nz:flowmusic",
       "provider": "seedance-nz",
       "platformLabel": "贞贞的平价AI小屋",
@@ -10461,9 +10827,9 @@
   ],
   "counts": {
     "llm": 34,
-    "image": 67,
+    "image": 69,
     "video": 136,
-    "audio": 17,
+    "audio": 19,
     "actions": 61
   }
 }

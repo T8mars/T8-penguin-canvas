@@ -17,6 +17,8 @@ const { getWhitePng } = require('../utils/whitePng');
 const { tryDecodeDuckPayload } = require('../utils/duckPayload');
 const { normalizeLlmMessageMedia } = require('../providers/llmMedia');
 const seedanceNz = require('../providers/seedanceNz');
+const nbDoubao = require('../shared/nbLowpriceDoubaoContract.json');
+const { wrapPcm16MonoWav, hasAudioContainerHeader } = require('../utils/pcmAudio');
 const {
   DEFAULT_PROVIDER_LLM_TIMEOUT_MS,
   MIN_PROVIDER_MEDIA_TIMEOUT_MS,
@@ -2221,7 +2223,7 @@ async function saveRemoteAudio(url, materializationKey = '') {
   return result.url || null;
 }
 
-async function saveRemoteAudioDetailed(url, materializationKey = '', signal) {
+async function saveRemoteAudioDetailed(url, materializationKey = '', signal, pcmSampleRate) {
   let lastError = null;
   const deadlineAt = remoteOutputDeadlineAt();
   const retryDelays = remoteOutputRetryDelays();
@@ -2245,8 +2247,14 @@ async function saveRemoteAudioDetailed(url, materializationKey = '', signal) {
         signal,
       });
       throwIfProxyRequestAborted(signal);
-      const buf = remote.buffer;
-      const ext = verifiedProxyMediaExtension(remote);
+      // Known ICL PCM is wrapped without resampling or dropping a single frame.
+      // Other codecs and every other model retain their existing materializer.
+      // Raw s16le may coincidentally begin with an MPEG sync word. Its explicit
+      // PCM recipe takes precedence over that weak two-byte signature.
+      const rawPcm = pcmSampleRate && !hasAudioContainerHeader(remote.buffer);
+      const buf = rawPcm ? wrapPcm16MonoWav(remote.buffer, pcmSampleRate, PROXY_AUDIO_REFERENCE_MAX_BYTES) : remote.buffer;
+      if (rawPcm) validateProxyMediaBuffer(buf, 'audio/wav', { allowedKinds: ['audio'], maxBytes: PROXY_AUDIO_REFERENCE_MAX_BYTES });
+      const ext = rawPcm ? 'wav' : verifiedProxyMediaExtension(remote);
       return {
         url: storeMaterializedOutputBuffer(buf, 'audio', ext, materializationKey),
         error: null,
@@ -2899,6 +2907,7 @@ async function materializeRemoteTaskOutput({
   materializationKey,
   providerFetchImpl,
   signal,
+  pcmSampleRate,
 }) {
   const normalized = String(status || '').trim().toLowerCase();
   if (!completedStatuses.includes(normalized)) return { url: '', failure: null };
@@ -2911,7 +2920,7 @@ async function materializeRemoteTaskOutput({
   const saved = kind === 'video'
     ? await saveRemoteVideoDetailed(remoteUrl, providerFetchImpl, materializationKey, signal)
     : kind === 'audio'
-      ? await saveRemoteAudioDetailed(remoteUrl, materializationKey, signal)
+      ? await saveRemoteAudioDetailed(remoteUrl, materializationKey, signal, pcmSampleRate)
       : await saveRemoteImageDetailed(remoteUrl, providerFetchImpl, materializationKey, signal);
   if (saved.url) return { url: saved.url, failure: null };
   return {
@@ -4919,8 +4928,10 @@ router.post('/audio/seed-audio/submit', async (req, res) => {
     rememberTaskKey(result.taskId, apiKey, {
       provider: 'seed-audio-nz',
       model: result.model,
+      outputFormat: result.outputFormat,
+      sampleRate: result.sampleRate,
     });
-    return res.json({ success: true, data: { taskId: result.taskId, model: result.model, ...seedanceNzTrace(result) } });
+    return res.json({ success: true, data: { taskId: result.taskId, model: result.model, outputFormat: result.outputFormat, sampleRate: result.sampleRate, ...seedanceNzTrace(result) } });
   } catch (error) {
     const status = Number(error?.status || 500);
     proxyRouteError('proxy/audio/seed-audio/submit 错误', error, [apiKey]);
@@ -4954,6 +4965,7 @@ async function materializeSeedanceNzAudioResults(result, taskId) {
       remoteUrl: remoteUrls[index],
       kind: 'audio',
       materializationKey: `seed-audio-nz:${taskId}:${index}`,
+      pcmSampleRate: result.pcmSampleRate,
     });
     if (materialized.url) audioUrls.push(materialized.url);
     if (materialized.failure) failures.push(materialized.failure);
@@ -4967,7 +4979,12 @@ router.get('/audio/seed-audio/status/:tid', async (req, res) => {
   const apiKey = String(remembered?.apiKey || settings?.zhenzhenSd2ApiKey || '').trim();
   if (!apiKey) return res.status(400).json({ success: false, error: '缺少贞贞的平价AI小屋 API Key' });
   try {
-    const result = await seedanceNz.queryAudioTask(req.params.tid, apiKey);
+    const recoveredModel = ['doubao-voice-clone', 'doubao-seed-icl-2.0'].includes(String(req.query.model)) ? String(req.query.model) : '';
+    const model = remembered?.model || recoveredModel;
+    const result = await seedanceNz.queryAudioTask(req.params.tid, apiKey, { model,
+      outputFormat: remembered?.outputFormat || (model === nbDoubao.audio.iclModel && req.query.outputFormat === 'pcm' ? 'pcm' : ''),
+      sampleRate: remembered?.sampleRate || (model === nbDoubao.audio.iclModel && nbDoubao.audio.iclFields.sample_rate.options.includes(String(req.query.sampleRate)) ? String(req.query.sampleRate) : undefined),
+    });
     const materialized = await materializeSeedanceNzAudioResults(result, req.params.tid);
     const responseData = {
       status: result.status,
@@ -4984,7 +5001,7 @@ router.get('/audio/seed-audio/status/:tid', async (req, res) => {
       failReason: result.status === 'failed'
         ? safeDiagnosticText(result.failReason || '音频任务失败', 240, [apiKey])
         : '',
-      model: remembered?.model || '',
+      model,
       ...seedanceNzTrace(result),
     };
     if (materialized.failures.length) {

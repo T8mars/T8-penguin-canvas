@@ -3,6 +3,8 @@ const fs = require('node:fs');
 const { applyCreatorMediaNodeDefaults, resolveNewMediaNodeData } = require('../utils/mediaNodeDefaults');
 const nodeSchemaManifest = require('../shared/canvasNodeSchema.json');
 const creativeModelCatalog = require('../shared/creativeModelCatalog.json');
+const nbDoubaoContract = require('../shared/nbLowpriceDoubaoContract.json');
+const doubaoVoiceContract = nbDoubaoContract.audio;
 const storyCreative = require('./agentControlStoryCreative');
 const {
   DEFAULT_ADVANCED_PROVIDERS,
@@ -3489,7 +3491,7 @@ function imagePatch(document, planId, brief, candidateCount, options = {}) {
     const candidatePrompt = `${prompt}\n候选方向：${direction}`;
     candidateNodeIds.push(nodeId);
     operations.push(nodeAdd(nodeId, 'image', origin.x + 430, origin.y + index * 560, {
-      model: 'gpt-image-2',
+      model: nbDoubaoContract.banana.models.includes(model) ? 'nano-banana-2' : 'gpt-image-2',
       ...(requestedSource === 'seedance-nz' ? { imageBuiltinSource: 'seedance-nz' } : {}),
       ...(providerSource === 'zhenzhen' ? { apiModel: model } : {}),
       aspectRatio: brief.ratio,
@@ -3763,16 +3765,23 @@ function audioPatch(document, planId, brief, options = {}) {
   const model = brief.audioModel || brief.model || 'suno-v5.5-generate';
   const grokTts = model === 'xai-tts';
   const grokStt = model === 'xai-stt';
-  const seedAudio = model === 'doubao-seed-audio-1.0';
+  const seedAudio = ['doubao-seed-audio-1.0', doubaoVoiceContract.cloneModel, doubaoVoiceContract.iclModel].includes(model);
+  const doubaoVoice = [doubaoVoiceContract.cloneModel, doubaoVoiceContract.iclModel].includes(model);
   const mode = model.endsWith('-cover') ? 'cover' : model.endsWith('-extend') ? 'extend' : 'generate';
   const reference = resolveMediaReferenceBindings(document, options.database, document.projectId, brief.reuseAssetIds);
+  if (model === doubaoVoiceContract.cloneModel && reference.filter(item => item.kind === 'audio').length !== 1) {
+    throw new AgentControlCreativeError('CREATIVE_AUDIO_REFERENCE_REQUIRED', 'Doubao 训练需要且仅接受一个音频素材', 409);
+  }
+  if (model === doubaoVoiceContract.iclModel && !String(brief.speaker || '').trim()) {
+    throw new AgentControlCreativeError('CREATIVE_AUDIO_REFERENCE_REQUIRED', 'Doubao ICL 需要训练返回的音色 ID', 409);
+  }
   if ((mode === 'cover' || mode === 'extend') && !reference.some((item) => item.kind === 'audio')) {
     throw new AgentControlCreativeError('CREATIVE_AUDIO_REFERENCE_REQUIRED', `${mode === 'cover' ? '翻唱' : '续写'}需要一个 --asset 音频素材`, 409);
   }
   if (grokStt && !reference.some((item) => item.kind === 'audio')) {
     throw new AgentControlCreativeError('CREATIVE_AUDIO_REFERENCE_REQUIRED', '音频转写需要一个 --asset 音频素材', 409);
   }
-  const prompt = [
+  const prompt = doubaoVoice ? brief.goal : [
     brief.goal,
     `用途：${brief.format}；受众：${brief.audience}；语言：${brief.language}。`,
     `风格：${brief.style}。`,
@@ -3840,6 +3849,12 @@ function audioPatch(document, planId, brief, options = {}) {
     nodeAdd(promptId, 'text', origin.x, origin.y, { text: prompt, creativeBrief: brief }),
     nodeAdd(audioId, 'audio', origin.x + 430, origin.y, {
       audioProviderMode: seedAudio ? 'seed-audio' : 'suno',
+      ...(seedAudio ? { seedAudioModel: model } : {}),
+      ...(model === doubaoVoiceContract.iclModel ? { doubaoVoiceParams: {
+        format: doubaoVoiceContract.iclFields.format.options.includes(brief.outputFormat) ? brief.outputFormat : 'mp3',
+        sample_rate: doubaoVoiceContract.iclFields.sample_rate.options.includes(String(brief.sampleRate)) ? String(brief.sampleRate) : '24000',
+        speech_rate: brief.speechRate || 0, loudness_rate: brief.loudnessRate || 0, pitch: brief.pitchRate || 0,
+      } } : {}),
       providerSource: brief.audioProviderSource || 'zhenzhen',
       providerId: brief.audioProviderId || '',
       providerModel: model,
@@ -3848,7 +3863,7 @@ function audioPatch(document, planId, brief, options = {}) {
       version: 'v5.5',
       title: brief.title,
       tags: brief.style,
-      prompt,
+      prompt: doubaoVoice ? brief.goal : prompt,
       localRefAudio: reference.find((item) => item.kind === 'audio')?.url || '',
       localRefImage: reference.find((item) => item.kind === 'image')?.url || '',
       referenceAssetIds: reference.map((item) => item.assetId),

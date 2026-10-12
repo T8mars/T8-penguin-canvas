@@ -18,6 +18,7 @@ import historyInputContract from '../../../backend/src/shared/generationHistoryI
 import { SEEDREAM_NZ_FAMILIES, seedreamNzFamily, seedreamNzFamilyChange, seedreamNzRuntimeModel, seedreamNzValidation, type SeedreamNzResolution } from '../../utils/seedreamNzContract';
 import {
   FLUX3_IMAGE_MODEL, ZHENZHEN_IMAGE_NB_21_MODEL, NB_FLUX_VIDU_CONTRACT,
+  isNbLowpriceModel, NB_LOWPRICE_DOUBAO_CONTRACT,
   MAI_IMAGE_TAB, isMaiImageModel,
   IMAGE_MODELS,
   FAL_REGISTRY,
@@ -526,7 +527,8 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
   const isZhenzhenNb2 = apiModel === ZHENZHEN_IMAGE_NB_2_MODEL;
   const isZhenzhenNb21 = apiModel === ZHENZHEN_IMAGE_NB_21_MODEL;
   const isZhenzhenNbPro = apiModel === ZHENZHEN_IMAGE_NB_PRO_MODEL;
-  const isZhenzhenNb = isZhenzhenNb2Lite || isZhenzhenNb2 || isZhenzhenNb21 || isZhenzhenNbPro;
+  const isNbLowprice = isNbLowpriceModel(apiModel);
+  const isZhenzhenNb = isZhenzhenNb2Lite || isZhenzhenNb2 || isZhenzhenNb21 || isZhenzhenNbPro || isNbLowprice;
   const fluxImageGrounding = d?.fluxImageGrounding !== false;
   const fluxImageSafetyTolerance = [0, 1, 2, 3, 4].includes(d?.fluxImageSafetyTolerance) ? d.fluxImageSafetyTolerance : 2;
   const isQwenImageI2I = isQwenImageTab && isQwenImage30I2IModel(apiModel);
@@ -544,6 +546,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
     : '贞贞的平价AI小屋';
   const effectiveAspectRatios = isZhenzhenImageG2
     ? ZHENZHEN_IMAGE_G2_RATIOS
+    : isNbLowprice ? (apiModel === NB_LOWPRICE_DOUBAO_CONTRACT.banana.models[0] ? NB_LOWPRICE_DOUBAO_CONTRACT.banana.proRatios : NB_LOWPRICE_DOUBAO_CONTRACT.banana.nb21Ratios)
     : isZhenzhenNb21 ? NB_FLUX_VIDU_CONTRACT.banana21.ratios
     : isZhenzhenGrokImageV2Edit
       ? [...ZHENZHEN_IMAGE_GK_V2_EDIT_RATIOS]
@@ -569,7 +572,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
         ? ['0.5K', '1K', '2K', '4K']
         : isZhenzhenNb2Lite
           ? ['1K']
-          : isZhenzhenNbPro || isZhenzhenNb21
+          : isZhenzhenNbPro || isZhenzhenNb21 || isNbLowprice
             ? ['1K', '2K', '4K']
       : (isZhenzhenGrokImageV2 || isZhenzhenGrokImageV2Edit || isZhenzhenGrokImage || isZhenzhenGrokImageEdit)
         ? []
@@ -580,7 +583,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
       ? '1K'
       : isZhenzhenNb2 && !['0.5K', '1K', '2K', '4K'].includes(sizeLevel)
         ? '1K'
-        : (isZhenzhenLowpriceImage || isZhenzhenNbPro || isZhenzhenNb21) && !['1K', '2K', '4K'].includes(sizeLevel)
+        : (isZhenzhenLowpriceImage || isZhenzhenNbPro || isZhenzhenNb21 || isNbLowprice) && !['1K', '2K', '4K'].includes(sizeLevel)
           ? '1K'
           : sizeLevel;
 
@@ -1010,13 +1013,15 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
         || nextApiModel === ZHENZHEN_IMAGE_GK_V15_EDIT_MODEL
         ? 'grok-image'
         : nextApiModel === FLUX3_IMAGE_MODEL ? FLUX3_IMAGE_MODEL
-        : nextApiModel === ZHENZHEN_IMAGE_NB_2_MODEL || nextApiModel === ZHENZHEN_IMAGE_NB_2_LITE_MODEL || nextApiModel === ZHENZHEN_IMAGE_NB_21_MODEL
+        : nextApiModel === ZHENZHEN_IMAGE_NB_2_MODEL || nextApiModel === ZHENZHEN_IMAGE_NB_2_LITE_MODEL || nextApiModel === ZHENZHEN_IMAGE_NB_21_MODEL || isNbLowpriceModel(nextApiModel)
           ? 'nano-banana-2'
           : nextApiModel === ZHENZHEN_IMAGE_NB_PRO_MODEL
             ? 'nano-banana-pro'
             : 'gpt-image-2';
       const nextRatio = nextApiModel === FLUX3_IMAGE_MODEL
         ? (NB_FLUX_VIDU_CONTRACT.flux.ratios.includes(aspectRatio) ? aspectRatio : 'auto')
+        : isNbLowpriceModel(nextApiModel)
+          ? ((nextApiModel === NB_LOWPRICE_DOUBAO_CONTRACT.banana.models[0] ? NB_LOWPRICE_DOUBAO_CONTRACT.banana.proRatios : NB_LOWPRICE_DOUBAO_CONTRACT.banana.nb21Ratios).includes(aspectRatio) ? aspectRatio : '1:1')
         : nextApiModel === ZHENZHEN_IMAGE_NB_21_MODEL
         ? (NB_FLUX_VIDU_CONTRACT.banana21.ratios.includes(aspectRatio) ? aspectRatio : '1:1')
         : isZhenzhenImageG2Model(nextApiModel)
@@ -1036,7 +1041,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
         imageBuiltinSource: 'seedance-nz',
         sizeLevel: nextApiModel === FLUX3_IMAGE_MODEL
           ? (NB_FLUX_VIDU_CONTRACT.flux.resolutions.includes(sizeLevel) ? sizeLevel : '1k')
-          : nextApiModel === ZHENZHEN_IMAGE_NB_21_MODEL
+          : nextApiModel === ZHENZHEN_IMAGE_NB_21_MODEL || isNbLowpriceModel(nextApiModel)
           ? (['1K', '2K', '4K'].includes(sizeLevel) ? sizeLevel : '1K')
           : nextApiModel === ZHENZHEN_IMAGE_G_V2_LOWPRICE_MODEL || isZhenzhenImageG25Model(nextApiModel)
           ? (['1K', '2K', '4K'].includes(sizeLevel) ? sizeLevel : '1K')
@@ -1089,7 +1094,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
     void getNodes;
     return {
       prompt: prompts.join('\n').trim(),
-      images: isFluxImage || isZhenzhenNb21 || isMaiImage ? images : images.slice(0, maxRefs),
+      images: isFluxImage || isZhenzhenNb21 || isMaiImage || isNbLowprice ? images : images.slice(0, maxRefs),
     };
   };
 
@@ -1181,8 +1186,12 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
     setDownloadNotice(null);
     const { upstreamImages, basePrompt, compiledPrompt, finalPrompt } = resolveGenerationInput();
     const src = `image:${id.slice(0, 6)}`;
-    if ((isFluxImage || isZhenzhenNb21 || isMaiImage) && upstreamImages.length > maxRefs) {
+    if ((isFluxImage || isZhenzhenNb21 || isMaiImage || isNbLowprice) && upstreamImages.length > maxRefs) {
       setError(translate('nodes:generation.newBudgetModels.tooManyImages', { count: maxRefs }));
+      return;
+    }
+    if (isNbLowprice && ([...finalPrompt].length < 1 || [...finalPrompt].length > 5000)) {
+      setError(translate('nodes:generation.nbLowpricePromptLimit'));
       return;
     }
     if (isZhenzhenNb21 && (finalPrompt.length < 5 || finalPrompt.length > 5000)) {
@@ -3280,6 +3289,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
             <div>
               {isMaiImage ? translate('nodes:generation.mai.description')
                 : isFluxImage ? translate('nodes:generation.newBudgetModels.fluxDescription')
+                : isNbLowprice ? translate('nodes:generation.newBudgetModels.nbLowpriceDescription')
                 : isZhenzhenNb21 ? translate('nodes:generation.newBudgetModels.bananaDescription')
                 : isZhenzhenImageG2
                 ? isZhenzhenImageG2I2I

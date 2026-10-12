@@ -26,6 +26,9 @@ const { resolveBundledFfprobe, resolveBundledFfmpeg } = require('./llmMedia');
 const NB_FLUX_VIDU = require('../shared/nb21FluxViduQ4Contract.json');
 const TOPAZ_VIDEO_CONTRACT = require('../shared/topazVideoContract.json');
 const MAI_IMAGE_CONTRACT = require('../shared/maiImageContract.json');
+const NB_DOUBAO = require('../shared/nbLowpriceDoubaoContract.json');
+const { isDoubaoVoiceModel, buildDoubaoVoicePayload } = require('./doubaoVoiceContract');
+const NB_LOWPRICE_MODELS = new Set(NB_DOUBAO.banana.models);
 const MAI_IMAGE_MODELS = new Set(MAI_IMAGE_CONTRACT.models);
 const ZHENZHEN_IMAGE_NB_21_MODEL = NB_FLUX_VIDU.banana21.model;
 const FLUX3_IMAGE_MODEL = NB_FLUX_VIDU.flux.model;
@@ -123,6 +126,7 @@ const ZHENZHEN_IMAGE_NB_2_LITE_MODEL = 'zhenzhen-image-nb-2-lite';
 const ZHENZHEN_IMAGE_NB_2_MODEL = 'zhenzhen-image-nb-2';
 const ZHENZHEN_IMAGE_NB_PRO_MODEL = 'zhenzhen-image-nb-pro';
 const ZHENZHEN_IMAGE_NB_MODELS = new Set([
+  ...NB_LOWPRICE_MODELS,
   ZHENZHEN_IMAGE_NB_21_MODEL,
   ZHENZHEN_IMAGE_NB_2_LITE_MODEL,
   ZHENZHEN_IMAGE_NB_2_MODEL,
@@ -593,6 +597,8 @@ const FLOWMUSIC_ACTION_SPECS = Object.freeze({
 });
 const SEEDANCE_NZ_AUDIO_MODELS = new Set([
   SEED_AUDIO_MODEL,
+  NB_DOUBAO.audio.cloneModel,
+  NB_DOUBAO.audio.iclModel,
   ...QWEN3_TTS_MODELS,
   ...MINIMAX_AUDIO_MODELS,
   ...MUREKA_BGM_MODELS,
@@ -1778,16 +1784,21 @@ async function mediaBuffer(source, kind, maxBytes, options = {}) {
   return { buffer, mime, fileName };
 }
 
-async function transcodeAudioMp3(buffer, options = {}) {
+async function transcodeReferenceAudio(buffer, options = {}) {
   return withFfmpegProcessSlot(() => new Promise((resolve, reject) => {
     if (options.signal?.aborted) return reject(options.signal.reason || new Error('音频转换已取消'));
     const chunks = [];
     let size = 0;
     let settled = false;
     const maxBytes = Number(options.maxBytes) || 50 * 1024 * 1024;
+    const wav = options.normalizeAudioWav === true;
+    const label = wav ? 'Doubao 克隆 WAV' : 'Vidu Q4 MP3';
+    const encoder = wav
+      ? ['-c:a', 'pcm_s16le', '-ar', '24000', '-ac', '1', '-f', 'wav']
+      : ['-c:a', 'libmp3lame', '-b:a', '128k', '-f', 'mp3'];
     const child = spawn(resolveBundledFfmpeg(), [
       '-hide_banner', '-loglevel', 'error', '-threads', '1', '-i', 'pipe:0',
-      '-vn', '-c:a', 'libmp3lame', '-b:a', '128k', '-f', 'mp3', 'pipe:1',
+      '-vn', ...encoder, 'pipe:1',
     ], { windowsHide: true, stdio: ['pipe', 'pipe', 'ignore'] });
     const finish = (error, result) => {
       if (settled) return;
@@ -1796,18 +1807,18 @@ async function transcodeAudioMp3(buffer, options = {}) {
       options.signal?.removeEventListener('abort', abort);
       if (error) { child.kill(); reject(error); } else resolve(result);
     };
-    const abort = () => finish(new Error('Vidu Q4 音频转换已取消'));
-    const timer = setTimeout(() => finish(new Error('Vidu Q4 本地 MP3 转换超时')), 60_000);
+    const abort = () => finish(new Error(`${label} 音频转换已取消`));
+    const timer = setTimeout(() => finish(new Error(`${label} 本地音频转换超时`)), 60_000);
     options.signal?.addEventListener('abort', abort, { once: true });
-    child.on('error', () => finish(new Error('Vidu Q4 音频转换需要可用的 FFmpeg')));
+    child.on('error', () => finish(new Error(`${label} 音频转换需要可用的 FFmpeg`)));
     child.stdin.on('error', () => {});
     child.stdout.on('data', (chunk) => {
       size += chunk.length;
-      if (size > maxBytes) return finish(new Error('Vidu Q4 MP3 参考音频超出文件限制'));
+      if (size > maxBytes) return finish(new Error(`${label} 参考音频超出文件限制`));
       chunks.push(chunk);
     });
     child.once('close', (code) => code === 0 && size > 0
-      ? finish(null, Buffer.concat(chunks)) : finish(new Error('Vidu Q4 参考音频无法转换为 MP3')));
+      ? finish(null, Buffer.concat(chunks)) : finish(new Error(`${label} 参考音频无法转换`)));
     child.stdin.end(buffer);
   }), { isCancelled: () => options.signal?.aborted === true });
 }
@@ -1834,7 +1845,7 @@ async function uploadMedia(source, kind, apiKey, options = {}) {
   }
 
   const promise = withUploadQueue(apiKey, intervalMs, async () => {
-    let file = await mediaBuffer(text, kind, options.maxBytes, options);
+    let file = await mediaBuffer(text, kind, options.sourceMaxBytes ?? options.maxBytes, options);
     if (kind === 'image' && options.normalizeImagePng === true) {
       const buffer = await sharp(file.buffer).png().toBuffer();
       ensureSize(buffer, kind, options.maxBytes);
@@ -1845,11 +1856,19 @@ async function uploadMedia(source, kind, apiKey, options = {}) {
         fileName: String(options.fileName || 'picture.png'),
       };
     }
-    if (kind === 'audio' && options.normalizeAudioMp3 === true) {
+    if (kind === 'audio' && (options.normalizeAudioMp3 === true || options.normalizeAudioWav === true)) {
       // Q4 accepts MP3, not WAV bytes renamed to .mp3. Keep other upload paths unchanged.
-      const buffer = await transcodeAudioMp3(file.buffer, options);
+      // Headerless PCM has no autodetectable container. Only the documented
+      // Doubao input (.pcm / PCM MIME, 24k mono s16le) receives an explicit header.
+      const rawPcm = options.normalizeAudioWav === true &&
+        (/^audio\/(?:x-)?pcm$/i.test(file.mime) || /\.pcm$/i.test(file.fileName)) &&
+        !require('../utils/pcmAudio').hasAudioContainerHeader(file.buffer);
+      const input = rawPcm ? require('../utils/pcmAudio').wrapPcm16MonoWav(file.buffer, 24000, options.sourceMaxBytes) : file.buffer;
+      const buffer = await transcodeReferenceAudio(input, options);
       ensureSize(buffer, kind, options.maxBytes);
-      file = { ...file, buffer, mime: 'audio/mpeg', fileName: 'vidu-q4-reference.mp3' };
+      file = options.normalizeAudioWav === true
+        ? { ...file, buffer, mime: 'audio/wav', fileName: 'doubao-voice-reference.wav' }
+        : { ...file, buffer, mime: 'audio/mpeg', fileName: 'vidu-q4-reference.mp3' };
     }
     if (Array.isArray(options.allowedMimes) && !options.allowedMimes.includes(String(file.mime || '').toLowerCase())) {
       throw new Error(`seedance.nz 不支持该${kind}格式`);
@@ -2986,6 +3005,9 @@ async function buildApimartImagePayload(request, apiKey, options = {}) {
 
   const size = String(request.size || request.ratio || '1:1').trim().toLowerCase();
   if (ZHENZHEN_IMAGE_NB_MODELS.has(model)) {
+    if (NB_LOWPRICE_MODELS.has(model) && ([...prompt].length < 1 || [...prompt].length > 5000)) {
+      throw new Error(`${model} 提示词必须为 1-5000 字符`);
+    }
     if (model === ZHENZHEN_IMAGE_NB_21_MODEL && (prompt.length < 5 || prompt.length > 5000)) {
       throw new Error(`${model} 提示词必须为 5-5000 字符`);
     }
@@ -2999,7 +3021,9 @@ async function buildApimartImagePayload(request, apiKey, options = {}) {
     if (!allowedResolutions.has(resolution)) {
       throw new Error(`${model} 不支持分辨率 ${resolution || '(空)'}`);
     }
-    const allowedRatios = model === ZHENZHEN_IMAGE_NB_21_MODEL
+    const allowedRatios = NB_LOWPRICE_MODELS.has(model)
+      ? new Set(model === NB_DOUBAO.banana.models[0] ? NB_DOUBAO.banana.proRatios : NB_DOUBAO.banana.nb21Ratios)
+      : model === ZHENZHEN_IMAGE_NB_21_MODEL
       ? new Set(NB_FLUX_VIDU.banana21.ratios)
       : model === ZHENZHEN_IMAGE_NB_PRO_MODEL
       ? ZHENZHEN_IMAGE_NB_STANDARD_RATIOS
@@ -5588,6 +5612,20 @@ async function buildAudioPayload(request, apiKey, options = {}) {
   const model = String(request.model || SEED_AUDIO_MODEL).trim().toLowerCase();
   if (!SEEDANCE_NZ_AUDIO_MODELS.has(model)) throw new Error(`未知 seedance.nz 音频模型：${model}`);
 
+  if (isDoubaoVoiceModel(model)) {
+    const built = buildDoubaoVoicePayload({ ...request, model });
+    if (built.clone) {
+      built.payload.metadata.audio_url = await uploadMedia(built.source, 'audio', apiKey, {
+        ...options,
+        maxBytes: NB_DOUBAO.audio.sampleMaxBytes,
+        sourceMaxBytes: 50 * 1024 * 1024,
+        normalizeAudioWav: true,
+        cacheVariant: 'doubao-voice-wav-24k-mono',
+      });
+    }
+    return { payload: built.payload, model };
+  }
+
   if (QWEN3_TTS_MODELS.has(model)) {
     const prompt = String(request.prompt || '').trim();
     const voice = String(request.voice || '').trim();
@@ -5752,7 +5790,11 @@ async function submitAudioTask(request, apiKey, options = {}) {
   const data = await responseJson(response, 'seedance.nz Seed Audio 任务提交');
   if (!response.ok) throw createUpstreamError(data, response);
   const taskId = requiredTaskId(data?.task_id || data?.id || data?.data?.task_id, 'seedance.nz Seed Audio 任务提交', response);
-  return { taskId, model: built.model, ...safeProviderTrace(response, data, { pollCount: 0 }) };
+  return { taskId, model: built.model,
+    ...(built.model === NB_DOUBAO.audio.iclModel ? {
+      outputFormat: built.payload.metadata.format,
+      sampleRate: built.payload.metadata.sample_rate,
+    } : {}), ...safeProviderTrace(response, data, { pollCount: 0 }) };
 }
 
 async function queryAudioTask(taskId, apiKey, options = {}) {
@@ -5786,8 +5828,9 @@ async function queryAudioTask(taskId, apiKey, options = {}) {
     ).trim();
     if (primary) audioUrls.push(primary);
   }
+  const audioModel = String(record?.model || data?.model || options.model || '');
   const resultText = status === 'succeeded'
-    ? String(
+    ? String(isDoubaoVoiceModel(audioModel) ? record?.result_text || '' : (
       content?.voice_id
       || content?.custom_voice_id
       || content?.result_text
@@ -5800,8 +5843,8 @@ async function queryAudioTask(taskId, apiKey, options = {}) {
       || record?.custom_voice_id
       || record?.result_text
       || record?.text
-      || '',
-    ).trim()
+      || ''
+    )).trim()
     : '';
   const failReason = status === 'failed'
     ? String(
@@ -5814,12 +5857,15 @@ async function queryAudioTask(taskId, apiKey, options = {}) {
     ).trim() || '音频任务失败'
     : null;
   return {
-    status,
+    status: isDoubaoVoiceModel(audioModel) && status === 'succeeded' && (!audioUrls.length || (audioModel === NB_DOUBAO.audio.cloneModel && !resultText)) ? 'failed' : status,
     progress: safeProgress(record?.progress ?? data?.progress),
     audioUrl: audioUrls[0] || null,
     audioUrls,
     resultText,
-    failReason,
+    ...(audioModel === NB_DOUBAO.audio.iclModel && options.outputFormat === 'pcm' ? {
+      pcmSampleRate: NB_DOUBAO.audio.iclFields.sample_rate.options.includes(String(options.sampleRate)) ? Number(options.sampleRate) : 24000,
+    } : {}),
+    failReason: isDoubaoVoiceModel(audioModel) && status === 'succeeded' && (!audioUrls.length || (audioModel === NB_DOUBAO.audio.cloneModel && !resultText)) ? 'Doubao 原任务缺少完整音频或权威音色 ID；原任务不会重新提交' : failReason,
     ...safeProviderTrace(response, data),
   };
 }

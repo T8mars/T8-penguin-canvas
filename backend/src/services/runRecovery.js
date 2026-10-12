@@ -2,6 +2,7 @@
 
 const { minimumProviderMediaPollCount } = require('../providers/providerTimeoutPolicy');
 const viduQ4Models = new Set(require('../shared/nb21FluxViduQ4Contract.json').viduQ4.models);
+const nbDoubao = require('../shared/nbLowpriceDoubaoContract.json');
 
 const ACTIVE_STATUSES = new Set(['queued', 'running', 'polling']);
 const RECOVERY_KINDS = new Set([
@@ -84,6 +85,9 @@ function normalizeRunRecoveryDescriptor(value) {
     statusUrl: boundedText(value.statusUrl, 4096) || null,
     endpoint: boundedText(value.endpoint, 1024) || null,
     model: boundedText(value.model, 240) || null,
+    ...(value.model === nbDoubao.audio.iclModel && value.outputFormat === 'pcm' ? {
+      outputFormat: 'pcm', sampleRate: nbDoubao.audio.iclFields.sample_rate.options.includes(String(value.sampleRate)) ? String(value.sampleRate) : '24000',
+    } : {}),
     site: ['cn', 'intl'].includes(boundedText(value.site, 20).toLowerCase()) ? boundedText(value.site, 20).toLowerCase() : null,
     taskProvider: ['seedance-nz', 'zhenzhen-legacy'].includes(boundedText(value.taskProvider, 80)) ? boundedText(value.taskProvider, 80) : null,
     speed: ['relax', 'fast', 'turbo'].includes(boundedText(value.speed, 20).toLowerCase()) ? boundedText(value.speed, 20).toLowerCase() : null,
@@ -144,7 +148,14 @@ function recoveryRequest(baseUrl, descriptor) {
   if (descriptor.kind === 'topaz') return get(`/api/proxy/video/topaz/status/${taskId}`);
   if (descriptor.kind === 'animate') return get(`/api/proxy/video/animate/status/${taskId}`);
   if (descriptor.kind === 'vidu') return get(`/api/proxy/video/vidu/status/${taskId}${viduQ4Models.has(descriptor.model) ? `?model=${encodeURIComponent(descriptor.model)}` : ''}`);
-  if (descriptor.kind === 'seed-audio') return get(`/api/proxy/audio/seed-audio/status/${taskId}`);
+  if (descriptor.kind === 'seed-audio') {
+    const query = new URLSearchParams();
+    if ([nbDoubao.audio.cloneModel, nbDoubao.audio.iclModel].includes(descriptor.model)) query.set('model', descriptor.model);
+    if (descriptor.model === nbDoubao.audio.iclModel && descriptor.outputFormat === 'pcm') {
+      query.set('outputFormat', 'pcm'); query.set('sampleRate', descriptor.sampleRate || '24000');
+    }
+    return get(`/api/proxy/audio/seed-audio/status/${taskId}${query.size ? `?${query}` : ''}`);
+  }
   if (descriptor.kind === 'suno') return get(`/api/proxy/audio/query?clipIds=${encodeURIComponent(descriptor.taskIds.join(','))}&saveLocal=true`);
   if (descriptor.kind === 'image') return get(`/api/proxy/image/status/${taskId}${descriptor.model ? `?model=${encodeURIComponent(descriptor.model)}` : ''}`);
   if (descriptor.kind === 'mj') return get(`/api/proxy/mj/task/${taskId}?speed=${encodeURIComponent(descriptor.speed || 'fast')}`);
@@ -184,16 +195,22 @@ function normalizeRecoveryPayload(payload, descriptor) {
     ...(Array.isArray(data?.tracks) ? data.tracks.map((track) => track?.audioUrl) : []),
   ].map((item) => boundedText(item, 16384)).filter(Boolean);
   const kind = outputKindForDescriptor(descriptor);
+  const doubao = descriptor.kind === 'seed-audio' && ['doubao-voice-clone', 'doubao-seed-icl-2.0'].includes(descriptor.model);
+  const orderedAudioUrls = doubao ? (Array.isArray(data?.audioUrls) && data.audioUrls.length ? data.audioUrls
+    : Array.isArray(data?.tracks) && data.tracks.length ? data.tracks.map(track => track?.audioUrl) : [data?.audioUrl])
+    .map(url => boundedText(url, 16384)).filter(Boolean) : null;
+  const speaker = descriptor.model === 'doubao-voice-clone' ? boundedText(data?.resultText, 4096) : '';
+  if (doubao && state === 'succeeded' && (!orderedAudioUrls.length || (descriptor.model === 'doubao-voice-clone' && !speaker))) state = 'failed';
   return {
     state,
-    outputs: (descriptor.kind === 'topaz' && Array.isArray(data?.videoUrls) && data.videoUrls.length
-      ? data.videoUrls.map((url) => boundedText(url, 16384)).filter(Boolean) : [...new Set(rawUrls)]).map((sourceUrl, index) => ({
+    outputs: [...(orderedAudioUrls || (descriptor.kind === 'topaz' && Array.isArray(data?.videoUrls) && data.videoUrls.length
+      ? data.videoUrls.map((url) => boundedText(url, 16384)).filter(Boolean) : [...new Set(rawUrls)])).map((sourceUrl, index) => ({
       kind,
       sourceUrl,
       filename: `recovered-${descriptor.kind}-${index + 1}`,
-    })),
+    })), ...(speaker ? [{ kind: 'text', text: speaker, filename: 'recovered-doubao-speaker.txt' }] : [])],
     usage: data?.usage && typeof data.usage === 'object' ? data.usage : {},
-    error: boundedText(data?.failReason || data?.error || payload?.error, 4000) || null,
+    error: boundedText(data?.failReason || data?.error || payload?.error, 4000) || (doubao && state === 'failed' ? 'Doubao 原任务未返回完整音频/音色结果，不会重新提交' : null),
     providerStatus: boundedText(data?.status ?? data?.state ?? data?.task_status ?? data?.code, 160) || null,
   };
 }

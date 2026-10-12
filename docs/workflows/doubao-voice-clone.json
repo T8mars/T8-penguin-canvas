@@ -1,0 +1,108 @@
+{
+  "schema": "t8-workflow-fragment",
+  "version": 1,
+  "title": "doubao-voice-clone",
+  "nodes": [
+    {
+      "id": "sample",
+      "type": "upload",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "data": {
+        "label": "Your authorized voice sample",
+        "uploadType": "audio",
+        "lockedUploadType": "audio"
+      }
+    },
+    {
+      "id": "clone",
+      "type": "audio",
+      "position": {
+        "x": 430,
+        "y": 0
+      },
+      "data": {
+        "label": "doubao-voice-clone",
+        "audioProviderMode": "seed-audio",
+        "seedAudioModel": "doubao-voice-clone",
+        "prompt": "Good morning.",
+        "doubaoVoiceParams": {
+          "language": "1"
+        },
+        "reuseResult": false
+      }
+    },
+    {
+      "id": "output",
+      "type": "output",
+      "position": {
+        "x": 890,
+        "y": 0
+      },
+      "data": {
+        "label": "Audio result"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "sample-edge",
+      "source": "sample",
+      "target": "clone"
+    },
+    {
+      "id": "output-edge",
+      "source": "clone",
+      "sourceHandle": "audio-0",
+      "target": "output"
+    }
+  ],
+  "nodeCount": 3,
+  "edgeCount": 2,
+  "nodeTypes": [
+    "upload",
+    "audio",
+    "output"
+  ],
+  "topologyPreview": {
+    "nodes": [
+      {
+        "id": "sample",
+        "type": "upload",
+        "label": "Your authorized voice sample",
+        "x": 50,
+        "y": 50
+      },
+      {
+        "id": "clone",
+        "type": "audio",
+        "label": "doubao-voice-clone",
+        "x": 480,
+        "y": 50
+      },
+      {
+        "id": "output",
+        "type": "output",
+        "label": "Audio result",
+        "x": 940,
+        "y": 50
+      }
+    ],
+    "edges": [
+      {
+        "id": "sample-edge",
+        "source": "sample",
+        "target": "clone"
+      },
+      {
+        "id": "output-edge",
+        "source": "clone",
+        "sourceHandle": "audio-0",
+        "target": "output"
+      }
+    ]
+  },
+  "savedAt": "2026-10-13T00:00:00.000Z"
+}

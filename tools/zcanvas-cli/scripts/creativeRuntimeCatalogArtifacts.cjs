@@ -28,6 +28,7 @@ const SOURCE_PATHS = [
   SEEDREAM_NZ_CONTRACT_SOURCE,
   path.join(ROOT, 'backend', 'src', 'shared', 'nb21FluxViduQ4Contract.json'),
   path.join(ROOT, 'backend', 'src', 'shared', 'maiImageContract.json'),
+  path.join(ROOT, 'backend', 'src', 'shared', 'nbLowpriceDoubaoContract.json'),
 ];
 
 const PLATFORM_META = Object.freeze({
@@ -252,6 +253,7 @@ function buildRuntimeCatalog() {
       : model === seedanceNz.ZHENZHEN_IMAGE_NB_PRO_MODEL
         ? 'nano-banana-pro'
         : model === seedanceNz.ZHENZHEN_IMAGE_NB_2_MODEL
+          || models.NB_LOWPRICE_MODELS.includes(model)
           || model === seedanceNz.ZHENZHEN_IMAGE_NB_21_MODEL
           || model === seedanceNz.ZHENZHEN_IMAGE_NB_2_LITE_MODEL
           ? 'nano-banana-2'
@@ -308,6 +310,11 @@ function buildRuntimeCatalog() {
             : family === 'nano-banana-pro'
               ? '香蕉Pro'
               : family === 'seedream-v5-pro' ? 'Seedream' : 'GPT2',
+        ...(models.NB_LOWPRICE_MODELS.includes(model) ? {
+          aspectRatios: model === models.NB_LOWPRICE_MODELS[0] ? models.NB_LOWPRICE_DOUBAO_CONTRACT.banana.proRatios : models.NB_LOWPRICE_DOUBAO_CONTRACT.banana.nb21Ratios,
+          sizes: ['1K', '2K', '4K'], defaultSize: '1K', defaultAspectRatio: '1:1', fixedOutputCount: 1,
+          promptCharacters: { min: 1, max: 5000 },
+        } : {}),
         capabilities: family === 'grok-image-tools'
           ? (model === seedanceNz.ZHENZHEN_IMAGE_GK_V2_SEGMENT_MODEL ? ['segment', 'metadata'] : ['region-edit', 'edit'])
           : family === 'seedream-layer-decomposition'
@@ -417,6 +424,17 @@ function buildRuntimeCatalog() {
   );
   for (const model of seedanceNz.QWEN3_TTS_MODELS || []) {
     audio.push(modelEntry('audio', 'seedance-nz', model, model, 'qwen3-tts'));
+  }
+  for (const model of [models.NB_LOWPRICE_DOUBAO_CONTRACT.audio.cloneModel, models.NB_LOWPRICE_DOUBAO_CONTRACT.audio.iclModel]) {
+    const contract = models.NB_LOWPRICE_DOUBAO_CONTRACT.audio;
+    const clone = model === contract.cloneModel;
+    audio.push(modelEntry('audio', 'seedance-nz', model, model, 'seed-audio', {
+      tabLabel: 'Seed Audio', orderedMultiOutput: true,
+      ...(clone ? { speakerResultField: 'result_text', exactAudioReferences: 1, encodedSampleMaxBytes: contract.sampleMaxBytes }
+        : { requiresSameAccountSpeaker: true, speakerInputHandle: 'speaker' }),
+      promptCharacters: { min: (clone ? contract.clonePrompt : contract.iclPrompt)[0], max: (clone ? contract.clonePrompt : contract.iclPrompt)[1] },
+      metadataFields: clone ? contract.cloneFields : contract.iclFields,
+    }));
   }
   for (const model of seedanceNz.MINIMAX_AUDIO_MODELS || []) {
     audio.push(modelEntry('audio', 'seedance-nz', model, model, 'minimax'));

@@ -72,6 +72,32 @@ const scope = {
   sessionId: 'session-a',
 };
 
+test('creator new lowprice Banana and Doubao plans declare exact tabs, speaker identity and reference requirements', () => {
+  const state = fixture([], [{ id: 'voice-sample', projectId: 'project-local', kind: 'audio', availability: 'available', contentRevision: 1 }]);
+  const service = createAgentControlCreativeService({ database: state.database });
+  const generation = (plan, type) => service.requirePlan(plan.planId, scope).patch.operations.find(op => op.type === 'node.add' && op.payload.node.type === type).payload.node;
+  for (const model of ['zhenzhen-image-nb-pro-lowprice', 'zhenzhen-image-nb-2.1-lowprice']) {
+    const plan = service.createPlan({ kind: 'image', prompt: '企鹅产品图', imageProvider: 'seedance-nz', imageModel: model, candidates: 1 }, scope);
+    const node = generation(plan, 'image');
+    assert.equal(node.data.model, 'nano-banana-2'); assert.equal(node.data.apiModel, model); assert.equal(node.data.imageBuiltinSource, 'seedance-nz');
+  }
+  const cloned = service.createPlan({ kind: 'audio', prompt: 'Good morning.', audioModel: 'doubao-voice-clone', assetIds: ['voice-sample'] }, scope);
+  const cloneNode = generation(cloned, 'audio');
+  assert.equal(cloneNode.data.audioProviderMode, 'seed-audio'); assert.equal(cloneNode.data.seedAudioModel, 'doubao-voice-clone');
+  assert.equal(cloneNode.data.prompt, 'Good morning.'); assert.match(cloneNode.data.localRefAudio, /voice-sample/);
+  const spoken = service.createPlan({ kind: 'audio', prompt: 'Good morning.', audioModel: 'doubao-seed-icl-2.0', speaker: 'FixtureReturnedSpeaker' }, scope);
+  assert.equal(generation(spoken, 'audio').data.seedAudioSpeaker, 'FixtureReturnedSpeaker');
+  const params = { format: 'pcm', sample_rate: '48000', speech_rate: 0.5, enable_subtitle: false };
+  const editable = service.actionPlan('graph.node-add', { type: 'audio', data: {
+    audioProviderMode: 'seed-audio', seedAudioModel: 'doubao-seed-icl-2.0', seedAudioSpeaker: 'FixtureReturnedSpeaker', doubaoVoiceParams: params,
+  } }, scope);
+  assert.deepEqual(generation(editable, 'audio').data.doubaoVoiceParams, params);
+  assert.throws(() => service.actionPlan('graph.node-add', { type: 'audio', data: { doubaoVoiceParams: Object.fromEntries(Array.from({ length: 33 }, (_, index) => [`field${index}`, 0])) } }, scope), /对象超过限制/);
+  assert.throws(() => service.createPlan({ kind: 'audio', prompt: 'Good morning.', audioModel: 'doubao-voice-clone' }, scope), /音频素材/);
+  assert.throws(() => service.createPlan({ kind: 'audio', prompt: 'Good morning.', audioModel: 'doubao-seed-icl-2.0' }, scope), /音色/);
+  assert.equal(state.writes, 0); assert.equal(state.providerPosts, 0);
+});
+
 test('creator plan card asks only for the missing creative goal and performs zero writes/provider calls', () => {
   const state = fixture();
   const service = createAgentControlCreativeService({ database: state.database });
@@ -3157,6 +3183,12 @@ test('built-in creator catalog stays anchored to current LLM, image, video and a
   const imageSource = llmSource;
   const seedreamContract = require('../backend/src/shared/seedreamNzContract.json');
   const seedreamModels = new Set([...Object.values(seedreamContract.families).flatMap((family) => family.models), ...seedreamContract.layerModels]);
+  const nbFluxVidu = require('../backend/src/shared/nb21FluxViduQ4Contract.json');
+  const nbDoubao = require('../backend/src/shared/nbLowpriceDoubaoContract.json');
+  const contractImageModels = new Set([nbFluxVidu.banana21.model, nbFluxVidu.flux.model,
+    ...require('../backend/src/shared/maiImageContract.json').models, ...nbDoubao.banana.models]);
+  const contractVideoModels = new Set([...nbFluxVidu.viduQ4.models, require('../backend/src/shared/topazVideoContract.json').model]);
+  const contractAudioModels = new Set([nbDoubao.audio.cloneModel, nbDoubao.audio.iclModel]);
   const seedanceNzSource = fs.readFileSync(path.join(root, 'backend/src/providers/seedanceNz.js'), 'utf8');
   const videoSource = [
     llmSource,
@@ -3178,12 +3210,12 @@ test('built-in creator catalog stays anchored to current LLM, image, video and a
     item.model,
   ));
   catalog.image.forEach((item) => assert.ok(
-    imageSource.includes(`'${item.model}'`) || seedanceNzSource.includes(`'${item.model}'`) || seedreamModels.has(item.model),
+    imageSource.includes(`'${item.model}'`) || seedanceNzSource.includes(`'${item.model}'`) || seedreamModels.has(item.model) || contractImageModels.has(item.model),
     item.model,
   ));
-  catalog.video.forEach((item) => assert.ok(videoSource.includes(`'${item.model}'`), item.model));
+  catalog.video.forEach((item) => assert.ok(videoSource.includes(`'${item.model}'`) || contractVideoModels.has(item.model), item.model));
   catalog.audio.forEach((item) => assert.ok(
-    audioSource.includes(`'${item.model}'`) || ['xai-tts', 'xai-stt', 'suno'].includes(item.model),
+    audioSource.includes(`'${item.model}'`) || ['xai-tts', 'xai-stt', 'suno'].includes(item.model) || contractAudioModels.has(item.model),
     item.model,
   ));
 });

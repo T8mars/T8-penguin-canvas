@@ -42,16 +42,18 @@ test('canvas nodes strip decorative text blur across themes', () => {
   );
 });
 
-test('low zoom canvas nodes disable compositor filters that resample text', () => {
+test('node UI disables compositor filters at every zoom, theme and pan/drag state', () => {
   const css = read('../src/styles/index.css');
   const canvas = read('../src/components/Canvas.tsx');
 
-  assert.match(css, /data-canvas-zoom-readability="compact"/);
-  assert.match(css, /data-canvas-zoom-readability="overview"/);
-  assert.match(css, /react-flow__node:not\(\.react-flow__node-groupBox\)[\s\S]*filter:\s*none !important;/);
-  assert.match(css, /-webkit-backdrop-filter:\s*none !important;/);
-  assert.match(css, /backdrop-filter:\s*none !important;/);
-  assert.match(css, /text-rendering:\s*geometricPrecision !important;/);
+  const backdrop = cssRuleBody(css, '#root .t8-canvas-shell .react-flow__node,\n#root .t8-canvas-shell .react-flow__node *');
+  assert.match(backdrop, /-webkit-backdrop-filter:\s*none !important;/);
+  assert.match(backdrop, /backdrop-filter:\s*none !important;/);
+  const filter = cssRuleBody(css, '#root .t8-canvas-shell .react-flow__node,\n#root .t8-canvas-shell .react-flow__node :where(\n  div, section, article, header, footer, main, form, fieldset,\n  a, b, button, code, em, h1, h2, h3, h4, h5, h6,\n  input, label, legend, li, mark, option, p, pre, select,\n  small, span, strong, summary, td, textarea, th\n)');
+  assert.match(filter, /filter:\s*none !important;/);
+  assert.doesNotMatch(filter, /zoom-readability|viewport-moving|node-dragging|selected/);
+  const crispRules = css.slice(css.indexOf('/* Canvas node crisp text contract'), css.indexOf('/* G19'));
+  assert.doesNotMatch(crispRules, /text-rendering:\s*geometricPrecision !important;/);
   assert.match(canvas, /data-canvas-zoom-readability=\{canvasZoomReadability\}/);
   assert.match(canvas, /onMove=\{handleViewportMove\}/);
 });

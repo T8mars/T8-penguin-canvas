@@ -5,6 +5,7 @@ import {
 } from './workbenchVisibleCatalog';
 import { INSPIRATION_VISIBLE_CATALOG } from './inspirationVisibleCatalog';
 import { generationHistoryZh, generationHistoryEn } from './generationHistoryCatalog';
+import { doubaoVoiceZh, doubaoVoiceEn } from './doubaoVoiceCatalog';
 
 export const zhCN = {
   workbenches: {
@@ -186,8 +187,10 @@ export const zhCN = {
         invalidPixels: 'Mai 宽高必须为整数且每边至少 768，总像素不能超过 2359296',
         invalidResolution: 'Mai 分辨率只支持 1K 或 2K', invalidRatio: 'Mai 比例必须为 1:4 至 4:1 的正整数宽高比',
       },
+      nbLowpricePromptLimit: 'NB Lowprice 提示词必须为 1–5000 字符',
       newBudgetModels: {
         bananaDescription: 'Nano Banana 2.1：5–5000 字符，1K/2K/4K、auto/标准比例、最多 14 张有序参考图，单图输出。',
+        nbLowpriceDescription: 'NB Pro / 2.1 Lowprice：1–5000 字符，1K/2K/4K，最多 14 张有序参考图，单图输出；Pro 不支持极端比例。',
         bananaPrompt: 'Nano Banana 2.1 提示词必须为 5–5000 字符',
         inputImageRatio: '原图比例（无需设置）',
         fluxDescription: 'FLUX 3：文生图或最多 10 张参考图编辑，单图输出；支持 768sq/1K/1.5K/2K/4K。',
@@ -349,6 +352,7 @@ export const zhCN = {
     },
     image: { title: '图像', promptTitle: '图像 Prompt', imageOnlyAria: '仅输出图片结果', imageOnly: '仅输出图片结果（不输出 Prompt）', resultAlt: '生成结果', generatedImage: '生成图像', qwen21ModeHint: '同一模型自动区分文生图/图生图；参考图可选 0–10 张，固定单图输出。', qwen21FieldsHint: '仅发送 Prompt、参考图、比例、分辨率与可选 Seed，不复用 Qwen 3.0 参数。', qwen21SeedHint: '-1 表示不发送 seed；范围 0–9007199254740991。' },
     audio: {
+      doubaoVoice: doubaoVoiceZh,
       sunoV6Hint: 'V6 / wild / mini：歌词最多 5000 字符，标签最多 1000 字符，歌曲最长 8 分钟（非固定时长）。旧版本请求由工坊转为 V6 基础版；旧画布选项保留。',
       sunoV6PromptLimit: 'Suno V6 歌词 / 提示词最多 5000 字符（含上游输入）。',
       sunoV6TagsLimit: 'Suno V6 风格标签最多 1000 字符。',
@@ -823,8 +827,10 @@ export const enUS = {
         invalidPixels: 'Mai requires integer dimensions of at least 768 per side and at most 2,359,296 total pixels',
         invalidResolution: 'Mai supports only 1K or 2K', invalidRatio: 'Mai requires a positive integer ratio between 1:4 and 4:1',
       },
+      nbLowpricePromptLimit: 'NB Lowprice requires a prompt of 1–5,000 characters',
       newBudgetModels: {
         bananaDescription: 'Nano Banana 2.1: 5–5,000 characters, 1K/2K/4K, auto/standard ratios, up to 14 ordered references, one output.',
+        nbLowpriceDescription: 'NB Pro / 2.1 Lowprice: 1–5,000 characters, 1K/2K/4K, up to 14 ordered references and one output. Pro excludes extreme ratios.',
         bananaPrompt: 'Nano Banana 2.1 requires a prompt of 5–5,000 characters',
         inputImageRatio: 'Input image ratio (automatic)',
         fluxDescription: 'FLUX 3: text generation or editing with up to 10 references, one output; 768sq/1K/1.5K/2K/4K.',
@@ -986,6 +992,7 @@ export const enUS = {
     },
     image: { title: 'Image', promptTitle: 'Image prompt', imageOnlyAria: 'Output images only', imageOnly: 'Output images only (omit the prompt)', resultAlt: 'Generated result', generatedImage: 'Generated image', qwen21ModeHint: 'The model automatically switches between text-to-image and image-to-image; use 0–10 references and receive exactly one image.', qwen21FieldsHint: 'Sends only the prompt, references, aspect ratio, resolution, and optional seed; Qwen 3.0 fields are not reused.', qwen21SeedHint: '-1 omits the seed; the supported range is 0–9007199254740991.' },
     audio: {
+      doubaoVoice: doubaoVoiceEn,
       sunoV6Hint: 'V6 / wild / mini: up to 5,000 prompt characters, 1,000 tag characters and 8 minutes per song (not a fixed duration). Workshop redirects legacy models to V6 base; saved selections are preserved.',
       sunoV6PromptLimit: 'Suno V6 lyrics / prompt may contain at most 5,000 characters, including upstream input.',
       sunoV6TagsLimit: 'Suno V6 style tags may contain at most 1,000 characters.',

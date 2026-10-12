@@ -2,6 +2,7 @@ const canvasNodeSchema = require('../shared/canvasNodeSchema.json');
 const seedanceNzLlmModels = require('../shared/seedanceNzLlmModels.json');
 const seedreamNzContract = require('../shared/seedreamNzContract.json');
 const nb21FluxViduContract = require('../shared/nb21FluxViduQ4Contract.json');
+const nbDoubaoContract = require('../shared/nbLowpriceDoubaoContract.json');
 const topazVideoContract = require('../shared/topazVideoContract.json');
 const maiImageContract = require('../shared/maiImageContract.json');
 
@@ -68,7 +69,7 @@ const IMAGE_RUNTIME_MODELS = Object.freeze({
     defaultModel: 'gemini-3.1-flash-image',
     models: [
       'gemini-3.1-flash-image', 'gemini-3.1-flash-lite-image', 'nano-banana-2-fal',
-      'zhenzhen-image-nb-2-lite', 'zhenzhen-image-nb-2', nb21FluxViduContract.banana21.model,
+      'zhenzhen-image-nb-2-lite', 'zhenzhen-image-nb-2', nb21FluxViduContract.banana21.model, ...nbDoubaoContract.banana.models,
     ],
   },
   'nano-banana-pro': {
@@ -156,6 +157,7 @@ const VIDEO_RUNTIME_MODELS = Object.freeze({
 });
 
 const SEEDANCE_NZ_IMAGE_RUNTIME_MODELS = new Set([
+  ...nbDoubaoContract.banana.models,
   ...maiImageContract.models,
   nb21FluxViduContract.banana21.model, nb21FluxViduContract.flux.model,
   ...seedreamNzContract.layerModels,
@@ -449,7 +451,7 @@ function providerDeclarationForNode(node, context = {}) {
   if (type === 'audio') {
     const mode = boundedString(data.audioProviderMode, 40) || 'suno';
     const seedanceNzModels = {
-      'seed-audio': 'doubao-seed-audio-1.0',
+      'seed-audio': boundedString(data.seedAudioModel) || 'doubao-seed-audio-1.0',
       whisper: 'whisper-1',
       'qwen3-tts': boundedString(data.qwenTtsModel) || 'qwen3-tts-flash',
       minimax: boundedString(data.minimaxAudioModel) || 'minimax-speech-2.8-turbo',

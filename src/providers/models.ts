@@ -6,6 +6,11 @@
 import NB_FLUX_VIDU from '../../backend/src/shared/nb21FluxViduQ4Contract.json';
 import TOPAZ_VIDEO from '../../backend/src/shared/topazVideoContract.json';
 import MAI_IMAGE from '../../backend/src/shared/maiImageContract.json';
+import NB_DOUBAO from '../../backend/src/shared/nbLowpriceDoubaoContract.json';
+export const NB_LOWPRICE_DOUBAO_CONTRACT = NB_DOUBAO;
+export const NB_LOWPRICE_MODELS = NB_DOUBAO.banana.models;
+export const isNbLowpriceModel = (model: string) => NB_LOWPRICE_MODELS.includes(model);
+export const SEED_AUDIO_MODELS = [NB_DOUBAO.audio.legacyModel, NB_DOUBAO.audio.cloneModel, NB_DOUBAO.audio.iclModel];
 export const MAI_IMAGE_MODELS = MAI_IMAGE.models;
 export const MAI_IMAGE_TAB = MAI_IMAGE.models[0];
 export const isMaiImageModel = (model: string) => MAI_IMAGE_MODELS.includes(model);
@@ -182,12 +187,14 @@ export const ZHENZHEN_BUDGET_BANANA_2_MODEL_OPTIONS = [
   { value: ZHENZHEN_IMAGE_NB_2_MODEL, label: ZHENZHEN_IMAGE_NB_2_MODEL },
   { value: ZHENZHEN_IMAGE_NB_2_LITE_MODEL, label: ZHENZHEN_IMAGE_NB_2_LITE_MODEL },
   { value: ZHENZHEN_IMAGE_NB_21_MODEL, label: ZHENZHEN_IMAGE_NB_21_MODEL },
+  ...NB_LOWPRICE_MODELS.map((value) => ({ value, label: value })),
 ] as const;
 export const ZHENZHEN_BUDGET_BANANA_PRO_MODEL_OPTIONS = [
   { value: ZHENZHEN_IMAGE_NB_PRO_MODEL, label: ZHENZHEN_IMAGE_NB_PRO_MODEL },
 ] as const;
 export const ZHENZHEN_IMAGE_G2_MODEL_OPTIONS = ZHENZHEN_BUDGET_GPT2_MODEL_OPTIONS.slice(0, 2);
 export const ZHENZHEN_APIMART_IMAGE_MODELS = [
+  ...NB_LOWPRICE_MODELS,
   ...MAI_IMAGE_MODELS,
   FLUX3_IMAGE_MODEL,
   ZHENZHEN_IMAGE_NB_21_MODEL,

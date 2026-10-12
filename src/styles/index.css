@@ -10798,6 +10798,8 @@ html[data-theme-visual="saint-seiya"] .t8-generation-target-icon {
   -webkit-font-smoothing: subpixel-antialiased !important;
   -moz-osx-font-smoothing: auto !important;
   text-rendering: optimizeLegibility !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
 }
 
 #root .t8-canvas-shell .react-flow__node,
@@ -10835,39 +10837,18 @@ html[data-theme-visual="saint-seiya"] .t8-generation-target-icon {
   text-shadow: none !important;
 }
 
-/*
- * React Flow scales the complete node subtree. At fractional zoom, a filter or
- * backdrop-filter promotes the node to an offscreen bitmap and Chromium then
- * resamples both that bitmap and its glyphs. Keep the full glass treatment at
- * detail zoom, but remove compositor filters below 90% so text stays vector-
- * rendered for as long as the browser can preserve it.
- */
-#root .t8-canvas-shell:is(
-  [data-canvas-zoom-readability="compact"],
-  [data-canvas-zoom-readability="overview"]
-) .react-flow__node:not(.react-flow__node-groupBox),
-#root .t8-canvas-shell:is(
-  [data-canvas-zoom-readability="compact"],
-  [data-canvas-zoom-readability="overview"]
-) .react-flow__node:not(.react-flow__node-groupBox) > div:first-child,
-#root .t8-canvas-shell:is(
-  [data-canvas-zoom-readability="compact"],
-  [data-canvas-zoom-readability="overview"]
-) .react-flow__node:not(.react-flow__node-groupBox) [style*="backdrop-filter"] {
+/* Node UI never uses glass blur, at any zoom/theme or interaction state.
+ * A compositor filter on a text ancestor rasterizes its whole scaled subtree;
+ * restoring it after pan/drag made text blur again on release. Keep decoration
+ * on separate pseudo-elements and media, never on node UI/text containers. */
+#root .t8-canvas-shell .react-flow__node,
+#root .t8-canvas-shell .react-flow__node :where(
+  div, section, article, header, footer, main, form, fieldset,
+  a, b, button, code, em, h1, h2, h3, h4, h5, h6,
+  input, label, legend, li, mark, option, p, pre, select,
+  small, span, strong, summary, td, textarea, th
+) {
   filter: none !important;
-  -webkit-backdrop-filter: none !important;
-  backdrop-filter: none !important;
-}
-
-#root .t8-canvas-shell:is(
-  [data-canvas-zoom-readability="compact"],
-  [data-canvas-zoom-readability="overview"]
-) .react-flow__node,
-#root .t8-canvas-shell:is(
-  [data-canvas-zoom-readability="compact"],
-  [data-canvas-zoom-readability="overview"]
-) .react-flow__node * {
-  text-rendering: geometricPrecision !important;
 }
 
 /* G19 · Zhenzhen Creator Agent

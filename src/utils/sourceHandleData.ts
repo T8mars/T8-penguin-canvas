@@ -1,3 +1,4 @@
+import nbDoubao from '../../backend/src/shared/nbLowpriceDoubaoContract.json';
 export type SourceHandleData = Record<string, unknown>;
 
 const OUTPUT_KIND_FIELDS: Record<string, string[]> = {
@@ -45,6 +46,14 @@ export function selectSourceHandleData(
   handles: ReadonlySet<string | null | undefined>,
 ): SourceHandleData[] {
   const source = data && typeof data === 'object' ? data : {};
+  // A training text port is an actual returned speaker, never its preview prompt
+  // or a requested custom ID. Keep the existing aggregate/audio paths unchanged.
+  if (handles.size === 1 && handles.has('text') &&
+    [source.seedAudioModel, source.apiModel, source.model].includes(nbDoubao.audio.cloneModel)) {
+    const text = typeof source.seedanceNzAudioResultText === 'string' ? source.seedanceNzAudioResultText.trim()
+      : typeof source.outputText === 'string' ? source.outputText.trim() : '';
+    return [{ outputText: text, text, texts: text ? [text] : [] }];
+  }
   const outputs = source.subflowOutputs && typeof source.subflowOutputs === 'object' && !Array.isArray(source.subflowOutputs)
     ? source.subflowOutputs
     : source.outputs;

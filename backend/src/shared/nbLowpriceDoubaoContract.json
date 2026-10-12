@@ -1,0 +1,56 @@
+{
+  "source": "https://api.seedance.nz/docs/llms.txt",
+  "verifiedOn": "2026-10-13",
+  "banana": {
+    "models": ["zhenzhen-image-nb-pro-lowprice", "zhenzhen-image-nb-2.1-lowprice"],
+    "promptMin": 1,
+    "promptMax": 5000,
+    "maxReferences": 14,
+    "resolutions": ["1k", "2k", "4k"],
+    "proRatios": ["auto", "1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"],
+    "nb21Ratios": ["auto", "1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9", "1:4", "4:1", "1:8", "8:1"]
+  },
+  "audio": {
+    "legacyModel": "doubao-seed-audio-1.0",
+    "cloneModel": "doubao-voice-clone",
+    "iclModel": "doubao-seed-icl-2.0",
+    "sampleMaxBytes": 10485760,
+    "clonePrompt": [4, 300],
+    "iclPrompt": [1, 10000],
+    "cloneFields": {
+      "custom_speaker_id": {"kind": "text", "max": 256},
+      "language": {"kind": "select", "options": ["api_default", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "19", "20", "21"]},
+      "reference_text": {"kind": "textarea", "max": 2000},
+      "enable_audio_denoise": {"kind": "boolean"},
+      "disable_volume_normalization": {"kind": "boolean"},
+      "speaker_id": {"kind": "text", "advanced": true}
+    },
+    "iclFields": {
+      "voice_model": {"kind": "select", "default": "seed-tts-2.0-standard", "options": ["api_default", "seed-tts-2.0-standard", "seed-tts-2.0-expressive"]},
+      "format": {"kind": "select", "default": "mp3", "options": ["mp3", "pcm", "ogg_opus", "wav"]},
+      "sample_rate": {"kind": "select", "default": "24000", "options": ["8000", "16000", "22050", "24000", "32000", "44100", "48000"]},
+      "speech_rate": {"kind": "number", "min": -50, "max": 100, "default": 0},
+      "loudness_rate": {"kind": "number", "min": -50, "max": 100, "default": 0},
+      "pitch": {"kind": "number", "min": -12, "max": 12, "default": 0},
+      "explicit_language": {"kind": "select", "options": ["api_default", "zh-cn", "en", "ja", "es-mx", "id", "pt-br", "pt", "ko", "de", "fr", "th", "vi", "ru", "fil", "ms", "ar"]},
+      "context_texts": {"kind": "textarea", "max": 500},
+      "bit_rate": {"kind": "number", "min": 16000, "max": 160000, "integer": true, "advanced": true},
+      "max_length_to_filter_parenthesis": {"kind": "select", "numeric": true, "options": ["api_default", "0", "100"], "advanced": true},
+      "silence_duration": {"kind": "number", "min": 0, "max": 30000, "default": 0, "advanced": true},
+      "enable_subtitle": {"kind": "boolean", "advanced": true},
+      "disable_markdown_filter": {"kind": "boolean", "advanced": true},
+      "disable_emoji_filter": {"kind": "boolean", "advanced": true},
+      "enable_latex_tn": {"kind": "boolean", "advanced": true},
+      "aigc_watermark": {"kind": "boolean", "advanced": true},
+      "disable_default_bit_rate": {"kind": "boolean", "advanced": true},
+      "tone_fidelity": {"kind": "boolean", "advanced": true},
+      "aigc_metadata_enable": {"kind": "boolean", "advanced": true},
+      "latex_parser": {"kind": "select", "options": ["api_default", "v2"], "advanced": true},
+      "section_id": {"kind": "text", "max": 128, "advanced": true},
+      "aigc_metadata_content_producer": {"kind": "text", "max": 128, "advanced": true},
+      "aigc_metadata_produce_id": {"kind": "text", "max": 128, "advanced": true},
+      "aigc_metadata_content_propagator": {"kind": "text", "max": 128, "advanced": true},
+      "aigc_metadata_propagate_id": {"kind": "text", "max": 128, "advanced": true}
+    }
+  }
+}

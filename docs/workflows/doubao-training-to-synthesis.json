@@ -1,0 +1,153 @@
+{
+  "schema": "t8-workflow-fragment",
+  "version": 1,
+  "title": "doubao-training-to-synthesis",
+  "nodes": [
+    {
+      "id": "sample",
+      "type": "upload",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "data": {
+        "label": "Your authorized voice sample",
+        "uploadType": "audio",
+        "lockedUploadType": "audio"
+      }
+    },
+    {
+      "id": "clone",
+      "type": "audio",
+      "position": {
+        "x": 430,
+        "y": 0
+      },
+      "data": {
+        "label": "doubao-voice-clone",
+        "audioProviderMode": "seed-audio",
+        "seedAudioModel": "doubao-voice-clone",
+        "prompt": "Good morning.",
+        "doubaoVoiceParams": {
+          "language": "1"
+        },
+        "reuseResult": false
+      }
+    },
+    {
+      "id": "synthesis",
+      "type": "audio",
+      "position": {
+        "x": 900,
+        "y": 0
+      },
+      "data": {
+        "label": "doubao-seed-icl-2.0",
+        "audioProviderMode": "seed-audio",
+        "seedAudioModel": "doubao-seed-icl-2.0",
+        "seedAudioSpeaker": "",
+        "prompt": "Good morning.",
+        "doubaoVoiceParams": {
+          "voice_model": "seed-tts-2.0-standard",
+          "format": "mp3",
+          "sample_rate": "24000",
+          "speech_rate": 0,
+          "loudness_rate": 0,
+          "pitch": 0
+        },
+        "reuseResult": false
+      }
+    },
+    {
+      "id": "output",
+      "type": "output",
+      "position": {
+        "x": 1360,
+        "y": 0
+      },
+      "data": {
+        "label": "Audio result"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "sample-edge",
+      "source": "sample",
+      "target": "clone"
+    },
+    {
+      "id": "speaker-edge",
+      "source": "clone",
+      "sourceHandle": "text",
+      "target": "synthesis",
+      "targetHandle": "speaker"
+    },
+    {
+      "id": "output-edge",
+      "source": "synthesis",
+      "sourceHandle": "audio-0",
+      "target": "output"
+    }
+  ],
+  "nodeCount": 4,
+  "edgeCount": 3,
+  "nodeTypes": [
+    "upload",
+    "audio",
+    "output"
+  ],
+  "topologyPreview": {
+    "nodes": [
+      {
+        "id": "sample",
+        "type": "upload",
+        "label": "Your authorized voice sample",
+        "x": 50,
+        "y": 50
+      },
+      {
+        "id": "clone",
+        "type": "audio",
+        "label": "doubao-voice-clone",
+        "x": 480,
+        "y": 50
+      },
+      {
+        "id": "synthesis",
+        "type": "audio",
+        "label": "doubao-seed-icl-2.0",
+        "x": 950,
+        "y": 50
+      },
+      {
+        "id": "output",
+        "type": "output",
+        "label": "Audio result",
+        "x": 1410,
+        "y": 50
+      }
+    ],
+    "edges": [
+      {
+        "id": "sample-edge",
+        "source": "sample",
+        "target": "clone"
+      },
+      {
+        "id": "speaker-edge",
+        "source": "clone",
+        "sourceHandle": "text",
+        "target": "synthesis",
+        "targetHandle": "speaker"
+      },
+      {
+        "id": "output-edge",
+        "source": "synthesis",
+        "sourceHandle": "audio-0",
+        "target": "output"
+      }
+    ]
+  },
+  "savedAt": "2026-10-13T00:00:00.000Z"
+}

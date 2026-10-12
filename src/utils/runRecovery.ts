@@ -1,4 +1,5 @@
 import { minimumProviderMediaPollCount } from './providerTimeoutPolicy';
+import nbDoubao from '../../backend/src/shared/nbLowpriceDoubaoContract.json';
 
 export type RunRecoveryKind =
   | 'runninghub'
@@ -31,6 +32,8 @@ export interface RunRecoveryDescriptor {
   requestId?: string;
   endpoint?: string;
   model?: string;
+  outputFormat?: 'pcm';
+  sampleRate?: string;
   site?: 'cn' | 'intl';
   taskProvider?: 'seedance-nz' | 'zhenzhen-legacy';
   speed?: 'relax' | 'fast' | 'turbo';
@@ -63,6 +66,10 @@ function normalizeExplicitRecovery(value: unknown): RunRecoveryDescriptor | null
     requestId: text(raw.requestId, 512) || undefined,
     endpoint: text(raw.endpoint, 1024) || undefined,
     model: text(raw.model, 240) || undefined,
+    ...(raw.model === nbDoubao.audio.iclModel && raw.outputFormat === 'pcm' ? {
+      outputFormat: 'pcm' as const,
+      sampleRate: nbDoubao.audio.iclFields.sample_rate.options.includes(String(raw.sampleRate)) ? String(raw.sampleRate) : '24000',
+    } : {}),
     site: ['cn', 'intl'].includes(text(raw.site, 20).toLowerCase()) ? text(raw.site, 20).toLowerCase() as 'cn' | 'intl' : undefined,
     taskProvider: ['seedance-nz', 'zhenzhen-legacy'].includes(text(raw.taskProvider, 80)) ? text(raw.taskProvider, 80) as 'seedance-nz' | 'zhenzhen-legacy' : undefined,
     speed: ['relax', 'fast', 'turbo'].includes(text(raw.speed, 20).toLowerCase()) ? text(raw.speed, 20).toLowerCase() as 'relax' | 'fast' | 'turbo' : undefined,
@@ -98,8 +105,12 @@ export function inferRunRecoveryDescriptor(payload: Record<string, unknown>): Ru
   }
   if (provider === 'seedance-nz') {
     const lowerModel = model.toLowerCase();
-    if (lowerModel.includes('seed-audio')) return { version: 1, kind: 'seed-audio', taskId, model, pollIntervalMs, maxPolls };
-    if (lowerModel.includes('seedream') || lowerModel === 'mai-image-2-6' || lowerModel === 'mai-image-2-6-flash' || lowerModel === 'vosr2-image-upscale' || lowerModel === 'flux-3-image' || lowerModel === 'zhenzhen-image-nb-2.1') {
+    if (lowerModel.includes('seed-audio') || [nbDoubao.audio.cloneModel, nbDoubao.audio.iclModel].includes(lowerModel)) return { version: 1, kind: 'seed-audio', taskId, model, pollIntervalMs, maxPolls,
+      ...(lowerModel === nbDoubao.audio.iclModel && payload.outputFormat === 'pcm' ? {
+        outputFormat: 'pcm', sampleRate: nbDoubao.audio.iclFields.sample_rate.options.includes(String(payload.sampleRate)) ? String(payload.sampleRate) : '24000',
+      } : {}),
+    };
+    if (lowerModel.includes('seedream') || nbDoubao.banana.models.includes(lowerModel) || lowerModel === 'mai-image-2-6' || lowerModel === 'mai-image-2-6-flash' || lowerModel === 'vosr2-image-upscale' || lowerModel === 'flux-3-image' || lowerModel === 'zhenzhen-image-nb-2.1') {
       return { version: 1, kind: 'seedream-nz', taskId, model, pollIntervalMs, maxPolls };
     }
     if (lowerModel.startsWith('wan-')) return { version: 1, kind: 'wan', taskId, model, pollIntervalMs, maxPolls };

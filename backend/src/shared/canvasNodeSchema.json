@@ -535,7 +535,8 @@
           "required": false,
           "minConnections": 0,
           "maxConnections": null
-        }
+        },
+        { "id": "speaker", "kinds": ["text"], "required": false, "minConnections": 0, "maxConnections": 1 }
       ],
       "outputs": [
         {
@@ -3080,6 +3081,9 @@
             "type": "string",
             "enum": ["suno", "seed-audio", "whisper", "qwen3-tts", "minimax", "mureka"]
           },
+          "seedAudioModel": { "type": "string", "enum": ["doubao-seed-audio-1.0", "doubao-voice-clone", "doubao-seed-icl-2.0"] },
+          "seedAudioSpeaker": { "type": "string" },
+          "doubaoVoiceParams": { "type": "object", "maxProperties": 32 },
           "qwenTtsModel": {
             "type": "string",
             "enum": ["qwen3-tts-flash", "qwen3-tts-instruct-flash"]
@@ -3144,7 +3148,8 @@
         "connectionPorts": {
           "dynamic": false,
           "inputs": [
-            { "id": null, "kinds": ["text", "image", "audio", "video"], "required": false, "minConnections": 0, "maxConnections": null }
+            { "id": null, "kinds": ["text", "image", "audio", "video"], "required": false, "minConnections": 0, "maxConnections": null },
+            { "id": "speaker", "kinds": ["text"], "required": false, "minConnections": 0, "maxConnections": 1 }
           ],
           "outputs": [
             { "id": "audio-0", "kinds": ["audio"], "required": false, "minConnections": 0, "maxConnections": null, "preferred": true },
