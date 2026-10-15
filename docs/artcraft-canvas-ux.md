@@ -2,7 +2,7 @@
 
 ## Scope and current status
 
-2026-10-15: **local implementation and scoped acceptance complete; v3.3.4 publication authorized and in preparation.** The original development goal did not authorize release actions; the subsequent explicit user instruction does. Current publication facts belong in [release-v3.3.4.md](release-v3.3.4.md), not inferred from local tests. Excluded/deferred and external acceptance boundaries below remain explicit.
+2026-10-15: **released in v3.3.4 on Windows and Mac.** The subsequent explicit user instruction authorized publication; formal TypeScript/Vite, packaging and independent full downloads of all six assets passed. Source/Tag and release facts are in [release-v3.3.4.md](release-v3.3.4.md). Earlier bounded OOM checks and unverified installed/GPU/live-RH boundaries are not reclassified as passes. Online world generation remains deferred.
 
 The user explicitly excluded the proposed reference-input explanation UI (source/purpose/order/version/sent badges). Do not develop that feature or make the rest depend on it. Existing input fidelity and safety contracts remain unchanged.
 
@@ -18,7 +18,7 @@ Scope update: the user has no WorldLabs/other world-generation service credentia
 - [x] Independent `world-scene` node: discoverable registry/menu, ports, defaults, schemas, capability catalog, localization, run/recovery/output integration and tests. Import Gaussian SPZ/PLY and supported splat variants, move/orbit camera, keep named views, reopen saved state, capture image outputs through existing asset/Run paths. Heavy renderer only loads on demand and cleans up on close/offscreen.
 - Deferred by user, not a completion requirement: online world generation. Official API research is retained as evidence only; no generation settings, paid requests or poll/recovery routes are being implemented.
 - [x] Existing storyboard/Story/video editing: examine the proposed shot→previs→result→editing navigation and make concrete improvements where current UX requires extra steps, retaining stable shot IDs and original media. Existing adequate functionality is verified and reused, not duplicated merely to increase a checklist.
-- [x] Focused functional regressions, scoped strict type/i18n/schema synchronization, real UI interaction and persistence/resource-lifecycle evidence proportionate to each change. Full-project typecheck and untested live-provider/GPU/installed-app boundaries are not asserted as passes.
+- [x] Focused functional regressions, scoped strict type/i18n/schema synchronization, real UI interaction and persistence/resource-lifecycle evidence proportionate to each change. Subsequent full TypeScript/build results are recorded in the release topic; untested live-provider/GPU/installed-app boundaries are not asserted as passes.
 
 ## Sources
 

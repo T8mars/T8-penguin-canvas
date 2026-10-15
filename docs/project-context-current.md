@@ -3,7 +3,7 @@
 更新：2026-10-15。仅维护当前事实；长期规则见根 `SKILL.md` 和 `AGENTS.md`。本页预算 80 行 / 8 KiB，旧检查点迁入专题，不追加长日报。
 
 - 默认目录 `E:\PenguinPravite\T8-penguin-canvas`；branch `codex/release-v3.0.8-volcengine-assets-ux`，common dir `.git`。开工以git/worktree门为准；正式源码/Tag固定后记录在发布专题，不移动。
-- package `3.3.4` 正式发布已获授权，打包/上传待完成；线上Latest仍为v3.3.3，旧Tag与资产冻结，见[发布专题](release-v3.3.4.md)。
+- package `3.3.4` 已双平台发布为Latest；六资产与两个更新清单完整回下载通过，源码/Tag冻结，见[发布专题](release-v3.3.4.md)。
 - 本版安装升级、用户现场和 F8–F10 按 `owner-approved-post-release-v3.3.4` 后补，不视为通过；Mac仍为 ad-hoc 未公证预览，仅额度不足可延期。
 
 ## 当前检查点
@@ -12,8 +12,8 @@
 
 | 事项 | 当前事实与下一步 |
 | --- | --- |
-| ArtCraft体验增强 | 本地开发完成未发布：灵感板/编辑版本/独立世界节点/Story草稿；完整App实链、28主题组合、142项及分组TS通过。排除/搁置项见[专题](artcraft-canvas-ux.md)。 |
-| 节点清晰度 / 平价香蕉低价 / 豆包 | 本地开发完成未发布：节点滤镜始终关闭，香蕉2/Seed Audio共四模型、音色串联、九工作流。实网8/8完整解码；14主题672组Chromium样式/控件检查通过，合同/恢复/Creator回归通过。安装版/用户GPU未验收，见[专题](nb-lowprice-doubao.md)。 |
+| ArtCraft体验增强 | 已随v3.3.4双平台发布：灵感板/编辑版本/独立世界节点/Story草稿；完整App实链、28主题组合、142项及正式构建通过。排除/搁置项见[专题](artcraft-canvas-ux.md)。 |
+| 节点清晰度 / 平价香蕉低价 / 豆包 | 已随v3.3.4双平台发布：节点滤镜始终关闭，香蕉2/Seed Audio共四模型、音色串联、九工作流。实网8/8完整解码；14主题672组Chromium样式/控件检查通过，合同/恢复/Creator回归通过。安装版/用户GPU未验收，见[专题](nb-lowprice-doubao.md)。 |
 | Mai / Topaz | 分别随v3.3.3/v3.3.2双平台发布；实网完整解码与限定回归通过，完整UI/安装版未验收，见[Mai](mai-image.md)、[Topaz](topaz-video-upscale.md)。 |
 | 平价香蕉2.1 / Flux / Vidu Q4 | 已随v3.3.1双平台发布；六模型、Flux新Tab，旧默认不变。八条实网成功并完整解码，R2V转MP3；159/159回归、独立后端49/49通过。八份无凭据工作流见[专题](nb21-flux-viduq4.md)；安装升级及端到端UI未验收。 |
 | 自动更新退出 | 已随v3.3.0双平台发布；74项限定用例及正式包probe通过。先保存/关闭后台，安装器不强杀；Git对象恢复及现场升级边界见[专题](auto-update-exit-fix-20261008.md)。 |

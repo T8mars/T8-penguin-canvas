@@ -2,43 +2,87 @@
   "$schema": "本文件为 T8-penguin-canvas 节点清单防丢失锁,任何节点删减都需要在 roadmap.md 中说明并更新本文件。",
   "version": "3.3.4",
   "electronReleaseV334": {
-    "status": "release-prepared-not-published",
+    "status": "released-dual-platform-verified",
     "version": "3.3.4",
     "tag": "v3.3.4",
-    "latest": false,
+    "latest": true,
     "evidence": "docs/release-v3.3.4.md",
     "postReleaseEvidence": "owner-approved-post-release-v3.3.4",
-    "macBoundary": "same-tag-unsigned-preview; defer-only-if-quota-insufficient"
+    "macBoundary": "same-tag-unsigned-preview; no-quota-deferral-used",
+    "sourceCommit": "ca2d49f2d3f320214c50d7d89053e6d9221da0b1",
+    "macWorkflow": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/38725662348"
   },
   "artcraftCanvasUx20261015": {
-    "status": "release-v3.3.4-prepared-local-verified",
-    "releaseIncluded": false,
+    "status": "released-v3.3.4-dual-platform-local-verified",
+    "releaseIncluded": true,
     "summary": "Material-set moodboard, retained local editing versions, on-demand editors, independent local 3D World scene/capture node and non-destructive linked Story drafts. Reference-explanation UI excluded; online world generation deferred by user.",
     "details": "docs/artcraft-canvas-ux.md",
-    "verification": "142/142 focused tests; full App/sidebar/preflight/Run/autosave/reload, 14 themes x2, narrow dialog interaction, existing modal RH missing-key gate and real local media routes/SQLite passed. Three scoped strict type programs passed at512MiB; whole-project typecheck is not claimed.",
-    "boundary": "Prepared for v3.3.4; publication facts in docs/release-v3.3.4.md. Installed-client, physical GPU, live RH and real-user large-scene evidence remain unverified. Online world generation is deferred by user."
+    "verification": "142/142 focused tests; full App/sidebar/preflight/Run/autosave/reload, 14 themes x2, narrow dialog interaction, existing modal RH missing-key gate and real local media routes/SQLite passed. Three scoped strict512MiB programs and subsequent formal full TypeScript/Vite build passed; earlier bounded OOM checks remain failures.",
+    "boundary": "Released in v3.3.4 with six assets and both updater manifests independently full-download-verified; formal TypeScript/Vite build passed. Earlier bounded OOM checks remain failures. Installed-client, physical GPU, live RH and real-user large-scene evidence remain unverified. Online world generation is deferred by user."
   },
   "nbLowpriceDoubaoAndCrispNodes20261013": {
-    "status": "release-v3.3.4-prepared-live-verified",
-    "releaseIncluded": false,
+    "status": "released-v3.3.4-dual-platform-live-verified",
+    "releaseIncluded": true,
     "provider": "seedance-nz",
     "models": ["zhenzhen-image-nb-pro-lowprice", "zhenzhen-image-nb-2.1-lowprice", "doubao-voice-clone", "doubao-seed-icl-2.0"],
     "summary": "Budget-only Banana 2 / Seed Audio additions, authoritative speaker connection, ordered outputs, exact metadata, PCM playback, original-task recovery, nine safe workflows and unconditional crisp node UI.",
     "details": "docs/nb-lowprice-doubao.md",
     "verification": "8/8 real tasks with complete output decoding; 672 Chromium style combinations and production control interactions passed. Targeted protocol, route, authority, Creator and recovery regressions passed; overlapping suites are not summed.",
     "report": "local-private/nb-lowprice-doubao-live-20261013/report.json",
-    "boundary": "Prepared for v3.3.4; publication facts in docs/release-v3.3.4.md. Full live parameter matrix, affected user GPU, complete model UI/installed-client and F8-F10 remain unverified. Live credentials/task/speaker identities stay private."
+    "boundary": "Released in v3.3.4 with six assets and both updater manifests independently full-download-verified. Full live parameter matrix, affected user GPU, complete model UI/installed-client and F8-F10 remain unverified. Live credentials/task/speaker identities stay private."
   },
   "electronReleaseV333": {
     "status": "released-dual-platform-verified",
     "version": "3.3.3",
     "tag": "v3.3.3",
-    "latest": true,
+    "latest": false,
     "evidence": "docs/release-v3.3.3.md",
     "postReleaseEvidence": "owner-approved-post-release-v3.3.3",
     "macBoundary": "same-tag-unsigned-preview; no-quota-deferral-used",
     "sourceCommit": "6ec546a248b8ec601be69a1853c57b1a966b0d92",
-    "macWorkflow": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/38133936134"
+    "macWorkflow": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/38133936134",
+    "date": "2026-10-11",
+    "publishedAt": "2026-10-11T10:59:20Z",
+    "draft": false,
+    "prerelease": false,
+    "url": "https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.3.3",
+    "details": "docs/release-v3.3.3.md",
+    "verification": [
+      "Unique Windows build, encrypted Mai/fresh-database probe and same-tag Mac workflow passed. Six assets independently download-verified against size/SHA-256; both updater manifests matched size/SHA-512. Windows assets and prior v3.3.2 assets/Tag unchanged; source/Tag frozen. Details in release topic.",
+      "Installed/affected-user and F8-F10 evidence deferred under owner-approved-post-release-v3.3.3, not passed."
+    ],
+    "assets": {
+      "windowsInstaller": {
+        "name": "T8-PenguinCanvas-Setup-3.3.3.exe",
+        "bytes": 1375987497,
+        "sha256": "ea0e8b9de48f56a7dc9a872df125442d994c4c814c1046aa1ea711cfbf87c927"
+      },
+      "windowsBlockmap": {
+        "name": "T8-PenguinCanvas-Setup-3.3.3.exe.blockmap",
+        "bytes": 1435006,
+        "sha256": "79b61a5089792131527043e477e593cbe992211bf5c758d5275dd7ef640dba3e"
+      },
+      "windowsUpdater": {
+        "name": "latest.yml",
+        "bytes": 362,
+        "sha256": "305120ae6d51be6423b6e1058044bbcdbf6a4d639bb0876f5465c11c8ccbc416"
+      },
+      "macDmg": {
+        "name": "T8-PenguinCanvas-3.3.3-mac-arm64.dmg",
+        "bytes": 514614171,
+        "sha256": "95e02f475b4c3798f69e371ddf9f3ebaa4b1b8b0adde286d10d1cd62875551aa"
+      },
+      "macZip": {
+        "name": "T8-PenguinCanvas-3.3.3-mac-arm64.zip",
+        "bytes": 506585107,
+        "sha256": "c0f1fbafe1e668f239c13bb0a7dbe0bad4480c3bac6ba399d36541cc3fd8ee8e"
+      },
+      "macUpdater": {
+        "name": "latest-mac.yml",
+        "bytes": 536,
+        "sha256": "22363a2463102688b5f5e539c58afbbea1e57c75159782019b26df8032406dd1"
+      }
+    }
   },
   "maiImage20261011": {
     "status": "released-v3.3.3-dual-platform-live-verified",
@@ -3477,30 +3521,54 @@
     ]
   },
   "release": {
-    "status": "released-v3.3.3-dual-platform-verified",
-    "version": "3.3.3",
-    "date": "2026-10-11",
-    "tag": "v3.3.3",
+    "status": "released-v3.3.4-dual-platform-verified",
+    "version": "3.3.4",
+    "date": "2026-10-15",
+    "tag": "v3.3.4",
     "latest": true,
-    "sourceCommit": "6ec546a248b8ec601be69a1853c57b1a966b0d92",
-    "publishedAt": "2026-10-11T10:59:20Z",
+    "sourceCommit": "ca2d49f2d3f320214c50d7d89053e6d9221da0b1",
+    "publishedAt": "2026-10-15T11:11:49Z",
     "draft": false,
     "prerelease": false,
-    "url": "https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.3.3",
-    "details": "docs/release-v3.3.3.md",
+    "url": "https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.3.4",
+    "details": "docs/release-v3.3.4.md",
     "verification": [
-      "Unique Windows build, encrypted Mai/fresh-database probe and same-tag Mac workflow passed. Six assets independently download-verified against size/SHA-256; both updater manifests matched size/SHA-512. Windows assets and prior v3.3.2 assets/Tag unchanged; source/Tag frozen. Details in release topic.",
-      "Installed/affected-user and F8-F10 evidence deferred under owner-approved-post-release-v3.3.3, not passed."
+      "Unique Windows TypeScript/Vite/encrypted NSIS build, packaged fresh-database probe, 31 release contracts and same-tag real macOS workflow passed. Six assets independently full-download-verified; both updater manifests matched size/SHA-512. Windows assets unchanged during Mac append; prior v3.3.3 assets/Tag unchanged. Source/Tag frozen.",
+      "Installed/affected-user, physical GPU, real-user large scenes, live RH and F8-F10 evidence deferred under owner-approved-post-release-v3.3.4, not passed. Online world generation remains deferred by user."
     ],
     "assets": {
-      "windowsInstaller": { "name": "T8-PenguinCanvas-Setup-3.3.3.exe", "bytes": 1375987497, "sha256": "ea0e8b9de48f56a7dc9a872df125442d994c4c814c1046aa1ea711cfbf87c927" },
-      "windowsBlockmap": { "name": "T8-PenguinCanvas-Setup-3.3.3.exe.blockmap", "bytes": 1435006, "sha256": "79b61a5089792131527043e477e593cbe992211bf5c758d5275dd7ef640dba3e" },
-      "windowsUpdater": { "name": "latest.yml", "bytes": 362, "sha256": "305120ae6d51be6423b6e1058044bbcdbf6a4d639bb0876f5465c11c8ccbc416" },
-      "macDmg": { "name": "T8-PenguinCanvas-3.3.3-mac-arm64.dmg", "bytes": 514614171, "sha256": "95e02f475b4c3798f69e371ddf9f3ebaa4b1b8b0adde286d10d1cd62875551aa" },
-      "macZip": { "name": "T8-PenguinCanvas-3.3.3-mac-arm64.zip", "bytes": 506585107, "sha256": "c0f1fbafe1e668f239c13bb0a7dbe0bad4480c3bac6ba399d36541cc3fd8ee8e" },
-      "macUpdater": { "name": "latest-mac.yml", "bytes": 536, "sha256": "22363a2463102688b5f5e539c58afbbea1e57c75159782019b26df8032406dd1" }
+      "windowsInstaller": {
+        "name": "T8-PenguinCanvas-Setup-3.3.4.exe",
+        "bytes": 1379714079,
+        "sha256": "8bb8836e7315f2fb82d0565bbf413ee29d012924545ad380f23654cf97aa4bdc"
+      },
+      "windowsBlockmap": {
+        "name": "T8-PenguinCanvas-Setup-3.3.4.exe.blockmap",
+        "bytes": 1439366,
+        "sha256": "042074336ecfbccfe9eec0830999b8b2baf3aa45277621b8ba0190e6ecf78dbd"
+      },
+      "windowsUpdater": {
+        "name": "latest.yml",
+        "bytes": 362,
+        "sha256": "4b7909683e901446e85f2eb576df531ae83b64a5de80ec65878b336226ceb8dd"
+      },
+      "macDmg": {
+        "name": "T8-PenguinCanvas-3.3.4-mac-arm64.dmg",
+        "bytes": 519501266,
+        "sha256": "9dec8bfa2c8d5adcba1d705a1c990b00ced41f00f4fe5f66a107b3b1dbed1ca3"
+      },
+      "macZip": {
+        "name": "T8-PenguinCanvas-3.3.4-mac-arm64.zip",
+        "bytes": 511207493,
+        "sha256": "c7ea78f11d49c4c68c0a3427a9e0f6db3ccdf20a4453221ffc2be0509d4ef953"
+      },
+      "macUpdater": {
+        "name": "latest-mac.yml",
+        "bytes": 536,
+        "sha256": "f93f7074b8183e492193151bf1c0303eecc271844cc1376b45dbf6feea1768c9"
+      }
     },
-    "macWorkflow": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/38133936134"
+    "macWorkflow": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/38725662348"
   },
   "versionSequencePolicy": {
     "status": "active",
