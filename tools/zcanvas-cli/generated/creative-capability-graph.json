@@ -22,10 +22,10 @@
   },
   "sourceDigests": {
     "creativeCapabilityManifest": "569f2c8be144e05120ca629b2826383a06c4d6565ab3896c2dc61807bb9f7c27",
-    "canvasNodeSchema": "6d51cf54b3e74946165218dda67703e70b652fada156c79b33a6bf0363c88f94",
-    "canvasNodeSchemaFile": "3a79565a773f25ffdfa12adb2d98aeda8a89ab81ed770220df11af06d4b95e91",
-    "i18nNodeCatalog": "0479653284399372bba58f69d528e45ed9de267f9a1d7107347401ab75f60676",
-    "i18nRendererResources": "d1ec2696123a3544a988494afe10a0f303342698bd271d95e6469ab5aa047ecb",
+    "canvasNodeSchema": "46eb5e5bd55a7616fe0dda868b20a7c648e059e6fe1c75b43979d83f6072e71c",
+    "canvasNodeSchemaFile": "0ad1b7219b5ff180a6f8b421a04a1d798b9cccf01ac8370705dc3d60adf2a409",
+    "i18nNodeCatalog": "3ddab69ed9eba871d4a0633ff67c755d5fac41a9767171d3b0a2f0def96ec2af",
+    "i18nRendererResources": "ca7c751e05815c924e7989ed6e2f1bd37470d5995a3de20bb2be6b8818cfdda6",
     "i18nElectronCatalog": "f58f14c3e2c0ead3383f53de33f97ab2fabe4281d8b6520855f03a4b015ec44c",
     "runtimeCatalogSources": "823a244216287379c8246884145f7506044b45433c06d4cc20541db52dd97f38",
     "runtimeCatalogArtifact": "32d18f96b4c0fa127342a30a83e3c408ad9143538fa29e5b566c091ba9382d49",
@@ -34,7 +34,7 @@
     "coverageReceiptCompiler": "68c02167cb5317107edd346223a5e5999168e447bacbb977ff8e9678e6753fe7",
     "canonicalTextDigestCompiler": "b0afcf28a257fbbd8f391edc117348f8f2ede1b4a039ae91bce25a8d563ac0cf"
   },
-  "aggregateDigest": "cc431cbde7d0384ffb1bb0b7370736511219293c84ad46988e5a4d7a9759fe71",
+  "aggregateDigest": "681ea0dc9ed91e155b942bce6780f788ff574d90c9dc15f8c3029fce6cbf2856",
   "principles": {
     "oneSentenceStart": true,
     "directCanvasMutation": false,
@@ -46,16 +46,16 @@
   "counts": {
     "capabilities": 39,
     "handlers": 39,
-    "nodes": 83,
-    "executableNodes": 64,
+    "nodes": 84,
+    "executableNodes": 65,
     "generatableNodes": 13,
-    "referencedNodes": 74,
+    "referencedNodes": 75,
     "unreferencedNodes": 9,
-    "directCapabilityNodes": 74,
+    "directCapabilityNodes": 75,
     "internalCompatNodes": 1,
     "semanticSupersededNodes": 8,
     "publicCapabilityGapNodes": 0,
-    "accountedNodes": 83,
+    "accountedNodes": 84,
     "unexplainedNodes": 0,
     "fullyOperableNodes": 20,
     "runtimeEntries": 319,
@@ -512,6 +512,7 @@
         "upload",
         "model-3d-upload",
         "model-3d-preview",
+        "world-scene",
         "model-3d",
         "grok-image-tools",
         "material-set",
@@ -3593,6 +3594,51 @@
       ],
       "outputs": [
         "image"
+      ],
+      "capabilityIds": [
+        "canvas.node-add"
+      ],
+      "handlerIds": [
+        "creative-action:graph.node-add"
+      ],
+      "coverage": {
+        "understand": true,
+        "plan": true,
+        "preview": true,
+        "apply": true,
+        "run": false,
+        "verify": true,
+        "resume": false,
+        "rollback": true,
+        "recover": true
+      }
+    },
+    {
+      "type": "world-scene",
+      "label": "3D世界",
+      "description": "导入Gaussian场景、浏览漫游、保存景位并输出构图参考",
+      "category": "3d",
+      "hidden": false,
+      "executable": true,
+      "generatable": false,
+      "agentExposure": "direct-capability",
+      "coverageReason": "registered-capability-reference",
+      "accounting": {
+        "status": "direct-capability",
+        "reasonCode": "registered-capability-reference",
+        "semanticCapabilityIds": [
+          "canvas.node-add"
+        ],
+        "evidence": [
+          "tools/zcanvas-cli/creativeCapabilityManifest.json"
+        ]
+      },
+      "inputs": [
+        "model3d"
+      ],
+      "outputs": [
+        "image",
+        "model3d"
       ],
       "capabilityIds": [
         "canvas.node-add"
@@ -14023,6 +14069,7 @@
     "referencedWithoutRun": [
       "model-3d-upload",
       "model-3d-preview",
+      "world-scene",
       "model-3d",
       "grok-image-tools",
       "material-set",
@@ -14406,15 +14453,15 @@
     "schema": "t8-creative-capability-coverage-receipt-v1",
     "sourceDigests": {
       "capabilityManifest": "569f2c8be144e05120ca629b2826383a06c4d6565ab3896c2dc61807bb9f7c27",
-      "nodeSchema": "6d51cf54b3e74946165218dda67703e70b652fada156c79b33a6bf0363c88f94",
+      "nodeSchema": "46eb5e5bd55a7616fe0dda868b20a7c648e059e6fe1c75b43979d83f6072e71c",
       "runtimeCatalog": "823a244216287379c8246884145f7506044b45433c06d4cc20541db52dd97f38",
       "handlerBindings": "3cd8cde3c05d1642d72ce8cbfae2874d1bdf986592ae431ef7d66b043da257b5",
       "receiptCompiler": "68c02167cb5317107edd346223a5e5999168e447bacbb977ff8e9678e6753fe7"
     },
     "inventory": {
       "nodes": {
-        "total": 83,
-        "executable": 64,
+        "total": 84,
+        "executable": 65,
         "generatable": 13
       },
       "runtime": {
@@ -14436,6 +14483,6 @@
       "missingCompatibilityEdges": []
     },
     "complete": true,
-    "digest": "7a68957c95a02174ae0b514cb981f36d601c5b63424dbf6c5d4ef8b1612bec81"
+    "digest": "fd06995d227e73070066395c1536ff05aa4fe5e1347e906703541341f22b4e05"
   }
 }

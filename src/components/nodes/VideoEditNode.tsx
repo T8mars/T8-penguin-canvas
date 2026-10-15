@@ -1,5 +1,6 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type DragEvent, type KeyboardEvent, type MouseEvent, type PointerEvent, type SyntheticEvent } from 'react';
 import { createPortal } from 'react-dom';
+import { approveCanvasDialogNodes } from '../../utils/canvasDialogChanges';
 import { Handle, Position, useReactFlow, type NodeProps } from '@xyflow/react';
 import {
   CheckCircle2,
@@ -35,7 +36,7 @@ import { cancelVideoEditJob, composeVideoEditAsync, getVideoEditJob, loadVideoTi
 import { useUpdateNodeData } from './useUpdateNodeData';
 import { useUpstreamMaterials } from './useUpstreamMaterials';
 import { useRunTrigger } from '../../hooks/useRunTrigger';
-import ImageEditModal, { type ImageEditProduceMeta } from './ImageEditModal';
+import ImageEditModal, { type ImageEditProduceMeta } from './LazyImageEditModal';
 import LocalizedVisibleTree from '../../i18n/LocalizedVisibleTree';
 import { VIDEO_EDIT_VISIBLE_CATALOG } from '../../i18n/workbenchVisibleCatalog';
 import {
@@ -5726,7 +5727,7 @@ function VideoEditNode({ id, data, selected }: NodeProps) {
     const cleanUrls = urls.filter(Boolean);
     if (!cleanUrls.length) return;
     const self = rf.getNode(id);
-    rf.addNodes(cleanUrls.map((url, index) => ({
+    rf.addNodes(approveCanvasDialogNodes(cleanUrls.map((url, index) => ({
       id: `output-video-snapshot-edit-${Date.now()}-${index}-${Math.random().toString(36).slice(2, 6)}`,
       type: 'output',
       position: {
@@ -5744,9 +5745,9 @@ function VideoEditNode({ id, data, selected }: NodeProps) {
         sourceNodeId: id,
         sourceLabel: '视频截图图像编辑',
         imageEditMeta: meta,
+        ...(meta.imageEditLineage ? { imageEditLineage: meta.imageEditLineage } : {}),
       },
-    })));
-    setImageEditSnapshotUrl('');
+    }))));
   };
 
   const restoreOutputVersion = (version: VideoEditOutputVersion) => {

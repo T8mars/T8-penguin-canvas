@@ -60,6 +60,14 @@
         }
       ]
     },
+    "world-scene": {
+      "resolver": "static",
+      "inputs": [{ "id": "input", "kinds": ["model3d"], "required": false, "minConnections": 0, "maxConnections": null }],
+      "outputs": [
+        { "id": "image", "kinds": ["image"], "required": false, "minConnections": 0, "maxConnections": null },
+        { "id": "scene", "kinds": ["model3d"], "required": false, "minConnections": 0, "maxConnections": null }
+      ]
+    },
     "model-3d": {
       "resolver": "static",
       "inputs": [{ "id": null, "kinds": ["text", "image"], "required": false, "minConnections": 0, "maxConnections": null }],
@@ -2310,6 +2318,21 @@
       "generation": {
         "allowedDataFields": {},
         "defaults": {}
+      }
+    },
+    {
+      "type": "world-scene",
+      "label": "3D世界",
+      "category": "3d",
+      "description": "导入Gaussian场景、浏览漫游、保存景位并输出构图参考",
+      "icon": "Globe2",
+      "color": "teal",
+      "ports": { "inputs": ["model3d"], "outputs": ["image", "model3d"] },
+      "executable": true,
+      "generatable": false,
+      "generation": {
+        "allowedDataFields": {},
+        "defaults": { "worldSceneProject": { "schema": "t8-world-scene-v1", "sources": [], "activeSourceId": "", "camera": null, "views": [] }, "status": "idle" }
       }
     },
     {

@@ -35,6 +35,7 @@ export type NodeType =
   | 'fal-toolbox-maker'
   | 'model-3d-preview'
   | 'model-3d'
+  | 'world-scene'
   | 'grok-image-tools'
   | 'face-expression-3d'
   | 'previs-studio'

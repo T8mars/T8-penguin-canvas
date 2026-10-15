@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { Handle, Position, useReactFlow, type NodeProps } from '@xyflow/react';
 import { useCanvasNodeRenderMode } from '../CanvasNodeRenderMode';
+import { approveCanvasDialogNodes } from '../../utils/canvasDialogChanges';
 import {
   ArrowDown,
   ArrowUp,
@@ -62,6 +63,9 @@ import {
 import { executeRhImageEditorCutoutAction } from '../../utils/rhImageEditorCutout';
 import type { RunNodeLifecycleReporter } from '../../types/project';
 import { useUpdateNodeData } from './useUpdateNodeData';
+import LazyImageEditModal, { type ImageEditProduceMeta } from './LazyImageEditModal';
+import { useCanvasStore } from '../../stores/canvas';
+import { defaultSizeOf, placeBatchNodes } from '../../utils/nodePlacement';
 import { useUpstreamMaterials } from './useUpstreamMaterials';
 import {
   boardPointToImageFraction,
@@ -705,11 +709,32 @@ function downloadJsonFile(filename: string, payload: unknown) {
 
 const DrawingBoardNode = ({ id, data, selected }: NodeProps) => {
   const { t: translate } = useTranslation(['nodes', 'common']);
+  const { t: ux } = useTranslation('creativeUx');
   const canvasRenderMode = useCanvasNodeRenderMode();
   const update = useUpdateNodeData(id);
   const upstream = useUpstreamMaterials(id);
   const rf = useReactFlow();
   const d = (data as any) || {};
+  const originCanvasId = useRef(useCanvasStore.getState().activeId);
+  const archived = useCanvasStore((state) => state.canvases.find((canvas) => canvas.id === state.activeId)?.status === 'archived');
+  const mounted = useRef(true);
+  const [imageEditUrl, setImageEditUrl] = useState('');
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
+  useEffect(() => { if (archived) setImageEditUrl(''); }, [archived]);
+  const produceLocalEdit = (urls: string[], meta: ImageEditProduceMeta) => {
+    const state = useCanvasStore.getState(), source = rf.getNode(id);
+    if (!mounted.current || !source || state.activeId !== originCanvasId.current
+      || state.canvases.find((canvas) => canvas.id === state.activeId)?.status === 'archived') throw Error(ux('world.readOnly'));
+    if (meta.type === 'annotation-edit') throw Error(ux('editor.localOnly'));
+    const size = defaultSizeOf('output');
+    const x = source.position.x + (source.measured?.width || NODE_W) + 80, y = source.position.y;
+    const desired = urls.map((_, index) => ({ x: x + (index % 3) * (size.w + 40), y: y + Math.floor(index / 3) * (size.h + 40), ...size }));
+    const offset = placeBatchNodes(desired, rf.getNodes(), { source: `placement:drawing-board-edit:${id}` });
+    rf.addNodes(approveCanvasDialogNodes(urls.map((url, index) => ({
+      id: `board-edit-${crypto.randomUUID()}`, type: 'output', position: { x: desired[index].x + offset.dx, y: desired[index].y + offset.dy },
+      data: { directImageUrl: url, imageUrl: url, ...(meta.imageEditLineage ? { imageEditLineage: meta.imageEditLineage } : {}) },
+    }))));
+  };
   const initialLayersRef = useRef<BoardLayer[] | null>(null);
   if (!initialLayersRef.current) initialLayersRef.current = normalizeLayers(d.boardLayers, d.boardElements);
 
@@ -2062,6 +2087,7 @@ const DrawingBoardNode = ({ id, data, selected }: NodeProps) => {
 
   const handleRootKeyDownCapture = useCallback(
     (event: ReactKeyboardEvent<HTMLDivElement>) => {
+      if (imageEditUrl) return;
       if (!isEditableEventTarget(event.target)) {
         const handledHistory = isUndoShortcutEvent(event)
           ? undoBoardHistory()
@@ -2113,11 +2139,12 @@ const DrawingBoardNode = ({ id, data, selected }: NodeProps) => {
       event.stopPropagation();
       event.nativeEvent.stopImmediatePropagation?.();
     },
-    [applyTool, cancelCutoutDraft, closeCurrentCutoutDraft, cutoutDraft, deleteSelectedElement, redoBoardHistory, removeLastCutoutPoint, selectedElementId, undoBoardHistory],
+    [applyTool, cancelCutoutDraft, closeCurrentCutoutDraft, cutoutDraft, deleteSelectedElement, redoBoardHistory, removeLastCutoutPoint, selectedElementId, undoBoardHistory, imageEditUrl],
   );
 
   useEffect(() => {
     if (!selected || selectedTextEditorOpen) return;
+    if (imageEditUrl) return;
     const onKeyDown = (event: KeyboardEvent) => {
       const keyboardActive = boardHasKeyboardFocus()
         || document.activeElement === document.body
@@ -2175,7 +2202,7 @@ const DrawingBoardNode = ({ id, data, selected }: NodeProps) => {
     };
     document.addEventListener('keydown', onKeyDown, true);
     return () => document.removeEventListener('keydown', onKeyDown, true);
-  }, [applyTool, boardHasKeyboardFocus, cancelCutoutDraft, closeCurrentCutoutDraft, cutoutDraft, deleteSelectedElement, redoBoardHistory, removeLastCutoutPoint, selected, selectedTextEditorOpen, undoBoardHistory]);
+  }, [applyTool, boardHasKeyboardFocus, cancelCutoutDraft, closeCurrentCutoutDraft, cutoutDraft, deleteSelectedElement, redoBoardHistory, removeLastCutoutPoint, selected, selectedTextEditorOpen, undoBoardHistory, imageEditUrl]);
 
   const handleLocalImageChange = useCallback(
     async (event: ChangeEvent<HTMLInputElement>) => {
@@ -2901,7 +2928,7 @@ const DrawingBoardNode = ({ id, data, selected }: NodeProps) => {
     );
   };
 
-  if (canvasRenderMode === 'cold' && !focusEditorOpen && !selectedTextEditorOpen && !shortcutHelpOpen) {
+  if (canvasRenderMode === 'cold' && !focusEditorOpen && !selectedTextEditorOpen && !shortcutHelpOpen && !imageEditUrl) {
     return (
       <div
         ref={rootRef}
@@ -3185,6 +3212,15 @@ const DrawingBoardNode = ({ id, data, selected }: NodeProps) => {
               </button>
               <button
                 type="button"
+                className="t8-btn min-h-7 px-2 text-[10px]"
+                disabled={archived || status === 'running' || !d.outputImageUrl}
+                title={d.outputImageUrl ? ux('editor.boardOutputHint') : ux('editor.exportBoardFirst')}
+                onClick={() => { if (d.outputImageUrl) setImageEditUrl(d.outputImageUrl); }}
+              >
+                <Pencil size={12} /> {ux('editor.editBoardOutput')}
+              </button>
+              <button
+                type="button"
                 className="t8-mini-icon-button"
                 title="放大编辑"
                 aria-label="放大编辑"
@@ -3260,6 +3296,7 @@ const DrawingBoardNode = ({ id, data, selected }: NodeProps) => {
       </div>
       {renderFocusEditor()}
       {renderSelectedTextEditor()}
+      {imageEditUrl && <LazyImageEditModal srcUrl={imageEditUrl} localOnly onClose={() => setImageEditUrl('')} onProduce={produceLocalEdit} />}
     </div>
   );
 };

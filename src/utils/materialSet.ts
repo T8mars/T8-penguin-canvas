@@ -1,4 +1,5 @@
 import { fileNameFromUrl, type MediaKind } from './mediaCollection.ts';
+import { normalizeMoodboard, type MoodboardLayout } from './materialMoodboard.ts';
 
 export type MaterialSetKind = 'text' | 'image' | 'video' | 'audio';
 
@@ -23,6 +24,7 @@ export interface MaterialSetBackup {
   materialSetKind: MaterialSetKind;
   materialSetItems: MaterialSetItem[];
   exportedAt: string;
+  materialMoodboard?: MoodboardLayout;
 }
 
 const KINDS: MaterialSetKind[] = ['text', 'image', 'video', 'audio'];
@@ -196,6 +198,7 @@ export function createMaterialSetBackup(
   kind: MaterialSetKind,
   rawItems: MaterialSetItem[],
   title = '',
+  moodboard?: unknown,
 ): MaterialSetBackup {
   return {
     schema: MATERIAL_SET_SCHEMA,
@@ -204,6 +207,7 @@ export function createMaterialSetBackup(
     materialSetKind: kind,
     materialSetItems: normalizeMaterialSetItems(rawItems, kind),
     exportedAt: new Date().toISOString(),
+    ...(moodboard ? { materialMoodboard: normalizeMoodboard(moodboard, rawItems) } : {}),
   };
 }
 
@@ -220,6 +224,7 @@ export function parseMaterialSetBackup(raw: any): MaterialSetBackup | null {
     materialSetKind: kind,
     materialSetItems: items,
     exportedAt: typeof body.exportedAt === 'string' ? body.exportedAt : new Date().toISOString(),
+    ...(body.materialMoodboard ? { materialMoodboard: normalizeMoodboard(body.materialMoodboard, items) } : {}),
   };
 }
 

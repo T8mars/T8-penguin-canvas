@@ -1,6 +1,6 @@
 # 平价香蕉低价版 / 豆包音色与节点清晰度
 
-更新：2026-10-13。本轮为已验证的本地开发改动，**未打包、推送或发布**；package 与当前 Latest 仍为 v3.3.3，不把本功能记为已包含在旧安装包中。
+更新：2026-10-15。开发验证完成，后续用户已授权纳入v3.3.4发布，执行事实见[发布专题](release-v3.3.4.md)；不把本功能记为已包含在旧v3.3.3安装包中。
 
 ## 入口与合同
 
@@ -48,6 +48,6 @@ ICL 裸 PCM 输出按提交时的采样率无损加 WAV 头后落盘播放，不
 
 早期失败保留：测试使用了错误的连接校验导出名；新模型运行身份白名单缺项；旧模型目录测试只识别内联字符串、不识别共享 JSON；能力产物未重新生成；UI 夹具返回不可克隆的翻译函数/缺 CSP/主题别名不一致。修正后限定用例通过，不把失败日志改成通过。证据在 `local-private/nb-lowprice-doubao-live-20261013/` 的 regression-final、audio-route-regression、speaker-routing-final、pcm-final、backend-creator-schema-final、backend-final、ui-final-theme 和 type-immutable-final-tree 日志。
 
-边界：2K/4K、全部比例/语言/高级参数组合及真实 PCM 合成不是逐组合实网验收；PCM 格式/原子下载/冷恢复完成本地真实字节验证。尚未验证完整 App 端到端、安装版、受影响用户现场和 F8–F10。本轮未发布，不沿用上轮发布授权。
+边界：2K/4K、全部比例/语言/高级参数组合及真实 PCM 合成不是逐组合实网验收；PCM 格式/原子下载/冷恢复完成本地真实字节验证。完整模型UI端到端、安装版、受影响用户现场和 F8–F10 尚未验收；发布使用后续明确授权，不沿用历史授权。
 
 复验入口：`npm run verify:nb-lowprice-doubao:live`（Key 隐藏 stdin / 子进程环境，原任务状态防重交）、`npm run verify:node-crisp-doubao:ui`（新建系统临时 profile，软件渲染，结束清理）。私有素材、状态和任务/音色身份不公开或打包；不要删除验证状态来触发重复计费。

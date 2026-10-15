@@ -1,10 +1,10 @@
 # 当前项目上下文
 
-更新：2026-10-13。仅维护当前事实；长期规则见根 `SKILL.md` 和 `AGENTS.md`。本页预算 80 行 / 8 KiB，旧检查点迁入专题，不追加长日报。
+更新：2026-10-15。仅维护当前事实；长期规则见根 `SKILL.md` 和 `AGENTS.md`。本页预算 80 行 / 8 KiB，旧检查点迁入专题，不追加长日报。
 
 - 默认目录 `E:\PenguinPravite\T8-penguin-canvas`；branch `codex/release-v3.0.8-volcengine-assets-ux`，common dir `.git`。开工以git/worktree门为准；正式源码/Tag固定后记录在发布专题，不移动。
-- package `3.3.3` 已双平台发布为Latest；六资产及两个更新清单完整回下载通过，固定源码/Tag与旧资产不变，见[发布专题](release-v3.3.3.md)。
-- 本版安装升级、用户现场和 F8–F10 按 `owner-approved-post-release-v3.3.3` 后补，不视为通过；Mac仍为 ad-hoc 未公证预览，仅额度不足可延期。
+- package `3.3.4` 正式发布已获授权，打包/上传待完成；线上Latest仍为v3.3.3，旧Tag与资产冻结，见[发布专题](release-v3.3.4.md)。
+- 本版安装升级、用户现场和 F8–F10 按 `owner-approved-post-release-v3.3.4` 后补，不视为通过；Mac仍为 ad-hoc 未公证预览，仅额度不足可延期。
 
 ## 当前检查点
 
@@ -12,6 +12,7 @@
 
 | 事项 | 当前事实与下一步 |
 | --- | --- |
+| ArtCraft体验增强 | 本地开发完成未发布：灵感板/编辑版本/独立世界节点/Story草稿；完整App实链、28主题组合、142项及分组TS通过。排除/搁置项见[专题](artcraft-canvas-ux.md)。 |
 | 节点清晰度 / 平价香蕉低价 / 豆包 | 本地开发完成未发布：节点滤镜始终关闭，香蕉2/Seed Audio共四模型、音色串联、九工作流。实网8/8完整解码；14主题672组Chromium样式/控件检查通过，合同/恢复/Creator回归通过。安装版/用户GPU未验收，见[专题](nb-lowprice-doubao.md)。 |
 | Mai / Topaz | 分别随v3.3.3/v3.3.2双平台发布；实网完整解码与限定回归通过，完整UI/安装版未验收，见[Mai](mai-image.md)、[Topaz](topaz-video-upscale.md)。 |
 | 平价香蕉2.1 / Flux / Vidu Q4 | 已随v3.3.1双平台发布；六模型、Flux新Tab，旧默认不变。八条实网成功并完整解码，R2V转MP3；159/159回归、独立后端49/49通过。八份无凭据工作流见[专题](nb21-flux-viduq4.md)；安装升级及端到端UI未验收。 |
@@ -22,7 +23,7 @@
 | 画布归档/新建默认来源 | 已随v3.2.5双平台发布：schema33正式迁移、大管理窗口、归档只读/恢复和权威写入门；全局来源只初始化空白通用image/edit/video，不改旧节点。最终功能27/27、持久化25/25、历史保真80/80、生产处理器9/9，组重叠不相加；浏览器点击工具无响应，端到端UI未验收。见[功能专题](canvas-archive-media-defaults.md)。 |
 | Seedream Flash | 已随v3.2.4双平台发布；国内/海外六路径、六份工作流，Pro默认不变。六任务成功、13结果完整解码；263项回归及同步门通过，见[专题](seedream-v5-flash.md)。 |
 | GitHub PR / Issues | 10月1日：0开放PR、5开放Issues。#30 RH真实枚举与#31启动拒绝后卡锁限定修复提交 `276a2c6`，14项新专项及十套回归81/81通过，已随v3.2.3发布；#31具体输入变更来源待复现，5项均保留验收边界。详见[本轮专题](github-issues-20261001.md)；#29历史证据见[前次专题](github-issues-20260918.md)。 |
-| 文档轻量化 | 已完成：根手册与当前上下文均在预算内，原文逐字节归档；features/roadmap 按需读。8组校验通过，1353份源码/配置/原测试/技能散列未变，详见[校验记录](../local-private/context-maintenance/verification.json)。后续遵守手册开头预算。 |
+| 文档轻量化 | 原文逐字节归档、features/roadmap按需读；继续遵守预算，历史证据见[记录](../local-private/context-maintenance/verification.json)。 |
 | 生成历史 | 当前支持范围已随 v3.1.6 发布；19个完整客户端场景/25项、React UI 13项、限定回归56/56通过，通过进程正常退出/强制0/残留0。完整状态与剩余范围见[验收清单](generation-history-acceptance-status.md)及[证据索引](generation-history-acceptance-20260912.md)。 |
 | Provider 超时策略 | 已随 v3.1.7 发布：移除媒体生成通用代理 90 秒边界，并覆盖扩展适配器、工具箱自定义轮询、导演分镜与崩溃恢复；媒体全链路最低 15 分钟，LLM 默认且最长 3 分钟，连接探测/重试间隔不变。详情用 `feature providerTimeoutPolicy20260913` 查询。 |
 | TUN/代理最大兼容与日志恢复 | 已随 v3.1.8 发布：受信 Provider 域名结果不再预判 `resolveHost` 地址或维护 Fake-IP 白名单，Chromium 系统网络及失败后的同任务 GET 回退均接受任意有效解析地址；仅字面量本机/内网与本地域名仍拒绝，普通 URL 安全策略不变。另有 Mihomo IPv6/国内 DoH 兼容和终端日志 14 天脱敏恢复。专项 34/34、TypeScript 与双平台正式包通过；真实受影响 TUN 客户端/安装版证据后补。详见 `feature tunIpv6AndTerminalLogRecovery20260913`。 |

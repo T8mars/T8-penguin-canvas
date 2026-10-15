@@ -1526,12 +1526,12 @@ export function storyToDirectorShots(
   }));
 }
 
-export function storyToVideoEditClips(projectInput: StoryProject): VideoEditClip[] {
+export function storyToVideoEditClips(projectInput: StoryProject, options: { sourceNodeId?: string } = {}): VideoEditClip[] {
   const project = sanitizeStoryProject(projectInput);
   return project.shots.filter((shot) => Boolean(shot.videoUrl)).map((shot, index) => ({
     id: `story-clip-${shot.id}`,
     sourceClipId: shot.id,
-    sourceNodeId: project.storyId,
+    sourceNodeId: options.sourceNodeId || project.storyId,
     sourceLabel: `Story 镜头 ${index + 1}`,
     name: `${String(index + 1).padStart(3, '0')}-${shot.title}.mp4`,
     url: shot.videoUrl,
@@ -1546,12 +1546,12 @@ export function storyToVideoEditClips(projectInput: StoryProject): VideoEditClip
   }));
 }
 
-export function storyToVideoEditTimeline(projectInput: StoryProject): {
+export function storyToVideoEditTimeline(projectInput: StoryProject, options: { sourceNodeId?: string } = {}): {
   timelineV2: VideoEditTimelineV2;
   renderPlan: VideoEditTimelineRenderPlan;
 } {
   const project = sanitizeStoryProject(projectInput);
-  const clips = storyToVideoEditClips(project);
+  const clips = storyToVideoEditClips(project, options);
   const timelineV2 = createVideoEditTimelineFromClips(clips);
   const audioTrack = timelineV2.tracks.find((track) => track.kind === 'audio');
   if (audioTrack) {
@@ -1571,7 +1571,7 @@ export function storyToVideoEditTimeline(projectInput: StoryProject): {
         directUrl: asset.url,
         name: asset.name,
         mime: 'audio/mpeg',
-        sourceNodeId: project.storyId,
+        sourceNodeId: options.sourceNodeId || project.storyId,
         sourceLabel: `Story 声音资产：${asset.name}`,
       });
       const targets = asset.requiredByShotIds.length

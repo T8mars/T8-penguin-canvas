@@ -1,5 +1,6 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type DragEvent } from 'react';
 import { Handle, Position, useReactFlow, type Node, type Edge, type NodeProps } from '@xyflow/react';
+import { approveCanvasDialogNodes } from '../../utils/canvasDialogChanges';
 import {
   AlertCircle,
   Box,
@@ -23,7 +24,7 @@ import { useRunTrigger } from '../../hooks/useRunTrigger';
 import { useDragMaterialStore, type MaterialPayload } from '../../stores/dragMaterial';
 import { useCanvasStore } from '../../stores/canvas';
 import { logBus } from '../../stores/logs';
-import ImageEditModal, { type ImageEditProduceMeta } from './ImageEditModal';
+import ImageEditModal, { type ImageEditProduceMeta } from './LazyImageEditModal';
 import ResizableCorners from './ResizableCorners';
 import CollectionSplitButton from '../CollectionSplitButton';
 import ImageHoverPreview from '../ImageHoverPreview';
@@ -797,12 +798,13 @@ const UploadNode = ({ id, data, selected, type, width, height }: NodeProps) => {
         data: {
           directImageUrl: u,
           imageUrl: u,
+          ...(_meta && 'imageEditLineage' in _meta && _meta.imageEditLineage ? { imageEditLineage: _meta.imageEditLineage } : {}),
         },
         selected: isRhCapabilityOutput,
       } as Node;
     });
     if (isRhCapabilityOutput) {
-      rf.setNodes((prev) => [...prev.map((node) => ({ ...node, selected: false })), ...newNodes]);
+      rf.setNodes((prev) => approveCanvasDialogNodes([...prev.map((node) => ({ ...node, selected: false })), ...newNodes]));
       const first = newNodes[0];
       if (first) {
         window.setTimeout(() => {
@@ -818,7 +820,7 @@ const UploadNode = ({ id, data, selected, type, width, height }: NodeProps) => {
       }
       logBus.success(`${_meta.label || 'RH 图像能力'}已创建 ${newNodes.length} 个输出素材节点`, logSource);
     } else {
-      rf.addNodes(newNodes);
+      rf.addNodes(approveCanvasDialogNodes(newNodes));
     }
   };
 

@@ -1,5 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
+import ImageCompareModal from '../ImageCompareModal';
+import { createImageEditLineage, type ImageEditLineage, type ImageEditRevision } from '../../utils/imageEditRevisions';
 import {
   Crop as CropIcon,
   Grid3x3,
@@ -61,7 +64,7 @@ import { executeRhImageEditorCutoutAction } from '../../utils/rhImageEditorCutou
  *  双主题适配: 科技风 (深底+青色 accent) / 像素风 (白底+黑边+8-bit)
  */
 
-export type ImageEditProduceMeta =
+export type ImageEditProduceMeta = (
   | { type: 'crop'; rect: { x: number; y: number; w: number; h: number } }
   | {
       type: 'grid-split';
@@ -70,8 +73,10 @@ export type ImageEditProduceMeta =
     }
   | { type: 'mask'; strokeCount: number }
   | { type: 'brush'; strokeCount: number }
+  | { type: 'cutout' }
   | { type: 'annotation-edit'; instruction: string; strokeCount: number; annotationTextCount: number; annotationShapeCount: number }
-  | { type: 'compose'; layerCount: number; canvasW: number; canvasH: number };
+  | { type: 'compose'; layerCount: number; canvasW: number; canvasH: number }
+) & { imageEditLineage?: ImageEditLineage };
 
 type ImageEditSecondaryActionNodeType = Extract<
   SecondaryProviderActionNodeType,
@@ -87,6 +92,9 @@ interface Props {
   secondaryActionNodeId?: string;
   secondaryActionNodeType?: ImageEditSecondaryActionNodeType;
   queueSecondaryAction?: QueueSecondaryProviderAction;
+  revisionCandidates?: ImageEditRevision[];
+  /** Local-only callers have no paid-action owner; do not expose paid buttons. */
+  localOnly?: boolean;
 }
 
 type EditMode = 'crop' | 'mask' | 'brush' | 'grid' | 'compose';
@@ -411,11 +419,14 @@ function computeRects(
 const ImageEditModal = ({
   srcUrl,
   onClose,
-  onProduce,
+  onProduce: produceExternal,
   secondaryActionNodeId,
   secondaryActionNodeType,
   queueSecondaryAction,
+  revisionCandidates,
+  localOnly = false,
 }: Props) => {
+  const { t: ux } = useTranslation('creativeUx');
   const { theme, style } = useThemeStore();
   const isDark = theme === 'dark';
   const isPixel = style === 'pixel';
@@ -436,6 +447,26 @@ const ImageEditModal = ({
   const [busy, setBusy] = useState(false);
   const [errMsg, setErrMsg] = useState<string | null>(null);
   const [workingSrcUrl, setWorkingSrcUrl] = useState(srcUrl);
+  const [revisions, setRevisions] = useState<ImageEditRevision[]>(() => revisionCandidates?.length ? revisionCandidates : [{ id: 'original', url: srcUrl, operation: 'original', createdAt: 0 }]);
+  const [continueEditing, setContinueEditing] = useState(true);
+  const [compareRevisions, setCompareRevisions] = useState(false);
+  const [selectedRevisionId, setSelectedRevisionId] = useState(() => revisionCandidates?.find((revision) => revision.url === srcUrl)?.id || 'original');
+  const rootSourceUrl = revisions[0]?.url || srcUrl;
+  const dialog = useRef<HTMLDivElement>(null);
+  const mounted = useRef(true), currentSource = useRef(srcUrl); currentSource.current = srcUrl;
+  useLayoutEffect(() => {
+    // Disabling/replacing the active tool button can move focus to body. Keep
+    // keyboard input inside this dialog instead of the inert canvas beneath it.
+    if (!compareRevisions && !dialog.current?.contains(document.activeElement)) dialog.current?.focus();
+  }, [mode, busy, compareRevisions]);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
+  useEffect(() => {
+    const active = document.activeElement as HTMLElement | null, root = document.getElementById('root'), inert = root?.inert || false;
+    if (root) root.inert = true;
+    dialog.current?.focus();
+    return () => { if (root) root.inert = inert; if (active?.isConnected) active.focus(); };
+  }, []);
+  useEffect(() => { if (dialog.current) { dialog.current.inert = compareRevisions; if (!compareRevisions) dialog.current.focus(); } }, [compareRevisions]);
   const [rhCutoutRunning, setRhCutoutRunning] = useState(false);
   const [rhCutoutMessage, setRhCutoutMessage] = useState<string | null>(null);
 
@@ -538,11 +569,31 @@ const ImageEditModal = ({
   );
 
   useEffect(() => {
-    workingSrcUrlRef.current = srcUrl;
-    setWorkingSrcUrl(srcUrl);
-    setNaturalSize(null);
+    const initial = revisionCandidates?.length ? revisionCandidates : [{ id: 'original', url: srcUrl, operation: 'original', createdAt: 0 }];
+    setRevisions(initial); setCompareRevisions(false);
+    chooseRevision(srcUrl, initial.find((revision) => revision.url === srcUrl)?.id || 'original');
     setRhCutoutMessage(null);
   }, [srcUrl]);
+
+  function chooseRevision(url: string, revisionId = 'original') {
+    setSelectedRevisionId(revisionId);
+    workingSrcUrlRef.current = url; setWorkingSrcUrl(url); setNaturalSize(null);
+    setMaskStrokes([]); setMaskHistory([]); setMaskRedo([]);
+    setBrushStrokes([]); setBrushHistory([]); setBrushRedo([]);
+    setCustomLines([]); setHistory([]); setComposeInited(false);
+    setComposeHistory([]); setComposeFuture([]); setErrMsg(null);
+  }
+  async function onProduce(urls: string[], meta: ImageEditProduceMeta) {
+    if (!mounted.current || currentSource.current !== srcUrl) throw Error(ux('world.cancelled'));
+    const isRevision = urls.length === 1 && ['crop', 'brush', 'compose', 'cutout'].includes(meta.type);
+    if (!isRevision) { await produceExternal(urls, meta); return; }
+    const lineage = createImageEditLineage(rootSourceUrl, workingSrcUrlRef.current, meta.type, selectedRevisionId);
+    await produceExternal(urls, { ...meta, imageEditLineage: lineage });
+    if (!mounted.current || currentSource.current !== srcUrl) return lineage;
+    setRevisions((current) => [...current, { id: lineage.id, url: urls[0], operation: meta.type, createdAt: lineage.createdAt, lineage }]);
+    if (continueEditing) chooseRevision(urls[0], lineage.id);
+    return lineage;
+  }
 
   const selectedComposeImageLayer = useMemo(() => {
     if (mode !== 'compose' || selectedIds.length !== 1) return null;
@@ -683,6 +734,15 @@ const ImageEditModal = ({
   // ESC 关闭 + Ctrl+Z/Y 撤销恢复 + 1/2/3/4 切换 mode + [/] 调笔刷
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (compareRevisions) return;
+      if (e.key === 'Tab') {
+        const controls = Array.from(dialog.current?.querySelectorAll<HTMLElement>('button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled),[tabindex="0"]') || []).filter((element) => element.getClientRects().length);
+        const first = controls[0], last = controls[controls.length - 1];
+        if (!first || !dialog.current?.contains(document.activeElement) || (e.shiftKey ? document.activeElement === first : document.activeElement === last)) {
+          stopImageEditShortcutEvent(e); (e.shiftKey ? last : first)?.focus();
+        }
+        return;
+      }
       if (e.key === 'Escape') {
         stopImageEditShortcutEvent(e);
         onClose();
@@ -736,7 +796,7 @@ const ImageEditModal = ({
     document.addEventListener('keydown', onKey, true);
     return () => document.removeEventListener('keydown', onKey, true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [onClose, undo, redo, mode]);
+  }, [onClose, undo, redo, mode, compareRevisions]);
 
   // 主题样式 token
   const accent = isPixel ? '#C73B6B' : '#22d3ee';
@@ -959,7 +1019,7 @@ const ImageEditModal = ({
       };
       const { imageUrl } = await opCrop(workingSrcUrl, px.x, px.y, px.w, px.h);
       await onProduce([imageUrl], { type: 'crop', rect: px });
-      onClose();
+      if (!continueEditing) onClose();
     } catch (e: any) {
       setErrMsg(e?.message || '裁剪失败');
     } finally {
@@ -1230,8 +1290,8 @@ const ImageEditModal = ({
           } else {
             const image = await loadImage(result.outputUrl).catch(() => null);
             resolveBoundTarget();
-            workingSrcUrlRef.current = result.outputUrl;
-            setWorkingSrcUrl(result.outputUrl);
+            const lineage = await onProduce([result.outputUrl], { type: 'cutout' });
+            if (!continueEditing && lineage) chooseRevision(result.outputUrl, lineage.id);
             if (image) setNaturalSize({ w: image.naturalWidth, h: image.naturalHeight });
             setMaskStrokes([]);
             setMaskHistory([]);
@@ -1346,7 +1406,7 @@ const ImageEditModal = ({
         canvasW,
         canvasH,
       });
-      onClose();
+      if (!continueEditing) onClose();
     } catch (e: any) {
       setErrMsg(e?.message || '应用图层组合失败');
     } finally {
@@ -1535,7 +1595,7 @@ const ImageEditModal = ({
 
   // ---- compose 键盘快捷键 (Ctrl+Z/Y/A/D, Del, 方向键) ----
   useEffect(() => {
-    if (mode !== 'compose') return;
+    if (mode !== 'compose' || compareRevisions) return;
     const onKey = (e: KeyboardEvent) => {
       if (isImageEditEditableEventTarget(e.target)) return;
       const ctrl = e.ctrlKey || e.metaKey;
@@ -1582,7 +1642,7 @@ const ImageEditModal = ({
     document.addEventListener('keydown', onKey, true);
     return () => document.removeEventListener('keydown', onKey, true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, composeLayers, selectedIds, composeUndo, composeRedo]);
+  }, [mode, composeLayers, selectedIds, composeUndo, composeRedo, compareRevisions]);
 
   // ---- compose 拖入文件 / Ctrl+V 粘贴文件 ----
   useEffect(() => {
@@ -2133,7 +2193,7 @@ const ImageEditModal = ({
       const dataUrl = cv.toDataURL('image/png');
       const url = await uploadDataUrl(dataUrl, 'brush');
       await onProduce([url], { type: 'brush', strokeCount: brushStrokes.length });
-      onClose();
+      if (!continueEditing) onClose();
     } catch (e: any) {
       setErrMsg(e?.message || '应用画板失败');
     } finally {
@@ -2142,6 +2202,7 @@ const ImageEditModal = ({
   }
 
   async function applyAnnotationEdit() {
+    if (localOnly) return;
     if (!naturalSize || brushStrokes.length === 0) return;
     const annotationTextCount = brushStrokes.filter((stroke) => stroke.kind === 'brush-label' || stroke.kind === 'brush-text').length;
     const annotationShapeCount = brushStrokes.filter((stroke) => stroke.kind !== 'brush-free' && stroke.kind !== 'brush-text').length;
@@ -2361,7 +2422,8 @@ const ImageEditModal = ({
       onClick={(e) => e.stopPropagation()}
     >
       <div
-        className="img-edit-modal"
+        className="img-edit-modal" data-canvas-editing-dialog
+        ref={dialog} role="dialog" aria-modal="true" aria-label={ux('editor.title')} tabIndex={-1}
         style={{
           background: modalBg,
           border: modalBorder,
@@ -2422,6 +2484,14 @@ const ImageEditModal = ({
           </button>
         </div>
 
+        <div data-image-edit-versions style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', padding: '8px 20px', borderBottom: `1px solid ${isDark ? '#ffffff20' : '#00000020'}` }}>
+          <label>{ux('editor.versions')} <select aria-label={ux('editor.versions')} value={selectedRevisionId} disabled={busy || rhCutoutRunning}
+            style={{ ...btnBase, maxWidth: 240 }} onChange={(event) => { const value = event.currentTarget.value; const revision = revisions.find((item) => item.id === value); if (revision) chooseRevision(revision.url, revision.id); }}>
+            {revisions.map((revision, index) => <option key={revision.id} value={revision.id}>{index === 0 ? ux('editor.original') : `${ux('editor.version', { count: index })} · ${ux(`editor.operations.${revision.operation}`, { defaultValue: revision.operation })}`}</option>)}
+          </select></label>
+          <button type="button" style={btnBase} disabled={revisions.length < 2} onClick={() => setCompareRevisions(true)}>{ux('editor.compare')}</button>
+          <label style={{ display: 'inline-flex', gap: 6, alignItems: 'center', fontSize: 12 }}><input type="checkbox" checked={continueEditing} onChange={(event) => setContinueEditing(event.currentTarget.checked)} />{ux('editor.continueEditing')}</label>
+        </div>
         {/* Toolbar */}
         <div
           style={{
@@ -2437,7 +2507,7 @@ const ImageEditModal = ({
             fontSize: 12,
           }}
         >
-          <button
+          {!localOnly && <button
             type="button"
             style={btnBase}
             onClick={applyRhCutoutToCurrentImage}
@@ -2467,7 +2537,7 @@ const ImageEditModal = ({
                 <Scissors size={13} /> RH抠图
               </>
             )}
-          </button>
+          </button>}
           {mode === 'crop' && (
             <>
               <span style={{ color: subText }}>框尺寸</span>
@@ -3627,7 +3697,7 @@ const ImageEditModal = ({
                   </>
                 )}
               </button>
-              <button
+              {!localOnly && <button
                 style={btnPrimary}
                 onClick={applyAnnotationEdit}
                 disabled={busy || !naturalSize || brushStrokes.length === 0}
@@ -3642,7 +3712,7 @@ const ImageEditModal = ({
                     <Paintbrush size={14} /> 标注改图
                   </>
                 )}
-              </button>
+              </button>}
             </>
           ) : mode === 'compose' ? (
             <button
@@ -3681,7 +3751,10 @@ const ImageEditModal = ({
 
   // 使用 Portal 逃逸 ReactFlow 节点的 transform 父级,
   // 否则 position:fixed 会被变换为相对 transform 父定位, 对备布局逼仄。
-  return typeof document !== 'undefined' ? createPortal(ui, document.body) : ui;
+  const editor = <>{ui}{compareRevisions && <ImageCompareModal resultUrl={workingSrcUrl}
+    inputCandidates={revisions.map((revision, index) => ({ url: revision.url, label: index === 0 ? ux('editor.original') : ux('editor.version', { count: index }) })).filter((candidate) => candidate.url !== workingSrcUrl)}
+    onClose={() => setCompareRevisions(false)} />}</>;
+  return typeof document !== 'undefined' ? createPortal(editor, document.body) : editor;
 };
 
 export default ImageEditModal;

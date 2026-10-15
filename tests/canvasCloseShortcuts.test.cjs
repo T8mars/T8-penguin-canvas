@@ -27,9 +27,9 @@ function fixture() {
     compilerOptions: { target: ts.ScriptTarget.ES2022 },
   }).outputText;
   const handlers = vm.runInNewContext(code, context);
-  const fire = (action, capture = false) => {
+  const fire = (action, capture = false, target = { tagName: 'BODY' }) => {
     const state = { prevented: false, stopped: false };
-    handlers[capture ? 'onClipboardKeyCapture' : 'onKey']({ action, target: { tagName: 'BODY' },
+    handlers[capture ? 'onClipboardKeyCapture' : 'onKey']({ action, target,
       preventDefault() { state.prevented = true; }, stopImmediatePropagation() { state.stopped = true; } });
     return state;
   };
@@ -59,6 +59,14 @@ test('held keyboard capture stops library delete listeners, not only our own sho
   assert.deepEqual(f.fire('unassigned-key', true), { prevented: true, stopped: true });
   f.root.inert = false;
   assert.deepEqual(f.fire('canvas.delete', true), { prevented: false, stopped: false });
+});
+
+test('active portal dialog keys pass the inert window gate without authorizing background commands', () => {
+  const f = fixture(); f.root.inert = true;
+  const dialog = { closest: () => null }, target = { tagName: 'BUTTON', closest: () => dialog };
+  assert.deepEqual(f.fire('unassigned-key', true, target), { prevented: false, stopped: false });
+  assert.deepEqual(f.fire('canvas.delete', true), { prevented: true, stopped: true });
+  assert.deepEqual(f.calls, []);
 });
 
 test('external media paste is rejected before reading files while canvas is held', () => {

@@ -1,8 +1,25 @@
 {
   "$schema": "本文件为 T8-penguin-canvas 节点清单防丢失锁,任何节点删减都需要在 roadmap.md 中说明并更新本文件。",
-  "version": "3.3.3",
+  "version": "3.3.4",
+  "electronReleaseV334": {
+    "status": "release-prepared-not-published",
+    "version": "3.3.4",
+    "tag": "v3.3.4",
+    "latest": false,
+    "evidence": "docs/release-v3.3.4.md",
+    "postReleaseEvidence": "owner-approved-post-release-v3.3.4",
+    "macBoundary": "same-tag-unsigned-preview; defer-only-if-quota-insufficient"
+  },
+  "artcraftCanvasUx20261015": {
+    "status": "release-v3.3.4-prepared-local-verified",
+    "releaseIncluded": false,
+    "summary": "Material-set moodboard, retained local editing versions, on-demand editors, independent local 3D World scene/capture node and non-destructive linked Story drafts. Reference-explanation UI excluded; online world generation deferred by user.",
+    "details": "docs/artcraft-canvas-ux.md",
+    "verification": "142/142 focused tests; full App/sidebar/preflight/Run/autosave/reload, 14 themes x2, narrow dialog interaction, existing modal RH missing-key gate and real local media routes/SQLite passed. Three scoped strict type programs passed at512MiB; whole-project typecheck is not claimed.",
+    "boundary": "Prepared for v3.3.4; publication facts in docs/release-v3.3.4.md. Installed-client, physical GPU, live RH and real-user large-scene evidence remain unverified. Online world generation is deferred by user."
+  },
   "nbLowpriceDoubaoAndCrispNodes20261013": {
-    "status": "development-live-verified-not-released",
+    "status": "release-v3.3.4-prepared-live-verified",
     "releaseIncluded": false,
     "provider": "seedance-nz",
     "models": ["zhenzhen-image-nb-pro-lowprice", "zhenzhen-image-nb-2.1-lowprice", "doubao-voice-clone", "doubao-seed-icl-2.0"],
@@ -10,7 +27,7 @@
     "details": "docs/nb-lowprice-doubao.md",
     "verification": "8/8 real tasks with complete output decoding; 672 Chromium style combinations and production control interactions passed. Targeted protocol, route, authority, Creator and recovery regressions passed; overlapping suites are not summed.",
     "report": "local-private/nb-lowprice-doubao-live-20261013/report.json",
-    "boundary": "No version change, production build, push or release this turn. Full live parameter matrix, affected user GPU, complete App/installed-client and F8-F10 remain unverified. Live credentials/task/speaker identities stay private."
+    "boundary": "Prepared for v3.3.4; publication facts in docs/release-v3.3.4.md. Full live parameter matrix, affected user GPU, complete model UI/installed-client and F8-F10 remain unverified. Live credentials/task/speaker identities stay private."
   },
   "electronReleaseV333": {
     "status": "released-dual-platform-verified",
@@ -3488,7 +3505,7 @@
   "versionSequencePolicy": {
     "status": "active",
     "date": "2026-07-30",
-    "currentVersion": "3.3.3",
+    "currentVersion": "3.3.4",
     "rules": [
       "版本号每一段只使用 0-9；v2.6.9 的下一正式版本固定为 v2.7.0。",
       "禁止创建、打包、推送、打 tag、发布或写入自动更新元数据为 v2.6.10。",

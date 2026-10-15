@@ -1,7 +1,7 @@
 {
   "name": "t8-penguin-canvas",
   "private": false,
-  "version": "3.3.3",
+  "version": "3.3.4",
   "type": "module",
   "main": "electron/main.cjs",
   "description": "T8-penguin-canvas — AI 节点画布工作流工具（Web + Electron 桌面端）",
@@ -124,6 +124,7 @@
     "@mediapipe/tasks-vision": "^0.10.35",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.7.0",
+    "@sparkjsdev/spark": "2.3.1",
     "@xyflow/react": "^12.10.0",
     "better-sqlite3": "^12.11.1",
     "bytenode": "^1.5.7",

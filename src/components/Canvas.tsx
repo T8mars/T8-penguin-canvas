@@ -329,6 +329,7 @@ import DeletableEdge from './edges/DeletableEdge';
 import PerformanceEdge from './edges/PerformanceEdge';
 import { NODE_REGISTRY } from '../config/nodeRegistry';
 import { EXECUTABLE_NODE_TYPES } from '../config/executableNodeTypes';
+import { filterInertCanvasNodeChanges } from '../utils/canvasDialogChanges';
 import type { CreativeDeskState, FarmAnimalProductId, FarmCanvasState, FarmCropId, FarmDecorObjectType, FarmEventLogItem, FarmTool, NodeType, NodeMeta } from '../types/canvas';
 import {
   appendCreativeDeskItem,
@@ -1407,6 +1408,7 @@ const RHToolboxNode = lazyCanvasNode(() => import('./nodes/RHToolboxNode'), 'RHT
 const FalToolboxNode = lazyCanvasNode(() => import('./nodes/FalToolboxNode'), 'FalToolboxNode');
 const Model3DPreviewNode = lazyCanvasNode(() => import('./nodes/Model3DPreviewNode'), 'Model3DPreviewNode');
 const Model3DNode = lazyCanvasNode(() => import('./nodes/Model3DNode'), 'Model3DNode');
+const WorldSceneNode = lazyCanvasNode(() => import('./nodes/WorldSceneNode'), 'WorldSceneNode');
 const VolcengineAssetsNode = lazyCanvasNode(() => import('./nodes/VolcengineAssetsNode'), 'VolcengineAssetsNode');
 const GrokImageToolsNode = lazyCanvasNode(() => import('./nodes/GrokImageToolsNode'), 'GrokImageToolsNode');
 const FaceExpression3DNode = lazyCanvasNode(() => import('./nodes/FaceExpression3DNode'), 'FaceExpression3DNode');
@@ -1501,6 +1503,7 @@ const SPECIFIC_NODES: Record<string, any> = {
   'fal-toolbox': FalToolboxNode,
   'model-3d-preview': Model3DPreviewNode,
   'model-3d': Model3DNode,
+  'world-scene': WorldSceneNode,
   'grok-image-tools': GrokImageToolsNode,
   'face-expression-3d': FaceExpression3DNode,
   'previs-studio': PrevisStudioNode,
@@ -2414,6 +2417,10 @@ const INITIAL_DATA: Record<string, Record<string, any>> = {
     status: 'idle',
     error: '',
     size: { w: 520, h: 440 },
+  },
+  'world-scene': {
+    worldSceneProject: { schema: 't8-world-scene-v1', sources: [], activeSourceId: '', camera: null, views: [] },
+    modelUrl: '', modelUrls: [], imageUrl: '', imageUrls: [], status: 'idle', error: '',
   },
   'model-3d': {
     threeDTab: 'hunyuan-3d',
@@ -5863,6 +5870,7 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, onReadinessChange, onR
       (document.activeElement as HTMLElement | null)?.blur?.();
       if (root) root.inert = true;
       const notice = document.createElement('div');
+      notice.setAttribute('data-canvas-close-hold', 'true');
       notice.setAttribute('role', 'status');
       notice.textContent = t('generationHistory.savingBeforeClose');
       Object.assign(notice.style, {
@@ -12029,7 +12037,9 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, onReadinessChange, onR
       // Dialog controls must stay usable, but document-scoped ReactFlow keys
       // cannot mutate the canvas underneath an inert application root.
       if (document.getElementById('root')?.inert) {
-        changes = changes.filter((change) => change.type === 'dimensions');
+        const editingDialogActive = Boolean(document.querySelector('[data-canvas-editing-dialog]'))
+          && !document.querySelector('[data-canvas-close-hold]');
+        changes = filterInertCanvasNodeChanges(changes, editingDialogActive);
         if (changes.length === 0) return;
       }
       const { runtimeChanges, visibleChanges } = partitionRunReplayRuntimeNodeChanges(
@@ -13143,7 +13153,7 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, onReadinessChange, onR
       if (!(n as any).measured?.width) continue;
       // model-3d-preview keeps modelUrl/modelUrls in its own data for download/switching.
       // Only ignore those model fields; its snapshot image still needs normal auto output.
-      const shouldCollectModelOutputs = t !== 'model-3d-preview';
+      const shouldCollectModelOutputs = t !== 'model-3d-preview' && t !== 'world-scene';
       // v1.2.8.2: 循环器仅在完成后才让 autoOutput 处理, 避免运行中注入 items[i] 时被误认为
       // “已生产产物” 并创建个空的 OutputNode。在 status='success' 时 d.imageUrls/videoUrls/audioUrls
       // 数组才是最终聚合产物, 交给 autoOutput 判并拆为 N 个 OutputNode (每行 3 个网格)。
@@ -14002,6 +14012,8 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, onReadinessChange, onR
     const onClipboardKeyCapture = (e: KeyboardEvent) => {
       if (document.querySelector('[data-canvas-manager="true"], [data-canvas-restore="true"]')) return;
       if (document.getElementById('root')?.inert) {
+        const dialog = (e.target as Element | null)?.closest?.('[role="dialog"],[role="alertdialog"]');
+        if (dialog && !dialog.closest('[inert]')) return;
         // Returning alone still lets ReactFlow's document key listener delete
         // selected nodes. Stop the event before it reaches any lower listener.
         e.preventDefault();

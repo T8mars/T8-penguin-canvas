@@ -190,25 +190,35 @@ export async function uploadDataUrl(dataUrl: string, prefix: string = 'edit'): P
  * 将 File / Blob 上传 (multipart) → 返回本地 url
  * 用于：图像编辑器 compose 模式 拖入文件 / Ctrl+V 粘贴文件 作为新图层
  */
-export async function uploadFileBlob(file: File | Blob, filename?: string): Promise<string> {
+export interface LocalFileUploadReceipt { url: string; filename: string; size: number; mime: string; assetId?: string | null }
+export async function uploadFileBlobReceipt(file: File | Blob, filename?: string, options: {
+  signal?: AbortSignal; canvasId?: string; sourceNodeId?: string; sourceNodeType?: string;
+} = {}): Promise<LocalFileUploadReceipt> {
   const fd = new FormData();
   const fname = filename || (file instanceof File ? file.name : `compose-${Date.now()}.png`);
   fd.append('file', file, fname);
-  const r = await fetch('/api/files/upload', { method: 'POST', body: fd });
+  for (const field of ['canvasId', 'sourceNodeId', 'sourceNodeType'] as const) if (options[field]) fd.append(field, options[field]!);
+  const r = await fetch('/api/files/upload', { method: 'POST', body: fd, signal: options.signal });
   const json = await r.json();
   if (!r.ok || !json.success) throw new Error(json?.error || `HTTP ${r.status}`);
-  return json.data.url as string;
+  if (!json.data || typeof json.data.url !== 'string' || !json.data.url) throw new Error('上传结果缺少文件地址');
+  return json.data as LocalFileUploadReceipt;
+}
+export async function uploadFileBlob(file: File | Blob, filename?: string, options: { signal?: AbortSignal } = {}): Promise<string> {
+  return (await uploadFileBlobReceipt(file, filename, options)).url;
 }
 
 export async function copyFileToOutput(
   url: string,
   filename: string,
   subdir: string = 'batch',
+  options: { signal?: AbortSignal } = {},
 ): Promise<{ url: string; filename: string; path?: string; size?: number; exist?: boolean }> {
   const r = await fetch('/api/files/copy-to-output', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ url, filename, subdir }),
+    signal: options.signal,
   });
   const text = await r.text();
   let json: any = null;

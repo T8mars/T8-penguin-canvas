@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('Probe', 'TransportProbe', 'HistoryUI', 'BasicSettingsUI', 'ImageInputUI', 'ImageInputPersist', 'BudgetImageInputPersist', 'FalImageInputPersist', 'BananaImageInputPersist', 'VideoInputPersist', 'FalVideoInputPersist', 'BasicSettingsPersist', 'GeneratedVersions', 'FullHistory')][string]$Mode = 'Probe',
+    [ValidateSet('Probe', 'TransportProbe', 'HistoryUI', 'BasicSettingsUI', 'ImageInputUI', 'ImageInputPersist', 'BudgetImageInputPersist', 'FalImageInputPersist', 'BananaImageInputPersist', 'VideoInputPersist', 'FalVideoInputPersist', 'BasicSettingsPersist', 'GeneratedVersions', 'FullHistory', 'CreativeCanvas')][string]$Mode = 'Probe',
     [ValidateSet('image-standard', 'image-fal', 'image-mj', 'image-budget', 'video')][string]$SettingsCase = 'image-standard',
     [ValidateSet('gpt-image-2-fal', 'nano-banana-pro-fal', 'nano-banana-2-fal')][string]$FalModel = 'gpt-image-2-fal',
     [ValidateSet('zhenzhen-image-g-v2.5-lowprice', 'zhenzhen-image-g-v2.5-flare', 'zhenzhen-image-g-v2.5-sunburst')][string]$BudgetModel = 'zhenzhen-image-g-v2.5-flare',
@@ -236,6 +236,7 @@ public sealed class T8HistoryJob : IDisposable {
                 }
             }
             elseif ($Mode -in @('BasicSettingsUI', 'ImageInputUI')) { & $taskNode $taskNodeHeapFlag scripts/verify-history-basic-settings-ui.cjs }
+            elseif ($Mode -eq 'CreativeCanvas') { & $taskNode $taskNodeHeapFlag scripts/verify-creative-canvas.cjs }
             else { & $taskNode $taskNodeHeapFlag scripts/verify-generation-history-full-electron.cjs }
             $taskExitCode = if ($Mode -eq 'HistoryUI') { $taskHistoryUiExitCode } else { $LASTEXITCODE }
             $taskChildExitCode = $taskExitCode

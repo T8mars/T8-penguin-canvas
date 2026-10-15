@@ -638,3 +638,16 @@ test('coverage report rejects missing blocks and lost hard constraints', () => {
   assert.equal(report.uncovered.length, 1);
   assert.equal(report.hardConstraintLosses.length, 1);
 });
+
+test('linked editor provenance can target the actual canvas Story node without changing legacy callers or media', () => {
+  const empty = createEmptyStoryProject({ storyId: 'logical-story-id', script: '【镜头一】猫走向门。' });
+  const project = applyStoryAnalysis(empty, buildLocalStoryAnalysis(empty.script, empty.settings), 'local-fallback');
+  project.shots[0].videoUrl = '/files/output/keep.mp4';
+  const before = JSON.stringify(project);
+  const legacy = storyToVideoEditClips(project), pinned = storyToVideoEditClips(project, { sourceNodeId: 'actual-canvas-node' });
+  assert.equal(legacy[0].sourceNodeId, project.storyId);
+  assert.equal(pinned[0].sourceNodeId, 'actual-canvas-node'); assert.equal(pinned[0].id, legacy[0].id); assert.equal(pinned[0].url, legacy[0].url);
+  const timeline = storyToVideoEditTimeline(project, { sourceNodeId: 'actual-canvas-node' });
+  assert.ok(timeline.timelineV2.assets.every(asset => asset.sourceNodeId === 'actual-canvas-node'));
+  assert.equal(JSON.stringify(project), before);
+});

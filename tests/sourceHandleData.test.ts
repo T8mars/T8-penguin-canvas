@@ -57,6 +57,15 @@ test('typed handles do not leak sibling output kinds', () => {
   assert.deepEqual(selectSingleSourceHandleData(data, 'metadata', 'metadata'), { metadata: { score: 0.9 } });
 });
 
+test('world scene handles retain stable source pins and do not leak them into image outputs', () => {
+  const source = { id: 'scene-slot', url: '/api/resources/file/res_a', name: 'Room', format: 'spz', assetId: 'asset-a', contentRevision: 2, contentHash: 'a'.repeat(64) };
+  const data = { worldSceneSource: source, worldSceneUrl: source.url, worldSceneFormat: 'spz', modelUrl: source.url, imageUrl: '/snapshot.png' };
+  const scene = selectSingleSourceHandleData(data, 'scene', 'model3d');
+  assert.deepEqual(scene.worldSceneSource, source);
+  assert.equal(scene.imageUrl, undefined);
+  assert.deepEqual(selectSingleSourceHandleData(data, 'image', 'image'), { imageUrl: '/snapshot.png' });
+});
+
 test('nested subflow output handle wins over aggregate fields', () => {
   const data = {
     imageUrl: 'aggregate.png',

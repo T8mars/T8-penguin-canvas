@@ -11,12 +11,13 @@ import {
 } from '@xyflow/react';
 import { Box, Camera, MonitorPlay, Type as TypeIcon, Image as ImageIcon, Video as VideoIcon, Music, Download, Pencil, Check, Edit3, GitCompare, Trash2, Ratio, MoveDiagonal2 } from 'lucide-react';
 import { useCanvasNodeRenderMode } from '../CanvasNodeRenderMode';
+import { approveCanvasDialogNodes } from '../../utils/canvasDialogChanges';
 import { useUpdateNodeData } from './useUpdateNodeData';
 import { useThemeStore } from '../../stores/theme';
 import { logBus } from '../../stores/logs';
 import { PORT_COLOR } from '../../config/portTypes';
 import { resolveThemeTemplate } from '../../theme/defaultTemplates';
-import ImageEditModal, { type ImageEditProduceMeta } from './ImageEditModal';
+import ImageEditModal, { type ImageEditProduceMeta } from './LazyImageEditModal';
 import ImageCompareModal from '../ImageCompareModal';
 import CollectionSplitButton from '../CollectionSplitButton';
 import ImageHoverPreview from '../ImageHoverPreview';
@@ -1002,12 +1003,13 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
           directImageUrl: u,
           // 便于下游节点从 data 读取 (与现有 effect 透传不冲突)
           imageUrl: u,
+          ...(_meta && 'imageEditLineage' in _meta && _meta.imageEditLineage ? { imageEditLineage: _meta.imageEditLineage } : {}),
         },
         selected: isRhCapabilityOutput,
       } as Node;
     });
     if (isRhCapabilityOutput) {
-      rf.setNodes((prev) => [...prev.map((node) => ({ ...node, selected: false })), ...newNodes]);
+      rf.setNodes((prev) => approveCanvasDialogNodes([...prev.map((node) => ({ ...node, selected: false })), ...newNodes]));
       const first = newNodes[0];
       if (first) {
         window.setTimeout(() => {
@@ -1023,7 +1025,7 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
       }
       logBus.success(t('nodes:output.logs.rhImageCreated', { label: _meta.label || t('nodes:output.rhImageCapability'), count: newNodes.length }), logSource);
     } else {
-      rf.addNodes(newNodes);
+      rf.addNodes(approveCanvasDialogNodes(newNodes));
     }
   };
 

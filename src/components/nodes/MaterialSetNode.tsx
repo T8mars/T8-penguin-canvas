@@ -1,4 +1,5 @@
-import { memo, useMemo, useRef, useState, type ChangeEvent, type DragEvent, type PointerEvent } from 'react';
+import { lazy, memo, Suspense, useMemo, useRef, useState, type ChangeEvent, type DragEvent, type PointerEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Handle, Position, useReactFlow, type Node, type NodeProps } from '@xyflow/react';
 import {
   ArrowDownUp,
@@ -6,6 +7,7 @@ import {
   FileText,
   FileUp,
   Images,
+  LayoutDashboard,
   ListPlus,
   Music,
   PackageOpen,
@@ -43,6 +45,11 @@ import {
 } from '../../utils/materialSet';
 import { defaultSizeOf, placeBatchNodes, type Rect as PlacementRect } from '../../utils/nodePlacement';
 import NodeVisible from '../../i18n/NodeVisible';
+import { useCanvasStore } from '../../stores/canvas';
+import { normalizeMoodboard } from '../../utils/materialMoodboard';
+import { approveCanvasDialogNodes } from '../../utils/canvasDialogChanges';
+
+const MaterialMoodboard = lazy(() => import('../MaterialMoodboard'));
 
 const KIND_LABEL: Record<MaterialSetKind, string> = {
   text: '文本',
@@ -93,6 +100,7 @@ function arrayMoveLocal<T>(list: T[], from: number, to: number): T[] {
 }
 
 const MaterialSetNode = ({ id, data, selected }: NodeProps) => {
+  const { t } = useTranslation('creativeUx');
   const update = useUpdateNodeData(id);
   const rf = useReactFlow();
   const { theme, style } = useThemeStore();
@@ -104,6 +112,9 @@ const MaterialSetNode = ({ id, data, selected }: NodeProps) => {
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
+  const [moodboardOpen, setMoodboardOpen] = useState(false);
+  const moodboardSession = useRef<{ canvasId: string | null; kind: MaterialSetKind; items: string } | null>(null);
+  const readOnly = useCanvasStore((state) => state.canvases.find((canvas) => canvas.id === state.activeId)?.status === 'archived');
   const [sortDrag, setSortDrag] = useState<{ activeId: string; overId: string | null; moved: boolean } | null>(null);
   const sortDragRef = useRef<{ activeId: string; overId: string | null; moved: boolean } | null>(null);
   const sortStartRef = useRef<{ x: number; y: number; itemId: string; pointerId: number } | null>(null);
@@ -269,7 +280,7 @@ const MaterialSetNode = ({ id, data, selected }: NodeProps) => {
 
   const exportJson = () => {
     if (!kind || items.length === 0) return;
-    const backup = createMaterialSetBackup(kind, items, `${KIND_LABEL[kind]}素材集`);
+    const backup = createMaterialSetBackup(kind, items, `${KIND_LABEL[kind]}素材集`, d.materialMoodboard);
     const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -290,6 +301,7 @@ const MaterialSetNode = ({ id, data, selected }: NodeProps) => {
         if (!backup) throw new Error('不是有效的素材集 JSON');
         if (items.length > 0 && !window.confirm('导入素材集会覆盖当前内容，确定继续？')) return;
         commitItems(backup.materialSetKind, backup.materialSetItems);
+        update({ materialMoodboard: backup.materialMoodboard || null });
         setError(null);
       } catch (err: any) {
         setError(err?.message || '素材集 JSON 导入失败');
@@ -392,8 +404,8 @@ const MaterialSetNode = ({ id, data, selected }: NodeProps) => {
     setError(null);
   };
 
-  const splitMaterialSet = () => {
-    if (!kind || items.length <= 1) return;
+  const splitMaterialSet = (selectedItems = items) => {
+    if (!kind || !selectedItems.length || readOnly) return;
     const me = rf.getNode(id);
     const myW = (me as any)?.measured?.width || (me as any)?.width || 320;
     const myH = (me as any)?.measured?.height || (me as any)?.height || 280;
@@ -404,7 +416,7 @@ const MaterialSetNode = ({ id, data, selected }: NodeProps) => {
     const COLS = 3;
     const COL_W = kind === 'text' ? 320 : 300;
     const ROW_H = Math.max(kind === 'text' ? 220 : 260, myH / 2);
-    const desired: PlacementRect[] = items.map((_, index) => ({
+    const desired: PlacementRect[] = selectedItems.map((_, index) => ({
       x: baseX + (index % COLS) * COL_W,
       y: baseY + Math.floor(index / COLS) * ROW_H,
       w: sz.w,
@@ -412,7 +424,7 @@ const MaterialSetNode = ({ id, data, selected }: NodeProps) => {
     }));
     const off = placeBatchNodes(desired, rf.getNodes(), { source: `placement:split-material-set:${id}` });
     const stamp = Date.now();
-    const newNodes: Node[] = items.map((item, index) => {
+    const newNodes: Node[] = selectedItems.map((item, index) => {
       const value = valueOfMaterialSetItem(item);
       const dataPatch =
         kind === 'text'
@@ -432,7 +444,7 @@ const MaterialSetNode = ({ id, data, selected }: NodeProps) => {
         selected: false,
       } as Node;
     });
-    rf.addNodes(newNodes);
+    rf.addNodes(approveCanvasDialogNodes(newNodes));
   };
 
   const accent = kind ? PORT_COLOR[kind] : PORT_COLOR.any;
@@ -485,7 +497,7 @@ const MaterialSetNode = ({ id, data, selected }: NodeProps) => {
           <CollectionSplitButton
             count={items.length}
             kindLabel={KIND_LABEL[kind]}
-            onSplit={splitMaterialSet}
+            onSplit={() => splitMaterialSet()}
             confirmThreshold={8}
           />
         )}
@@ -504,6 +516,14 @@ const MaterialSetNode = ({ id, data, selected }: NodeProps) => {
       </div>
 
       <div className="space-y-2 p-2.5" onMouseDown={(e) => e.stopPropagation()}>
+        {items.length > 0 && <button type="button" className="t8-btn nodrag nopan w-full gap-1.5 text-xs"
+          onClick={() => {
+            if (!kind) return;
+            moodboardSession.current = { canvasId: useCanvasStore.getState().activeId, kind, items: JSON.stringify(items) };
+            setMoodboardOpen(true);
+          }} title={t('moodboard.open')}>
+          <LayoutDashboard size={14} /> {t('moodboard.title')}
+        </button>}
         <div className="grid grid-cols-4 gap-1">
           {(['image', 'video', 'audio', 'text'] as MaterialSetKind[]).map((k) => (
             <button
@@ -759,6 +779,27 @@ const MaterialSetNode = ({ id, data, selected }: NodeProps) => {
         )}
       </div>
       </div>
+      {moodboardOpen && <Suspense fallback={null}><MaterialMoodboard items={items} value={d.materialMoodboard}
+        readOnly={readOnly} onClose={() => setMoodboardOpen(false)}
+        onSave={(layout, initial) => {
+          const current = rf.getNode(id)?.data as Record<string, unknown> | undefined;
+          const state = useCanvasStore.getState();
+          const session = moodboardSession.current;
+          if (!current || !session || state.activeId !== session.canvasId || current.materialSetKind !== session.kind
+            || JSON.stringify(normalizeMaterialSetItems(current.materialSetItems as any[], session.kind)) !== session.items
+            || state.canvases.find((canvas) => canvas.id === state.activeId)?.status === 'archived'
+            || JSON.stringify(normalizeMoodboard(current.materialMoodboard, items)) !== JSON.stringify(initial)) return false;
+          rf.setNodes((nodes) => nodes.map((node) => node.id === id
+            ? approveCanvasDialogNodes([{ ...node, data: { ...node.data, materialMoodboard: layout } }])[0] : node));
+          return true;
+        }}
+        onInsert={(ids) => {
+          const state = useCanvasStore.getState(), current = rf.getNode(id)?.data as Record<string, unknown> | undefined;
+          if (!current || !kind || state.activeId !== moodboardSession.current?.canvasId
+            || state.canvases.find((canvas) => canvas.id === state.activeId)?.status === 'archived') return;
+          splitMaterialSet(normalizeMaterialSetItems(current.materialSetItems as any[], kind).filter((item) => ids.includes(item.id)));
+        }}
+      /></Suspense>}
     </NodeVisible>
   );
 };

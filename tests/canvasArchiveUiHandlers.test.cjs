@@ -73,10 +73,12 @@ test('production canvas mutation handlers reject modal-background changes withou
   };
   visit(canvasTree);
   const document = { getElementById: () => ({ inert: true }), querySelector: () => ({}) };
+  const dialogExports = {};
+  compiled(fs.readFileSync(path.resolve(__dirname, '../src/utils/canvasDialogChanges.ts'), 'utf8'), { exports: dialogExports });
   for (const name of ['onNodesChange', 'onEdgesChange', 'onConnect']) {
     assert.ok(handlers[name]);
     // No mutation dependency is provided: an accidental call would fail.
-    const handler = compiled(`(${handlers[name]})`, { document });
+    const handler = compiled(`(${handlers[name]})`, { document, filterInertCanvasNodeChanges: dialogExports.filterInertCanvasNodeChanges });
     handler(name === 'onConnect' ? { source: 'a', target: 'b' } : [{ type: 'remove', id: 'selected' }]);
   }
   const capture = compiled(`(${handlers.onClipboardKeyCapture})`, { document });

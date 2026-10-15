@@ -6,7 +6,7 @@ const OUTPUT_KIND_FIELDS: Record<string, string[]> = {
   image: ['imageUrl', 'imageUrls', 'generatedImages', 'resultUrl', 'resultUrls', 'firstFrameUrl', 'lastFrameUrl'],
   video: ['videoUrl', 'videoUrls'],
   audio: ['audioUrl', 'audioUrl_1', 'audioUrls'],
-  model3d: ['modelUrl', 'modelUrls', 'directModelUrl', 'directModelUrls'],
+  model3d: ['modelUrl', 'modelUrls', 'directModelUrl', 'directModelUrls', 'worldSceneUrl', 'worldSceneFormat', 'worldSceneSource', 'fileName', 'fileNames'],
   metadata: [
     'metadata',
     'outputMetadata',
@@ -27,6 +27,7 @@ const HANDLE_KIND_ALIASES: Record<string, string> = {
   audio: 'audio',
   model: 'model3d',
   model3d: 'model3d',
+  scene: 'model3d',
   metadata: 'metadata',
 };
 

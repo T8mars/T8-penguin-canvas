@@ -6,8 +6,10 @@ import {
 import { INSPIRATION_VISIBLE_CATALOG } from './inspirationVisibleCatalog';
 import { generationHistoryZh, generationHistoryEn } from './generationHistoryCatalog';
 import { doubaoVoiceZh, doubaoVoiceEn } from './doubaoVoiceCatalog';
+import { creativeUxZh, creativeUxEn } from './creativeUxCatalog';
 
 export const zhCN = {
+  creativeUx: creativeUxZh,
   workbenches: {
     videoEdit: VIDEO_EDIT_VISIBLE_CATALOG.zh,
     creatorAgent: CREATOR_AGENT_VISIBLE_CATALOG.zh,
@@ -648,6 +650,7 @@ export const zhCN = {
 } as const;
 
 export const enUS = {
+  creativeUx: creativeUxEn,
   workbenches: {
     videoEdit: VIDEO_EDIT_VISIBLE_CATALOG.en,
     creatorAgent: CREATOR_AGENT_VISIBLE_CATALOG.en,

@@ -24,6 +24,7 @@ export const ENGLISH_NODE_CATALOG: Record<string, EnglishNodeCopy> = {
   'model-3d-upload': { label: 'Upload 3D Material', description: 'Upload GLB, GLTF, OBJ, STL, FBX, USDZ, or ZIP models and create a 3D preview node.' },
   'model-3d-preview': { label: '3D Model Preview', description: 'Preview a 3D model, access its original download, and output a snapshot from the current view.' },
   'model-3d': { label: '3D', description: 'Extensible 3D generation with Hunyuan 3D v3.1 text-to-3D and ordered multi-view image-to-GLB.' },
+  'world-scene': { label: '3D World', description: 'Import Gaussian scenes, explore them, save camera views and output composition images.' },
   'grok-image-tools': { label: 'Grok Segmentation Editor', description: 'Segment one image, retain object IDs, and edit by object, bounding box, or selection.' },
   'material-set': { label: 'Material Set', description: 'Collect and reorder same-kind text, image, video, or audio materials for generation and RH nodes.' },
   'generation-target': { label: 'Generation Target', description: 'Reserve an output position, then replace it with generated or edited image results.' },
