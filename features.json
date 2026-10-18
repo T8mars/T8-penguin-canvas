@@ -2,26 +2,28 @@
   "$schema": "本文件为 T8-penguin-canvas 节点清单防丢失锁,任何节点删减都需要在 roadmap.md 中说明并更新本文件。",
   "version": "3.3.5",
   "strataLocalLlm20261019": {
-    "status": "release-v3.3.5-pending",
+    "status": "released-v3.3.5-dual-platform-local-verified",
     "description": "Strata本地LLM预设、模型/视觉发现、无Key本机或Bearer局域网、真实流式和Run取消；最长3分钟，失效来源不落云端，旧参数保留。",
     "evidence": "docs/strata-llm.md",
     "verification": "两轮独立20轮审查累计修8项；315/315限定回归、最新隔离完整画布16项通过，runner正常退出/强制0/残留0。前轮真实视觉13项保留为历史证据，各组不累加。",
     "boundary": "本轮真实Strata冷启动HTTP503/WinError5未通过，用户因其他人在用明确暂缓，不启停引擎；LAN/其他GPU/安装版未验收，Creator/原生视频/ASR/引擎管理不纳入。"
   },
   "electronReleaseV335": {
-    "status": "source-prepared-publish-pending",
+    "status": "released-dual-platform-verified",
     "version": "3.3.5",
     "tag": "v3.3.5",
-    "latest": false,
+    "latest": true,
     "evidence": "docs/release-v3.3.5.md",
     "postReleaseEvidence": "owner-approved-post-release-v3.3.5",
-    "macBoundary": "same-tag-unsigned-preview-pending; defer-only-if-quota-insufficient"
+    "macBoundary": "same-tag-unsigned-preview; no-quota-deferral-used",
+    "sourceCommit": "ff02c6e6f9b47d16b94a01fa10833ec9b1b25e53",
+    "macWorkflow": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/39151023820"
   },
   "electronReleaseV334": {
     "status": "released-dual-platform-verified",
     "version": "3.3.4",
     "tag": "v3.3.4",
-    "latest": true,
+    "latest": false,
     "evidence": "docs/release-v3.3.4.md",
     "postReleaseEvidence": "owner-approved-post-release-v3.3.4",
     "macBoundary": "same-tag-unsigned-preview; no-quota-deferral-used",
@@ -3537,23 +3539,54 @@
     ]
   },
   "release": {
-    "status": "source-prepared-v3.3.5-publish-pending",
+    "status": "released-v3.3.5-dual-platform-verified",
     "version": "3.3.5",
     "date": "2026-10-19",
     "tag": "v3.3.5",
-    "latest": false,
-    "sourceCommit": "",
-    "publishedAt": "",
-    "draft": true,
+    "latest": true,
+    "sourceCommit": "ff02c6e6f9b47d16b94a01fa10833ec9b1b25e53",
+    "publishedAt": "2026-10-18T17:44:50Z",
+    "draft": false,
     "prerelease": false,
     "url": "https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.3.5",
     "details": "docs/release-v3.3.5.md",
     "verification": [
-      "Source preparation only; formal Windows build, same-tag Mac workflow, upload and full-download verification pending. Historical v3.3.4 assets remain recorded in its release topic.",
+      "Unique formal Windows TypeScript/Vite/encrypted NSIS build, packaged fresh-database probe, 27 release contracts and same-tag real Mac workflow passed. Six assets independently full-download-verified; both updater manifests matched size/SHA-512. Windows assets and previous v3.3.4 assets/Tag unchanged. Source/Tag frozen.",
       "External/installed/LAN/other-GPU and F8-F10 evidence deferred under owner-approved-post-release-v3.3.5, not passed. Current Strata cold-start HTTP503/WinError5 remains failed and investigation deferred by user."
     ],
-    "assets": {},
-    "macWorkflow": ""
+    "assets": {
+      "windowsInstaller": {
+        "name": "T8-PenguinCanvas-Setup-3.3.5.exe",
+        "bytes": 1379748894,
+        "sha256": "c733cbb43fa4c2d1b7e1e124d051b5ead4eac95d8b6af156215ec49d65354eec"
+      },
+      "windowsBlockmap": {
+        "name": "T8-PenguinCanvas-Setup-3.3.5.exe.blockmap",
+        "bytes": 1439891,
+        "sha256": "ac6a2456afca143850af88781ec5725504a87da47ed37e0f49b98c6de75651fa"
+      },
+      "windowsUpdater": {
+        "name": "latest.yml",
+        "bytes": 362,
+        "sha256": "0dd4fe0d79783ad07ff376e679716a39a53e68db5ea74b3e207b279b0148ec74"
+      },
+      "macDmg": {
+        "name": "T8-PenguinCanvas-3.3.5-mac-arm64.dmg",
+        "bytes": 519395473,
+        "sha256": "7f6552297ed803a5c184ff94c0a299aa01e40e22d6fdd139db576ca035253cb9"
+      },
+      "macZip": {
+        "name": "T8-PenguinCanvas-3.3.5-mac-arm64.zip",
+        "bytes": 511243589,
+        "sha256": "cc0638067c9ff2a4e0f0e8b6d8b93ec637f8ed646248d4845efcdc3a05783b5d"
+      },
+      "macUpdater": {
+        "name": "latest-mac.yml",
+        "bytes": 536,
+        "sha256": "eb1fa03fd5a5e55c70be330b7ca4b1fbac4d91dc039a1f08b0c007866e493c0d"
+      }
+    },
+    "macWorkflow": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/39151023820"
   },
   "versionSequencePolicy": {
     "status": "active",
