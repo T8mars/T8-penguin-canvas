@@ -253,7 +253,7 @@ function MiniMaxMusic3PromptEnhancerNode({ id, data, selected }: NodeProps) {
         providerRequestCount += 1;
         const request = { model: activeModel, messages, temperature, max_tokens: maxTokens, stream: false };
         const result = isExternal && providerSelection.provider
-          ? await generateExternalLlm({ ...request, providerId: providerSelection.provider.id, providerModel: externalModel, providerParams: d.providerParams || {}, timeoutMs: 3 * 60_000 }, { submissionKey: child.submissionKey })
+          ? await generateExternalLlm({ ...request, providerId: providerSelection.provider.id, providerModel: externalModel, providerParams: d.providerParams || {}, timeoutMs: 3 * 60_000 }, { submissionKey: child.submissionKey, signal: reporter.signal })
           : await generateLlm({ ...request, source: isSeedanceNz ? 'seedance-nz' : 'zhenzhen', requestProfile: 'minimax-music3-prompt-enhancer' }, { submissionKey: child.submissionKey });
         const content = String(result.content || '').trim();
         if (!content) throw new Error(`Music 3 阶段“${stage}”没有返回内容。`);

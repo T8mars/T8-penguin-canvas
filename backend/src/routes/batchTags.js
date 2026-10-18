@@ -813,9 +813,10 @@ function resolveBatchTagProvider(body, settings) {
 
 router.post('/tag', async (req, res) => {
   let clientGone = false;
-  req.on('aborted', () => { clientGone = true; });
+  const controller = new AbortController();
+  req.on('aborted', () => { clientGone = true; controller.abort(); });
   res.on('close', () => {
-    if (!res.writableEnded) clientGone = true;
+    if (!res.writableEnded) { clientGone = true; controller.abort(); }
   });
   try {
     const body = req.body || {};
@@ -861,6 +862,7 @@ router.post('/tag', async (req, res) => {
     }, {
       timeoutMs: normalizeProviderLlmTimeoutMs(body.timeoutMs, { fallback: DEFAULT_TIMEOUT_MS }),
       baseUrl: `http://127.0.0.1:${config.PORT}`,
+      signal: controller.signal,
     });
     if (clientGone) return undefined;
     if (!result.ok) {

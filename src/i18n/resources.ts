@@ -7,6 +7,7 @@ import { INSPIRATION_VISIBLE_CATALOG } from './inspirationVisibleCatalog';
 import { generationHistoryZh, generationHistoryEn } from './generationHistoryCatalog';
 import { doubaoVoiceZh, doubaoVoiceEn } from './doubaoVoiceCatalog';
 import { creativeUxZh, creativeUxEn } from './creativeUxCatalog';
+import { strataZh, strataEn } from './strataCatalog';
 
 export const zhCN = {
   creativeUx: creativeUxZh,
@@ -344,7 +345,7 @@ export const zhCN = {
     llm: {
       title: 'LLM / Vision', sessions: '{{count}} 条会话', offscreen: '{{model}} · {{count}} 条会话 · 高性能离屏预览', newSession: '新会话', clearSession: '清空会话 / 新建',
       advancedSource: '高级来源', platform: '平台', defaultSource: '贞贞的AI工坊-独立LLM Key（默认）', budgetSource: '贞贞的平价AI小屋', externalModel: '外部模型', budgetModel: '平价小屋模型',
-      budgetHelp: '使用“贞贞的平价AI小屋 API Key”，接口为 api.seedance.nz。', missingProvider: '当前画布记录的扩展平台未启用或不存在，已临时回到默认来源。',
+      budgetHelp: '使用“贞贞的平价AI小屋 API Key”，接口为 api.seedance.nz。', missingProvider: '保存的扩展来源或模型不可用；运行已阻断，不会切换默认来源。',
       model: '模型', customModel: 'Custom / 自定义', customPlaceholder: '填写贞贞工坊支持的模型名称', stream: '流式', systemPrompt: '系统提示词', systemPromptTitle: 'LLM 系统提示词', systemPlaceholder: '设定 AI 角色和行为...',
       loadPreset: '加载预设', presetPlaceholder: '— 预设 —', savePreset: '保存当前为预设', deletePreset: '删除预设', deletePresetPrompt: '删除预设（输入名字）：',
       userInput: '用户输入（优先取上游）', userInputTitle: 'LLM 用户输入', userInputPlaceholder: '备用：无上游连接时使用', videoInput: '视频传入', videoInputTitle: 'LLM 视频传入方式', frames: '关键帧优先', nativeVideo: '原视频 Base64',
@@ -555,6 +556,7 @@ export const zhCN = {
     },
   },
   settings: {
+    strata: strataZh,
     startupDiagnostics: { title: '启动诊断', save: '保存启动日志', saving: '正在保存…', hint: '复现启动卡顿后保存日志并发给作者。包含本次和上次启动的阶段、耗时与异常阶段，不包含 API Key、提示词或画布内容。', browserHint: '浏览器版只能保存本次前端启动阶段；不包含桌面主进程或数据库日志。', saved: '日志已保存，请把 .log 文件发给作者。', canceled: '已取消保存。', failed: '日志保存失败，请重试并确认保存位置可写。' },
     mediaDefaults: { title: '新建媒体节点默认来源', hint: '仅在新建空白节点时应用，保存设置不会改动任何现有节点。', imageSource: '图像 / 图像编辑', videoSource: '视频', 'product-default': '跟随产品默认', zhenzhen: '贞贞的 AI 工坊', 'seedance-nz': '贞贞的平价 AI 小屋', bothBudget: '两项都设为平价小屋', scope: '支持通用图像、图像编辑与视频节点。复制、导入、模板、历史恢复及专用 Seedance / RH / ComfyUI / 故事节点保留自身设置。明确选择的模型或来源优先。', keyHint: '可先保存和新建；生成前请填写平价小屋 API Key，不会自动改用工坊或其他来源。', retry: '重新加载设置', notReady: '默认来源设置尚未加载成功，请在 API 设置中重试后再新建媒体节点。', saveFailed: '保存失败或回读未确认，请重试；默认来源尚未确认生效。' },
     title: 'API Key 设置（通用 + 分类独立）', subtitle: '留空表示保持后端已存的 Key 不变 · 输入新值即覆盖 · 点眼睛可预览明文。',
@@ -985,7 +987,7 @@ export const enUS = {
     llm: {
       title: 'LLM / Vision', sessions: '{{count}} messages', offscreen: '{{model}} · {{count}} messages · offscreen performance preview', newSession: 'New chat', clearSession: 'Clear chat / start new',
       advancedSource: 'Advanced source', platform: 'Platform', defaultSource: 'Zhenzhen AI Workshop · standalone LLM key (default)', budgetSource: 'Zhenzhen Budget AI House', externalModel: 'External model', budgetModel: 'Budget-house model',
-      budgetHelp: 'Uses the Zhenzhen Budget AI House API key through api.seedance.nz.', missingProvider: 'The extended platform stored by this canvas is disabled or missing, so the default source is active temporarily.',
+      budgetHelp: 'Uses the Zhenzhen Budget AI House API key through api.seedance.nz.', missingProvider: 'The saved external source or model is unavailable. Execution is blocked; the default source is not used.',
       model: 'Model', customModel: 'Custom', customPlaceholder: 'Enter a model supported by Zhenzhen AI Workshop', stream: 'Streaming', systemPrompt: 'System prompt', systemPromptTitle: 'LLM system prompt', systemPlaceholder: 'Define the AI role and behavior...',
       loadPreset: 'Load preset', presetPlaceholder: '— Preset —', savePreset: 'Save current preset', deletePreset: 'Delete preset', deletePresetPrompt: 'Delete preset (enter its name):',
       userInput: 'User input (upstream takes priority)', userInputTitle: 'LLM user input', userInputPlaceholder: 'Fallback when no upstream text is connected', videoInput: 'Video input', videoInputTitle: 'LLM video input mode', frames: 'Keyframes first', nativeVideo: 'Native video Base64',
@@ -1192,6 +1194,7 @@ export const enUS = {
     },
   },
   settings: {
+    strata: strataEn,
     startupDiagnostics: { title: 'Startup diagnostics', save: 'Save startup log', saving: 'Saving…', hint: 'Save the log after reproducing a slow launch and send it to the author. It includes current/previous startup stages, timings and failure stages, but no API keys, prompts or canvas content.', browserHint: 'Browser mode exports only the current renderer startup stages, without desktop main-process or database logs.', saved: 'Log saved. Send the .log file to the author.', canceled: 'Save canceled.', failed: 'Could not save the log. Retry and check that the destination is writable.' },
     mediaDefaults: { title: 'Default source for new media nodes', hint: 'Applied only when creating blank nodes. Saving does not change existing nodes.', imageSource: 'Image / image edit', videoSource: 'Video', 'product-default': 'Product default', zhenzhen: 'Zhenzhen AI Workshop', 'seedance-nz': 'Zhenzhen Budget AI House', bothBudget: 'Use Budget AI House for both', scope: 'Supports generic image, image-edit and video nodes. Copies, imports, templates, history recovery and dedicated Seedance / RH / ComfyUI / story nodes keep their own settings. Explicit model or source choices take priority.', keyHint: 'You can save and create nodes now. Add the Budget AI House API key before generation; no automatic fallback to another source.', retry: 'Reload settings', notReady: 'Default-source settings have not loaded successfully. Retry in API settings before creating media nodes.', saveFailed: 'Save failed or read-back was not confirmed. Retry; the default source has not been verified.' },
     title: 'API key settings (shared + per category)', subtitle: 'Leave a field empty to keep the saved backend key · Enter a new value to replace it · Use the eye button to reveal it.',

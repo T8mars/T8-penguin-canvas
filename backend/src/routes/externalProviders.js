@@ -457,6 +457,9 @@ router.post('/test-provider', async (req, res) => {
 });
 
 router.post('/llm', async (req, res) => {
+  let heartbeat;
+  const stream = req.body?.stream === true;
+  const send = (event) => { if (!res.destroyed && !res.writableEnded) res.write(`data: ${JSON.stringify(event)}\n\n`); };
   try {
     const settings = settingsRouter.loadSettings({ persistMigrations: false });
     const currentProviders = normalizeAdvancedProviders(settings.advancedProviders);
@@ -469,19 +472,36 @@ router.post('/llm', async (req, res) => {
         data: resolved.provider ? { provider: safeProviderForResponse(resolved.provider) } : undefined,
       });
     }
+    if (stream) {
+      res.set({ 'Content-Type': 'text/event-stream; charset=utf-8', 'Cache-Control': 'no-cache', Connection: 'keep-alive', 'X-Accel-Buffering': 'no' });
+      res.flushHeaders();
+      heartbeat = setInterval(() => { if (!res.destroyed) res.write(': keepalive\n\n'); }, 10000);
+    }
     const result = await generateChatWithProvider(resolved.provider, req.body || {}, {
       timeoutMs: Number(req.body?.timeoutMs) || undefined,
       baseUrl: `http://127.0.0.1:${config.PORT}`,
       signal: req.t8AbortSignal,
+      onDelta: stream ? (delta) => send({ type: 'delta', delta }) : undefined,
+      onStatus: stream ? (status) => send({ type: 'status', ...status }) : undefined,
     });
+    if (stream) {
+      // Terminal result is authoritative; deltas alone are never successful output.
+      const { raw, ...safeResult } = result;
+      send({ type: 'result', success: result.ok === true, data: safeResult, error: result.error, code: result.code });
+      return res.end();
+    }
     return resultResponse(res, result, resolved.provider);
   } catch (e) {
+    if (res.headersSent) {
+      send({ type: 'result', success: false, code: 'external_llm_failed', error: e?.message || 'LLM failed' });
+      return res.end();
+    }
     return res.status(500).json({
       success: false,
       code: 'external_llm_failed',
       error: e?.message || String(e),
     });
-  }
+  } finally { clearInterval(heartbeat); }
 });
 
 router.post('/image', async (req, res) => {

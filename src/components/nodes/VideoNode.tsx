@@ -1222,6 +1222,11 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
 
   const handleGenerate = async (reporter?: RunNodeLifecycleReporter) => {
     if (status === 'submitting' || status === 'polling' || reporter?.signal?.aborted) return;
+    if (savedExternalMissing) {
+      const message = translate('settings:strata.sourceUnavailable');
+      setError(message); update({ status: 'error', error: message });
+      return;
+    }
     setError(null);
     const { prompt: upstreamPrompt, imageUrls, videoUrls, audioUrls } = collectUpstream();
     if (isViduQ4 && (imageUrls.length < 1 || imageUrls.length > (viduMode === 'i2v' ? 1 : 15)

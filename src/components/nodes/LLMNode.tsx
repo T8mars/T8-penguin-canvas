@@ -24,6 +24,7 @@ import {
 import {
   fileToDataUrl,
   generateExternalLlm,
+  generateExternalLlmStream,
   generateLlm,
   generateLlmStream,
   type LlmContentPart,
@@ -33,6 +34,7 @@ import { useUpdateNodeData } from './useUpdateNodeData';
 import { useRunTrigger } from '../../hooks/useRunTrigger';
 import { requestCanvasNodeRun } from '../../utils/canvasRunRequest';
 import { logBus } from '../../stores/logs';
+import { createCanvasNodeExecutionKey, useRunBusStore } from '../../stores/runBus';
 import { PORT_COLOR } from '../../config/portTypes';
 import { useDragMaterialStore, type MaterialPayload } from '../../stores/dragMaterial';
 import { useMaterialDropTarget } from '../../hooks/useMaterialDropTarget';
@@ -51,6 +53,7 @@ import { taskCompletionSound } from '../../stores/taskCompletionSound';
 import { useApiKeysStore } from '../../stores/apiKeys';
 import {
   advancedProviderModelOptions,
+  advancedLlmTokenBudget,
   advancedProvidersForNode,
   resolveAdvancedProviderSelection,
 } from '../../utils/advancedProviders';
@@ -189,6 +192,8 @@ const LLMNode = ({ id, data, selected }: NodeProps) => {
   const [error, setError] = useState<string | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
   const [streamingText, setStreamingText] = useState('');
+  const [requestPhase, setRequestPhase] = useState('');
+  const activeReporterRef = useRef<RunNodeLifecycleReporter | undefined>(undefined);
   const [presetMap, setPresetMap] = useState<Record<string, string>>(() => loadPresets());
   const [pickedFiles, setPickedFiles] = useState<{ name: string; dataUrl: string }[]>([]);
   const [pickedVideos, setPickedVideos] = useState<{ name: string; url: string }[]>([]);
@@ -222,10 +227,10 @@ const LLMNode = ({ id, data, selected }: NodeProps) => {
     [advancedProviders, d?.providerSource, d?.providerId, d?.providerModel],
   );
   const isExternalSelected = providerSelection.available && providerSelection.providerSource !== 'zhenzhen';
-  const isSeedanceNzSelected = !isExternalSelected && d?.llmApiSource === 'seedance-nz';
+  const isSeedanceNzSelected = !isExternalSelected && (!d?.providerSource || d.providerSource === 'zhenzhen') && (!d?.providerId || d.providerSource === 'zhenzhen') && d?.llmApiSource === 'seedance-nz';
   const savedExternalMissing = !isSeedanceNzSelected
-    && !!d?.providerSource
-    && d.providerSource !== 'zhenzhen'
+    && (!!d?.providerId || (!!d?.providerSource && d.providerSource !== 'zhenzhen'))
+    && d?.providerSource !== 'zhenzhen'
     && !providerSelection.available;
   const externalModelOptions = providerSelection.provider
     ? advancedProviderModelOptions(providerSelection.provider, 'llm')
@@ -240,7 +245,7 @@ const LLMNode = ({ id, data, selected }: NodeProps) => {
   const userPromptMentions: MediaMention[] = Array.isArray(d?.userPromptMentions) ? d.userPromptMentions : [];
   const systemPrompt: string = d?.system ?? '你是一个提示词专家，将用户的提示词优化';
   const temperature: number = typeof d?.temperature === 'number' ? d.temperature : 0.7;
-  const maxTokens: number = typeof d?.maxTokens === 'number' ? d.maxTokens : 16384;
+  const maxTokens = advancedLlmTokenBudget(d?.maxTokens, providerSelection.provider);
   const useStream: boolean = d?.stream !== false; // 默认开
   const llmVideoMode: 'frames' | 'native-base64' | 'url' =
     d?.llmVideoMode === 'url'
@@ -438,12 +443,17 @@ const LLMNode = ({ id, data, selected }: NodeProps) => {
     setError(null);
     setWarning(null);
     setStreamingText('');
-    if (!isSeedanceNzSelected && modelSelection.isCustom && !model) {
+    if (savedExternalMissing) {
+      const message = t('settings:strata.sourceUnavailable');
+      setError(message); update({ status: 'error', error: message });
+      throw new Error(message);
+    }
+    if (!isExternalSelected && !isSeedanceNzSelected && modelSelection.isCustom && !model) {
       const message = '请先填写 Custom 模型名称';
       setError(message);
       update({ status: 'error', error: message });
       logBus.error(message, src);
-      return;
+      throw new Error(message);
     }
     const upstream = collectUpstream();
     const resolvedLocalPrompt = resolveMediaMentions(localPrompt, userPromptMentions, orderedImages);
@@ -452,9 +462,10 @@ const LLMNode = ({ id, data, selected }: NodeProps) => {
     const userImages = upstream.images;
     const userVideos = upstream.videos;
     if (!userText && userImages.length === 0 && userVideos.length === 0) {
-      setError('未提供用户输入(无上游 prompt / 本地输入 / 图片 / 视频)');
+      const message = '未提供用户输入(无上游 prompt / 本地输入 / 图片 / 视频)';
+      setError(message); update({ status: 'error', error: message });
       logBus.error('缺少用户输入', src);
-      return;
+      throw new Error(message);
     }
     const llmVideoOptions = { llmVideoMode, videoMaxWidth, videoMaxHeight, videoMaxBase64Mb, videoCrf, videoFrameCount };
     const traceProvider = isExternalSelected && providerSelection.provider
@@ -469,7 +480,7 @@ const LLMNode = ({ id, data, selected }: NodeProps) => {
       `发送到 ${isExternalSelected && providerSelection.provider
         ? providerSelection.provider.label
         : isSeedanceNzSelected ? '贞贞的平价AI小屋' : model} · ${
-        !isExternalSelected && useStream && !isImgOut && userVideos.length === 0 ? 'SSE' : '非流式'
+        useStream && !isImgOut && (isExternalSelected || userVideos.length === 0) ? 'SSE' : '非流式'
       } · imgs=${userImages.length} · videos=${userVideos.length}${userVideos.length ? ` · ${llmVideoMode}` : ''}`,
       src,
     );
@@ -484,27 +495,36 @@ const LLMNode = ({ id, data, selected }: NodeProps) => {
     };
     const nextHistory: ChatTurn[] = [...history, userTurn];
 
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
+    activeReporterRef.current = reporter;
+    const abortRun = () => ctrl.abort(reporter?.signal?.reason);
+    if (reporter?.signal?.aborted) abortRun();
+    else reporter?.signal?.addEventListener('abort', abortRun, { once: true });
     try {
-      if (!isExternalSelected && useStream && !isImgOut && userVideos.length === 0) {
+      if (useStream && !isImgOut && (isExternalSelected || userVideos.length === 0)) {
         // ====== 流式 ======
-        const ctrl = new AbortController();
-        abortRef.current = ctrl;
-        const streamResult = await generateLlmStream(
-          {
-            source: isSeedanceNzSelected ? 'seedance-nz' : 'zhenzhen',
+        const streamRequest = {
+            source: isSeedanceNzSelected ? 'seedance-nz' as const : 'zhenzhen' as const,
             model: activeModel,
             messages,
             temperature,
             max_tokens: maxTokens,
             ...llmVideoOptions,
-          },
-          {
-            onDelta: (chunk) => setStreamingText((s) => s + chunk),
+        };
+        const streamOptions = {
+            onDelta: (chunk: string) => setStreamingText((s) => s + chunk),
+            onStatus: (phase: string) => setRequestPhase(phase),
             signal: ctrl.signal,
             submissionKey: reporter?.providerSubmissionKey,
-          }
-        );
-        abortRef.current = null;
+        };
+        const streamResult = isExternalSelected
+          ? await generateExternalLlmStream({ ...streamRequest,
+              providerId: providerSelection.providerId, providerModel: externalProviderModel, providerParams: d?.providerParams || {},
+              reasoningEffort: providerSelection.provider?.profile === 'strata' ? d?.strataReasoningEffort : undefined,
+            }, streamOptions)
+          : await generateLlmStream(streamRequest, streamOptions);
+        if (ctrl.signal.aborted) throw new DOMException('Aborted', 'AbortError');
         const replyText = streamResult.content || '';
         if (streamResult.usage) await reporter?.providerUsage({
           provider: traceProvider,
@@ -523,6 +543,7 @@ const LLMNode = ({ id, data, selected }: NodeProps) => {
         });
         const truncationWarning = isLlmReplyTruncated(streamResult) ? llmTokenLimitWarning(maxTokens) : '';
         const finalHistory: ChatTurn[] = [...nextHistory, { role: 'assistant', text: replyText }];
+        if (ctrl.signal.aborted || activeReporterRef.current !== reporter) throw new DOMException('Aborted', 'AbortError');
         update({
           status: 'success',
           history: finalHistory,
@@ -556,7 +577,8 @@ const LLMNode = ({ id, data, selected }: NodeProps) => {
               max_tokens: maxTokens,
               ...llmVideoOptions,
               providerParams: d?.providerParams || {},
-            }, { submissionKey: reporter?.providerSubmissionKey })
+              reasoningEffort: providerSelection.provider?.profile === 'strata' ? d?.strataReasoningEffort : undefined,
+            }, { submissionKey: reporter?.providerSubmissionKey, signal: ctrl.signal })
           : await generateLlm({
               source: isSeedanceNzSelected ? 'seedance-nz' : 'zhenzhen',
               model: activeModel,
@@ -564,7 +586,8 @@ const LLMNode = ({ id, data, selected }: NodeProps) => {
               temperature,
               max_tokens: maxTokens,
               ...llmVideoOptions,
-            }, { submissionKey: reporter?.providerSubmissionKey });
+            }, { submissionKey: reporter?.providerSubmissionKey, signal: ctrl.signal });
+        if (ctrl.signal.aborted) throw new DOMException('Aborted', 'AbortError');
         const replyText = res.content || '';
         if (res.usage) await reporter?.providerUsage({
           provider: traceProvider,
@@ -587,6 +610,7 @@ const LLMNode = ({ id, data, selected }: NodeProps) => {
           ...nextHistory,
           { role: 'assistant', text: replyText, images: imgs.length ? imgs : undefined },
         ];
+        if (ctrl.signal.aborted || activeReporterRef.current !== reporter) throw new DOMException('Aborted', 'AbortError');
         update({
           status: 'success',
           history: finalHistory,
@@ -617,14 +641,33 @@ const LLMNode = ({ id, data, selected }: NodeProps) => {
       }
     } catch (e: any) {
       const msg = e?.message || '调用失败';
-      await reporter?.providerResponse({ provider: traceProvider, model: traceModel, status: 'failed', error: { message: msg } });
-      setError(msg);
-      update({ status: 'error', error: msg });
-      logBus.error(msg, src);
+      if (!ctrl.signal.aborted) await reporter?.providerResponse({ provider: traceProvider, model: traceModel, status: 'failed', error: { message: msg } });
+      if (activeReporterRef.current === reporter) {
+        setError(ctrl.signal.aborted ? null : msg);
+        update({ status: ctrl.signal.aborted ? 'idle' : 'error', error: ctrl.signal.aborted ? null : msg });
+      }
+      if (ctrl.signal.aborted) logBus.warn(msg, src); else logBus.error(msg, src);
+      // The shared Run wrapper must observe failure even before React applies
+      // the node-data update; a resolved callback can otherwise record success.
+      throw e;
+    } finally {
+      if (activeReporterRef.current === reporter) {
+        abortRef.current = null;
+        activeReporterRef.current = undefined;
+        setRequestPhase('');
+      }
+      reporter?.signal?.removeEventListener('abort', abortRun);
     }
   };
 
   const handleStop = () => {
+    update({ status: 'idle', error: null });
+    setError(null);
+    const reporter = activeReporterRef.current;
+    if (reporter?.runContext) {
+      void useRunBusStore.getState().cancelExecution(createCanvasNodeExecutionKey(reporter.runContext.canvasId, id), reporter.executionToken)
+        .catch((error) => logBus.error(String(error?.message || error), src));
+    }
     if (abortRef.current) {
       abortRef.current.abort();
       abortRef.current = null;
@@ -841,7 +884,7 @@ const LLMNode = ({ id, data, selected }: NodeProps) => {
         <div className="flex-1 min-w-0">
           <div className="text-sm font-semibold text-white truncate">{t('llm.title')}</div>
           <div className="text-[10px] text-white/40 truncate">
-            {isExternalSelected && providerSelection.provider
+            {savedExternalMissing ? `${d.providerId || ''} · ${d.providerModel || ''}` : isExternalSelected && providerSelection.provider
               ? `${providerSelection.provider.label || providerSelection.provider.id} · ${externalProviderModel || t('llm.model')}`
               : isSeedanceNzSelected
                 ? `${t('llm.budgetSource')} · ${seedanceNzModel}`
@@ -868,7 +911,7 @@ const LLMNode = ({ id, data, selected }: NodeProps) => {
             >
               <span>{t('llm.advancedSource')}</span>
               <span>
-                {isExternalSelected && providerSelection.provider
+                {savedExternalMissing ? d.providerId : isExternalSelected && providerSelection.provider
                   ? providerSelection.provider.label
                   : isSeedanceNzSelected
                     ? t('llm.budgetSource')
@@ -880,7 +923,7 @@ const LLMNode = ({ id, data, selected }: NodeProps) => {
                 <div>
                   <label className="text-[10px] text-white/50 block mb-1">{t('llm.platform')}</label>
                   <select
-                    value={isExternalSelected
+                    value={savedExternalMissing ? d.providerId : isExternalSelected
                       ? providerSelection.providerId
                       : isSeedanceNzSelected ? 'seedance-nz' : 'zhenzhen'}
                     onChange={(e) => {
@@ -911,12 +954,13 @@ const LLMNode = ({ id, data, selected }: NodeProps) => {
                         providerSource: provider.protocol,
                         providerId: provider.id,
                         providerModel: nextModels[0] || '',
-                        stream: false,
+                        stream: provider.profile === 'strata' ? d?.stream !== false : false,
                       });
                     }}
                     style={{ background: '#18181b', color: '#ffffff' }}
                     className="w-full rounded border border-white/10 px-2 py-1 text-xs outline-none focus:border-white/30"
                   >
+                    {savedExternalMissing && !llmAdvancedProviders.some((provider) => provider.id === d.providerId) && <option value={d.providerId} disabled>{d.providerId} · {t('llm.missingProvider')}</option>}
                     <option value="zhenzhen" style={{ background: '#18181b', color: '#ffffff' }}>
                       {t('llm.defaultSource')}
                     </option>
@@ -930,7 +974,7 @@ const LLMNode = ({ id, data, selected }: NodeProps) => {
                     ))}
                   </select>
                 </div>
-                {isExternalSelected && providerSelection.provider && (
+                {providerSelection.provider && providerSelection.providerSource !== 'zhenzhen' && (
                   <div>
                     <label className="text-[10px] text-white/50 block mb-1">{t('llm.externalModel')}</label>
                     <select
@@ -939,6 +983,7 @@ const LLMNode = ({ id, data, selected }: NodeProps) => {
                       style={{ background: '#18181b', color: '#ffffff' }}
                       className="w-full rounded border border-white/10 px-2 py-1 text-xs outline-none focus:border-white/30"
                     >
+                      {savedExternalMissing && !externalModelOptions.includes(d?.providerModel) && <option value={d.providerModel} disabled>{d.providerModel}</option>}
                       {externalModelOptions.map((m) => (
                         <option key={m} value={m} style={{ background: '#18181b', color: '#ffffff' }}>{m}</option>
                       ))}
@@ -975,7 +1020,7 @@ const LLMNode = ({ id, data, selected }: NodeProps) => {
           </div>
 
         {/* 模型 */}
-        {!isExternalSelected && !isSeedanceNzSelected && <div>
+        {!isExternalSelected && !isSeedanceNzSelected && !savedExternalMissing && <div>
           <label className="text-[10px] text-white/50 block mb-1">{t('llm.model')}</label>
           <select
             value={modelSelection.presetValue}
@@ -1045,22 +1090,33 @@ const LLMNode = ({ id, data, selected }: NodeProps) => {
             <label className="text-[9px] text-white/40 block mb-0.5">{t('llm.stream')}</label>
             <label
               className={`flex items-center justify-center gap-1 rounded px-1.5 py-1 text-[10px] cursor-pointer ${
-                useStream && !isImgOut && !isExternalSelected
+                useStream && !isImgOut
                   ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
                   : 'bg-white/5 text-white/40 border border-white/10'
-              } ${isImgOut || isExternalSelected ? 'opacity-50 cursor-not-allowed' : ''}`}
+              } ${isImgOut ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               <input
                 type="checkbox"
-                disabled={isImgOut || isExternalSelected}
-                checked={useStream && !isImgOut && !isExternalSelected}
+                disabled={isImgOut}
+                checked={useStream && !isImgOut}
                 onChange={(e) => update({ stream: e.target.checked })}
                 className="hidden"
               />
-              {isExternalSelected ? '关(扩展)' : isImgOut ? '关(出图)' : useStream ? 'SSE' : '关'}
+              {isImgOut ? '关(出图)' : useStream ? 'SSE' : '关'}
             </label>
           </div>
         </div>
+
+        {providerSelection.provider?.profile === 'strata' && <div className="space-y-1 text-[11px]">
+          {status === 'generating' && requestPhase && <p role="status">{t(requestPhase === 'local_queue' ? 'settings:strata.queued' : 'settings:strata.preparing')}</p>}
+          <label className="block">{t('settings:strata.reasoning')}
+            <select className="nodrag nowheel w-full rounded border border-white/10 bg-zinc-900 p-1" value={d?.strataReasoningEffort ?? providerSelection.provider.defaults?.reasoningEffort ?? 'none'} onChange={(event) => update({ strataReasoningEffort: event.currentTarget.value })}>
+              <option value="">{t('settings:strata.apiDefault')}</option>{['none', 'low', 'medium', 'high'].map((value) => <option key={value} value={value}>{value}</option>)}
+            </select>
+          </label>
+          <button type="button" className="nodrag rounded border border-white/10 p-1" onClick={() => update({ maxTokens: 1024, strataReasoningEffort: 'none' })}>{t('settings:strata.adopt')}</button>
+          <p className="text-white/50">{t('settings:strata.scope')}</p>
+        </div>}
 
         {/* 系统提示词 + 预设 */}
         <div>
@@ -1304,7 +1360,7 @@ const LLMNode = ({ id, data, selected }: NodeProps) => {
               </>
             )}
           </button>
-          {status === 'generating' && useStream && !isImgOut && !isExternalSelected && (
+          {status === 'generating' && (
             <button
               onClick={handleStop}
               className="px-2 py-1.5 rounded bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 text-xs"
@@ -1477,7 +1533,7 @@ const LLMNode = ({ id, data, selected }: NodeProps) => {
         ))}
         {streamingText && (
           <div className="text-[11px]">
-            <div className="text-[9px] mb-0.5 text-emerald-300/60">{t('llm.streamingAssistant')}</div>
+            <div className="text-[9px] mb-0.5 text-emerald-300/60">{status !== 'generating' ? t('settings:strata.partial') : t('llm.streamingAssistant')}</div>
             <div className="whitespace-pre-wrap text-white/80 bg-emerald-500/[0.08] rounded p-1.5 border border-emerald-500/20">
               {streamingText}
             </div>

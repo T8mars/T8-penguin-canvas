@@ -79,6 +79,10 @@ function readSettings(filename) {
 }
 
 function providerFromSettings(providerId, modelId, settings = {}, config = {}) {
+  const advanced = normalizeAdvancedProviders(settings.advancedProviders);
+  if (advanced.some((item) => item.id === providerId && item.profile === 'strata')) {
+    throw new CreatorLlmRuntimeError('CREATOR_STRATA_NOT_SUPPORTED', 'Strata 暂仅支持画布 LLM，不支持 Creator 的多轮工具协议；未切换云端。', 409);
+  }
   if (providerId === 'seedance-nz') {
     const apiKey = bounded(settings.zhenzhenSd2ApiKey, 4_000);
     if (!apiKey) return null;
@@ -107,7 +111,6 @@ function providerFromSettings(providerId, modelId, settings = {}, config = {}) {
       defaults: { chatModel: modelId, chatEndpoint: '/v1/chat/completions' },
     };
   }
-  const advanced = normalizeAdvancedProviders(settings.advancedProviders);
   const provider = advanced.find((item) => item.id === providerId && item.enabled && bounded(item.apiKey, 4_000));
   if (!provider) return null;
   return {

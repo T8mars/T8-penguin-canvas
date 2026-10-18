@@ -134,6 +134,8 @@ function providerProjection(provider: AdvancedProviderConfig) {
   return {
     id: String(provider.id || ''),
     protocol: provider.protocol,
+    profile: provider.profile || '',
+    authMode: provider.authMode || '',
     enabled: provider.enabled === true,
     allowRemote: provider.allowRemote === true,
     credentialConfigured: provider.hasApiKey === true || configured(provider.apiKey),

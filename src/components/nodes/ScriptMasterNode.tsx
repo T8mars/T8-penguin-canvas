@@ -62,7 +62,7 @@ import { useCanvasStore } from '../../stores/canvas';
 import { useApiKeysStore } from '../../stores/apiKeys';
 import { LLM_MODELS, isImageOutputLlm } from '../../providers/models';
 import { SEEDANCE_NZ_LLM_MODELS, resolveSeedanceNzLlmModel } from '../../config/llm';
-import { advancedProviderModelOptions, advancedProvidersForNode } from '../../utils/advancedProviders';
+import { advancedLlmTokenBudget, advancedProviderModelOptions, advancedProvidersForNode } from '../../utils/advancedProviders';
 import {
   DEFAULT_SCRIPT_MASTER_TARGET,
   SCRIPT_MASTER_DOMAIN_PACKS,
@@ -941,6 +941,10 @@ const ScriptMasterNode = ({ id, data, selected }: NodeProps) => {
     commit(beginScriptMasterAnalysis(base), { status: 'analyzing' }, { recordHistory: false, viewOnly: true });
     setMessage(`正在显式分析 ${request.characterCount.toLocaleString()} 字符 · ${request.scopeShotIds.length} 镜；不会调用图像/视频/音频 Provider`);
     try {
+      const configuredProvider = useApiKeysStore.getState().settings.advancedProviders?.find((provider) => provider.id === selection.provider);
+      if (configuredProvider?.profile === 'strata' && ['zhenzhen', 'seedance-nz'].includes(selection.provider)) {
+        throw new Error(translate('settings:strata.reservedId'));
+      }
       const messages = [
         { role: 'system' as const, content: request.system },
         { role: 'user' as const, content: request.user },
@@ -959,7 +963,7 @@ const ScriptMasterNode = ({ id, data, selected }: NodeProps) => {
           model: selection.model,
           messages,
           temperature: 0.2,
-          max_tokens: 16_384,
+          max_tokens: advancedLlmTokenBudget(undefined, configuredProvider),
         });
       const candidate = recordScriptMasterAnalysisCandidate(
         projectRef.current,

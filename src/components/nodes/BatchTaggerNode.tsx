@@ -1,4 +1,5 @@
 import { memo, useMemo, useRef, useState, type ChangeEvent, type DragEvent, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Handle, Position, useReactFlow, type NodeProps } from '@xyflow/react';
 import {
   AlertCircle,
@@ -316,6 +317,7 @@ function FieldLabel({ children }: { children: ReactNode }) {
 }
 
 function BatchTaggerNode({ id, data, selected }: NodeProps) {
+  const { t } = useTranslation('settings');
   const rf = useReactFlow();
   const update = useUpdateNodeData(id);
   const d = (data || {}) as any;
@@ -618,6 +620,9 @@ function BatchTaggerNode({ id, data, selected }: NodeProps) {
     signal: AbortSignal,
     submissionKey = '',
   ): Promise<BatchTagItem> => {
+    if ((d.batchTagProviderId || d.batchTagProviderSource) && d.batchTagProviderSource !== 'zhenzhen' && !isExternal) {
+      throw new Error(t('strata.sourceUnavailable'));
+    }
     const response = await fetch('/api/batch-tags/tag', {
       method: 'POST',
       signal,

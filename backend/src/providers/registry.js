@@ -478,6 +478,13 @@ function normalizeProvider(raw, previous = null) {
     chatModels: normalizeModelList(raw.chatModels || raw.chat_models),
     defaults: normalizePlainObject(raw.defaults),
   };
+  if (raw.profile === 'strata' && protocol === 'openai-compatible') {
+    provider.profile = 'strata';
+    provider.authMode = raw.authMode === 'none' ? 'none' : 'bearer';
+    provider.imageModels = [];
+    provider.videoModels = [];
+    if (raw.clearApiKey === true) provider.apiKey = '';
+  }
 
   if (protocol === 'comfyui' && normalizeBoolean(raw.allowRemote, false)) {
     provider.allowRemote = true;

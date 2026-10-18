@@ -133,7 +133,8 @@ function probeVideoDurationSeconds(inputPath, options = {}) {
   const ffmpeg = options.ffmpegPath || resolveBundledFfmpeg();
   const timeoutMs = clampInt(options.ffmpegProbeTimeoutMs || options.ffmpegTimeoutMs, 5 * 1000, 60 * 1000, 15 * 1000);
   return withFfmpegProcessSlot(() => new Promise((resolve) => {
-    const child = spawn(ffmpeg, ['-hide_banner', '-i', inputPath], { windowsHide: true, stdio: ['ignore', 'ignore', 'pipe'] });
+    options.signal?.throwIfAborted();
+    const child = spawn(ffmpeg, ['-hide_banner', '-i', inputPath], { windowsHide: true, stdio: ['ignore', 'ignore', 'pipe'], signal: options.signal });
     let stderr = '';
     let settled = false;
     const timer = setTimeout(() => {
@@ -207,7 +208,8 @@ function runFfmpeg(inputPath, outputPath, options = {}) {
     outputPath,
   ];
   return withFfmpegProcessSlot(() => new Promise((resolve, reject) => {
-    const child = spawn(ffmpeg, args, { windowsHide: true, stdio: ['ignore', 'ignore', 'pipe'] });
+    options.signal?.throwIfAborted();
+    const child = spawn(ffmpeg, args, { windowsHide: true, stdio: ['ignore', 'ignore', 'pipe'], signal: options.signal });
     let stderr = '';
     let settled = false;
     const timer = setTimeout(() => {
@@ -263,7 +265,8 @@ async function runFfmpegExtractFrames(inputPath, outputDir, options = {}) {
     pattern,
   ];
   return withFfmpegProcessSlot(() => new Promise((resolve, reject) => {
-    const child = spawn(ffmpeg, args, { windowsHide: true, stdio: ['ignore', 'ignore', 'pipe'] });
+    options.signal?.throwIfAborted();
+    const child = spawn(ffmpeg, args, { windowsHide: true, stdio: ['ignore', 'ignore', 'pipe'], signal: options.signal });
     let stderr = '';
     let settled = false;
     const timer = setTimeout(() => {
@@ -430,9 +433,13 @@ async function compactVisionImage(resolved, original, options = {}) {
       .resize({ width: maximumDimension, height: maximumDimension, fit: 'inside', withoutEnlargement: true })
       .webp({ quality: 82, effort: 4 })
       .toBuffer();
+    if (options.strictLocalMedia && bytes.length > maximumBytes) {
+      throw new Error('Strata: 图片压缩后仍超出视觉输入预算，请缩小图片后再试；未提交推理请求。');
+    }
     mime = 'image/webp';
     return `data:${mime};base64,${bytes.toString('base64')}`;
-  } catch {
+  } catch (error) {
+    if (options.strictLocalMedia) throw error;
     if (resolved?.path && fs.existsSync(resolved.path)) {
       bytes = fs.readFileSync(resolved.path);
       return `data:${mime};base64,${bytes.toString('base64')}`;
@@ -536,6 +543,7 @@ async function videoPartToMessageParts(part, options = {}, index = 0) {
         ...timedParts,
       ];
     }
+    if (options.strictLocalMedia) throw new Error('Strata: 视频抽帧失败，不会改为原生视频或发送本地路径。');
   }
   const normalized = await normalizeVideoUrl(value, { ...options, videoMode: mode === 'frames' ? 'compressed-base64' : mode });
   const cloned = JSON.parse(JSON.stringify(part));
@@ -576,6 +584,8 @@ function normalizeOptions(input = {}, options = {}) {
       : (options.videoMaxBase64Bytes || DEFAULT_VIDEO_MAX_BYTES),
     ffmpegPath: options.ffmpegPath,
     ffmpegTimeoutMs: options.ffmpegTimeoutMs,
+    signal: options.signal,
+    strictLocalMedia: options.strictLocalMedia === true,
   };
 }
 
@@ -588,10 +598,16 @@ async function normalizeLlmMessageMedia(messages, inputOrOptions = {}, maybeOpti
     const rebuilt = [];
     let videoIndex = 0;
     for (const part of msg.content) {
+      if (opts.signal?.aborted) throw opts.signal.reason;
       const imageRef = getMediaUrlPart(part, 'image');
       if (imageRef) {
         const value = imageRef.container?.[imageRef.key];
-        if (typeof value === 'string' && value) imageRef.container[imageRef.key] = await normalizeImageUrl(value, opts);
+        if (typeof value === 'string' && value) {
+          imageRef.container[imageRef.key] = await normalizeImageUrl(value, opts);
+          if (opts.strictLocalMedia && !/^(https?:\/\/|data:image\/)/i.test(imageRef.container[imageRef.key])) {
+            throw new Error('Strata: 图片未转换为可访问的内容，不能发送本地路径。');
+          }
+        }
         rebuilt.push(part);
         continue;
       }

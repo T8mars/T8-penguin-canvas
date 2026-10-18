@@ -147,6 +147,9 @@ export interface AdvancedProviderConfig {
   id: string;
   label: string;
   protocol: AdvancedProviderProtocol;
+  profile?: 'strata';
+  authMode?: 'none' | 'bearer';
+  clearApiKey?: boolean;
   baseUrl?: string;
   enabled?: boolean;
   allowRemote?: boolean;

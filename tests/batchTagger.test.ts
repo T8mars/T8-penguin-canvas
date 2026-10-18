@@ -630,7 +630,7 @@ test('batch tagger local import preserves native source path and opens the actua
     PROJECT_DB_FILE: config.PROJECT_DB_FILE,
     PROJECT_DB_BACKUP_FILE: config.PROJECT_DB_BACKUP_FILE,
   };
-  const root = mkdtempSync(join(process.cwd(), '.t8-batch-tags-import-'));
+  const root = mkdtempSync(join(tmpdir(), 't8-batch-tags-import-'));
   let projectDatabase: any = null;
   try {
     config.DATA_DIR = join(root, 'data');

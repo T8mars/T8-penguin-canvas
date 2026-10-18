@@ -1,6 +1,22 @@
 {
   "$schema": "本文件为 T8-penguin-canvas 节点清单防丢失锁,任何节点删减都需要在 roadmap.md 中说明并更新本文件。",
-  "version": "3.3.4",
+  "version": "3.3.5",
+  "strataLocalLlm20261019": {
+    "status": "release-v3.3.5-pending",
+    "description": "Strata本地LLM预设、模型/视觉发现、无Key本机或Bearer局域网、真实流式和Run取消；最长3分钟，失效来源不落云端，旧参数保留。",
+    "evidence": "docs/strata-llm.md",
+    "verification": "两轮独立20轮审查累计修8项；315/315限定回归、最新隔离完整画布16项通过，runner正常退出/强制0/残留0。前轮真实视觉13项保留为历史证据，各组不累加。",
+    "boundary": "本轮真实Strata冷启动HTTP503/WinError5未通过，用户因其他人在用明确暂缓，不启停引擎；LAN/其他GPU/安装版未验收，Creator/原生视频/ASR/引擎管理不纳入。"
+  },
+  "electronReleaseV335": {
+    "status": "source-prepared-publish-pending",
+    "version": "3.3.5",
+    "tag": "v3.3.5",
+    "latest": false,
+    "evidence": "docs/release-v3.3.5.md",
+    "postReleaseEvidence": "owner-approved-post-release-v3.3.5",
+    "macBoundary": "same-tag-unsigned-preview-pending; defer-only-if-quota-insufficient"
+  },
   "electronReleaseV334": {
     "status": "released-dual-platform-verified",
     "version": "3.3.4",
@@ -3521,59 +3537,28 @@
     ]
   },
   "release": {
-    "status": "released-v3.3.4-dual-platform-verified",
-    "version": "3.3.4",
-    "date": "2026-10-15",
-    "tag": "v3.3.4",
-    "latest": true,
-    "sourceCommit": "ca2d49f2d3f320214c50d7d89053e6d9221da0b1",
-    "publishedAt": "2026-10-15T11:11:49Z",
-    "draft": false,
+    "status": "source-prepared-v3.3.5-publish-pending",
+    "version": "3.3.5",
+    "date": "2026-10-19",
+    "tag": "v3.3.5",
+    "latest": false,
+    "sourceCommit": "",
+    "publishedAt": "",
+    "draft": true,
     "prerelease": false,
-    "url": "https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.3.4",
-    "details": "docs/release-v3.3.4.md",
+    "url": "https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.3.5",
+    "details": "docs/release-v3.3.5.md",
     "verification": [
-      "Unique Windows TypeScript/Vite/encrypted NSIS build, packaged fresh-database probe, 31 release contracts and same-tag real macOS workflow passed. Six assets independently full-download-verified; both updater manifests matched size/SHA-512. Windows assets unchanged during Mac append; prior v3.3.3 assets/Tag unchanged. Source/Tag frozen.",
-      "Installed/affected-user, physical GPU, real-user large scenes, live RH and F8-F10 evidence deferred under owner-approved-post-release-v3.3.4, not passed. Online world generation remains deferred by user."
+      "Source preparation only; formal Windows build, same-tag Mac workflow, upload and full-download verification pending. Historical v3.3.4 assets remain recorded in its release topic.",
+      "External/installed/LAN/other-GPU and F8-F10 evidence deferred under owner-approved-post-release-v3.3.5, not passed. Current Strata cold-start HTTP503/WinError5 remains failed and investigation deferred by user."
     ],
-    "assets": {
-      "windowsInstaller": {
-        "name": "T8-PenguinCanvas-Setup-3.3.4.exe",
-        "bytes": 1379714079,
-        "sha256": "8bb8836e7315f2fb82d0565bbf413ee29d012924545ad380f23654cf97aa4bdc"
-      },
-      "windowsBlockmap": {
-        "name": "T8-PenguinCanvas-Setup-3.3.4.exe.blockmap",
-        "bytes": 1439366,
-        "sha256": "042074336ecfbccfe9eec0830999b8b2baf3aa45277621b8ba0190e6ecf78dbd"
-      },
-      "windowsUpdater": {
-        "name": "latest.yml",
-        "bytes": 362,
-        "sha256": "4b7909683e901446e85f2eb576df531ae83b64a5de80ec65878b336226ceb8dd"
-      },
-      "macDmg": {
-        "name": "T8-PenguinCanvas-3.3.4-mac-arm64.dmg",
-        "bytes": 519501266,
-        "sha256": "9dec8bfa2c8d5adcba1d705a1c990b00ced41f00f4fe5f66a107b3b1dbed1ca3"
-      },
-      "macZip": {
-        "name": "T8-PenguinCanvas-3.3.4-mac-arm64.zip",
-        "bytes": 511207493,
-        "sha256": "c7ea78f11d49c4c68c0a3427a9e0f6db3ccdf20a4453221ffc2be0509d4ef953"
-      },
-      "macUpdater": {
-        "name": "latest-mac.yml",
-        "bytes": 536,
-        "sha256": "f93f7074b8183e492193151bf1c0303eecc271844cc1376b45dbf6feea1768c9"
-      }
-    },
-    "macWorkflow": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/38725662348"
+    "assets": {},
+    "macWorkflow": ""
   },
   "versionSequencePolicy": {
     "status": "active",
     "date": "2026-07-30",
-    "currentVersion": "3.3.4",
+    "currentVersion": "3.3.5",
     "rules": [
       "版本号每一段只使用 0-9；v2.6.9 的下一正式版本固定为 v2.7.0。",
       "禁止创建、打包、推送、打 tag、发布或写入自动更新元数据为 v2.6.10。",

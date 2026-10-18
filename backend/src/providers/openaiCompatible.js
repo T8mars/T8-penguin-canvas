@@ -2,6 +2,7 @@ const { normalizeT8LocalMediaRef, resolveMediaRef } = require('./mediaResolver')
 const { normalizeLlmMessageMedia } = require('./llmMedia');
 const { providerTrace } = require('./providerTrace');
 const { providerIdempotencyHeadersLike } = require('../services/providerSubmissionContext');
+const { llmDeadline } = require('./llmDeadline');
 const {
   normalizeProviderLlmTimeoutMs,
   normalizeProviderMediaTimeoutMs,
@@ -21,9 +22,7 @@ function hasApiKey(provider) {
 async function fetchWithTimeout(url, options = {}) {
   const controller = new AbortController();
   const externalSignal = options.signal;
-  const forwardAbort = () => controller.abort(externalSignal?.reason);
-  if (externalSignal?.aborted) forwardAbort();
-  else externalSignal?.addEventListener?.('abort', forwardAbort, { once: true });
+  const signal = externalSignal ? AbortSignal.any([controller.signal, externalSignal]) : controller.signal;
   const timeout = setTimeout(() => controller.abort(), options.timeoutMs || DEFAULT_TIMEOUT_MS);
   const fetchImpl = options.fetchImpl || fetch;
   const { timeoutMs, fetchImpl: _fetchImpl, signal: _externalSignal, ...fetchOptions } = options;
@@ -31,11 +30,10 @@ async function fetchWithTimeout(url, options = {}) {
     return await fetchImpl(url, {
       ...fetchOptions,
       headers: providerIdempotencyHeadersLike(fetchOptions.headers, fetchOptions.method),
-      signal: controller.signal,
+      signal,
     });
   } finally {
     clearTimeout(timeout);
-    externalSignal?.removeEventListener?.('abort', forwardAbort);
   }
 }
 
@@ -73,7 +71,7 @@ function selectedModel(requested, providerModels, fallback) {
 function bearerHeaders(provider) {
   return {
     Accept: 'application/json',
-    Authorization: `Bearer ${provider.apiKey}`,
+    ...(provider.profile === 'strata' && provider.authMode === 'none' ? {} : { Authorization: `Bearer ${provider.apiKey}` }),
     'Content-Type': 'application/json',
   };
 }
@@ -150,6 +148,9 @@ function chatStreamAbortError(message, code) {
 }
 
 function readWithChatStreamDeadline(promise, deadlineAt, signal) {
+  // reader.read() may already be rejected when a synchronous onDelta callback
+  // aborts the socket. Even an early cancellation return must observe it.
+  Promise.resolve(promise).catch(() => undefined);
   if (signal?.aborted) {
     return Promise.reject(chatStreamAbortError('扩展 LLM 流式读取已取消。', 'stream_aborted'));
   }
@@ -190,7 +191,7 @@ async function readChatEventStream(response, options = {}) {
   const streamTimeoutMs = Number.isFinite(configuredTimeoutMs) && configuredTimeoutMs > 0
     ? configuredTimeoutMs
     : DEFAULT_TIMEOUT_MS;
-  const streamDeadlineAt = Date.now() + streamTimeoutMs;
+  const streamDeadlineAt = options.deadlineAt || Date.now() + streamTimeoutMs;
 
   const decoder = new TextDecoder();
   let buffer = '';
@@ -353,6 +354,9 @@ async function readChatEventStream(response, options = {}) {
     throw new Error('扩展 LLM 流式响应体不支持读取。');
   }
 
+  if (options.strictCompletion && !stopped && (!done || !finishReason)) {
+    throw Object.assign(new Error('Strata: 响应流中断，未收到完整结束标记，部分内容未提交为成功。'), { code: 'incomplete_stream' });
+  }
   return {
     text,
     eventCount,
@@ -646,7 +650,18 @@ function buildAgnesImageJsonBody(provider, input, model, prompt, refs = []) {
 }
 
 async function generateChat(provider, input = {}, options = {}) {
-  const validation = validateProvider(provider, { apiKeyRequired: true });
+  const timeoutMs = normalizeProviderLlmTimeoutMs(options.timeoutMs);
+  const clock = llmDeadline(Math.max(1, Math.min(timeoutMs, options.deadlineAt ? options.deadlineAt - Date.now() : timeoutMs)), options.signal);
+  try {
+    return await clock.run(() => generateChatRequest(provider, input, { ...options, signal: clock.signal, deadlineAt: clock.end }));
+  } catch (error) {
+    return { ok: false, code: options.signal?.aborted ? 'request_aborted' : error.code || 'network_error',
+      providerId: provider.id, protocol: provider.protocol, error: error.message || 'LLM 调用失败。' };
+  } finally { clock.close(); }
+}
+
+async function generateChatRequest(provider, input = {}, options = {}) {
+  const validation = validateProvider(provider, { apiKeyRequired: !(provider.profile === 'strata' && provider.authMode === 'none') });
   if (!validation.ok) return validation;
   const generationOptions = {
     ...options,
@@ -673,6 +688,8 @@ async function generateChat(provider, input = {}, options = {}) {
       baseUrl: options.baseUrl,
       ffmpegPath: options.ffmpegPath,
       ffmpegTimeoutMs: options.ffmpegTimeoutMs,
+      signal: options.signal,
+      strictLocalMedia: options.strictLocalMedia,
     });
   } catch (e) {
     return {
@@ -701,7 +718,7 @@ async function generateChat(provider, input = {}, options = {}) {
   }
   const reasoningEffort = String(input.reasoning_effort ?? input.reasoningEffort ?? '')
     .trim().toLowerCase();
-  if (['low', 'medium', 'high'].includes(reasoningEffort)) {
+  if (['low', 'medium', 'high', ...(provider.profile === 'strata' ? ['none'] : [])].includes(reasoningEffort)) {
     body.reasoning_effort = reasoningEffort;
   }
   if (input.stream != null) body.stream = !!input.stream;
@@ -719,6 +736,7 @@ async function generateChat(provider, input = {}, options = {}) {
       timeoutMs: generationOptions.timeoutMs,
       fetchImpl: generationOptions.fetchImpl,
       signal: generationOptions.signal,
+      ...(options.redirect ? { redirect: options.redirect } : {}),
     });
     if (!res.ok) {
       const raw = await responseJson(res);
@@ -747,6 +765,9 @@ async function generateChat(provider, input = {}, options = {}) {
         ...(streamed.usage ? { usage: streamed.usage } : {}),
       };
       const trace = providerTrace(res, traceRaw, { pollCount: 0 });
+      if (options.expectedModel && streamed.model && streamed.model !== options.expectedModel) {
+        return { ok: false, code: 'model_identity_changed', error: 'Strata: 服务实际模型已改变，未采用本次输出。', ...trace };
+      }
       if (streamed.stopped) {
         return {
           ok: false,
@@ -761,6 +782,9 @@ async function generateChat(provider, input = {}, options = {}) {
           ...trace,
         };
       }
+      if (options.strictCompletion && streamed.finishReason !== 'stop') {
+        return { ok: false, code: 'incomplete_reply', error: `Strata: 回答未完整结束（${streamed.finishReason || 'unknown'}），部分内容未提交为成功。`, text: streamed.text, finishReason: streamed.finishReason, ...trace };
+      }
       if (!streamed.text) {
         return {
           ok: false,
@@ -772,6 +796,10 @@ async function generateChat(provider, input = {}, options = {}) {
           error: '扩展 LLM 没有返回文本。',
           ...trace,
         };
+      }
+      if (options.strictCompletion && body.response_format?.type === 'json_object') {
+        try { const parsed = JSON.parse(streamed.text); if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error(); }
+        catch { return { ok: false, code: 'structured_output_failed', error: 'Strata: 返回内容不是完整 JSON 对象，未自动重试。', ...trace }; }
       }
       return {
         ok: true,
@@ -796,7 +824,17 @@ async function generateChat(provider, input = {}, options = {}) {
       return { ok: false, code: 'empty_text', providerId: provider.id, protocol: provider.protocol, model, error: '扩展 LLM 没有返回文本。', raw, ...trace };
     }
     const data = unwrapOpenAIResponse(raw);
+    if (options.expectedModel && data?.model && data.model !== options.expectedModel) {
+      return { ok: false, code: 'model_identity_changed', error: 'Strata: 服务实际模型已改变，未采用本次输出。', ...trace };
+    }
     const finishReason = data?.choices?.[0]?.finish_reason || data?.choices?.[0]?.finishReason || '';
+    if (options.strictCompletion && finishReason !== 'stop') {
+      return { ok: false, code: 'incomplete_reply', error: `Strata: 回答未完整结束（${finishReason || 'unknown'}），部分内容未提交为成功。`, text, finishReason, ...trace };
+    }
+    if (options.strictCompletion && body.response_format?.type === 'json_object') {
+      try { const parsed = JSON.parse(text); if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error(); }
+      catch { return { ok: false, code: 'structured_output_failed', error: 'Strata: 返回内容不是完整 JSON 对象，未自动重试。', ...trace }; }
+    }
     return {
       ok: true,
       kind: 'llm',
@@ -813,7 +851,7 @@ async function generateChat(provider, input = {}, options = {}) {
   } catch (e) {
     const isParentAbort = options.signal?.aborted === true;
     const isTimeout = !isParentAbort && e?.name === 'AbortError';
-    const streamCode = ['invalid_stream_event', 'stream_error'].includes(String(e?.code || ''))
+    const streamCode = ['invalid_stream_event', 'stream_error', 'incomplete_stream'].includes(String(e?.code || ''))
       ? String(e.code)
       : '';
     const networkCauseCode = String(e?.cause?.code || '').replace(/[^A-Z0-9_-]/gi, '').slice(0, 80);

@@ -521,6 +521,10 @@ const StoryNode = ({ id, data, selected }: NodeProps) => {
     const requestId = createCanvasNodeRunRequestId(id, STORY_RUN_PURPOSE[mode]);
     const assetTarget = mode === 'asset-one' ? projectRef.current.assets.find((asset) => asset.id === targetId) : null;
     const usesLlm = mode === 'analyze' || (mode === 'all' && projectRef.current.shots.length === 0);
+    if (usesLlm && (projectRef.current.settings.llmProviderId || projectRef.current.settings.llmProviderSource) && projectRef.current.settings.llmProviderSource !== 'zhenzhen' && !llmSelection.available) {
+      setLocalMessage(t('settings:strata.sourceUnavailable'));
+      return false;
+    }
     const usesImage = !usesLlm && (mode === 'assets-missing' || mode === 'asset-one' && assetTarget?.kind !== 'audio' || mode === 'all' && projectRef.current.assets.some((asset) => !asset.url));
     const selection = usesLlm ? llmSelection : usesImage ? imageSelection : videoSelection;
     const storySettings = projectRef.current.settings;
@@ -607,6 +611,7 @@ const StoryNode = ({ id, data, selected }: NodeProps) => {
 
   const analyze = useCallback(async (reporter: RunNodeLifecycleReporter, signal: AbortSignal) => {
     let current = ensureScript();
+    if ((current.settings.llmProviderId || current.settings.llmProviderSource) && current.settings.llmProviderSource !== 'zhenzhen' && !llmSelection.available) throw new Error(t('settings:strata.sourceUnavailable'));
     if (signal.aborted) throw new Error('用户已停止');
     setLocalMessage('正在理解剧本并规划镜头…');
     mutate((value) => ({ ...value, stage: 'script', lastError: '', updatedAt: new Date().toISOString() }), { status: 'running' });
@@ -626,11 +631,12 @@ const StoryNode = ({ id, data, selected }: NodeProps) => {
         providerModel: external.providerModel,
         model: external.providerModel,
         temperature,
-        max_tokens: 32768,
+        max_tokens: external.provider?.profile === 'strata' ? external.provider.defaults?.maxTokens ?? 1024 : 32768,
         messages,
-      }, { submissionKey: storyProviderSubmissionKey(storyReporterSubmissionBase(reporter), operation, current.storyId) })
+      }, { submissionKey: storyProviderSubmissionKey(storyReporterSubmissionBase(reporter), operation, current.storyId), signal })
       : generateLlm({ source: builtinSource, model, temperature, max_tokens: 32768, messages }, {
         submissionKey: storyProviderSubmissionKey(storyReporterSubmissionBase(reporter), operation, current.storyId),
+        signal,
       });
     try {
       await reporter.providerRequest({ provider, model, jobKind: 'story-analysis' });
@@ -646,6 +652,7 @@ const StoryNode = ({ id, data, selected }: NodeProps) => {
       try {
         payload = parseStoryAnalysisPayload(result.content);
       } catch (parseError: any) {
+        if (external?.provider?.profile === 'strata') throw parseError;
         await reporter.providerRequest({ provider, model, jobKind: 'story-analysis-repair', repairOf: 'story-analysis' });
         const repaired = await runLlm([
             { role: 'system', content: `${storyAnalysisSystemPrompt()}\n这是一次且仅一次的格式修复：保持原有事实和镜头，不得删减剧本覆盖，只修成合法 JSON。` },
@@ -660,6 +667,7 @@ const StoryNode = ({ id, data, selected }: NodeProps) => {
       }
     } catch (error: any) {
       await reporter.providerResponse({ provider, model, status: 'failed', error: { message: error?.message || '剧本分析失败' }, jobKind: 'story-analysis', httpStatusSource: 'local-backend' }).catch(() => undefined);
+      if (external?.provider?.profile === 'strata' || signal.aborted) throw error;
       payload = buildLocalStoryAnalysis(current.script, current.settings);
       source = 'local-fallback';
       logBus.warn(`Story LLM 分析不可用，已使用可解释的本地分段：${error?.message || '未知错误'}`, src);

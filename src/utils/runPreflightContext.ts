@@ -2,7 +2,7 @@ import type { Edge, Node } from '@xyflow/react';
 import { IMAGE_MODELS, VIDEO_MODELS, isFalModel, isFalVideoModel, isMaiImageModel, MAI_IMAGE_TAB, ZHENZHEN_IMAGE_NB_21_MODEL, FLUX3_IMAGE_MODEL } from '../providers/models.ts';
 import type { ApiSettings, AdvancedProviderConfig } from '../types/canvas.ts';
 import type { AssetRef, CollaborationExecutionPolicySnapshot } from '../types/project.ts';
-import { advancedProviderModelOptions, hasAdvancedProviderSecret } from './advancedProviders.ts';
+import { advancedProviderModelOptions, advancedProviderCredentialReady } from './advancedProviders.ts';
 import {
   secondaryProviderActionCapabilityHint,
   secondaryProviderActionFromNodeData,
@@ -139,7 +139,7 @@ function configuredSecret(value: unknown) {
 }
 
 function advancedProviderKeyConfigured(provider: AdvancedProviderConfig) {
-  return provider.hasApiKey === true || hasAdvancedProviderSecret(provider.apiKey);
+  return advancedProviderCredentialReady(provider);
 }
 
 export function workflowProvidersFromSettings(settings: ApiSettings): WorkflowProviderDiagnostic[] {

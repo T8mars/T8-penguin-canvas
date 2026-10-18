@@ -822,12 +822,13 @@ export async function generateLlm(
   };
 }
 
-export interface GenerateExternalLlmRequest extends Omit<GenerateLlmRequest, 'stream'> {
+export interface GenerateExternalLlmRequest extends GenerateLlmRequest {
   providerId: string;
   providerModel?: string;
   providerParams?: Record<string, any>;
   /** 扩展 LLM 同步请求超时；由后端限界，Music 3 多阶段任务需显式放宽。 */
   timeoutMs?: number;
+  reasoningEffort?: 'none' | 'low' | 'medium' | 'high' | '';
 }
 
 export function buildGenerateExternalLlmRequestBody(req: GenerateExternalLlmRequest): GenerateExternalLlmRequest {
@@ -855,9 +856,50 @@ export async function generateExternalLlm(
     finishReason: payload.finishReason || payload.finish_reason || payload.raw?.choices?.[0]?.finish_reason,
     truncated: payload.truncated === true || payload.raw?.choices?.[0]?.finish_reason === 'length',
     raw: payload.raw,
-    model: req.model,
+    model: payload.model || req.model,
     ...providerTransportTrace(payload, r),
   };
+}
+
+export async function generateExternalLlmStream(
+  req: GenerateExternalLlmRequest,
+  opts: ProviderSubmissionTransport & { onDelta?: (chunk: string) => void; onStatus?: (phase: string) => void } = {},
+): Promise<GenerateLlmResult> {
+  const response = await fetch('/api/proxy/external/llm', {
+    method: 'POST', headers: providerSubmissionHeaders(opts),
+    body: JSON.stringify({ ...req, stream: true }), signal: opts.signal,
+  });
+  if (!response.ok || !response.headers.get('content-type')?.includes('text/event-stream')) {
+    throw providerResponseError(response, await response.json());
+  }
+  if (!response.body) throw new Error('LLM: missing response stream');
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  try {
+    while (true) {
+      const part = await reader.read();
+      buffer += decoder.decode(part.value, { stream: !part.done });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+      if (part.done && buffer) { lines.push(buffer); buffer = ''; }
+      for (const line of lines) {
+        if (!line.startsWith('data:')) continue;
+        const event = JSON.parse(line.slice(5).trim());
+        if (event.type === 'delta' && typeof event.delta === 'string') opts.onDelta?.(event.delta);
+        if (event.type === 'status') opts.onStatus?.(String(event.phase || ''));
+        if (event.type === 'result') {
+          if (!event.success) throw Object.assign(new Error(event.error || 'LLM failed'), { code: event.code });
+          const payload = event.data || {};
+          return { content: payload.text || '', model: payload.model || req.model, raw: undefined,
+            finishReason: payload.finishReason, truncated: payload.truncated, ...providerTransportTrace(payload, response) };
+        }
+      }
+      if (part.done) break;
+      if (buffer.length > 4 * 1024 * 1024) throw new Error('LLM: response event too large');
+    }
+    throw new Error('LLM: stream ended without a terminal result');
+  } finally { await reader.cancel().catch(() => {}); reader.releaseLock(); }
 }
 
 /**

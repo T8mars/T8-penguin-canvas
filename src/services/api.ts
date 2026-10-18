@@ -3318,6 +3318,12 @@ export interface AdvancedProviderTestResult {
   message?: string;
   error?: string;
   provider?: AdvancedProviderConfig;
+  discovery?: {
+    service: 'strata'; protocolVersion: number; baseUrl: string; model: string;
+    models: Array<{ id: string; aliasOf: string; vision: boolean }>;
+    loaded: boolean; autoLoad: boolean; vision: boolean; visionLoaded: boolean;
+    contextTokens: number; instanceId: string; started: number; inFlight: number; structuredOutput: boolean;
+  };
 }
 
 export async function testAdvancedProvider(payload: {

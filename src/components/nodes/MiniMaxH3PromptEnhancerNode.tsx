@@ -231,7 +231,7 @@ function MiniMaxH3PromptEnhancerNode({ id, data, selected }: NodeProps) {
             providerId: providerSelection.provider.id,
             providerModel: externalModel,
             providerParams: d.providerParams || {},
-          }, { submissionKey: reporter?.providerSubmissionKey })
+          }, { submissionKey: reporter?.providerSubmissionKey, signal: reporter?.signal })
         : await generateLlm({
             ...request,
             source: isSeedanceNz ? 'seedance-nz' : 'zhenzhen',

@@ -1182,6 +1182,11 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
 
   const handleGenerate = async (reporter?: RunNodeLifecycleReporter) => {
     if (status === 'generating' || reporter?.signal?.aborted) return;
+    if (savedExternalMissing) {
+      const message = translate('settings:strata.sourceUnavailable');
+      setError(message); update({ status: 'error', error: message });
+      return;
+    }
     setError(null);
     setDownloadNotice(null);
     const { upstreamImages, basePrompt, compiledPrompt, finalPrompt } = resolveGenerationInput();

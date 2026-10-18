@@ -45,7 +45,7 @@ test('LLM node uses a higher default output token budget for long replies', () =
   const proxy = read('backend/src/routes/proxy.js');
 
   assert.match(canvas, /maxTokens:\s*16384/);
-  assert.match(node, /d\?\.maxTokens === 'number' \? d\.maxTokens : 16384/);
+  assert.match(node, /advancedLlmTokenBudget\(d\?\.maxTokens, providerSelection\.provider\)/);
   assert.match(node, /Number\(e\.target\.value\) \|\| 16384/);
   assert.match(proxy, /max_tokens:\s*max_tokens \?\? 16384/);
 });

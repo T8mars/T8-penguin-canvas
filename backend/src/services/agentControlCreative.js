@@ -5200,6 +5200,7 @@ function modelCatalog(document, input = {}, options = {}) {
   }
   const providers = providerRecords(options);
   providers.forEach((provider) => {
+    if (provider.profile === 'strata') return; // Creator's tool/repair protocol is not enabled for this LLM profile.
     (provider.chatModels || []).forEach((model) => add('llm', model, provider.id, 'configured-provider', provider.enabled === true));
     (provider.imageModels || []).forEach((model) => add('image', model, provider.id, 'configured-provider', provider.enabled === true));
     (provider.videoModels || []).forEach((model) => add('video', model, provider.id, 'configured-provider', provider.enabled === true));

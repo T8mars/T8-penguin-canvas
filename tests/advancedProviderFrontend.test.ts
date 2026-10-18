@@ -74,7 +74,7 @@ test('advancedProvidersForNode only exposes enabled providers supported by each 
   ]);
 });
 
-test('advanced provider selection preserves valid saved provider and falls back to zhenzhen safely', () => {
+test('advanced provider selection preserves valid and unavailable source identities without cloud fallback', () => {
   const providers = [
     { id: 'modelscope', label: 'ModelScope', protocol: 'modelscope', enabled: true, imageModels: ['flux-dev'] },
   ] as any;
@@ -96,9 +96,9 @@ test('advanced provider selection preserves valid saved provider and falls back 
     providerId: 'missing',
     providerModel: 'old-model',
   }), {
-    providerSource: 'zhenzhen',
-    providerId: '',
-    providerModel: '',
+    providerSource: 'openai-compatible',
+    providerId: 'missing',
+    providerModel: 'old-model',
     provider: null,
     available: false,
   });

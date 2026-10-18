@@ -18,6 +18,7 @@ import {
   normalizeModelscopeLoras,
   parseAdvancedProviderModelText,
   stringifyAdvancedProviderModels,
+  createStrataProvider,
 } from '../utils/advancedProviders';
 import {
   JIMENG_CLI_INSTALL_UPDATE_COMMAND,
@@ -293,6 +294,7 @@ export default function ApiSettingsModal({ open, onClose, mode = 'full', returnF
   const [advancedSecretShows, setAdvancedSecretShows] = useState<Record<string, boolean>>({});
   const [advancedDirty, setAdvancedDirty] = useState(false);
   const [advancedTestStatus, setAdvancedTestStatus] = useState<Record<string, { loading?: boolean; ok?: boolean; message?: string }>>({});
+  const advancedTestRequestsRef = useRef<Map<string, symbol>>(new Map());
   const [advancedComfyDrafts, setAdvancedComfyDrafts] = useState<Record<string, { workflowJson?: string; fields?: string; excludeRules?: string }>>({});
   const [cloudUploadOpen, setCloudUploadOpen] = useState(false);
   const [cloudUploadTargetsInput, setCloudUploadTargetsInput] = useState<CloudUploadTargetConfig[]>([]);
@@ -379,6 +381,7 @@ export default function ApiSettingsModal({ open, onClose, mode = 'full', returnF
 
   // 重置表单(脱敏 Key 不直接填充,留空则保持后端原值)
   useEffect(() => {
+    advancedTestRequestsRef.current.clear();
     if (open) {
       setInputs(emptyMap());
       setShows(emptyShow());
@@ -597,6 +600,8 @@ export default function ApiSettingsModal({ open, onClose, mode = 'full', returnF
       mediaDefaultsDirty.current = true;
     }
     if (Array.isArray(patch.advancedProviders)) {
+      advancedTestRequestsRef.current.clear();
+      setAdvancedTestStatus({});
       setAdvancedProvidersInput(patch.advancedProviders);
       setActiveAdvancedProviderId(patch.advancedProviders[0]?.id || '');
       setAdvancedSecretShows({});
@@ -925,7 +930,19 @@ export default function ApiSettingsModal({ open, onClose, mode = 'full', returnF
   const hasCustomTaskCompletionSound = taskCompletionSoundSettings.mode === 'custom' && !!taskCompletionSoundSettings.url;
   const taskCompletionSoundSizeLabel = formatTaskCompletionSoundSize(taskCompletionSoundSettings.size);
 
+  const invalidateAdvancedProviderTest = (id: string) => {
+    advancedTestRequestsRef.current.delete(id);
+    setAdvancedTestStatus((prev) => { const { [id]: _old, ...next } = prev; return next; });
+  };
+
+  const removeAdvancedProvider = (id: string) => {
+    invalidateAdvancedProviderTest(id);
+    setAdvancedProvidersInput((prev) => prev.filter((provider) => provider.id !== id));
+    setAdvancedDirty(true);
+  };
+
   const updateAdvancedProvider = (id: string, patch: Partial<AdvancedProviderConfig>) => {
+    invalidateAdvancedProviderTest(id);
     setAdvancedProvidersInput((prev) => prev.map((provider) => (
       provider.id === id ? { ...provider, ...patch } : provider
     )));
@@ -937,6 +954,7 @@ export default function ApiSettingsModal({ open, onClose, mode = 'full', returnF
     key: 'modelscopeConfig' | 'volcengineConfig' | 'comfyuiConfig' | 'jimengConfig',
     patch: Record<string, any>,
   ) => {
+    invalidateAdvancedProviderTest(id);
     setAdvancedProvidersInput((prev) => prev.map((provider) => (
       provider.id === id
         ? { ...provider, [key]: { ...(provider as any)[key], ...patch } }
@@ -946,17 +964,34 @@ export default function ApiSettingsModal({ open, onClose, mode = 'full', returnF
   };
 
   const handleTestAdvancedProvider = async (provider: AdvancedProviderConfig) => {
+    const request = Symbol(provider.id);
+    advancedTestRequestsRef.current.set(provider.id, request);
     setAdvancedTestStatus((prev) => ({ ...prev, [provider.id]: { loading: true } }));
     try {
       const result = await testAdvancedProvider({ provider, dryRun: false });
+      if (advancedTestRequestsRef.current.get(provider.id) !== request) return;
+      if (provider.profile === 'strata' && result.ok && result.discovery) {
+        const discovery = result.discovery;
+        setAdvancedProvidersInput((prev) => prev.map((current) => (
+          current.id === provider.id && current.baseUrl === provider.baseUrl && current.apiKey === provider.apiKey && current.authMode === provider.authMode
+            ? { ...current, baseUrl: discovery.baseUrl, chatModels: discovery.models.map((model) => model.id) }
+            : current
+        )));
+        setAdvancedDirty(true);
+      }
       setAdvancedTestStatus((prev) => ({
         ...prev,
         [provider.id]: {
           ok: result.ok,
-          message: result.ok ? (result.message || t('providerForm.connectionAvailable')) : (result.error || t('providerForm.testFailed')),
+          message: result.ok && result.discovery ? t('strata.discovery', {
+            model: result.discovery.model, tokens: result.discovery.contextTokens,
+            vision: t(result.discovery.vision ? 'strata.visionOn' : 'strata.visionOff'),
+            state: t(result.discovery.loaded ? 'strata.loaded' : 'strata.cold'),
+          }) : result.ok ? (result.message || t('providerForm.connectionAvailable')) : (result.error || t('providerForm.testFailed')),
         },
       }));
     } catch (e: any) {
+      if (advancedTestRequestsRef.current.get(provider.id) !== request) return;
       setAdvancedTestStatus((prev) => ({
         ...prev,
         [provider.id]: { ok: false, message: e?.message || t('providerForm.testFailed') },
@@ -1393,12 +1428,13 @@ export default function ApiSettingsModal({ open, onClose, mode = 'full', returnF
 
   const renderAdvancedProviderForm = (provider: AdvancedProviderConfig) => {
     const protocolLabel = advancedProviderLabel(provider.protocol);
-    const guide = advancedProviderGuide(provider.protocol);
+    const guide = { ...advancedProviderGuide(provider.protocol), ...(provider.profile === 'strata' ? { nodeScopes: [t('providers.scopes.llm')], subtitle: t('strata.title'), modelHint: t('strata.scope') } : {}) };
     const isComfy = provider.protocol === 'comfyui';
     const isJimeng = provider.protocol === 'jimeng-cli';
     const isVolc = provider.protocol === 'volcengine';
     const isModelScope = provider.protocol === 'modelscope';
     const isAgnes = provider.protocol === 'agnes';
+    const isStrata = provider.profile === 'strata';
     const sectionCls = isPixel
       ? 't8-api-settings-provider-panel border p-3 space-y-4 min-w-0'
       : 't8-api-settings-provider-panel border rounded-xl p-3 sm:p-4 space-y-4 min-w-0';
@@ -1689,8 +1725,9 @@ export default function ApiSettingsModal({ open, onClose, mode = 'full', returnF
             }
           >
             <TestTube2 size={12} />
-            {advancedTestStatus[provider.id]?.loading ? t('providerForm.testing') : t('providerForm.testConnection')}
+            {advancedTestStatus[provider.id]?.loading ? t('providerForm.testing') : isStrata ? t('strata.discover') : t('providerForm.testConnection')}
           </button>
+          {isStrata && <button type="button" className={linkBtnCls} onClick={() => removeAdvancedProvider(provider.id)}>{t('strata.remove')}</button>}
         </div>
 
         {advancedTestStatus[provider.id]?.message && (
@@ -1710,7 +1747,8 @@ export default function ApiSettingsModal({ open, onClose, mode = 'full', returnF
             <Info size={14} className="mt-0.5 shrink-0" />
             <div className="min-w-0">
               <div className="font-bold">{t('providerForm.whatIsThis')}</div>
-              <p>{guide?.description}</p>
+              <p>{isStrata ? t('strata.description') : guide?.description}</p>
+              {isStrata && <p className="mt-2">{t('strata.scope')}</p>}
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {(guide?.nodeScopes || []).map((scope) => (
                   <span key={scope} className={smallPillCls}>{scope}</span>
@@ -1744,14 +1782,36 @@ export default function ApiSettingsModal({ open, onClose, mode = 'full', returnF
                   value={provider.baseUrl || ''}
                   onChange={(e) => updateAdvancedProvider(provider.id, { baseUrl: e.target.value })}
                   className={fieldInputCls}
-                  placeholder={guide?.baseUrlPlaceholder || 'https://api.example.com/v1'}
+                  placeholder={isStrata ? 'http://127.0.0.1:8080/v1' : guide?.baseUrlPlaceholder || 'https://api.example.com/v1'}
                 />
               </label>
             )}
           </div>
         </AdvancedProviderFormBlock>
 
-        {!isComfy && !isJimeng && (
+        {isStrata && <div className={formBlockCls}>
+          <p className={`text-[11px] ${hintCls}`}>{t('strata.address')}</p>
+          <label className="block space-y-1"><span className={`text-[11px] ${labelCls}`}>{t('strata.auth')}</span>
+            <select className={fieldInputCls} value={provider.authMode || 'bearer'} onChange={(event) => updateAdvancedProvider(provider.id, { authMode: event.currentTarget.value as 'none' | 'bearer' })}>
+              <option value="none">{t('strata.none')}</option><option value="bearer">{t('strata.bearer')}</option>
+            </select>
+          </label>
+          <p className={`text-[11px] ${hintCls}`}>{t('strata.lan')}</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <label className="space-y-1"><span className={`text-[11px] ${labelCls}`}>{t('strata.reasoning')}</span>
+              <select className={fieldInputCls} value={provider.defaults?.reasoningEffort ?? 'none'} onChange={(event) => updateAdvancedProvider(provider.id, { defaults: { ...provider.defaults, reasoningEffort: event.currentTarget.value } })}>
+                <option value="">{t('strata.apiDefault')}</option>{['none', 'low', 'medium', 'high'].map((value) => <option key={value} value={value}>{value}</option>)}
+              </select>
+            </label>
+            <label className="space-y-1"><span className={`text-[11px] ${labelCls}`}>{t('strata.outputTokens')}</span>
+              <input type="number" min={1} max={128000} className={fieldInputCls} value={provider.defaults?.maxTokens ?? 1024} onChange={(event) => updateAdvancedProvider(provider.id, { defaults: { ...provider.defaults, maxTokens: Number(event.currentTarget.value) } })} />
+            </label>
+          </div>
+          <p className={`text-[11px] ${hintCls}`}>{t('strata.defaults')}</p>
+          <button type="button" className={linkBtnCls} onClick={() => updateAdvancedProvider(provider.id, { clearApiKey: true, apiKey: '', hasApiKey: false })}>{t('strata.clearKey')}</button>
+        </div>}
+
+        {!isComfy && !isJimeng && (!isStrata || provider.authMode !== 'none') && (
           <AdvancedProviderFormBlock
             className={formBlockCls}
             labelClassName={labelCls}
@@ -1765,7 +1825,7 @@ export default function ApiSettingsModal({ open, onClose, mode = 'full', returnF
                 <input
                   type={advancedSecretShows[provider.id] ? 'text' : 'password'}
                   value={provider.apiKey || ''}
-                  onChange={(e) => updateAdvancedProvider(provider.id, { apiKey: e.target.value })}
+                  onChange={(e) => updateAdvancedProvider(provider.id, { apiKey: e.target.value, clearApiKey: false })}
                   className={fieldInputCls}
                   autoComplete="off"
                   placeholder={
@@ -2249,7 +2309,7 @@ export default function ApiSettingsModal({ open, onClose, mode = 'full', returnF
             note={guide?.modelHint}
           >
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-3">
-              <label className="space-y-1 min-w-0">
+              {!isStrata && <label className="space-y-1 min-w-0">
                 <span className={`text-[11px] ${labelCls}`}>{t('providerForm.imageModels')}</span>
                 <PromptTextarea
                   title={t('providerForm.modelEditorTitle', { provider: provider.label || protocolLabel, kind: t('providerForm.imageKind') })}
@@ -2260,8 +2320,8 @@ export default function ApiSettingsModal({ open, onClose, mode = 'full', returnF
                   className={textareaCls}
                   placeholder={isJimeng ? t('providerForm.imageJimengPlaceholder') : t('providerForm.imagePlaceholder')}
                 />
-              </label>
-              <label className="space-y-1 min-w-0">
+              </label>}
+              {!isStrata && <label className="space-y-1 min-w-0">
                 <span className={`text-[11px] ${labelCls}`}>{t('providerForm.videoModels')}</span>
                 <PromptTextarea
                   title={t('providerForm.modelEditorTitle', { provider: provider.label || protocolLabel, kind: t('providerForm.videoKind') })}
@@ -2272,7 +2332,7 @@ export default function ApiSettingsModal({ open, onClose, mode = 'full', returnF
                   className={textareaCls}
                   placeholder={isJimeng ? t('providerForm.videoJimengPlaceholder') : t('providerForm.videoPlaceholder')}
                 />
-              </label>
+              </label>}
               <label className="space-y-1 min-w-0">
                 <span className={`text-[11px] ${labelCls}`}>{t('providerForm.chatModels')}</span>
                 <PromptTextarea
@@ -2789,6 +2849,12 @@ export default function ApiSettingsModal({ open, onClose, mode = 'full', returnF
             )}
             {advancedOpen && (
               <div className="mt-3 space-y-3">
+                <button type="button" className={linkBtnCls} onClick={() => {
+                  const provider = createStrataProvider(`strata-${crypto.randomUUID()}`);
+                  setAdvancedProvidersInput((prev) => [...prev, provider]);
+                  setActiveAdvancedProviderId(provider.id);
+                  setAdvancedDirty(true);
+                }}><Plus size={12} />{t('strata.add')}</button>
                 <div className={`text-[11px] leading-relaxed ${hintCls}`}>
                   {t('advanced.expandedHelp')}<br />
                   {t('advanced.summary', { enabled: advancedSummary.enabledCount, keys: advancedSummary.configuredKeyCount, comfy: advancedSummary.comfyuiConfigured ? t('advanced.configuredAddress') : t('advanced.missingAddress'), jimeng: advancedSummary.jimengConfigured ? t('advanced.configuredPath') : t('advanced.missingPath') })}
@@ -2819,7 +2885,7 @@ export default function ApiSettingsModal({ open, onClose, mode = 'full', returnF
                             </span>
                           </div>
                           <div className={`mt-1 text-[10px] leading-snug ${hintCls}`}>
-                            {advancedProviderGuide(provider.protocol).nodeScopes.join(' / ')}
+                            {provider.profile === 'strata' ? t('providers.scopes.llm') : advancedProviderGuide(provider.protocol).nodeScopes.join(' / ')}
                           </div>
                         </button>
                       ))}

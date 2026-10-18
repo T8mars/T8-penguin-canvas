@@ -123,6 +123,10 @@ function providerForDecision(decision, settings, config = {}) {
   if (!providerId || !model || decision?.status !== 'ready' || decision?.selected?.executable !== true) {
     return null;
   }
+  const advanced = normalizeAdvancedProviders(settings.advancedProviders);
+  if (advanced.some((item) => item.id === providerId && item.profile === 'strata')) {
+    throw Object.assign(new Error('Strata 暂仅支持画布 LLM，不支持 Creator 的多轮工具协议；未切换云端。'), { code: 'CREATOR_STRATA_NOT_SUPPORTED', status: 409 });
+  }
   if (providerId === 'zhenzhen') {
     const apiKey = boundedText(settings.llmApiKey || settings.zhenzhenApiKey, 4_000);
     if (!apiKey) return null;
@@ -163,7 +167,6 @@ function providerForDecision(decision, settings, config = {}) {
       },
     };
   }
-  const advanced = normalizeAdvancedProviders(settings.advancedProviders);
   const provider = advanced.find((item) => item.id === providerId && item.enabled);
   if (!provider || !boundedText(provider.apiKey, 4_000)) return null;
   return {

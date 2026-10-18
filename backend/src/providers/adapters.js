@@ -4,6 +4,7 @@ const volcengine = require('./volcengine');
 const agnes = require('./agnes');
 const comfyui = require('./comfyui');
 const jimengCli = require('./jimengCli');
+const strata = require('./strata');
 const {
   providerLlmGenerationOptions,
   providerMediaGenerationOptions,
@@ -23,6 +24,7 @@ function getAdapterForProtocol(protocol) {
 }
 
 async function testProviderConnection(provider, options = {}) {
+  if (strata.isStrata(provider)) return strata.testProvider(provider, options);
   const adapter = getAdapterForProtocol(provider?.protocol);
   if (!adapter) {
     return {
@@ -37,6 +39,7 @@ async function testProviderConnection(provider, options = {}) {
 }
 
 async function generateImageWithProvider(provider, input = {}, options = {}) {
+  if (strata.isStrata(provider)) return { ok: false, code: 'unsupported_image_generation', error: 'Strata LLM 来源不支持图像生成。' };
   const adapter = getAdapterForProtocol(provider?.protocol);
   if (!adapter?.generateImage) {
     return {
@@ -51,6 +54,7 @@ async function generateImageWithProvider(provider, input = {}, options = {}) {
 }
 
 async function generateChatWithProvider(provider, input = {}, options = {}) {
+  if (strata.isStrata(provider)) return strata.generateChat(provider, input, providerLlmGenerationOptions(options), openaiCompatible.generateChat);
   const adapter = getAdapterForProtocol(provider?.protocol);
   if (!adapter?.generateChat) {
     return {
@@ -65,6 +69,7 @@ async function generateChatWithProvider(provider, input = {}, options = {}) {
 }
 
 async function generateVideoWithProvider(provider, input = {}, options = {}) {
+  if (strata.isStrata(provider)) return { ok: false, code: 'unsupported_video_generation', error: 'Strata LLM 来源不支持视频生成。' };
   const adapter = getAdapterForProtocol(provider?.protocol);
   if (!adapter?.generateVideo) {
     return {
