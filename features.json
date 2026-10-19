@@ -1,6 +1,15 @@
 {
   "$schema": "本文件为 T8-penguin-canvas 节点清单防丢失锁,任何节点删减都需要在 roadmap.md 中说明并更新本文件。",
-  "version": "3.3.5",
+  "version": "3.3.6",
+  "electronReleaseV336": {
+    "status": "authorized-release-pending",
+    "version": "3.3.6",
+    "tag": "v3.3.6",
+    "latest": false,
+    "evidence": "docs/release-v3.3.6.md",
+    "postReleaseEvidence": "owner-approved-post-release-v3.3.6",
+    "macBoundary": "same-tag-unsigned-preview; quota-check-required"
+  },
   "canvasSaveConflictRecovery20261019": {
     "status": "development-verified-unreleased",
     "description": "保存冲突有界合并与显式确认；跨编辑器交接、旧加载/保存确认不回退、删除后旧目录不回填，医生坐标草案使用专用移动协议。",
