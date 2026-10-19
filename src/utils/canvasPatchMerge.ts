@@ -173,9 +173,11 @@ export function mergeCanvasPatchEntitiesWithConflicts<T extends { id: string }>(
     const uid = (value: T | undefined) => (value as { entityUid?: unknown } | undefined)?.entityUid;
     // A reused display ID is not the same entity. Never attach an unsaved
     // prompt/output to a replacement node or edge through a field-wise merge.
-    if (baseEntity && localEntity && remoteEntity && typeof uid(baseEntity) === 'string'
+    if (localEntity && remoteEntity
       && typeof uid(localEntity) === 'string' && typeof uid(remoteEntity) === 'string'
-      && (uid(baseEntity) !== uid(localEntity) || uid(baseEntity) !== uid(remoteEntity))
+      && (baseEntity
+        ? typeof uid(baseEntity) === 'string' && (uid(baseEntity) !== uid(localEntity) || uid(baseEntity) !== uid(remoteEntity))
+        : uid(localEntity) !== uid(remoteEntity))
       && !jsonValuesEqual(localEntity, baseEntity) && !jsonValuesEqual(remoteEntity, baseEntity)
       && !jsonValuesEqual(localEntity, remoteEntity)) {
       value.push(localEntity);

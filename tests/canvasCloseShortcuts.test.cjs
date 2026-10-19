@@ -86,3 +86,13 @@ test('external media paste is rejected before reading files while canvas is held
   handler({}); assert.equal(collected, 0);
   root.inert = false; handler({}); assert.equal(collected, 1);
 });
+
+for (const action of ['copy', 'paste-links', 'paste']) test(`save-conflict portal ${action} keys do not run a canvas command behind the focused controls`, () => {
+  const f = fixture();
+  const portal = {};
+  const target = { tagName: 'BUTTON', closest: selector => selector === '[data-canvas-save-conflict="true"]' ? portal : null };
+  f.fire(`canvas.${action}`, true, target); f.drain();
+  assert.deepEqual(f.calls, [], 'portal keyboard bubbling cannot undo a command already run by the window capture listener');
+  f.fire(`canvas.${action}`, true); f.drain();
+  assert.equal(f.calls.length, 1, 'ordinary canvas clipboard shortcuts must stay enabled');
+});

@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { CanvasListItem } from '../types/canvas';
 import type { CanvasListRecoveryState } from '../services/api';
 import * as api from '../services/api';
+import { notifyCanvasDeleted } from '../utils/canvasDeletionLifecycle';
 
 const CANVAS_BOOTSTRAP_PAGE_SIZE = 50;
 const CANVAS_FULL_REFRESH_PAGE_SIZE = 200;
@@ -343,6 +344,7 @@ export const useCanvasStore = create<CanvasStoreState>((set, get) => ({
   async deleteCanvas(id) {
     try {
       await api.deleteCanvas(id);
+      notifyCanvasDeleted(id);
       set((state) => {
         const canvases = state.canvases.filter((item) => item.id !== id);
         const activeId = state.activeId === id ? canvases[0]?.id || null : state.activeId;

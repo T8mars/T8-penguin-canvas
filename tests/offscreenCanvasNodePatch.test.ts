@@ -236,11 +236,11 @@ test('A to B to A completion from a detached provider still persists and updates
   let compensatingSaveBranch = false;
   const visit = (node: ts.Node) => {
     if (ts.isIfStatement(node) && node.expression.getText(parsed) === 'response.pending?.conflicted'
-      && node.elseStatement?.getText(parsed).includes('response.shouldScheduleCas')) compensatingSaveBranch = true;
+      && node.elseStatement?.getText(parsed).includes('persistenceRuntime.notifyPersistence?.(canvasIdForSave)')) compensatingSaveBranch = true;
     ts.forEachChild(node, visit);
   };
   visit(parsed);
-  assert.equal(compensatingSaveBranch, true, 'a retired PUT conflict still schedules the safe compensating CAS in its else branch');
+  assert.equal(compensatingSaveBranch, true, 'a retired PUT conflict must wake the live editor, independent of retired response.active');
   assert.match(canvasSource, /commitAuthoritativeCanvasPatchDocument\(canvasId, document/);
 
   const originCanvasId = 'canvas-a';
