@@ -8,8 +8,10 @@ import { generationHistoryZh, generationHistoryEn } from './generationHistoryCat
 import { doubaoVoiceZh, doubaoVoiceEn } from './doubaoVoiceCatalog';
 import { creativeUxZh, creativeUxEn } from './creativeUxCatalog';
 import { strataZh, strataEn } from './strataCatalog';
+import { canvasSaveZh, canvasSaveEn } from './canvasSaveCatalog';
 
 export const zhCN = {
+  canvasSave: canvasSaveZh,
   creativeUx: creativeUxZh,
   workbenches: {
     videoEdit: VIDEO_EDIT_VISIBLE_CATALOG.zh,
@@ -652,6 +654,7 @@ export const zhCN = {
 } as const;
 
 export const enUS = {
+  canvasSave: canvasSaveEn,
   creativeUx: creativeUxEn,
   workbenches: {
     videoEdit: VIDEO_EDIT_VISIBLE_CATALOG.en,

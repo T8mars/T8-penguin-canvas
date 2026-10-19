@@ -12,6 +12,7 @@
 
 | 事项 | 当前事实与下一步 |
 | --- | --- |
+| 画布保存冲突 | 开发修复未发布：序号冲突有界三方合并，真冲突顶部确认/下载副本，跨画布恢复与关闭守卫不随编辑器重建失效。108项回归、隔离完整画布15项通过；CAS保护不放宽，用户现场/安装版待验，见[专题](canvas-save-conflict-20261019.md)。 |
 | Strata本地LLM | 已随v3.3.5双平台发布：两轮20轮审查修8项，315回归及最新隔离画布16项通过。前轮真实识图通过，本轮冷启动上游503未通过；用户要求服务先不动。范围/未验收见[专题](strata-llm.md)。 |
 | ArtCraft体验增强 | 已随v3.3.4双平台发布：灵感板/编辑版本/独立世界节点/Story草稿；完整App实链、28主题组合、142项及正式构建通过。排除/搁置项见[专题](artcraft-canvas-ux.md)。 |
 | 节点清晰度 / 平价香蕉低价 / 豆包 | 已随v3.3.4双平台发布：节点滤镜始终关闭，香蕉2/Seed Audio共四模型、音色串联、九工作流。实网8/8完整解码；14主题672组Chromium样式/控件检查通过，合同/恢复/Creator回归通过。安装版/用户GPU未验收，见[专题](nb-lowprice-doubao.md)。 |
@@ -27,7 +28,7 @@
 | 文档轻量化 | 原文逐字节归档、features/roadmap按需读；继续遵守预算，历史证据见[记录](../local-private/context-maintenance/verification.json)。 |
 | 生成历史 | 当前支持范围已随 v3.1.6 发布；19个完整客户端场景/25项、React UI 13项、限定回归56/56通过，通过进程正常退出/强制0/残留0。完整状态与剩余范围见[验收清单](generation-history-acceptance-status.md)及[证据索引](generation-history-acceptance-20260912.md)。 |
 | Provider 超时策略 | 已随 v3.1.7 发布：移除媒体生成通用代理 90 秒边界，并覆盖扩展适配器、工具箱自定义轮询、导演分镜与崩溃恢复；媒体全链路最低 15 分钟，LLM 默认且最长 3 分钟，连接探测/重试间隔不变。详情用 `feature providerTimeoutPolicy20260913` 查询。 |
-| TUN/代理最大兼容与日志恢复 | 已随 v3.1.8 发布：受信 Provider 域名结果不再预判 `resolveHost` 地址或维护 Fake-IP 白名单，Chromium 系统网络及失败后的同任务 GET 回退均接受任意有效解析地址；仅字面量本机/内网与本地域名仍拒绝，普通 URL 安全策略不变。另有 Mihomo IPv6/国内 DoH 兼容和终端日志 14 天脱敏恢复。专项 34/34、TypeScript 与双平台正式包通过；真实受影响 TUN 客户端/安装版证据后补。详见 `feature tunIpv6AndTerminalLogRecovery20260913`。 |
+| TUN/代理与日志 | 已随v3.1.8发布：受信Provider域名交给系统网络，不预判Fake-IP；字面量内网/本地域名仍拒绝，普通URL策略不变。日志14天脱敏恢复；34/34及双平台包通过，用户TUN/安装版待验。详见 `feature tunIpv6AndTerminalLogRecovery20260913`。 |
 | v3.2.1 历史 | Tag冻结及资产校验见[专题](release-v3.2.1.md)。 |
 | schema32 画布恢复 | 已随 v3.2.1 发布：同库旧 canonical backup/代次不一致可生成十分钟一次性恢复方案，用户在只读界面确认后恢复并保留故障证据；UUID/校验/方案任一不匹配继续阻断，ACK 只前进不回退。专项、相邻矩阵与真实 HTTP 确认 47/47；真实用户旧库证据待补。详见 `feature schema32ExplicitRecovery20260928`。 |
 | Qwen 2.1 / Animate | 已随 v3.2.0 发布：图像/视频节点独立 Tab、精确参数、恢复、可信结果落盘和四份无凭据工作流已接入。T2I、I2I、Animate 三任务均到达 `succeeded`，Animate 产物完成下载解析；Qwen 当次结果下载受本机 Node TLS 中断，未重交付费任务。详见[专题](qwen21-animate-motion-transfer.md)和 `feature qwen21AnimateMotionTransfer20260922`。 |

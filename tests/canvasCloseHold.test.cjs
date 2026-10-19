@@ -8,20 +8,21 @@ const ts = require('typescript');
 // Execute the actual Canvas effect with controlled DOM/IPC/save observation;
 // this tests hold ownership, not native UI rendering or CAS durability.
 function fixture({ initiallyInert = false, wait = async () => ({ ok: true }) } = {}) {
-  const source = fs.readFileSync(require.resolve('../src/components/Canvas.tsx'), 'utf8');
+  const source = fs.readFileSync(require.resolve('../src/components/CanvasCloseGuard.tsx'), 'utf8');
   const normalized = source.replace(/\r\n/g, '\n');
   const begin = normalized.indexOf('  useEffect(() => {\n    const subscribe = window.t8pc?.onCanvasCloseRequest;');
-  const end = normalized.indexOf('  }, [flushCanvasViewportStorage, t]);', begin);
+  const end = normalized.indexOf('  }, [runtime, t]);', begin);
   assert.ok(begin >= 0 && end > begin);
-  const code = ts.transpileModule(normalized.slice(begin, end + '  }, [flushCanvasViewportStorage, t]);'.length), {
+  const code = ts.transpileModule(normalized.slice(begin, end + '  }, [runtime, t]);'.length), {
     compilerOptions: { target: ts.ScriptTarget.ES2022 },
   }).outputText;
   const root = { inert: initiallyInert };
+  const runtime = { closeObserver: { prepare() {}, read: () => ({ dirty: false, queued: false }), flush() {} } };
   const notices = new Set(), timers = new Map();
   let handler, cleanup, timerId = 0, unsubscribed = false;
   vm.runInNewContext(code, {
     useEffect: callback => { cleanup = callback(); },
-    flushCanvasViewportStorage: () => {}, t: key => key,
+    runtime, t: key => key,
     waitForCanvasCloseSave: wait,
     document: {
       getElementById: () => root, activeElement: { blur() {} },
@@ -37,7 +38,7 @@ function fixture({ initiallyInert = false, wait = async () => ({ ok: true }) } =
       clearInterval: id => timers.delete(id),
     },
   });
-  return { root, notices, timers, close: cancelled => handler(cancelled), cleanup: () => cleanup(),
+  return { root, notices, timers, runtime, close: cancelled => handler(cancelled), cleanup: () => cleanup(),
     get unsubscribed() { return unsubscribed; } };
 }
 
@@ -73,4 +74,31 @@ test('save refusal and thrown observer both release input and notice', async () 
     assert.equal(f.root.inert, false); assert.equal(f.notices.size, 0); assert.equal(f.timers.size, 0);
     f.cleanup();
   }
+});
+
+test('editor replacement keeps the same close hold and reads the successor, never a false clean gap', async () => {
+  let resume, options;
+  const f = fixture({ wait: async current => {
+    options = current;
+    await new Promise(resolve => { resume = resolve; });
+    return current.read().dirty ? { ok: false, reason: 'save' } : { ok: true };
+  } });
+  const pending = f.close(() => false);
+  f.runtime.closeObserver = null;
+  assert.equal(options.cancelled(), false);
+  assert.equal(options.read().dirty, true);
+  assert.equal(options.read().queued, true);
+  let flushes = 0;
+  f.runtime.closeObserver = { prepare() {}, read: () => ({ dirty: false, queued: false }), flush() { flushes++; } };
+  options.flush(); assert.equal(flushes, 1);
+  resume(); assert.equal((await pending).ok, true);
+  assert.equal(f.root.inert, true); assert.equal(f.notices.size, 1);
+  f.cleanup();
+});
+
+test('stable close guard is outside the keyed ReactFlow editor', () => {
+  const source = fs.readFileSync(require.resolve('../src/components/Canvas.tsx'), 'utf8');
+  assert.match(source, /<CanvasCloseGuard runtime=\{persistenceRuntime\} \/>\s*<ReactFlowProvider key=/);
+  assert.match(source, /useRef\(persistenceRuntime\.recoveryFlights\)/);
+  assert.match(source, /return persistenceRuntime\.recoveryCommit\(canvasId, document, baseline\)/);
 });

@@ -167,6 +167,21 @@ export function mergeCanvasPatchEntitiesWithConflicts<T extends { id: string }>(
   const value: T[] = [];
   const conflicts: CanvasPatchMergeConflict[] = [];
   for (const id of orderedIds) {
+    const baseEntity = baseById.get(id);
+    const localEntity = localById.get(id);
+    const remoteEntity = authoritativeById.get(id);
+    const uid = (value: T | undefined) => (value as { entityUid?: unknown } | undefined)?.entityUid;
+    // A reused display ID is not the same entity. Never attach an unsaved
+    // prompt/output to a replacement node or edge through a field-wise merge.
+    if (baseEntity && localEntity && remoteEntity && typeof uid(baseEntity) === 'string'
+      && typeof uid(localEntity) === 'string' && typeof uid(remoteEntity) === 'string'
+      && (uid(baseEntity) !== uid(localEntity) || uid(baseEntity) !== uid(remoteEntity))
+      && !jsonValuesEqual(localEntity, baseEntity) && !jsonValuesEqual(remoteEntity, baseEntity)
+      && !jsonValuesEqual(localEntity, remoteEntity)) {
+      value.push(localEntity);
+      conflicts.push({ kind: 'same-field', path: `${path}[${JSON.stringify(id)}].entityUid` });
+      continue;
+    }
     const result = mergeCanvasPatchValueWithConflicts<T | undefined>(
       baseById.get(id),
       localById.get(id),

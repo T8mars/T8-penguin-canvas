@@ -371,8 +371,8 @@ export async function createCanvas(name?: string): Promise<CanvasListItem> {
   return res.data;
 }
 
-export async function getCanvasData(id: string): Promise<CanvasData> {
-  const res = await request<{ success: boolean; data: CanvasData }>(`${BASE}/canvas/${id}`);
+export async function getCanvasData(id: string, options: { signal?: AbortSignal } = {}): Promise<CanvasData> {
+  const res = await request<{ success: boolean; data: CanvasData }>(`${BASE}/canvas/${id}`, options);
   return res.data;
 }
 

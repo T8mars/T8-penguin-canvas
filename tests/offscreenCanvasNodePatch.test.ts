@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
+import ts from 'typescript';
 import type { CanvasData } from '../src/types/canvas.ts';
 import type { CanvasOperation } from '../src/types/project.ts';
 import { mergeCanvasPatchValueWithConflicts } from '../src/utils/canvasPatchMerge.ts';
@@ -231,7 +232,15 @@ test('A to B to A completion from a detached provider still persists and updates
     canvasSource,
     /const renderedState = mergeResult\.state;[\s\S]{0,220}autosaveGenerationByCanvasRef\.current\.set\(/,
   );
-  assert.match(canvasSource, /if \(response\.pending\?\.conflicted\)[\s\S]{0,600}response\.shouldScheduleCas/);
+  const parsed = ts.createSourceFile('Canvas.tsx', canvasSource, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  let compensatingSaveBranch = false;
+  const visit = (node: ts.Node) => {
+    if (ts.isIfStatement(node) && node.expression.getText(parsed) === 'response.pending?.conflicted'
+      && node.elseStatement?.getText(parsed).includes('response.shouldScheduleCas')) compensatingSaveBranch = true;
+    ts.forEachChild(node, visit);
+  };
+  visit(parsed);
+  assert.equal(compensatingSaveBranch, true, 'a retired PUT conflict still schedules the safe compensating CAS in its else branch');
   assert.match(canvasSource, /commitAuthoritativeCanvasPatchDocument\(canvasId, document/);
 
   const originCanvasId = 'canvas-a';

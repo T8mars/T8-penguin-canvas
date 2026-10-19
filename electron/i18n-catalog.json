@@ -4,7 +4,7 @@
       "title": "画布暂未关闭",
       "save": "尚未确认画布保存成功，窗口已保留。请检查连接或保存状态，稍后再次关闭。",
       "running": "还有任务正在运行。请等待完成或主动停止任务后，再关闭画布。",
-      "conflict": "画布存在版本冲突，本地修改已保留。请先处理冲突，再关闭画布。",
+      "conflict": "画布保存尚有冲突（不是软件版本问题），本地修改已保留。返回画布后，请使用顶部“保存冲突”提示同步或处理，再关闭。",
       "keepOpen": "返回画布"
     },
     "app": {
@@ -116,7 +116,7 @@
       "title": "Canvas kept open",
       "save": "Canvas saving has not been confirmed. The window remains open. Check the connection or save status, then close again.",
       "running": "Tasks are still running. Wait for them to finish or stop them before closing the canvas.",
-      "conflict": "The canvas has a version conflict. Local changes are retained. Resolve the conflict before closing.",
+      "conflict": "Canvas saving has a conflict, not an app-version problem. Local edits are retained. Return to the canvas and use the Save conflict notice at the top before closing.",
       "keepOpen": "Return to canvas"
     },
     "app": {

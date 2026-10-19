@@ -1,6 +1,13 @@
 {
   "$schema": "本文件为 T8-penguin-canvas 节点清单防丢失锁,任何节点删减都需要在 roadmap.md 中说明并更新本文件。",
   "version": "3.3.5",
+  "canvasSaveConflictRecovery20261019": {
+    "status": "development-verified-unreleased",
+    "description": "保存序号冲突先有界读取并三方合并；真冲突顶部显式确认/下载副本，跨画布恢复与关闭观察保留生命周期，实体替换不串写。",
+    "evidence": "docs/canvas-save-conflict-20261019.md",
+    "verification": "108/108限定回归、API错误4/4、双语12/12及隔离完整画布15项通过；类型/双语/能力同步门通过，组不累加。",
+    "boundary": "新临时库真实HTTP CAS，关闭桥调用生产观察器；非用户现场或安装版端到端，尚未打包发布。CAS/ACK/数据库恢复保护不放宽。"
+  },
   "strataLocalLlm20261019": {
     "status": "released-v3.3.5-dual-platform-local-verified",
     "description": "Strata本地LLM预设、模型/视觉发现、无Key本机或Bearer局域网、真实流式和Run取消；最长3分钟，失效来源不落云端，旧参数保留。",
