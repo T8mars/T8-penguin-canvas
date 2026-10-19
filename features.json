@@ -2,20 +2,22 @@
   "$schema": "本文件为 T8-penguin-canvas 节点清单防丢失锁,任何节点删减都需要在 roadmap.md 中说明并更新本文件。",
   "version": "3.3.6",
   "electronReleaseV336": {
-    "status": "authorized-release-pending",
+    "status": "released-dual-platform-verified",
     "version": "3.3.6",
     "tag": "v3.3.6",
-    "latest": false,
+    "latest": true,
     "evidence": "docs/release-v3.3.6.md",
     "postReleaseEvidence": "owner-approved-post-release-v3.3.6",
-    "macBoundary": "same-tag-unsigned-preview; quota-check-required"
+    "macBoundary": "same-tag-unsigned-preview; no-quota-deferral-used",
+    "sourceCommit": "dadb10e6521dfbca7d888ceec3dbd7d5de7284a2",
+    "macWorkflow": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/39265271861"
   },
   "canvasSaveConflictRecovery20261019": {
-    "status": "development-verified-unreleased",
+    "status": "released-v3.3.6-dual-platform-local-verified",
     "description": "保存冲突有界合并与显式确认；跨编辑器交接、旧加载/保存确认不回退、删除后旧目录不回填，医生坐标草案使用专用移动协议。",
     "evidence": "docs/canvas-save-conflict-20261019.md",
     "verification": "第二次20主题独立复查及完整画布再修5类实证问题；215/215限定回归（含27项保存专项及8项移动协议）、隔离完整画布25项、类型/双语/能力门通过；组不累加。",
-    "boundary": "新临时库真实HTTP CAS，关闭桥调用生产观察器；非用户现场或安装版端到端，尚未打包发布。CAS/ACK/数据库恢复保护不放宽。"
+    "boundary": "已随v3.3.6双平台发布；新临时库真实HTTP CAS与受控关闭桥，不替代用户现场或安装版端到端。CAS/ACK/数据库恢复保护不放宽，外部证据后补。"
   },
   "strataLocalLlm20261019": {
     "status": "released-v3.3.5-dual-platform-local-verified",
@@ -28,7 +30,7 @@
     "status": "released-dual-platform-verified",
     "version": "3.3.5",
     "tag": "v3.3.5",
-    "latest": true,
+    "latest": false,
     "evidence": "docs/release-v3.3.5.md",
     "postReleaseEvidence": "owner-approved-post-release-v3.3.5",
     "macBoundary": "same-tag-unsigned-preview; no-quota-deferral-used",
@@ -3555,59 +3557,59 @@
     ]
   },
   "release": {
-    "status": "released-v3.3.5-dual-platform-verified",
-    "version": "3.3.5",
+    "status": "released-v3.3.6-dual-platform-verified",
+    "version": "3.3.6",
     "date": "2026-10-19",
-    "tag": "v3.3.5",
+    "tag": "v3.3.6",
     "latest": true,
-    "sourceCommit": "ff02c6e6f9b47d16b94a01fa10833ec9b1b25e53",
-    "publishedAt": "2026-10-18T17:44:50Z",
+    "sourceCommit": "dadb10e6521dfbca7d888ceec3dbd7d5de7284a2",
+    "publishedAt": "2026-10-19T14:01:16Z",
     "draft": false,
     "prerelease": false,
-    "url": "https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.3.5",
-    "details": "docs/release-v3.3.5.md",
+    "url": "https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.3.6",
+    "details": "docs/release-v3.3.6.md",
     "verification": [
-      "Unique formal Windows TypeScript/Vite/encrypted NSIS build, packaged fresh-database probe, 27 release contracts and same-tag real Mac workflow passed. Six assets independently full-download-verified; both updater manifests matched size/SHA-512. Windows assets and previous v3.3.4 assets/Tag unchanged. Source/Tag frozen.",
-      "External/installed/LAN/other-GPU and F8-F10 evidence deferred under owner-approved-post-release-v3.3.5, not passed. Current Strata cold-start HTTP503/WinError5 remains failed and investigation deferred by user."
+      "Unique formal Windows TypeScript/Vite/encrypted NSIS build, packaged move/inverse and fresh-database probe, 26 release contracts and same-tag real Mac workflow passed. Six assets independently full-download-verified; both updater manifests matched size/SHA-512. Windows assets unchanged during Mac append; previous v3.3.5 assets/Tag unchanged. Source/Tag frozen.",
+      "215 targeted regressions and 25 isolated full-canvas cases passed. User-site, installed upgrade, multi-device and F8-F10 evidence deferred under owner-approved-post-release-v3.3.6, not passed. Strata service remains untouched."
     ],
     "assets": {
       "windowsInstaller": {
-        "name": "T8-PenguinCanvas-Setup-3.3.5.exe",
-        "bytes": 1379748894,
-        "sha256": "c733cbb43fa4c2d1b7e1e124d051b5ead4eac95d8b6af156215ec49d65354eec"
+        "name": "T8-PenguinCanvas-Setup-3.3.6.exe",
+        "bytes": 1379752207,
+        "sha256": "457abe01ba1ca57fbcde1687b50fee014bbdc2ed8606ca3aa94773989e2b5a4a"
       },
       "windowsBlockmap": {
-        "name": "T8-PenguinCanvas-Setup-3.3.5.exe.blockmap",
-        "bytes": 1439891,
-        "sha256": "ac6a2456afca143850af88781ec5725504a87da47ed37e0f49b98c6de75651fa"
+        "name": "T8-PenguinCanvas-Setup-3.3.6.exe.blockmap",
+        "bytes": 1439772,
+        "sha256": "0f4a6d588fa15f82b226568117bce29b4564c4ae2c550afa043e167fdfa0847b"
       },
       "windowsUpdater": {
         "name": "latest.yml",
         "bytes": 362,
-        "sha256": "0dd4fe0d79783ad07ff376e679716a39a53e68db5ea74b3e207b279b0148ec74"
+        "sha256": "1fa186fbeaf4dff49758a5ea6cd17b5ced8b0b2a656ede4fa3d418c6cbe0ef4f"
       },
       "macDmg": {
-        "name": "T8-PenguinCanvas-3.3.5-mac-arm64.dmg",
-        "bytes": 519395473,
-        "sha256": "7f6552297ed803a5c184ff94c0a299aa01e40e22d6fdd139db576ca035253cb9"
+        "name": "T8-PenguinCanvas-3.3.6-mac-arm64.dmg",
+        "bytes": 519419164,
+        "sha256": "63eb8f0cb68a11713ee660a75cd385ad20e902bfbb395aa8219f1fdca619059c"
       },
       "macZip": {
-        "name": "T8-PenguinCanvas-3.3.5-mac-arm64.zip",
-        "bytes": 511243589,
-        "sha256": "cc0638067c9ff2a4e0f0e8b6d8b93ec637f8ed646248d4845efcdc3a05783b5d"
+        "name": "T8-PenguinCanvas-3.3.6-mac-arm64.zip",
+        "bytes": 511247660,
+        "sha256": "06a8181fef1356ccd96d2e280a8824839d9458e2b17154feb5d9b485656336c0"
       },
       "macUpdater": {
         "name": "latest-mac.yml",
         "bytes": 536,
-        "sha256": "eb1fa03fd5a5e55c70be330b7ca4b1fbac4d91dc039a1f08b0c007866e493c0d"
+        "sha256": "86dec0bc0f944068d92e4c11cb4226519a9fdc5a2066fbc607d0b71fccf6fde8"
       }
     },
-    "macWorkflow": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/39151023820"
+    "macWorkflow": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/39265271861"
   },
   "versionSequencePolicy": {
     "status": "active",
     "date": "2026-07-30",
-    "currentVersion": "3.3.5",
+    "currentVersion": "3.3.6",
     "rules": [
       "版本号每一段只使用 0-9；v2.6.9 的下一正式版本固定为 v2.7.0。",
       "禁止创建、打包、推送、打 tag、发布或写入自动更新元数据为 v2.6.10。",
