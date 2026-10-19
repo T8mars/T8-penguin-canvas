@@ -27,3 +27,25 @@ export function hasCanvasWriteAuthority(input: CanvasWriteAuthority): boolean {
     && authoritativeCanvasRevision(input.revision) !== null
   );
 }
+
+export class StaleCanvasLoadError extends Error {
+  constructor() { super('Canvas load response is older than an acknowledged revision'); }
+}
+
+/** A load that crossed an acknowledged write gets one fresh read, never a
+ * lower durable baseline. Repeated stale responses stay read-only. */
+export async function readCurrentCanvasAuthority<T extends { revision?: unknown }>(options: {
+  load: () => Promise<T>;
+  minimumRevision: () => number;
+  cancelled: () => boolean;
+}): Promise<T> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const document = await options.load();
+    if (options.cancelled()) throw new Error('Canvas load superseded');
+    const revision = requireAuthoritativeCanvasRevision(document.revision);
+    const minimum = options.minimumRevision();
+    if (!Number.isSafeInteger(minimum) || minimum < 0) throw new Error('Invalid known canvas revision');
+    if (revision >= minimum) return document;
+  }
+  throw new StaleCanvasLoadError();
+}

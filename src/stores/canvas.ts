@@ -38,6 +38,11 @@ let bootstrapFlight: Promise<void> | null = null;
 let fullRefreshFlight: Promise<void> | null = null;
 let loadMoreFlight: Promise<void> | null = null;
 const metadataRefreshFlights = new Map<string, Promise<CanvasListItem | null>>();
+let catalogDeletionGeneration = 0;
+const catalogDeletedAt = new Map<string, number>();
+function acceptsCatalogResponse(id: string, requestGeneration: number) {
+  return (catalogDeletedAt.get(id) || 0) <= requestGeneration;
+}
 let recoveryPollTimer: ReturnType<typeof setTimeout> | null = null;
 let recoveryPollAttempt = 0;
 let recoveryPollInFlight = false;
@@ -73,13 +78,13 @@ function sortCanvasItems(items: CanvasListItem[]) {
   });
 }
 
-function mergeCanvasItems(current: CanvasListItem[], incoming: Array<CanvasListItem | null | undefined>) {
+function mergeCanvasItems(current: CanvasListItem[], incoming: Array<CanvasListItem | null | undefined>, requestGeneration = catalogDeletionGeneration) {
   const byId = new Map<string, CanvasListItem>();
   for (const item of current) {
     if (item?.id) byId.set(item.id, item);
   }
   for (const item of incoming) {
-    if (item?.id) byId.set(item.id, { ...(byId.get(item.id) || {}), ...item });
+    if (item?.id && acceptsCatalogResponse(item.id, requestGeneration)) byId.set(item.id, { ...(byId.get(item.id) || {}), ...item });
   }
   return sortCanvasItems([...byId.values()]);
 }
@@ -89,9 +94,10 @@ function nextActiveId(
   persistedId: string | null,
   items: CanvasListItem[],
   requestedActiveItem: CanvasListItem | null,
+  requestGeneration = catalogDeletionGeneration,
 ) {
   if (currentId && items.some((item) => item.id === currentId)) return currentId;
-  if (persistedId && requestedActiveItem?.id === persistedId) return persistedId;
+  if (persistedId && requestedActiveItem?.id === persistedId && acceptsCatalogResponse(persistedId, requestGeneration)) return persistedId;
   if (persistedId && items.some((item) => item.id === persistedId)) return persistedId;
   return items[0]?.id || null;
 }
@@ -155,15 +161,16 @@ export const useCanvasStore = create<CanvasStoreState>((set, get) => ({
     bootstrapFlight = (async () => {
       if (!get().bootstrapped) set({ loading: true, error: null });
       const persistedId = readPersistedActiveId();
+      const requestGeneration = catalogDeletionGeneration;
       try {
         const page = await api.listCanvasPage({
           limit: CANVAS_BOOTSTRAP_PAGE_SIZE,
           activeId: persistedId,
         });
-        const items = mergeCanvasItems([], [...page.items, page.activeItem]);
-        const activeId = page.partial && persistedId
+        const items = mergeCanvasItems([], [...page.items, page.activeItem], requestGeneration);
+        const activeId = page.partial && persistedId && acceptsCatalogResponse(persistedId, requestGeneration)
           ? persistedId
-          : nextActiveId(get().activeId, persistedId, items, page.activeItem);
+          : nextActiveId(get().activeId, persistedId, items, page.activeItem, requestGeneration);
         const completeCatalog = !page.hasMore && !page.partial;
         set((state) => ({
           canvases: items,
@@ -208,12 +215,13 @@ export const useCanvasStore = create<CanvasStoreState>((set, get) => ({
     fullRefreshFlight = (async () => {
       set({ loading: true, error: null });
       const persistedId = get().activeId || readPersistedActiveId();
+      const requestGeneration = catalogDeletionGeneration;
       try {
         let page = await api.listCanvasPage({
           limit: CANVAS_FULL_REFRESH_PAGE_SIZE,
           activeId: persistedId,
         });
-        let items = mergeCanvasItems([], [...page.items, page.activeItem]);
+        let items = mergeCanvasItems([], [...page.items, page.activeItem], requestGeneration);
         let cursor = page.nextCursor;
         let guard = 0;
         while (page.hasMore && cursor && !page.partial && guard < 1_000) {
@@ -221,13 +229,16 @@ export const useCanvasStore = create<CanvasStoreState>((set, get) => ({
             limit: CANVAS_FULL_REFRESH_PAGE_SIZE,
             cursor,
           });
-          items = mergeCanvasItems(items, page.items);
+          items = mergeCanvasItems(items, page.items, requestGeneration);
           cursor = page.nextCursor;
           guard += 1;
         }
-        const activeId = page.partial && persistedId
+        // A deletion can happen after an earlier page was accumulated while
+        // later pages are still in flight. Recheck the whole response batch.
+        items = items.filter((item) => acceptsCatalogResponse(item.id, requestGeneration));
+        const activeId = page.partial && persistedId && acceptsCatalogResponse(persistedId, requestGeneration)
           ? persistedId
-          : nextActiveId(get().activeId, persistedId, items, page.activeItem);
+          : nextActiveId(get().activeId, persistedId, items, page.activeItem, requestGeneration);
         set((state) => ({
           canvases: items,
           activeId,
@@ -260,6 +271,7 @@ export const useCanvasStore = create<CanvasStoreState>((set, get) => ({
     if (!state.hasMore || !state.nextCursor || state.loadingMore) return;
     if (loadMoreFlight) return loadMoreFlight;
     const cursor = state.nextCursor;
+    const requestGeneration = catalogDeletionGeneration;
     loadMoreFlight = (async () => {
       set({ loadingMore: true });
       try {
@@ -269,7 +281,7 @@ export const useCanvasStore = create<CanvasStoreState>((set, get) => ({
         });
         set((current) => {
           if (current.nextCursor !== cursor) return { loadingMore: false };
-          const canvases = mergeCanvasItems(current.canvases, page.items);
+          const canvases = mergeCanvasItems(current.canvases, page.items, requestGeneration);
           return {
             canvases,
             loadingMore: false,
@@ -296,12 +308,13 @@ export const useCanvasStore = create<CanvasStoreState>((set, get) => ({
     if (!targetId) return null;
     const existingFlight = metadataRefreshFlights.get(targetId);
     if (existingFlight) return existingFlight;
+    const requestGeneration = catalogDeletionGeneration;
     const flight = (async () => {
       try {
         const item = await api.getCanvasMetadata(targetId);
-        if (!item) return null;
+        if (!item || !acceptsCatalogResponse(targetId, requestGeneration)) return null;
         set((state) => ({
-          canvases: mergeCanvasItems(state.canvases, [item]),
+          canvases: mergeCanvasItems(state.canvases, [item], requestGeneration),
         }));
         return item;
       } catch {
@@ -318,11 +331,13 @@ export const useCanvasStore = create<CanvasStoreState>((set, get) => ({
   },
   async createCanvas(name) {
     set({ error: null });
+    const requestGeneration = catalogDeletionGeneration;
     try {
       const item = await api.createCanvas(name);
+      if (!acceptsCatalogResponse(item.id, requestGeneration)) return null;
       set((state) => {
         const existed = state.canvases.some((canvas) => canvas.id === item.id);
-        const canvases = mergeCanvasItems(state.canvases, [item]);
+        const canvases = mergeCanvasItems(state.canvases, [item], requestGeneration);
         return {
           canvases,
           activeId: item.id,
@@ -344,6 +359,7 @@ export const useCanvasStore = create<CanvasStoreState>((set, get) => ({
   async deleteCanvas(id) {
     try {
       await api.deleteCanvas(id);
+      catalogDeletedAt.set(id, ++catalogDeletionGeneration);
       notifyCanvasDeleted(id);
       set((state) => {
         const canvases = state.canvases.filter((item) => item.id !== id);
@@ -373,13 +389,14 @@ export const useCanvasStore = create<CanvasStoreState>((set, get) => ({
   },
 
   setActive(id) {
+    const requestGeneration = catalogDeletionGeneration;
     persistActiveId(id);
     set((state) => ({
       activeId: id,
       completionNoticeCanvasIds: state.completionNoticeCanvasIds.filter((noticeId) => noticeId !== id),
     }));
     if (id) void api.updateCanvasDirectoryProfile(id, { opened: true }).then((item) => {
-      set((state) => ({ canvases: mergeCanvasItems(state.canvases, [item]) }));
+      set((state) => ({ canvases: mergeCanvasItems(state.canvases, [item], requestGeneration) }));
     }).catch(() => { /* Opening is allowed even when the advisory local profile update fails. */ });
   },
 

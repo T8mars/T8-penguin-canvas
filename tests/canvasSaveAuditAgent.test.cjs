@@ -305,7 +305,7 @@ test('audit 18 regression: successfully deleting a conflicted canvas must retire
     skipInitialAutosaveCanvasIds: new Set(), skipInitialHistoryCanvasIds: new Set(), allowEmptySaveCanvasIds: new Set() };
   const disposeDeletion = effect('subscribeCanvasDeletion((canvasId)', { persistenceRuntime: runtime, ...lifecycle, window: { clearTimeout() {} } })();
   const deleted = compile(`return ({ ${declaration} }).deleteCanvas;`, {
-    ...lifecycle, api: { deleteCanvas: async () => undefined },
+    ...lifecycle, catalogDeletedAt: new Map(), catalogDeletionGeneration: 0, api: { deleteCanvas: async () => undefined },
     set: update => Object.assign(catalog, typeof update === 'function' ? update(catalog) : update), persistActiveId() {},
   });
   await deleted('A'); assert.equal(catalog.activeId, 'B');
@@ -405,7 +405,7 @@ test('audit 18 negative case: failed delete never authorizes draft retirement', 
   const dispose = lifecycle.subscribeCanvasDeletion(() => { notifications++; });
   const catalog = { activeId: 'A', canvases: [{ id: 'A' }], error: null };
   const deleted = compile(`return ({ ${declaration} }).deleteCanvas;`, {
-    ...lifecycle, api: { deleteCanvas: async () => { throw new Error('controlled delete failure'); } },
+    ...lifecycle, catalogDeletedAt: new Map(), catalogDeletionGeneration: 0, api: { deleteCanvas: async () => { throw new Error('controlled delete failure'); } },
     set: update => Object.assign(catalog, typeof update === 'function' ? update(catalog) : update), persistActiveId() {},
   });
   await deleted('A');

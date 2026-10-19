@@ -1441,10 +1441,10 @@ function materializeDraftOperation(
     const x = Object.is(rawX, -0) ? 0 : rawX;
     const y = Object.is(rawY, -0) ? 0 : rawY;
     return {
-      type: 'node.patch',
+      type: 'node.move',
       payload: {
         nodeId: safeAuthoritativeIdentity(operation.nodeId, '节点 ID'),
-        patch: { position: { x, y } },
+        position: { x, y },
       },
     };
   }

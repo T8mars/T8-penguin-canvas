@@ -65,7 +65,7 @@ test('doctor drafts materialize into the complete authoritative CanvasPatch prot
     {
       opId: `${first.id}-op-001`, projectId: 'project-safe', canvasId: 'canvas-safe',
       actorId: '', sessionId: '', baseRevision: 7, clientSeq: 0, timestamp: 1,
-      type: 'node.patch', payload: { nodeId: 'node-a', patch: { position: { x: 12, y: 34 } } },
+      type: 'node.move', payload: { nodeId: 'node-a', position: { x: 12, y: 34 } },
     },
     {
       opId: `${first.id}-op-002`, projectId: 'project-safe', canvasId: 'canvas-safe',
@@ -165,7 +165,7 @@ test('authoritative patch preview, record, apply, and revert types stay structur
   });
   const change: CanvasPatchChange = {
     operationIndex: 0,
-    type: 'node.patch',
+    type: 'node.move',
     targetType: 'node',
     targetId: 'node-a',
     fields: ['position.x', 'position.y'],

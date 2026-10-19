@@ -1,5 +1,6 @@
 export const canvasSaveZh = {
   title: '保存冲突',
+  staleLoad: '加载结果落后于已确认保存的内容，已阻止旧画布回退。请重试加载。',
   detail: '后台保存或其他窗口更新了同一画布。系统只会自动合并互不冲突的修改；当前本地内容仍保留，尚未确认保存，请勿强制结束程序。',
   retry: '同步最新并重试', export: '下载本地副本', local: '保留本地修改并合并保存', server: '采用服务端版本',
   working: '处理中…', cancel: '取消', confirm: '确认处理',
@@ -11,6 +12,7 @@ export const canvasSaveZh = {
 };
 export const canvasSaveEn = {
   title: 'Save conflict',
+  staleLoad: 'The loaded canvas is older than an acknowledged save. Older content was blocked; retry loading.',
   detail: 'A background save or another window updated this canvas. Only non-conflicting edits merge automatically. Local content is retained but saving is unconfirmed; do not force-quit.',
   retry: 'Sync latest and retry', export: 'Download local copy', local: 'Keep local edits and merge', server: 'Use server version',
   working: 'Working…', cancel: 'Cancel', confirm: 'Confirm resolution',

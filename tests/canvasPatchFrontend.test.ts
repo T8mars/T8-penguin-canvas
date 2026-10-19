@@ -345,7 +345,8 @@ test('Canvas serializes writes, invalidates stale previews, and uses an audited 
   assert.match(source, /patchPreviewBaselinesRef/);
   assert.match(source, /PATCH_PREVIEW_STALE/);
   assert.match(source, /canvasPatchHistoryBarrier\(next, options\.patchId\)/);
-  assert.match(source, /patchId: patch\.id/);
+  assert.match(source, /recoveryCommit\(canvasId, authoritativeDocument, baseline\.snapshot, undefined, patch\.id\)/);
+  assert.match(source, /commitAuthoritativeCanvasPatchDocument\(canvasId, document, \{ expectedLocalSnapshot: baseline, historyMode, patchId \}\)/);
   assert.match(source, /onResolvePatchConflict=\{handleResolveCanvasPatchConflict\}/);
   assert.match(source, /pendingSaveByCanvasRef\.current\.get\(canvasId\).*conflicted/s);
   assert.match(source, /const reconciliation = reconcileCanvasPatchAutosavePending\(/);

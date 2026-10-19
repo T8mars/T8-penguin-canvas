@@ -5,6 +5,8 @@ import {
   authoritativeCanvasRevision,
   hasCanvasWriteAuthority,
   requireAuthoritativeCanvasRevision,
+  readCurrentCanvasAuthority,
+  StaleCanvasLoadError,
 } from '../src/utils/canvasLoadAuthority.ts';
 import { canvasDatabaseRecoveryPlanFromPayload } from '../src/utils/canvasDatabaseRecovery.ts';
 
@@ -121,4 +123,33 @@ test('only a live, bounded server recovery plan enables the explicit backup acti
   };
   assert.equal(canvasDatabaseRecoveryPlanFromPayload(expired), null);
   assert.equal(canvasDatabaseRecoveryPlanFromPayload(new Error('untrusted')), null);
+});
+
+test('load refreshes a real earlier response once after the known save revision advances', async () => {
+  let known = 1, reads = 0;
+  const result = await readCurrentCanvasAuthority({ minimumRevision: () => known, cancelled: () => false,
+    load: async () => { reads++; if (reads === 1) { known = 2; return { revision: 1, value: 'older' }; } return { revision: 2, value: 'saved' }; } });
+  assert.equal(reads, 2); assert.equal(result.value, 'saved'); assert.equal(known, 2);
+});
+
+test('current authority loads once; stale or continuously advancing authority never loops or downgrades', async () => {
+  let reads = 0;
+  assert.equal((await readCurrentCanvasAuthority({ minimumRevision: () => 2, cancelled: () => false,
+    load: async () => { reads++; return { revision: 2 }; } })).revision, 2);
+  assert.equal(reads, 1);
+  for (const advances of [false, true]) {
+    reads = 0; let known = 2;
+    await assert.rejects(readCurrentCanvasAuthority({ minimumRevision: () => known, cancelled: () => false,
+      load: async () => { reads++; if (reads === 2 && advances) known = 3; return { revision: advances ? reads : 1 }; } }), StaleCanvasLoadError);
+    assert.equal(reads, 2); assert.equal(known, advances ? 3 : 2);
+  }
+});
+
+test('load cancellation and malformed revision never authorize a retry or a saved baseline', async () => {
+  for (const outcome of ['cancel', 'invalid']) {
+    let reads = 0, cancelled = false;
+    await assert.rejects(readCurrentCanvasAuthority({ minimumRevision: () => 2, cancelled: () => cancelled,
+      load: async () => { reads++; cancelled = outcome === 'cancel'; return { revision: outcome === 'invalid' ? '2' : 2 }; } }));
+    assert.equal(reads, 1);
+  }
 });
