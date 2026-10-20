@@ -7,7 +7,7 @@
   "zcanvasInstanceDiscovery20261020": {"status": "development-verified-unreleased", "details": "docs/zcanvas-instance-discovery.md"},
   "dshSavedMedia20261020": {"status": "development-verified-unreleased", "details": "docs/zcanvas-saved-media-transfer.md"},
   "$schema": "本文件为 T8-penguin-canvas 节点清单防丢失锁,任何节点删减都需要在 roadmap.md 中说明并更新本文件。",
-  "version": "3.3.6",
+  "version": "3.3.7",
   "zcanvasRunApprovalRecovery20261020": {
     "status": "development-verified-unreleased",
     "summary": "原生运行计划单次操作绑定、同作用域GET恢复；20项限定回归与全新TEMP实际路由/账本通过，未运行Provider，真实窗口/生产版待验。",
@@ -23,16 +23,14 @@
     "summary": "幂等键不再授权模糊失败后重放付费写入；保留明确TLS码恢复与查询。六项回归通过；相邻128项127过/1项原HEAD同样失败。",
     "details": "docs/seedance-write-replay-boundary.md"
   },
-  "electronReleaseV336": {
-    "status": "released-dual-platform-verified",
-    "version": "3.3.6",
-    "tag": "v3.3.6",
-    "latest": true,
-    "evidence": "docs/release-v3.3.6.md",
-    "postReleaseEvidence": "owner-approved-post-release-v3.3.6",
-    "macBoundary": "same-tag-unsigned-preview; no-quota-deferral-used",
-    "sourceCommit": "dadb10e6521dfbca7d888ceec3dbd7d5de7284a2",
-    "macWorkflow": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/39265271861"
+  "electronReleaseV337": {
+    "status": "authorized-build-pending",
+    "version": "3.3.7",
+    "tag": "v3.3.7",
+    "latest": false,
+    "evidence": "docs/release-v3.3.7.md",
+    "postReleaseEvidence": "owner-approved-post-release-v3.3.7",
+    "macBoundary": "same-tag-unsigned-preview; only-quota-insufficiency-may-defer"
   },
   "canvasSaveConflictRecovery20261019": {
     "status": "released-v3.3.6-dual-platform-local-verified",
@@ -2673,6 +2671,20 @@
       "v2.9.2 已从固定源码 94ce2523b6b486c86bcee63d19d68754e451cbd0 完成唯一 Electron/NSIS 自动更新发布、固定 Tag、Latest、三资产发布前与独立发布后完整回下载；反馈用户安装环境、协作多端及安装升级证据仍仅按 owner-approved-post-release-v2.9.2 后补，延期不等于通过。"
     ]
   },
+  "release": {
+    "status": "authorized-v3.3.7-build-pending",
+    "version": "3.3.7",
+    "date": "2026-10-20",
+    "tag": "v3.3.7",
+    "latest": false,
+    "url": "https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.3.7",
+    "details": "docs/release-v3.3.7.md",
+    "postReleaseEvidence": "owner-approved-post-release-v3.3.7",
+    "verification": [
+      "193 targeted development regressions and temporary SQLite DSH combination passed; formal build/upload/download verification pending.",
+      "Real human approval, paid Provider, installed upgrade, user-site and F8-F10 deferred, not passed."
+    ]
+  },
   "minimaxMusic3PromptEnhancer": {
     "status": "released-v2.9.3",
     "date": "2026-08-15",
@@ -3578,12 +3590,12 @@
       "TypeScript、能力目录同步、公开源码检查、生产前端构建与构建产物 RH 能力标记检查通过；该能力已随 v2.7.8 正式发布，真实 RunningHub WebApp 与安装版证据按用户授权在发布后补录。"
     ]
   },
-  "release": {
+  "electronReleaseV336": {
     "status": "released-v3.3.6-dual-platform-verified",
     "version": "3.3.6",
     "date": "2026-10-19",
     "tag": "v3.3.6",
-    "latest": true,
+    "latest": false,
     "sourceCommit": "dadb10e6521dfbca7d888ceec3dbd7d5de7284a2",
     "publishedAt": "2026-10-19T14:01:16Z",
     "draft": false,
@@ -9972,11 +9984,11 @@
       "T8_ENABLE_LOCAL_PRIVATE": "开发环境和普通本机构建可选；0=关闭本机 local-private/extensions 私有扩展。正式 dist:release 固定为 1，不能被父环境降级。GitHub/clean clone 因为没有 local-private 目录，不包含充值实现。",
       "T8_DISABLE_LOCAL_EXTENSIONS": "开发环境可选；1=关闭本地扩展。正式 dist:release 固定为 0，确保本机私有 sidecar 参与加密打包与后置校验。"
     },
-    "version": "3.2.1",
-    "semverVersion": "3.2.1",
+    "version": "3.3.7",
+    "semverVersion": "3.3.7",
     "versionNumberPolicy": "T8 版本号仍采用 x.y.z 三段，但每一段只允许 0-9；任一段到 9 后下一次发布必须向左进位，禁止任一段出现两位数字。例：1.9.9 的下一版必须是 2.0.0。",
-    "versionNote": "v3.2.1 对同库可验证的旧 canonical backup 提供用户明确确认的 schema32 恢复，完整保留 v3.2.0 及更早能力；固定源码与双平台六资产已完成正式发布和完整回下载。公开源码继续排除本地私有计费/支付/充值实现。",
-    "installer": "v3.2.1 Windows 安装包、blockmap、latest.yml 与 Mac DMG、ZIP、latest-mac.yml 均已从固定源码发布并完整回下载；精确字节与摘要见 release.assets 及 docs/release-v3.2.1.md。",
+    "versionNote": "v3.3.7 DSH原生接入与恢复可靠性；正式构建/发布待完成，证据见docs/release-v3.3.7.md。公开源码不包含本机私有计费实现。",
+    "installer": "T8-PenguinCanvas-Setup-3.3.7.exe；正式资产及两个更新清单验证待完成，见release及docs/release-v3.3.7.md。",
     "updaterInstallMode": "自动更新下载完成后不得静默安装：main.cjs 必须设置 autoInstallOnAppQuit=false，显式安装调用 quitAndInstall(false,true)；electron/build-resources/installer.nsh 通过 SetSilent normal 让新版 NSIS 安装器即使收到旧客户端传入的 /S 也尽量切回前台安装向导。",
     "installerShortcutPolicy": "安装完成后必须创建桌面和开始菜单快捷方式：package.json build.nsis.createDesktopShortcut 必须为 \"always\"，createStartMenuShortcut 必须为 true；electron/build-resources/installer.nsh 必须保留 customInstall 兜底 CreateShortCut \"$newStartMenuLink\" 与 \"$DESKTOP\\${SHORTCUT_NAME}.lnk\"，防止更新安装/keepShortcuts 路径遗漏入口。",
     "updaterEntryPolicy": "顶栏桌面更新入口不得只因 window.t8pc.updater 缺失就静默消失；Electron UA 或 t8pc.getInfo/openExternal 可用时必须显示诊断入口，提示重新安装完整桌面包，Web/纯浏览器环境才隐藏。状态为 not-available 时按钮仍保留“更新”字样，避免用户误以为自动更新入口被删除。",

@@ -3,8 +3,8 @@
 更新：2026-10-20。仅维护当前事实；长期规则见根 `SKILL.md` 和 `AGENTS.md`。本页预算 80 行 / 8 KiB，旧检查点迁入专题，不追加长日报。
 
 - 默认目录 `E:\PenguinPravite\T8-penguin-canvas`；branch `codex/release-v3.0.8-volcengine-assets-ux`，common dir `.git`。开工以git/worktree门为准；正式源码/Tag固定后记录在发布专题，不移动。
-- package `3.3.6` 已双平台发布为Latest；六资产/两个更新清单完整回下载通过，源码与Tag冻结，见[发布专题](release-v3.3.6.md)。
-- 本版安装升级、用户现场和 F8–F10 按 `owner-approved-post-release-v3.3.6` 后补，不视为通过；Mac为ad-hoc未公证预览，仅额度不足可延期。
+- package `3.3.7` 已获正式发布授权，构建/上传待完成，见[发布专题](release-v3.3.7.md)；旧v3.3.6 Tag/六资产冻结。
+- 本版安装升级、用户现场和 F8–F10 按 `owner-approved-post-release-v3.3.7` 后补，不视为通过；Mac为ad-hoc未公证预览，仅额度不足可延期。
 
 ## 当前检查点
 
@@ -12,7 +12,7 @@
 
 | 事项 | 当前事实与下一步 |
 | --- | --- |
-| DSH接入（未发布） | 38项已接管，修限额声明/无效运行审批；193项回归与DSH原生临时库组合通过，单一意图/素材/放置及GET恢复成立。安装版/真实窗口/Provider未验，见[交接](dsh-native-integration-20261020.md)。 |
+| DSH接入（v3.3.7待发布） | 38项已接管，修限额声明/无效运行审批；193项回归与DSH临时库组合通过，单一意图/素材/放置及GET恢复成立。真实窗口/Provider未验，见[交接](dsh-native-integration-20261020.md)。 |
 | 画布保存冲突 | 已随v3.3.6双平台发布：有界合并与冲突确认，两次20主题复查；215回归、隔离画布25项通过。旧确认/加载不回退、目录不复活、医生移动协议修正。CAS不放宽，现场/安装版后补，见[专题](canvas-save-conflict-20261019.md)。 |
 | Strata本地LLM | 已随v3.3.5双平台发布：两轮20轮审查修8项，315回归及最新隔离画布16项通过。前轮真实识图通过，本轮冷启动上游503未通过；用户要求服务先不动。范围/未验收见[专题](strata-llm.md)。 |
 | ArtCraft体验增强 | 已随v3.3.4双平台发布：灵感板/编辑版本/独立世界节点/Story草稿；完整App实链、28主题组合、142项及正式构建通过。排除/搁置项见[专题](artcraft-canvas-ux.md)。 |
