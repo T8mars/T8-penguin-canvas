@@ -21,6 +21,8 @@ Tag、Release 或修改安装版。正式版本仍为 3.3.6，已发布 Tag/资�
   `routes/agentControl.js`，新增 `tests/agentControlDshContract.test.cjs` 及本文。
   features/current-context 只增加短索引。源码检查点仅包含审核的40个文件，
   不包含私有证据或生产发布；精确文件与散列保留于本机证据。
+- 本地源码提交 `3f6a483bdf895cbd0768c9f692aeba2c53525a96`；后续文档事实收口
+  不改变API/CLI或测试源码，未推送。提交核对记录为本机 `checkpoint.json`。
 
 ## 本轮确认并修复的两处问题
 
