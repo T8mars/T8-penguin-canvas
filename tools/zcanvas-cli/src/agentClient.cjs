@@ -92,7 +92,7 @@ function assertCompatibleInstance(instance, options = {}) {
     if (!expected || actual !== expected) {
       throw new AgentClientError(
         code,
-        `${label}与当前画布不一致；未执行任何写入，请更新 Skill/CLI 或桌面应用`,
+        `${label}与正在运行的画布不一致；即使版本号相同，内容摘要也必须匹配。请在该桌面画布设置中安装/修复 Agent 连接工具，再由连接端重新审阅工具目录；未执行任何写入`,
         0,
         { field, expected: expected || null, actual: actual || null },
       );

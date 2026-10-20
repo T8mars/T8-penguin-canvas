@@ -1289,5 +1289,6 @@ module.exports = {
   waitForApplicationRequests,
   waitForRuntimeStorageCloseLifecycle,
   agentControlAuthService: require('./services/agentControlAuth').agentControlAuthService,
+  agentControlCompatibilitySnapshot: require('./services/agentControlCompatibility').compatibilitySnapshot,
   agentControlApprovalService: require('./services/agentControlApprovals').agentControlApprovalService,
 };

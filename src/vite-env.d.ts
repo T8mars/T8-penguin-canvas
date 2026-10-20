@@ -317,8 +317,26 @@ interface T8AgentControlCanvasMutation {
   committedAt: string;
 }
 
+interface T8AgentToolsStatus {
+  schema: 't8-agent-tools-status-v1';
+  source: 'project-source' | 'electron-resources';
+  skillVersion: string;
+  cliVersion: string;
+  compatibility: Record<string, string>;
+  sourceDigest: string;
+  installRoot: string;
+  cliRoot: string;
+  state: 'missing' | 'current' | 'outdated' | 'damaged' | 'unmanaged';
+  rollbackAvailable: boolean;
+  changed?: boolean;
+}
+
 interface Window {
   t8pc?: {
+    agentTools?: {
+      status: () => Promise<T8AgentControlIpcResult<T8AgentToolsStatus>>;
+      repair: () => Promise<T8AgentControlIpcResult<T8AgentToolsStatus>>;
+    };
     startupDiagnostics?: {
       record: (event: { component: 'renderer'; phase: string; elapsedMs: number; phaseMs?: number; delayMs?: number }) => void;
       save: () => Promise<{ success: boolean; canceled?: boolean; code?: string }>;

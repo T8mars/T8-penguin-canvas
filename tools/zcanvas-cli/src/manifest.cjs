@@ -2,6 +2,7 @@
 
 const fs = require('node:fs');
 const crypto = require('node:crypto');
+const path = require('node:path');
 const {
   sha256CanonicalText,
 } = require('./canonicalTextDigest.cjs');
@@ -142,13 +143,17 @@ function validateCapabilityGraphContracts(capabilityGraph) {
   return capabilityGraph;
 }
 
-function readManifest() {
-  if (cached) return cached;
-  const buffer = fs.readFileSync(MANIFEST_PATH);
-  const commandBuffer = fs.readFileSync(COMMAND_CATALOG_PATH);
-  const capabilityBuffer = fs.readFileSync(CREATIVE_CAPABILITY_MANIFEST_PATH);
-  const capabilityGraphBuffer = fs.readFileSync(CREATIVE_CAPABILITY_GRAPH_PATH);
-  const capabilitySurfacesBuffer = fs.readFileSync(CREATIVE_CAPABILITY_SURFACES_PATH);
+function readManifest(options = {}) {
+  // The desktop repairs same-version exports. Never reuse metadata from a
+  // different directory or a previous read of files that may have been replaced.
+  const useCache = !options.rootDirectory && options.disableCache !== true;
+  if (useCache && cached) return cached;
+  const root = options.rootDirectory ? path.resolve(options.rootDirectory) : null;
+  const buffer = fs.readFileSync(root ? path.join(root, 'manifest.json') : MANIFEST_PATH);
+  const commandBuffer = fs.readFileSync(root ? path.join(root, 'commandCatalog.json') : COMMAND_CATALOG_PATH);
+  const capabilityBuffer = fs.readFileSync(root ? path.join(root, 'creativeCapabilityManifest.json') : CREATIVE_CAPABILITY_MANIFEST_PATH);
+  const capabilityGraphBuffer = fs.readFileSync(root ? path.join(root, 'generated', 'creative-capability-graph.json') : CREATIVE_CAPABILITY_GRAPH_PATH);
+  const capabilitySurfacesBuffer = fs.readFileSync(root ? path.join(root, 'generated', 'creative-capability-surfaces.json') : CREATIVE_CAPABILITY_SURFACES_PATH);
   const parsed = JSON.parse(buffer.toString('utf8'));
   const catalog = JSON.parse(commandBuffer.toString('utf8'));
   const capabilityManifest = JSON.parse(capabilityBuffer.toString('utf8'));
@@ -225,7 +230,7 @@ function readManifest() {
     capabilityGraph.capabilities.map((capability) => [capability.id, capability]),
   );
 
-  cached = Object.freeze({
+  const result = Object.freeze({
     ...parsed,
     commands: Object.freeze(commandNames),
     creativeCapabilities: Object.freeze(capabilityManifest.capabilities.map((capability) => Object.freeze({
@@ -256,7 +261,8 @@ function readManifest() {
       .update(capabilitySurfacesBuffer)
       .digest('hex'),
   });
-  return cached;
+  if (useCache) cached = result;
+  return result;
 }
 
 module.exports = {

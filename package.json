@@ -1,7 +1,7 @@
 {
   "name": "t8-penguin-canvas",
   "private": false,
-  "version": "3.3.8",
+  "version": "3.3.9",
   "type": "module",
   "main": "electron/main.cjs",
   "description": "T8-penguin-canvas — AI 节点画布工作流工具（Web + Electron 桌面端）",
@@ -193,6 +193,7 @@
       "electron/main.cjs",
       "electron/dataStorage.cjs",
       "electron/startupDiagnostics.cjs",
+      "electron/agentTools.cjs",
       "electron/i18n.cjs",
       "electron/i18n-catalog.json",
       "electron/preload.cjs",

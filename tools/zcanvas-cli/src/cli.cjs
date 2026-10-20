@@ -460,6 +460,17 @@ function creatorRecoveryForError(error = {}) {
       nextActions: ['重新完成本机配对，然后从同一 Creator Session 继续。'],
     };
   }
+  if (['AGENT_CONTROL_PROTOCOL_MISMATCH', 'AGENT_SKILL_VERSION_MISMATCH', 'AGENT_CLI_VERSION_MISMATCH',
+    'CANVAS_PATCH_PROTOCOL_MISMATCH', 'NODE_SCHEMA_DIGEST_MISMATCH', 'PROVIDER_CATALOG_DIGEST_MISMATCH',
+    'CREATIVE_CAPABILITY_MANIFEST_DIGEST_MISMATCH', 'CREATIVE_CAPABILITY_GRAPH_DIGEST_MISMATCH',
+    'AGENT_MANIFEST_DIGEST_MISMATCH'].includes(code)) {
+    return {
+      ...result,
+      whatFailed: '所选工具与正在运行的桌面画布不配套；相同版本号不代表相同内容',
+      existingWorkState: '未修改连接端信任，不会自动换工具或重新提交已有操作；已有任务的受理状态仍以原回执为准',
+      nextActions: ['在正在运行的桌面画布设置中安装/修复 Agent 连接工具；然后在 DSH 等连接端重新检测并明确审阅该工具目录。不要手改摘要或用实例 ID 绕过校验；已有任务只查询原记录，不重交生成。'],
+    };
+  }
   if (['CREATIVE_CANVAS_STALE', 'REVISION_STALE', 'SCHEMA_STALE'].includes(code)) {
     return {
       ...result,

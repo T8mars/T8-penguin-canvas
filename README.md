@@ -10,10 +10,12 @@ https://www.runninghub.cn/?inviteCode=rh-v1121
 My favorite girl Go YounJung
 # 🐧 贞贞的无限画布（企鹅共创版） · T8-penguin-canvas
 
-> AI 节点画布工作流工具 · Web + Electron 桌面端｜v3.3.8
+> AI 节点画布工作流工具 · Web + Electron 桌面端｜v3.3.9
 >
 > GitHub：<https://github.com/T8mars/T8-penguin-canvas>
 
+> 2026-10-21：v3.3.9 新增设置内安装/修复Agent连接工具，从当前桌面导出配套CLI与Skill；九字段和整包校验，同版本内容变化也刷新，保留回退，不自动改信任或配对。95项限定验证含真实Electron临时设置通过，真人批准和安装升级后补，见[配套合同](docs/agent-tools-installed-cli-compat.md)。
+>
 > 2026-10-21：v3.3.8 修复自动更新停在“正在保存画布”：保留真实后台关闭回执，关闭稍慢时自动续装；真正超时或异常时显示只读故障面板，可保存诊断和显式重试。115项限定回归通过，包含真实Electron、临时数据库及真实更新器启动测试NSIS并等待旧进程退出；不代表正式安装升级或用户现场已验收。见[修复与验证边界](docs/auto-update-close-hold-20261021.md)。
 >
 > 2026-10-20：v3.3.7 完善DSH原生接入：有界实例发现、凭据并发事务、单次运行计划、审批/意图与素材放置恢复，修正导入限额声明和无效操作标识预校验；Seedance模糊失败不重放付费写入。193项限定回归与临时SQLite组合通过；真实窗口审批、付费生成及安装升级仍待验，见[接入合同与验证边界](docs/dsh-native-integration-20261020.md)。
@@ -50,12 +52,12 @@ My favorite girl Go YounJung
 
 一个面向 AI 创作的 **节点式画布**：拖拽节点、连线编排、生成图像 / 视频 / 音频、调用 LLM、串接 RunningHub 工作流，叠加批量执行、智能对齐、打组、主题模板与终端日志。Web 浏览器和桌面端均可使用。
 
-![status](https://img.shields.io/badge/version-v3.3.8-brightgreen) ![node](https://img.shields.io/badge/node-84-blue) ![react](https://img.shields.io/badge/react-19-61dafb) ![electron](https://img.shields.io/badge/electron-33-47848f) ![license](https://img.shields.io/badge/license-MIT-yellow)
+![status](https://img.shields.io/badge/version-v3.3.9-brightgreen) ![node](https://img.shields.io/badge/node-84-blue) ![react](https://img.shields.io/badge/react-19-61dafb) ![electron](https://img.shields.io/badge/electron-33-47848f) ![license](https://img.shields.io/badge/license-MIT-yellow)
 
 ## 💻 桌面版下载
 
-- **Windows x64**：在 [v3.3.8 Release](https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.3.8) 下载 `T8-PenguinCanvas-Setup-3.3.8.exe`。
-- **macOS Apple Silicon**：在 [v3.3.8 Release](https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.3.8) 下载 `T8-PenguinCanvas-3.3.8-mac-arm64.dmg`。支持 M1/M2/M3/M4 等 arm64 Mac，最低 macOS 12，使用 ad-hoc 完整性签名且尚无 Apple Developer ID 公证；首次打开请在 Finder 中右键应用并选择“打开”。Intel Mac 暂不支持。
+- **Windows x64**：在 [v3.3.9 Release](https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.3.9) 下载 `T8-PenguinCanvas-Setup-3.3.9.exe`。
+- **macOS Apple Silicon**：在 [v3.3.9 Release](https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.3.9) 下载 `T8-PenguinCanvas-3.3.9-mac-arm64.dmg`。支持 M1/M2/M3/M4 等 arm64 Mac，最低 macOS 12，使用 ad-hoc 完整性签名且尚无 Apple Developer ID 公证；首次打开请在 Finder 中右键应用并选择“打开”。Intel Mac 暂不支持。
 
 ---
 

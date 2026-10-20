@@ -717,6 +717,12 @@ function install(options = {}) {
     fs.mkdirSync(stage, { recursive: false, mode: 0o700 });
     copyTree(source.cli, path.join(stage, 'runtime', sourceManifest.cliVersion), `runtime/${sourceManifest.cliVersion}`, files);
     copyTree(source.skill, path.join(stage, 'skills', 'zhenzhen-canvas'), 'skills/zhenzhen-canvas', files);
+    if (sourceDigest({
+      cli: path.join(stage, 'runtime', sourceManifest.cliVersion),
+      skill: path.join(stage, 'skills', 'zhenzhen-canvas'),
+    }) !== verifiedSourceDigest) {
+      throw new InstallerError('INSTALL_SOURCE_CHANGED', '安装源在复制期间发生变化；未替换当前安装，请重新检查后重试');
+    }
     files.push(writeLauncher(stage, sourceManifest.cliVersion));
     files.sort((left, right) => left.path.localeCompare(right.path));
     const manifest = {

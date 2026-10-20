@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState, type KeyboardEvent as ReactKeyboard
 import { useTranslation } from 'react-i18next';
 import DesktopDataStorage from './DesktopDataStorage';
 import StartupDiagnosticsSettings from './StartupDiagnosticsSettings';
+import AgentToolsSettings from './AgentToolsSettings';
 import { normalizeMediaNodeDefaults, resolveNewMediaNodeData, type MediaNodeDefaults, type MediaNodeDefaultSource } from '../utils/mediaNodeDefaults';
 import { localizeApiError } from '../i18n/apiErrors';
 import { ChevronDown, ChevronRight, CloudUpload, Download, ExternalLink, Eye, EyeOff, FileUp, Info, KeyRound, Loader2, Lock, Plus, Save, Settings2, TestTube2, Trash2, X, FolderOpen, ServerCog, Volume2 } from 'lucide-react';
@@ -2644,6 +2645,7 @@ export default function ApiSettingsModal({ open, onClose, mode = 'full', returnF
           ) : (
           <>
           <StartupDiagnosticsSettings isPixel={isPixel} />
+          <AgentToolsSettings isPixel={isPixel} />
           <div className="t8-api-settings-divider pb-1" data-ui-font-settings="true">
             <DesktopDataStorage />
             <label className={`text-sm font-medium flex items-center gap-2 flex-wrap ${labelCls}`}>

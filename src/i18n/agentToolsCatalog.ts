@@ -1,0 +1,33 @@
+export const agentToolsZh = {
+  title: 'Agent 连接工具',
+  hint: '从当前运行的画布导出配套 CLI 与 Skill。同版本内容变化也会刷新；保留上一份可回退副本，不修改配对凭据或其他 Agent 的信任记录。',
+  desktopOnly: '请在 Electron 桌面版设置中安装或修复连接工具；浏览器不能导出桌面内置工具。',
+  repair: '安装/修复 Agent 工具', refresh: '重新检查', busy: '正在检查或更新…',
+  missing: '尚未导出当前桌面版的连接工具。', current: '工具内容与当前桌面完全匹配。',
+  outdated: '已导出的工具内容较旧或不配套，需要刷新；不能只比较版本号。',
+  damaged: '受管工具校验未通过，可从当前桌面内置版本修复。',
+  unmanaged: '目标目录缺少有效归属标记或为链接，未覆盖其中的文件。请保留目录并联系作者。',
+  sourceMismatch: '内置工具与当前后台的兼容摘要不一致，已停止导出。请重新启动匹配的完整桌面版，不要改用开发源码或手改摘要。',
+  failed: '未能检查或更新工具，已有画布和配对凭据不受影响。请重试；仍失败时联系作者。',
+  saved: '工具已刷新并完整校验。请在 DSH 等连接端重新检测，明确审阅并选择下方目录；本操作不会自动配对或批准权限。',
+  unchanged: '工具已是当前配套内容，无需替换；上一份回退副本保持不变。',
+  cliRoot: '连接端选择的 CLI 目录', version: 'CLI / Skill 版本：{{cli}} / {{skill}}',
+  open: '打开工具目录', openFailed: '无法打开工具目录，请复制下方路径。',
+};
+
+export const agentToolsEn: typeof agentToolsZh = {
+  title: 'Agent connection tools',
+  hint: 'Export the CLI and Skill bundled with this running canvas. Changed contents are refreshed even at the same version; the previous copy is kept for rollback. Pairing credentials and other agents’ trust records are not changed.',
+  desktopOnly: 'Install or repair connection tools in the Electron desktop settings. A browser cannot export the bundled desktop tools.',
+  repair: 'Install / repair Agent tools', refresh: 'Check again', busy: 'Checking or updating…',
+  missing: 'Connection tools have not been exported from this desktop build.', current: 'Tool contents exactly match this desktop build.',
+  outdated: 'Exported tools are older or incompatible. Refresh their contents; a version string alone is not sufficient.',
+  damaged: 'Managed tools failed integrity verification. Repair them from the running desktop bundle.',
+  unmanaged: 'The destination has no valid ownership marker or is a link. Its files were not overwritten. Keep it and contact the author.',
+  sourceMismatch: 'Bundled tools do not match the running backend’s compatibility digests. Export was stopped. Restart a matching complete desktop build; do not switch to development sources or edit digests.',
+  failed: 'Could not check or update the tools. Existing canvases and pairing credentials are unaffected. Retry or contact the author.',
+  saved: 'Tools refreshed and fully verified. Detect them again in DSH or your connection client, then explicitly review and select the directory below. This does not pair or approve permissions automatically.',
+  unchanged: 'Tools already match. No files were replaced and the previous rollback copy was preserved.',
+  cliRoot: 'CLI directory to select in your connection client', version: 'CLI / Skill version: {{cli}} / {{skill}}',
+  open: 'Open tools folder', openFailed: 'Could not open the folder. Copy the path below instead.',
+};

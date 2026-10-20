@@ -63,6 +63,10 @@ contextBridge.exposeInMainWorld('t8pc', {
     status: () => ipcRenderer.invoke('t8pc:storage:status'),
     chooseAndRestart: () => ipcRenderer.invoke('t8pc:storage:choose'),
   },
+  agentTools: {
+    status: () => ipcRenderer.invoke('t8pc:agent-tools:status'),
+    repair: () => ipcRenderer.invoke('t8pc:agent-tools:repair'),
+  },
   locale: {
     get: () => ipcRenderer.invoke('t8pc:locale:get'),
     set: (locale) => ipcRenderer.invoke(

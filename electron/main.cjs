@@ -40,6 +40,8 @@ const {
 const APP_VERSION = require('../package.json').version;
 const { createDataStorage } = require('./dataStorage.cjs');
 const { createStartupDiagnostics, installStartupConsoleCapture, registerStartupDiagnosticsIpc } = require('./startupDiagnostics.cjs');
+const { createAgentToolsManager, registerAgentToolsIpc } = require('./agentTools.cjs');
+let agentToolsManager = null;
 let desktopDataStorage = null;
 let dataStorageRestartPending = false;
 const ELECTRON_BACKEND_SHUTDOWN_DEADLINE_MS = 15_000;
@@ -2781,6 +2783,18 @@ registerStartupDiagnosticsIpc({
   ipcMain, getWindow: () => mainWindow, assertTrusted: assertTrustedMainRenderer,
   dialog, diagnostics: startupDiagnostics,
   title: () => getElectronLocale() === 'en-US' ? 'Save startup log' : '保存启动日志',
+});
+
+registerAgentToolsIpc({
+  ipcMain, getWindow: () => mainWindow, assertTrusted: assertTrustedMainRenderer,
+  getManager: () => {
+    if (!agentToolsManager) agentToolsManager = createAgentToolsManager({
+      sourceRoot: () => isPackaged() ? process.resourcesPath : path.resolve(__dirname, '..'),
+      packaged: isPackaged(),
+      getCompatibility: () => backendModule?.agentControlCompatibilitySnapshot?.(),
+    });
+    return agentToolsManager;
+  },
 });
 
 ipcMain.handle('t8pc:storage:status', (event) => {
