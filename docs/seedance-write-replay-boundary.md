@@ -1,6 +1,6 @@
 # Seedance 付费写入的重放边界
 
-2026-10-20 源码修复已由画布Agent接管并本地提交，尚未打包或发布；正式版本仍为3.3.6。
+2026-10-20，修复已随v3.3.7双平台发布，正式产物见[发布专题](release-v3.3.7.md)；本轮无付费Provider请求。
 下列历史失败与CLI状态保留当时事实，最新组合验收见[接管结果](dsh-native-integration-20261020.md)。
 
 `seedanceNz.secureFetch` 原来会在请求携带 Idempotency-Key 时，对不确定的

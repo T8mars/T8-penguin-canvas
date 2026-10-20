@@ -1,4 +1,6 @@
-# DSH 已保存素材交接（未发布）
+# DSH 已保存素材交接
+
+已随v3.3.7双平台发布，正式包及下载验证见[发布专题](release-v3.3.7.md)；真人批准/网关/付费生成仍未验收。下文保留开发态临时库证据。
 
 2026-10-20。DSH-zhen 在既有保存记录上核对文件与摘要，分别请求原生
 asset.import 与 asset.place 审批；Native 导入器、Blob store 和 CanvasPatch

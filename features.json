@@ -1,36 +1,45 @@
 {
   "dshNativeIntegration20261020": {
-    "status": "development-native-integration-verified-unreleased",
+    "status": "released-v3.3.7-dual-platform-local-verified",
     "summary": "接管38项，修限额声明/操作预校验；193项限定回归及DSH临时SQLite组合通过，单一意图/素材/放置及GET恢复成立；安装版/真人/Provider待验。",
     "details": "docs/dsh-native-integration-20261020.md"
   },
-  "zcanvasInstanceDiscovery20261020": {"status": "development-verified-unreleased", "details": "docs/zcanvas-instance-discovery.md"},
-  "dshSavedMedia20261020": {"status": "development-verified-unreleased", "details": "docs/zcanvas-saved-media-transfer.md"},
+  "zcanvasInstanceDiscovery20261020": {
+    "status": "released-v3.3.7-local-verified",
+    "details": "docs/zcanvas-instance-discovery.md"
+  },
+  "dshSavedMedia20261020": {
+    "status": "released-v3.3.7-local-verified",
+    "details": "docs/zcanvas-saved-media-transfer.md"
+  },
   "$schema": "本文件为 T8-penguin-canvas 节点清单防丢失锁,任何节点删减都需要在 roadmap.md 中说明并更新本文件。",
   "version": "3.3.7",
   "zcanvasRunApprovalRecovery20261020": {
-    "status": "development-verified-unreleased",
+    "status": "released-v3.3.7-local-verified",
     "summary": "原生运行计划单次操作绑定、同作用域GET恢复；20项限定回归与全新TEMP实际路由/账本通过，未运行Provider，真实窗口/生产版待验。",
     "details": "docs/zcanvas-run-approval-recovery.md"
   },
   "zcanvasSecureStoreTransactions20261020": {
-    "status": "development-verified-unreleased",
+    "status": "released-v3.3.7-local-verified",
     "summary": "凭据v1格式不变；新版写入协调、条件提交/清理和旧快照拒绝。13并发/故障、4实际CLI、Electron42项与同步门通过；只保证参与协调的写入器。",
     "details": "docs/zcanvas-secure-store-transactions.md"
   },
   "seedanceNzWriteReplayBoundary20261020": {
-    "status": "development-verified-unreleased-with-adjacent-baseline-failure",
+    "status": "released-v3.3.7-with-adjacent-baseline-failure",
     "summary": "幂等键不再授权模糊失败后重放付费写入；保留明确TLS码恢复与查询。六项回归通过；相邻128项127过/1项原HEAD同样失败。",
     "details": "docs/seedance-write-replay-boundary.md"
   },
   "electronReleaseV337": {
-    "status": "authorized-build-pending",
+    "status": "released-dual-platform-verified",
     "version": "3.3.7",
     "tag": "v3.3.7",
-    "latest": false,
+    "latest": true,
     "evidence": "docs/release-v3.3.7.md",
     "postReleaseEvidence": "owner-approved-post-release-v3.3.7",
-    "macBoundary": "same-tag-unsigned-preview; only-quota-insufficiency-may-defer"
+    "macBoundary": "same-tag-unsigned-preview; no-quota-deferral-used",
+    "sourceCommit": "dc4893656379c743bd67d5de2de764b7f2d163ff",
+    "macWorkflow": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/39397965921",
+    "macAttempt": 2
   },
   "canvasSaveConflictRecovery20261019": {
     "status": "released-v3.3.6-dual-platform-local-verified",
@@ -2672,18 +2681,57 @@
     ]
   },
   "release": {
-    "status": "authorized-v3.3.7-build-pending",
+    "status": "released-v3.3.7-dual-platform-verified",
     "version": "3.3.7",
     "date": "2026-10-20",
     "tag": "v3.3.7",
-    "latest": false,
+    "latest": true,
+    "sourceCommit": "dc4893656379c743bd67d5de2de764b7f2d163ff",
+    "publishedAt": "2026-10-20T09:03:43Z",
     "url": "https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.3.7",
     "details": "docs/release-v3.3.7.md",
     "postReleaseEvidence": "owner-approved-post-release-v3.3.7",
     "verification": [
-      "193 targeted development regressions and temporary SQLite DSH combination passed; formal build/upload/download verification pending.",
-      "Real human approval, paid Provider, installed upgrade, user-site and F8-F10 deferred, not passed."
-    ]
+      "Unique Windows formal build and same-tag real Mac formal build passed. Six assets independently full-download-verified; both updater manifests matched size/SHA-512. Windows assets unchanged during Mac append; prior v3.3.6 assets/Tag unchanged.",
+      "193 targeted development regressions and temporary SQLite DSH combination passed; 22 release contracts and 8 gate/native HTTP cases passed (overlap not summed). Encrypted packaged probe passed with fresh TEMP database and zero network attempts.",
+      "Real pairing/human approval, paid Provider, installed upgrade, user-site and F8-F10 remain deferred, not passed. First Mac attempt was cancelled after source-fetch network timeouts before any package build; same-tag retry succeeded."
+    ],
+    "draft": false,
+    "prerelease": false,
+    "assets": {
+      "windowsInstaller": {
+        "name": "T8-PenguinCanvas-Setup-3.3.7.exe",
+        "bytes": 1379765569,
+        "sha256": "1c10e1906692e2e9de705f42745acd97d298a942dd135c091c84340ac9424276"
+      },
+      "windowsBlockmap": {
+        "name": "T8-PenguinCanvas-Setup-3.3.7.exe.blockmap",
+        "bytes": 1439247,
+        "sha256": "cf9e12ae426175ed1e04af730b52868b0d6370a700f8572986a34c7ab01877da"
+      },
+      "windowsUpdater": {
+        "name": "latest.yml",
+        "bytes": 362,
+        "sha256": "abf8c483f04402d3381e011f227b91afee66f9f5ad0322d8bcc19c62322d9bad"
+      },
+      "macDmg": {
+        "name": "T8-PenguinCanvas-3.3.7-mac-arm64.dmg",
+        "bytes": 519556707,
+        "sha256": "b858ea9d6b0d827497c1d9568527363defb69646d8810053ef7f0a04b6c367de"
+      },
+      "macZip": {
+        "name": "T8-PenguinCanvas-3.3.7-mac-arm64.zip",
+        "bytes": 511261244,
+        "sha256": "128bc8c30b193c29cbc060cf8afa31036ee2eec594298e24eb04ab825397d517"
+      },
+      "macUpdater": {
+        "name": "latest-mac.yml",
+        "bytes": 536,
+        "sha256": "3d34a6a6c98a7c56887d25f25dc1ba2df57c3402c84f010330e738c0d3bf91de"
+      }
+    },
+    "macWorkflow": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/39397965921",
+    "macAttempt": 2
   },
   "minimaxMusic3PromptEnhancer": {
     "status": "released-v2.9.3",
@@ -3591,7 +3639,10 @@
     ]
   },
   "electronReleaseV336": {
-    "status": "released-v3.3.6-dual-platform-verified",
+    "status": "released-dual-platform-verified",
+    "evidence": "docs/release-v3.3.6.md",
+    "postReleaseEvidence": "owner-approved-post-release-v3.3.6",
+    "macBoundary": "same-tag-unsigned-preview; no-quota-deferral-used",
     "version": "3.3.6",
     "date": "2026-10-19",
     "tag": "v3.3.6",
@@ -9987,8 +10038,8 @@
     "version": "3.3.7",
     "semverVersion": "3.3.7",
     "versionNumberPolicy": "T8 版本号仍采用 x.y.z 三段，但每一段只允许 0-9；任一段到 9 后下一次发布必须向左进位，禁止任一段出现两位数字。例：1.9.9 的下一版必须是 2.0.0。",
-    "versionNote": "v3.3.7 DSH原生接入与恢复可靠性；正式构建/发布待完成，证据见docs/release-v3.3.7.md。公开源码不包含本机私有计费实现。",
-    "installer": "T8-PenguinCanvas-Setup-3.3.7.exe；正式资产及两个更新清单验证待完成，见release及docs/release-v3.3.7.md。",
+    "versionNote": "v3.3.7 DSH原生接入与恢复可靠性；双平台六资产验证通过，证据见docs/release-v3.3.7.md。公开源码不包含本机私有计费实现。",
+    "installer": "T8-PenguinCanvas-Setup-3.3.7.exe；六资产及两个更新清单已完整回下载，见release.assets及docs/release-v3.3.7.md。",
     "updaterInstallMode": "自动更新下载完成后不得静默安装：main.cjs 必须设置 autoInstallOnAppQuit=false，显式安装调用 quitAndInstall(false,true)；electron/build-resources/installer.nsh 通过 SetSilent normal 让新版 NSIS 安装器即使收到旧客户端传入的 /S 也尽量切回前台安装向导。",
     "installerShortcutPolicy": "安装完成后必须创建桌面和开始菜单快捷方式：package.json build.nsis.createDesktopShortcut 必须为 \"always\"，createStartMenuShortcut 必须为 true；electron/build-resources/installer.nsh 必须保留 customInstall 兜底 CreateShortCut \"$newStartMenuLink\" 与 \"$DESKTOP\\${SHORTCUT_NAME}.lnk\"，防止更新安装/keepShortcuts 路径遗漏入口。",
     "updaterEntryPolicy": "顶栏桌面更新入口不得只因 window.t8pc.updater 缺失就静默消失；Electron UA 或 t8pc.getInfo/openExternal 可用时必须显示诊断入口，提示重新安装完整桌面包，Web/纯浏览器环境才隐藏。状态为 not-available 时按钮仍保留“更新”字样，避免用户误以为自动更新入口被删除。",
