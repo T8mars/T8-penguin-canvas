@@ -157,9 +157,10 @@ test('Electron does not open the renderer before the packaged backend is ready',
   assert.match(main, /status\?\.instanceId === expectedInstanceId/);
   assert.match(main, /function shutdownBackendForElectron\(reason = 'ELECTRON_QUIT'\)/);
   assert.match(main, /const ELECTRON_BACKEND_SHUTDOWN_DEADLINE_MS = 15_000/);
-  assert.match(main, /settleWithinElectronDeadline\(\s+shutdownWork,\s+ELECTRON_BACKEND_SHUTDOWN_DEADLINE_MS,/);
+  assert.match(main, /backendShutdownCompletionPromise = shutdownWork\.then/);
+  assert.match(main, /settleWithinElectronDeadline\(\s+backendShutdownCompletionPromise,\s+ELECTRON_BACKEND_SHUTDOWN_DEADLINE_MS,/);
   assert.match(main, /Electron shutdown deadline reached/);
-  assert.match(main, /const outcome = await backendModule\?\.gracefulShutdown\?\.\(reason\)/);
+  assert.match(main, /const outcome = await backendModule\?\.gracefulShutdown\?\.\(reason, \{\s+onProgress: \(phase\) => \{/);
   assert.match(main, /bounded shutdown left tracked work deferred; waiting within the Electron cutoff/);
   assert.match(main, /await backendModule\?\.waitForRuntimeStorageCloseLifecycle\?\.\(\)/);
   assert.match(main, /await shutdownBackendForElectron\('STARTUP_FAILURE'\)/);

@@ -1,4 +1,9 @@
 {
+  "autoUpdateCloseHold20261021": {
+    "status": "implemented-unreleased-targeted-verified",
+    "summary": "更新保留真实存储关闭回执；短截止后有界等待并自动续装，故障只读面板可导出日志/显式重试，不强杀或提前安装。",
+    "details": "docs/auto-update-close-hold-20261021.md"
+  },
   "dshNativeIntegration20261020": {
     "status": "released-v3.3.7-dual-platform-local-verified",
     "summary": "接管38项，修限额声明/操作预校验；193项限定回归及DSH临时SQLite组合通过，单一意图/素材/放置及GET恢复成立；安装版/真人/Provider待验。",

@@ -327,7 +327,7 @@ interface Window {
       status: () => Promise<{ enabled: boolean; path?: string; freeBytes?: number; reserveBytes?: number }>;
       chooseAndRestart: () => Promise<{ success: boolean; canceled?: boolean; error?: string }>;
     };
-    onCanvasCloseRequest?: (callback: (cancelled: () => boolean) => Promise<{
+    onCanvasCloseRequest?: (callback: (cancelled: () => boolean, phase?: () => 'saving' | 'closing' | 'waiting' | 'installing' | 'update-error') => Promise<{
       ok: boolean; reason?: 'running' | 'conflict' | 'save';
     }>) => () => void;
     getInfo: () => Promise<{

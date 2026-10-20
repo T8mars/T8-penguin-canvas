@@ -4,6 +4,12 @@ const { contextBridge, ipcRenderer, webUtils } = require('electron');
 let canvasCloseHandler = null;
 let canvasCloseEverRegistered = false;
 let canvasCloseRequest = null;
+ipcRenderer.on('t8pc:canvas-close-phase', (_event, requestId, phase) => {
+  if (canvasCloseRequest?.id !== requestId || canvasCloseRequest.cancelled
+    || !canvasCloseRequest.approved
+    || !['closing', 'waiting', 'installing', 'update-error'].includes(phase)) return;
+  canvasCloseRequest.phase = phase;
+});
 ipcRenderer.on('t8pc:canvas-close-cancel', (_event, requestId) => {
   if (canvasCloseRequest?.id !== requestId) return;
   canvasCloseRequest.cancelled = true;
@@ -15,7 +21,7 @@ ipcRenderer.on('t8pc:canvas-close-request', async (_event, requestId) => {
   canvasCloseRequest = request;
   try {
     const result = canvasCloseHandler
-      ? await canvasCloseHandler(() => request.cancelled)
+      ? await canvasCloseHandler(() => request.cancelled, () => request.phase || 'saving')
       : { ok: !canvasCloseEverRegistered, reason: 'save' };
     request.approved = result?.ok === true;
     if (!request.cancelled) ipcRenderer.send('t8pc:canvas-close-result', {

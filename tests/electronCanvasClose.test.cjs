@@ -45,6 +45,16 @@ test('failed migration preparation revokes close approval and allows a new save 
   assert.equal(f.sent.filter(([channel]) => channel === 't8pc:canvas-close-request').length, 2);
 });
 
+test('exit phases are sent only for the approved receipt and never unlock editing', async () => {
+  const f = fixture();
+  f.gate.notifyPhase('waiting'); assert.equal(f.sent.length, 0);
+  const receipt = f.gate.request(); f.respond(); await receipt;
+  f.gate.notifyPhase('waiting');
+  assert.deepEqual(f.sent.at(-1), ['t8pc:canvas-close-phase', 'request-1', 'waiting']);
+  f.gate.cancelApproval();
+  const count = f.sent.length; f.gate.notifyPhase('installing'); assert.equal(f.sent.length, count);
+});
+
 test('native close remains open until exact current main-frame save receipt', async () => {
   const f = fixture();
   f.win.close();
@@ -157,4 +167,16 @@ test('main timeout can still cancel the renderer hold after a successful ACK was
   f.api.onCanvasCloseRequest(async () => ({ ok: false }));
   f.ipc.emit('t8pc:canvas-close-request', {}, 'retry'); await turn();
   assert.equal(f.sent[1][1].requestId, 'retry');
+});
+
+test('preload scopes exit progress to the exact approved request and a fixed phase allowlist', async () => {
+  const f = preloadFixture(); let phase;
+  f.api.onCanvasCloseRequest(async (_cancelled, readPhase) => { phase = readPhase; return { ok: true }; });
+  f.ipc.emit('t8pc:canvas-close-request', {}, 'approved'); await turn();
+  assert.equal(phase(), 'saving');
+  f.ipc.emit('t8pc:canvas-close-phase', {}, 'old', 'waiting'); assert.equal(phase(), 'saving');
+  f.ipc.emit('t8pc:canvas-close-phase', {}, 'approved', 'arbitrary message'); assert.equal(phase(), 'saving');
+  f.ipc.emit('t8pc:canvas-close-phase', {}, 'approved', 'waiting'); assert.equal(phase(), 'waiting');
+  f.ipc.emit('t8pc:canvas-close-cancel', {}, 'approved');
+  f.ipc.emit('t8pc:canvas-close-phase', {}, 'approved', 'installing'); assert.equal(phase(), 'waiting');
 });

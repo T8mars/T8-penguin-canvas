@@ -1047,20 +1047,32 @@ function shutdownCollaborationGatewayLifecycle() {
   }
   return collaborationGatewayShutdownPromise;
 }
+let shutdownProgressListener = null;
+function reportShutdownPhase(phase) {
+  try { shutdownProgressListener?.(phase); } catch { /* Observability cannot block shutdown. */ }
+}
+
 function closeRuntimeStorageLifecycle() {
   if (!runtimeStorageClosePromise) {
     runtimeStorageClosePromise = (async () => {
       // Both workers may own database writes across async provider/renderer
       // boundaries. The collaboration listener is a third database writer and
       // must enter its terminal lifecycle before ProjectDatabase is closed.
+      reportShutdownPhase('semantic-drain');
       await Promise.resolve(startupSemanticModelRefreshPromise);
+      reportShutdownPhase('recovery-drain');
       await shutdownRunRecoveryLifecycle();
+      reportShutdownPhase('preview-drain');
       await shutdownPreviewPipelineLifecycle();
+      reportShutdownPhase('video-drain');
       await shutdownVideoOperationsLifecycle();
+      reportShutdownPhase('collaboration-drain');
       await shutdownCollaborationGatewayLifecycle();
       await videoOpsRouter.waitForShutdownDrain?.();
       await peekCollaborationGateway()?.waitForApplicationRequests?.();
+      reportShutdownPhase('deferred-drain');
       await waitForProjectStorageDeferredWork();
+      reportShutdownPhase('database-close');
       await closeProjectDatabaseLifecycle();
     })();
   }
@@ -1139,7 +1151,8 @@ function waitForRuntimeStorageCloseLifecycle() {
     || Promise.resolve(null);
 }
 
-function gracefulShutdown(signal) {
+function gracefulShutdown(signal, options = {}) {
+  if (typeof options?.onProgress === 'function') shutdownProgressListener = options.onProgress;
   if (shutdownStarted) return gracefulShutdownPromise || projectDatabaseClosePromise || Promise.resolve();
   shutdownStarted = true;
   cancelProjectStorageDeferredWork();
@@ -1185,11 +1198,16 @@ function gracefulShutdown(signal) {
   if (signal === 'SIGINT') process.exitCode = 130;
   else if (signal === 'SIGTERM') process.exitCode = 143;
   gracefulShutdownPromise = (async () => {
+    reportShutdownPhase('http-drain');
     const http = await closeHttpServerLifecycle();
     await figmaShutdown;
+    reportShutdownPhase('recovery-drain');
     await recoveryShutdown;
+    reportShutdownPhase('preview-drain');
     await previewShutdown;
+    reportShutdownPhase('video-drain');
     const videoOperations = await videoShutdown;
+    reportShutdownPhase('collaboration-drain');
     await collaborationShutdown;
     // A request accepted before close may have created the lazy gateway after
     // the first shutdown pass. Recheck only after the main server is closed.

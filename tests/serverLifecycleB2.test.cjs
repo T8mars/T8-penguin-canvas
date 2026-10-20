@@ -108,7 +108,8 @@ test('graceful shutdown during the listen startup window closes the server befor
   let boundPort = null;
   backend.server.once('listening', () => { boundPort = backend.server.address()?.port || null; });
   try {
-    const first = backend.gracefulShutdown();
+    const stages = [];
+    const first = backend.gracefulShutdown('TEST', { onProgress: phase => stages.push(phase) });
     const second = backend.gracefulShutdown();
     assert.strictEqual(second, first, 'concurrent shutdown callers must share one lifecycle promise');
     await first;
@@ -117,6 +118,8 @@ test('graceful shutdown during the listen startup window closes the server befor
     if (boundPort) await cannotConnect(boundPort);
     await backend.gracefulShutdown();
     await backend.waitForRuntimeStorageCloseLifecycle();
+    assert.ok(stages.indexOf('http-drain') < stages.indexOf('database-close'));
+    assert.ok(stages.includes('deferred-drain'));
   } finally {
     if (backend.server.listening) {
       backend.server.closeAllConnections?.();

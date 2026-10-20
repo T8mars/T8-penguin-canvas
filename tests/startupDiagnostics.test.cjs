@@ -29,6 +29,17 @@ test('only fixed startup phases and finite timings survive privacy filtering', (
   for (const input of [null, 'raw', { component: 'provider', phase: 'ready' }, { component: 'renderer', phase: 'sk-secret' }, { component: 'constructor', phase: 'ready' }]) assert.equal(sanitizeEvent(input), null);
 });
 
+test('shutdown diagnostics retain only fixed lifecycle stages, never errors or canvas details', async (t) => {
+  const recorder = createStartupDiagnostics({ directory: fixture(t), version: '3.3.7' });
+  for (const phase of ['save-approved', 'http-drain', 'deferred-drain', 'database-close', 'storage-closed', 'waiting', 'timeout', 'installer-requested']) {
+    assert.equal(recorder.record({ component: 'shutdown', phase, error: 'private-error', canvasId: 'private-id', token: 'private-token' }), true);
+  }
+  assert.equal(recorder.record({ component: 'shutdown', phase: 'private-error' }), false);
+  const text = await recorder.exportText();
+  assert.match(text, /database-close/); assert.match(text, /storage-closed/);
+  assert.doesNotMatch(text, /private-error|private-id|private-token/);
+});
+
 test('existing Electron/backend/database startup lines are captured without details or console payloads', () => {
   assert.deepEqual(parseStartupLine('[12:13:14] [startup] component=electron phase=startup-failed elapsedMs=512 details=sk-secret C:\\private\\file'), { component: 'electron', phase: 'startup-failed', elapsedMs: 512 });
   assert.deepEqual(parseStartupLine('[startup] component=project-db phase=active-initialized phaseMs=345 totalMs=678'), { component: 'project-db', phase: 'active-initialized', phaseMs: 345, totalMs: 678 });

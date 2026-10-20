@@ -8,6 +8,7 @@ const SCHEMA = 't8-startup-diagnostics-v1';
 const MAX_EVENTS = 512;
 const MAX_FILE_BYTES = 256 * 1024;
 const PHASES = Object.freeze({
+  shutdown: new Set(['save-requested', 'save-approved', 'http-drain', 'recovery-drain', 'preview-drain', 'video-drain', 'collaboration-drain', 'semantic-drain', 'deferred-drain', 'database-close', 'storage-closed', 'waiting', 'timeout', 'installer-requested', 'failed']),
   electron: new Set(['session-start', 'startup-shell-visible', 'backend-start-requested', 'backend-module-ready', 'backend-transport-ready', 'startup-failed', 'main-window-visible', 'main-window-loaded', 'main-window-local-error', 'frontend-url-ready', 'frontend-url-fallback-ready', 'frontend-url-failed', 'frontend-load-still-in-progress']),
   backend: new Set(['routes-mounted', 'transport-listening', 'frontend-interactive', 'background-scheduled', 'background-started', 'background-ready', 'background-deferred']),
   'project-db': new Set(['owner-acquired', 'clean-active-fast-path', 'preflight-verified', 'active-initialized', 'startup-backup-complete', 'schema-verified', 'migration-complete', 'freshness-verified', 'history-verified', 'integrity-verified', 'runs-recovered', 'backup-written', 'backup-sealed', 'backup-validated']),

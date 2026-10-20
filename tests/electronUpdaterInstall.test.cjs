@@ -9,12 +9,15 @@ const operations = main.slice(main.indexOf('async function checkForUpdatesByUser
 const quitHook = main.slice(main.indexOf("app.on('before-quit', (event) => {"));
 const errorStart = main.indexOf("    autoUpdater.on('error', (error) => {");
 const errorHook = main.slice(errorStart, main.indexOf('\n\n    return { ok: true, updater: autoUpdater };', errorStart));
+const deadlineHelper = main.slice(main.indexOf('function settleWithinElectronDeadline('), main.indexOf('function shutdownBackendForElectron('));
 const turn = () => new Promise(resolve => setImmediate(resolve));
 const deferred = () => { let resolve, reject; const promise = new Promise((yes, no) => { resolve = yes; reject = no; }); return { promise, resolve, reject }; };
 
 function fixture({ platform = 'win32', owner = true, downloaded = true, ready = true, throwInstall = false } = {}) {
   const app = new EventEmitter(), updater = new EventEmitter();
-  const approvals = [], shutdowns = [], installations = [], statuses = [], cancelled = [];
+  const approvals = [], shutdowns = [], installations = [], statuses = [], cancelled = [], phases = [];
+  const completion = deferred();
+  completion.promise.catch(() => {});
   let acceptedExits = 0, destroyed = false, checks = 0, downloads = 0;
   app.quit = () => {
     const event = { prevented: false, preventDefault() { this.prevented = true; } };
@@ -30,11 +33,14 @@ function fixture({ platform = 'win32', owner = true, downloaded = true, ready = 
   updater.downloadUpdate = async () => { downloads++; };
   const context = vm.createContext({
     app, autoUpdater: updater, process: { platform }, setImmediate,
+    setTimeout: (callback, ms) => setTimeout(callback, Math.min(ms, 30)), clearTimeout,
+    ELECTRON_UPDATE_SHUTDOWN_GRACE_MS: 105_000,
     ELECTRON_SINGLE_INSTANCE_OWNER: owner,
     mainWindow: { isDestroyed: () => destroyed },
     mainWindowCloseGate: {
       request: () => { const d = deferred(); approvals.push(d); return d.promise; },
       cancelApproval: () => cancelled.push(true),
+      notifyPhase: phase => phases.push(phase),
     },
     electronT: key => key, normalizeError: error => error.message, dbgLog: () => {},
     ensureAutoUpdater: () => ready ? { ok: true, updater } : { ok: false, code: 'DISABLED', messageKey: 'updater.disabled' },
@@ -43,21 +49,32 @@ function fixture({ platform = 'win32', owner = true, downloaded = true, ready = 
       return Object.assign(vm.runInContext('updaterState', context), patch);
     },
     shutdownBackendForElectron: reason => {
+      if (shutdowns.length) return shutdowns[0].promise;
       const d = deferred();
-      shutdowns.push({ ...d, reason });
+      const resolve = outcome => {
+        if (!outcome?.timedOut) {
+          completion.resolve(outcome);
+          vm.runInContext('backendShutdownComplete=true', context);
+        }
+        d.resolve(outcome);
+      };
+      const reject = error => { completion.reject(error); d.reject(error); };
+      shutdowns.push({ ...d, resolve, reject, reason });
       context.stopPromise = d.promise;
-      vm.runInContext('backendShutdownPromise = stopPromise', context);
+      context.completionPromise = completion.promise;
+      vm.runInContext('backendShutdownPromise = stopPromise; backendShutdownCompletionPromise=completionPromise', context);
       return d.promise;
     },
   });
   // Execute the production functions and actual quit/error hooks, not a copy of their behavior.
   vm.runInContext(`let updaterInstallPromise=null, updaterInstallQueued=false;
     let electronQuitRequested=false, electronQuitReady=false, electronQuitFinalizationPromise=null;
-    let backendShutdownPromise=null, dataStorageRestartPending=false;
+    let backendShutdownPromise=null, backendShutdownCompletionPromise=null, backendShutdownComplete=false, dataStorageRestartPending=false;
     let updaterState={status:'downloaded',downloaded:${downloaded}};
-    ${operations}\n${quitHook}\n${errorHook}`, context);
+    ${deadlineHelper}\n${operations}\n${quitHook}\n${errorHook}`, context);
   return {
-    app, updater, approvals, shutdowns, installations, statuses, cancelled,
+    app, updater, approvals, shutdowns, installations, statuses, cancelled, phases,
+    complete: outcome => { vm.runInContext('backendShutdownComplete=true', context); completion.resolve(outcome); },
     install: () => vm.runInContext('installDownloadedUpdate()', context),
     check: () => vm.runInContext('checkForUpdatesByUser()', context),
     download: () => vm.runInContext('downloadAvailableUpdate()', context),
@@ -97,6 +114,32 @@ test('save refusal preserves downloaded update and never stops backend or starts
   f.approvals[1].resolve(false); await retry;
 });
 
+test('a slow original storage close automatically continues the same update after the short deadline', async () => {
+  const f = fixture(), pending = f.install();
+  f.approvals[0].resolve(true); await turn();
+  f.shutdowns[0].resolve({ timedOut: true }); await turn();
+  assert.equal(f.state().status.messageKey, 'updater.waitingForStorage');
+  assert.equal(f.phases.at(-1), 'waiting');
+  assert.equal(f.install(), pending);
+  assert.equal(f.installations.length, 0);
+  f.complete({ storageClosed: true });
+  assert.equal((await pending).success, true); await turn();
+  assert.equal(f.shutdowns.length, 1); assert.equal(f.approvals.length, 1);
+  assert.equal(f.installations.length, 1); assert.equal(f.acceptedExits, 1);
+  assert.equal(f.phases.at(-1), 'installing'); assert.equal(f.cancelled.length, 0);
+});
+
+test('a stalled storage close has a finite failure state and can retry the original completed work', async () => {
+  const f = fixture(), pending = f.install();
+  f.approvals[0].resolve(true); await turn(); f.shutdowns[0].resolve({ timedOut: true });
+  assert.equal((await pending).code, 'UPDATER_SHUTDOWN_TIMEOUT');
+  assert.equal(f.phases.at(-1), 'update-error'); assert.equal(f.installations.length, 0);
+  f.complete({ storageClosed: true });
+  const retry = f.install(); f.approvals[1].resolve(true);
+  assert.equal((await retry).success, true); await turn();
+  assert.equal(f.shutdowns.length, 1); assert.equal(f.installations.length, 1);
+});
+
 test('save gate exception cancels approval and leaves backend live', async () => {
   const f = fixture(), pending = f.install();
   f.approvals[0].reject(new Error('save failed'));
@@ -114,10 +157,13 @@ for (const outcome of ['timeout', 'error']) {
     const result = await pending; await turn();
     assert.equal(result.success, false); assert.equal(result.messageKey, 'updater.installFailedRestart');
     assert.equal(f.cancelled.length, 0); assert.equal(f.acceptedExits, 0); assert.equal(f.installations.length, 0);
-    assert.equal(f.install().code, 'UPDATER_RESTART_REQUIRED');
+    // A user may explicitly wait again, but the completed/rejected ORIGINAL
+    // shutdown is reused; no backend restart or unsafe installer bypass.
+    const retry = f.install(); f.approvals[1].resolve(true);
+    assert.equal((await retry).success, false);
     assert.equal((await f.check()).code, 'UPDATER_RESTART_REQUIRED');
     assert.equal((await f.download()).code, 'UPDATER_RESTART_REQUIRED');
-    assert.equal(f.approvals.length, 1);
+    assert.equal(f.approvals.length, 2); assert.equal(f.shutdowns.length, 1);
   });
 }
 
@@ -165,7 +211,7 @@ test('synchronous installer startup error is contained and requires manual resta
   const f = fixture({ throwInstall: true }), pending = f.install();
   f.approvals[0].resolve(true); await turn(); f.shutdowns[0].resolve(); await pending; await turn();
   assert.equal(f.state().status.messageKey, 'updater.installFailedRestart');
-  assert.equal(f.state().queued, false); assert.equal(f.install().code, 'UPDATER_RESTART_REQUIRED');
+  assert.equal(f.state().queued, false); assert.equal(f.phases.at(-1), 'update-error');
   assert.equal(f.cancelled.length, 0);
 });
 
@@ -174,7 +220,7 @@ test('actual updater error listener distinguishes async installer error and prev
   f.approvals[0].resolve(true); await turn(); f.shutdowns[0].resolve(); await pending;
   f.updater.emit('error', new Error('EACCES'));
   assert.equal(f.state().status.messageKey, 'updater.installFailedRestart');
-  assert.equal(f.install().code, 'UPDATER_RESTART_REQUIRED'); await turn();
+  assert.equal(f.phases.at(-1), 'update-error'); await turn();
   assert.equal(f.installations.length, 0);
 });
 

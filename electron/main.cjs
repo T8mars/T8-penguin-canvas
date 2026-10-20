@@ -43,6 +43,7 @@ const { createStartupDiagnostics, installStartupConsoleCapture, registerStartupD
 let desktopDataStorage = null;
 let dataStorageRestartPending = false;
 const ELECTRON_BACKEND_SHUTDOWN_DEADLINE_MS = 15_000;
+const ELECTRON_UPDATE_SHUTDOWN_GRACE_MS = 105_000;
 const ELECTRON_STARTUP_SHELL_PAINT_DEADLINE_MS = 2_500;
 const ELECTRON_FRONTEND_LOAD_RETRY_DELAY_MS = 250;
 const ELECTRON_FRONTEND_LOAD_RETRY_ATTEMPTS = 40;
@@ -134,7 +135,10 @@ function createCanvasCloseGate(window) {
     ipcMain.removeListener('t8pc:canvas-close-result', onResult);
     finish(false, 'save');
   });
-  return { request, cancelApproval() {
+  return { request, notifyPhase(phase) {
+    if (!approvedRequestId || window.isDestroyed()) return;
+    try { window.webContents.send('t8pc:canvas-close-phase', approvedRequestId, phase); } catch {}
+  }, cancelApproval() {
     if (approvedRequestId && !window.isDestroyed()) window.webContents.send('t8pc:canvas-close-cancel', approvedRequestId);
     approved = false; approvedRequestId = null;
   } };
@@ -148,6 +152,8 @@ let backendPort = 18766;
 let backendInstanceId = '';
 let backendStartPromise = null;
 let backendShutdownPromise = null;
+let backendShutdownCompletionPromise = null;
+let backendShutdownComplete = false;
 let agentControlMutationUnsubscribe = null;
 let electronQuitRequested = false;
 let electronQuitReady = false;
@@ -1923,6 +1929,7 @@ function ensureAutoUpdater() {
       updaterInstallQueued = false;
       if (installFailed) {
         electronQuitRequested = false;
+        mainWindowCloseGate?.notifyPhase?.('update-error');
         if (!mainWindow || mainWindow.isDestroyed()) setImmediate(() => app.quit());
       }
       emitUpdaterStatus({
@@ -2032,6 +2039,17 @@ function updaterInstallFailure(code, messageKey, error = null) {
   };
 }
 
+function recordUpdateShutdownPhase(phase) {
+  // Fixed stage names only: no canvas, credential, path, URL or free-form error.
+  try {
+    dbgLog(`[updater-exit] phase=${phase}`);
+    autoUpdater?.logger?.info?.(`[updater-exit] phase=${phase}`);
+    if (typeof startupDiagnostics !== 'undefined') {
+      startupDiagnostics.record({ component: 'shutdown', phase });
+    }
+  } catch { /* Diagnostics must not prevent a safe update. */ }
+}
+
 function installDownloadedUpdate() {
   if (updaterInstallPromise) return updaterInstallPromise;
   if (updaterInstallQueued) return { success: true, status: updaterState };
@@ -2039,7 +2057,7 @@ function installDownloadedUpdate() {
     return updaterInstallBusyResult();
   }
   // A partially stopped backend cannot be turned back into an editable canvas.
-  if (backendShutdownPromise) {
+  if (backendShutdownPromise && !backendShutdownCompletionPromise) {
     return updaterInstallFailure('UPDATER_RESTART_REQUIRED', 'updater.installFailedRestart');
   }
   const ready = ensureAutoUpdater();
@@ -2073,18 +2091,40 @@ function installDownloadedUpdate() {
   let backendStopping = false;
   updaterInstallPromise = (async () => {
     emitUpdaterStatus({ status: 'preparing-install', messageKey: 'updater.preparingInstall', messageParams: {}, error: null });
+    recordUpdateShutdownPhase('save-requested');
     if (mainWindowCloseGate && !(await mainWindowCloseGate.request())) {
       electronQuitRequested = false;
       return updaterInstallFailure('UPDATER_CANVAS_CLOSE_BLOCKED', 'updater.closeBlocked');
     }
     electronQuitRequested = true;
     backendStopping = true;
-    const outcome = await shutdownBackendForElectron('ELECTRON_UPDATE');
+    recordUpdateShutdownPhase('save-approved');
+    mainWindowCloseGate?.notifyPhase?.('closing');
+    const outcome = backendShutdownComplete
+      ? await backendShutdownCompletionPromise
+      : await shutdownBackendForElectron('ELECTRON_UPDATE');
     if (outcome?.timedOut) {
-      return updaterInstallFailure('UPDATER_SHUTDOWN_TIMEOUT', 'updater.installFailedRestart');
+      // The short Electron deadline is not proof that storage failed to close.
+      // Keep observing the ORIGINAL work: never cache a timeout as its completion
+      // receipt, restart shutdown, release the editor, or launch NSIS early.
+      mainWindowCloseGate?.notifyPhase?.('waiting');
+      recordUpdateShutdownPhase('waiting');
+      emitUpdaterStatus({ status: 'preparing-install', messageKey: 'updater.waitingForStorage', messageParams: {}, error: null });
+      const completed = await settleWithinElectronDeadline(
+        backendShutdownCompletionPromise,
+        ELECTRON_UPDATE_SHUTDOWN_GRACE_MS,
+        () => ({ timedOut: true }),
+      );
+      if (completed?.timedOut) {
+        mainWindowCloseGate?.notifyPhase?.('update-error');
+        recordUpdateShutdownPhase('timeout');
+        return updaterInstallFailure('UPDATER_SHUTDOWN_TIMEOUT', 'updater.installFailedRestart');
+      }
     }
     electronQuitReady = true;
     updaterInstallQueued = true;
+    recordUpdateShutdownPhase('installer-requested');
+    mainWindowCloseGate?.notifyPhase?.('installing');
     // Windows remains visible; Mac keeps the native Squirrel restart flow.
     const isMac = process.platform === 'darwin';
     const status = emitUpdaterStatus({
@@ -2098,6 +2138,7 @@ function installDownloadedUpdate() {
       catch (error) {
         updaterInstallQueued = false;
         electronQuitRequested = false;
+        mainWindowCloseGate?.notifyPhase?.('update-error');
         updaterInstallFailure('UPDATER_INSTALL_FAILED', 'updater.installFailedRestart', normalizeError(error));
         if (!mainWindow || mainWindow.isDestroyed()) setImmediate(() => app.quit());
       }
@@ -2105,6 +2146,8 @@ function installDownloadedUpdate() {
     return { success: true, status };
   })().catch((error) => {
     if (!backendStopping) mainWindowCloseGate?.cancelApproval();
+    else mainWindowCloseGate?.notifyPhase?.('update-error');
+    recordUpdateShutdownPhase('failed');
     return updaterInstallFailure('UPDATER_INSTALL_PREPARATION_FAILED',
       backendStopping ? 'updater.installFailedRestart' : 'updater.closeBlocked', normalizeError(error));
   }).finally(() => {
@@ -2298,7 +2341,11 @@ function shutdownBackendForElectron(reason = 'ELECTRON_QUIT') {
         try { await backendStartPromise; } catch (_) { /* cleanup the partially started module below */ }
       }
       try {
-        const outcome = await backendModule?.gracefulShutdown?.(reason);
+        const outcome = await backendModule?.gracefulShutdown?.(reason, {
+          onProgress: (phase) => {
+            if (reason === 'ELECTRON_UPDATE') recordUpdateShutdownPhase(phase);
+          },
+        });
         if (outcome?.storageDeferred === true) {
           dbgLog('[backend] bounded shutdown left tracked work deferred; waiting within the Electron cutoff');
         }
@@ -2310,8 +2357,15 @@ function shutdownBackendForElectron(reason = 'ELECTRON_QUIT') {
         stopLegacyBackendProcess();
       }
     })();
+    backendShutdownCompletionPromise = shutdownWork.then((outcome) => {
+      backendShutdownComplete = true;
+      if (reason === 'ELECTRON_UPDATE') recordUpdateShutdownPhase('storage-closed');
+      return outcome;
+    });
+    // Observe a possible late rejection even after the bounded wait has ended.
+    backendShutdownCompletionPromise.catch(() => {});
     backendShutdownPromise = settleWithinElectronDeadline(
-      shutdownWork,
+      backendShutdownCompletionPromise,
       ELECTRON_BACKEND_SHUTDOWN_DEADLINE_MS,
       () => {
         dbgLog(`[backend] Electron shutdown deadline reached after ${ELECTRON_BACKEND_SHUTDOWN_DEADLINE_MS}ms (${reason})`);

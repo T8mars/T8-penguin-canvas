@@ -7,7 +7,7 @@ const ts = require('typescript');
 
 // Execute the actual Canvas effect with controlled DOM/IPC/save observation;
 // this tests hold ownership, not native UI rendering or CAS durability.
-function fixture({ initiallyInert = false, wait = async () => ({ ok: true }) } = {}) {
+function fixture({ initiallyInert = false, wait = async () => ({ ok: true }), install = async () => {}, saveLog = async () => {} } = {}) {
   const source = fs.readFileSync(require.resolve('../src/components/CanvasCloseGuard.tsx'), 'utf8');
   const normalized = source.replace(/\r\n/g, '\n');
   const begin = normalized.indexOf('  useEffect(() => {\n    const subscribe = window.t8pc?.onCanvasCloseRequest;');
@@ -27,18 +27,21 @@ function fixture({ initiallyInert = false, wait = async () => ({ ok: true }) } =
     document: {
       getElementById: () => root, activeElement: { blur() {} },
       createElement: () => {
-        const notice = { style: {}, setAttribute() {}, remove: () => notices.delete(notice) };
+        const notice = { style: {}, children: [], setAttribute() {}, appendChild(child) { this.children.push(child); }, remove: () => notices.delete(notice) };
         return notice;
       },
       body: { appendChild: notice => notices.add(notice) },
     },
     window: {
-      t8pc: { onCanvasCloseRequest: callback => { handler = callback; return () => { unsubscribed = true; }; } },
+      t8pc: {
+        onCanvasCloseRequest: callback => { handler = callback; return () => { unsubscribed = true; }; },
+        updater: { install }, startupDiagnostics: { save: saveLog },
+      },
       setInterval: callback => { timers.set(++timerId, callback); return timerId; },
       clearInterval: id => timers.delete(id),
     },
   });
-  return { root, notices, timers, runtime, close: cancelled => handler(cancelled), cleanup: () => cleanup(),
+  return { root, notices, timers, runtime, close: (cancelled, phase) => handler(cancelled, phase), cleanup: () => cleanup(),
     get unsubscribed() { return unsubscribed; } };
 }
 
@@ -101,4 +104,38 @@ test('stable close guard is outside the keyed ReactFlow editor', () => {
   assert.match(source, /<CanvasCloseGuard runtime=\{persistenceRuntime\} \/>\s*<ReactFlowProvider key=/);
   assert.match(source, /useRef\(persistenceRuntime\.recoveryFlights\)/);
   assert.match(source, /return persistenceRuntime\.recoveryCommit\(canvasId, document, baseline\)/);
+});
+
+test('the retained hold shows actual exit phases and exposes failure actions without unlocking the canvas', async () => {
+  const f = fixture(); let phase = 'saving';
+  await f.close(() => false, () => phase);
+  const notice = [...f.notices][0], [message, actions] = notice.children;
+  assert.equal(message.textContent, 'generationHistory.savedBeforeClose');
+  for (const [next, expected] of [
+    ['closing', 'generationHistory.savedBeforeClose'],
+    ['waiting', 'generationHistory.waitingBeforeClose'],
+    ['installing', 'generationHistory.installingAfterClose'],
+    ['update-error', 'generationHistory.closeUpdateFailed'],
+  ]) {
+    phase = next; [...f.timers.values()][0]();
+    assert.equal(message.textContent, expected);
+    assert.equal(actions.hidden, next !== 'update-error');
+    assert.equal(f.root.inert, true);
+  }
+  assert.equal(actions.children.length, 2);
+  f.cleanup();
+});
+
+test('failure actions use native diagnostics and the original updater with single-click ownership', async () => {
+  let installations = 0, logs = 0, finish;
+  const f = fixture({ install: () => { installations++; return new Promise(resolve => { finish = resolve; }); }, saveLog: async () => { logs++; } });
+  await f.close(() => false, () => 'update-error'); [...f.timers.values()][0]();
+  const [, actions] = [...f.notices][0].children;
+  const [retry, save] = actions.children;
+  const first = retry.onclick(); await retry.onclick();
+  assert.equal(installations, 1); assert.equal(retry.disabled, true);
+  save.onclick(); assert.equal(logs, 1);
+  finish(); await first;
+  assert.equal(retry.disabled, false); assert.equal(f.root.inert, true);
+  f.cleanup();
 });
