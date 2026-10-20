@@ -36,6 +36,7 @@ function compatibilityPaths(options = {}) {
   const providerCatalogPath = existingFile([
     options.providerCatalogPath,
     resourcesPath ? path.join(resourcesPath, 'backend', 'shared', 'creativeModelCatalog.json') : '',
+    resourcesPath ? path.join(resourcesPath, 'backend-enc', 'shared', 'creativeModelCatalog.json') : '',
     path.join(SOURCE_ROOT, 'backend', 'src', 'shared', 'creativeModelCatalog.json'),
   ]);
   const capabilityManifestPath = existingFile([

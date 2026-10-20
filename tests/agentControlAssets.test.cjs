@@ -71,6 +71,43 @@ function issueSession(auth, scopes) {
   });
 }
 
+test('asset content-hash search validates its filter and forwards the same exact scope to list/count', () => {
+  const seen = [], hash = '9'.repeat(64), service = createAgentControlAssetService({ uploadManager: {}, database: {
+    listAssets(filters) { seen.push(filters); return []; }, countAssets(filters) { seen.push(filters); return 0; }, getAssetCatalogRevision() { return 1; },
+  } });
+  assert.throws(() => service.search({ projectId: 'EXAMPLE_PROJECT', contentHash: 'EXAMPLE_INVALID' }), error => error.code === 'ASSET_HASH_INVALID'); assert.equal(seen.length, 0);
+  assert.equal(service.search({ projectId: 'EXAMPLE_PROJECT', contentHash: hash }).total, 0); assert.equal(seen.length, 2); assert.ok(seen.every(filters => filters.projectId === 'EXAMPLE_PROJECT' && filters.contentHash === hash));
+});
+
+test('read-only asset search/import preview do not initialize the copying manager or create storage folders', async t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'EXAMPLE_asset_read_')); t.after(() => fs.rmSync(root, { recursive: true, force: true })); const image = path.join(root, 'EXAMPLE.png'); fs.writeFileSync(image, pngBytes());
+  const database = { listAssets: () => [], countAssets: () => 0, getAssetCatalogRevision: () => 1 };
+  const service = createAgentControlAssetService({ database, config: { ASSET_BLOB_DIR: path.join(root, 'EXAMPLE_BLOBS'), DATA_DIR: path.join(root, 'EXAMPLE_DATA') } });
+  assert.equal(service.search({ projectId: 'EXAMPLE_PROJECT' }).total, 0); assert.equal((await service.inspectImport(image)).size, pngBytes().length);
+  assert.equal(fs.existsSync(path.join(root, 'EXAMPLE_BLOBS')), false); assert.equal(fs.existsSync(path.join(root, 'EXAMPLE_DATA')), false);
+});
+
+test('asset approval recovery and minimal patch receipt routes preserve native scopes without approving or exposing private ledger fields', async t => {
+  const auth = createAgentControlAuthService(), approvals = createAgentControlApprovalService(), hash = '9'.repeat(64), database = {
+    getCanvas(id) { return id === 'EXAMPLE_CANVAS' ? { projectId: 'EXAMPLE_PROJECT', canvasId: id, revision: 1 } : null; },
+    getCanvasPatchApplication(canvasId, patchId, options) { assert.equal(canvasId, 'EXAMPLE_CANVAS'); assert.equal(options.projectId, 'EXAMPLE_PROJECT'); assert.equal(options.includeAllActors, true); return patchId === 'EXAMPLE_PATCH' ? { patchId, status: 'applied', baseRevision: 1, appliedRevision: 2, affectedNodeIds: ['EXAMPLE_NODE'], requestDigest: 'EXAMPLE_PRIVATE_DIGEST', changes: ['EXAMPLE_PRIVATE_CHANGE'], actorId: 'EXAMPLE_PRIVATE_ACTOR' } : null; },
+  };
+  const app = express(); app.use(express.json()); app.use('/api/agent-control/v1', agentControlRoute.createAgentControlRouter({ auth, approvals, database, config: { PORT: 19030, APP_VERSION: '3.3.6', BACKEND_INSTANCE_ID: 'a'.repeat(43), COLLAB_MAX_UPLOAD_BYTES: 1024 * 1024 } }));
+  const server = http.createServer(app); await new Promise(done => server.listen(0, '127.0.0.1', done)); t.after(() => new Promise(done => server.close(done)));
+  const session = issueSession(auth, ['canvas:read', 'canvas:write', 'asset:read', 'asset:transfer']), headers = { Authorization: `Bearer ${session.accessToken}` };
+  for (const action of ['import', 'place']) {
+    const operationId = `EXAMPLE_ASSET_${action}`, record = approvals.create({ action: `asset.${action}`, sessionId: session.sessionId, projectId: 'EXAMPLE_PROJECT', canvasId: 'EXAMPLE_CANVAS', operationId, preview: { file: { sha256: hash } } });
+    const path = `/api/agent-control/v1/asset-${action}-approvals/by-operation/${operationId}?projectId=EXAMPLE_PROJECT&canvasId=EXAMPLE_CANVAS`, read = await request(server, { path, headers }); assert.equal(read.status, 200); assert.equal(read.body.data.approvalRequestId, record.approvalRequestId); assert.equal(read.body.data.status, 'pending');
+    assert.equal(crypto.createHash('sha256').update(read.body.data.pollSecret).digest('hex'), crypto.createHash('sha256').update(record.pollSecret).digest('hex'));
+    assert.equal((await request(server, { path: path.replace('projectId=EXAMPLE_PROJECT', 'projectId=EXAMPLE_OTHER'), headers })).status, 404);
+    const other = issueSession(auth, ['canvas:read', 'canvas:write', 'asset:read', 'asset:transfer']); assert.equal((await request(server, { path, headers: { Authorization: `Bearer ${other.accessToken}` } })).status, 404);
+  }
+  assert.equal(approvals.listPending().length, 2); const status = await request(server, { path: '/api/agent-control/v1/status' }); assert.equal(status.body.data.assetControl.maxImportBytes, 1024 * 1024);
+  const patch = await request(server, { path: '/api/agent-control/v1/patches/EXAMPLE_PATCH?projectId=EXAMPLE_PROJECT&canvasId=EXAMPLE_CANVAS', headers }); assert.equal(patch.status, 200); assert.equal(patch.body.data.appliedRevision, 2); assert.equal(JSON.stringify(patch.body).includes('EXAMPLE_PRIVATE'), false);
+  assert.equal((await request(server, { path: '/api/agent-control/v1/patches/EXAMPLE_PATCH?projectId=EXAMPLE_OTHER&canvasId=EXAMPLE_CANVAS', headers })).status, 404);
+  const readOnly = issueSession(auth, ['asset:read']); assert.equal((await request(server, { path: '/api/agent-control/v1/asset-import-approvals/by-operation/EXAMPLE_ASSET_import?projectId=EXAMPLE_PROJECT&canvasId=EXAMPLE_CANVAS', headers: { Authorization: `Bearer ${readOnly.accessToken}` } })).status, 403);
+});
+
 test('asset import inspection rejects fake mime and symlinks without writing', async (t) => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'zcanvas-asset-inspect-'));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));

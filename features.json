@@ -1,6 +1,28 @@
 {
+  "dshNativeIntegration20261020": {
+    "status": "development-native-integration-verified-unreleased",
+    "summary": "接管38项，修限额声明/操作预校验；193项限定回归及DSH临时SQLite组合通过，单一意图/素材/放置及GET恢复成立；安装版/真人/Provider待验。",
+    "details": "docs/dsh-native-integration-20261020.md"
+  },
+  "zcanvasInstanceDiscovery20261020": {"status": "development-verified-unreleased", "details": "docs/zcanvas-instance-discovery.md"},
+  "dshSavedMedia20261020": {"status": "development-verified-unreleased", "details": "docs/zcanvas-saved-media-transfer.md"},
   "$schema": "本文件为 T8-penguin-canvas 节点清单防丢失锁,任何节点删减都需要在 roadmap.md 中说明并更新本文件。",
   "version": "3.3.6",
+  "zcanvasRunApprovalRecovery20261020": {
+    "status": "development-verified-unreleased",
+    "summary": "原生运行计划单次操作绑定、同作用域GET恢复；20项限定回归与全新TEMP实际路由/账本通过，未运行Provider，真实窗口/生产版待验。",
+    "details": "docs/zcanvas-run-approval-recovery.md"
+  },
+  "zcanvasSecureStoreTransactions20261020": {
+    "status": "development-verified-unreleased",
+    "summary": "凭据v1格式不变；新版写入协调、条件提交/清理和旧快照拒绝。13并发/故障、4实际CLI、Electron42项与同步门通过；只保证参与协调的写入器。",
+    "details": "docs/zcanvas-secure-store-transactions.md"
+  },
+  "seedanceNzWriteReplayBoundary20261020": {
+    "status": "development-verified-unreleased-with-adjacent-baseline-failure",
+    "summary": "幂等键不再授权模糊失败后重放付费写入；保留明确TLS码恢复与查询。六项回归通过；相邻128项127过/1项原HEAD同样失败。",
+    "details": "docs/seedance-write-replay-boundary.md"
+  },
   "electronReleaseV336": {
     "status": "released-dual-platform-verified",
     "version": "3.3.6",

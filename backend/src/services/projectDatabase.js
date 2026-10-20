@@ -27616,6 +27616,7 @@ class ProjectDatabase {
     const query = String(filters.query || '').trim().toLowerCase();
     const clauses = ['a.project_id = ?'];
     const values = [projectId];
+    if (filters.contentHash != null) { clauses.push('a.content_hash = ?'); values.push(String(filters.contentHash)); }
     if (Array.isArray(filters.assetIds)) {
       const assetIds = [...new Set(filters.assetIds
         .map((value) => String(value || '').trim())

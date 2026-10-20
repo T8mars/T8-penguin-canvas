@@ -21,7 +21,6 @@ test('seedance.nz keeps TLS verification enabled with the pinned official root',
       < source.indexOf('dispatcher: seedanceDispatcher'),
     'the active system network must run before the provider-specific TLS recovery connection',
   );
-  assert.match(source, /stableSubmission\s*=\s*Boolean\(headerValue\(request\.headers,\s*'idempotency-key'\)\)/);
 });
 
 function jsonResponse(data: unknown, status = 200) {

@@ -17,6 +17,7 @@ const {
 } = require('../services/agentControlApprovals');
 const {
   AgentControlAssetError,
+  assetImportMaxBytes,
   createAgentControlAssetService,
   publicImportPreview,
   resolveAppliedAssetPlacement,
@@ -32,6 +33,7 @@ const {
 const {
   AgentControlRunError,
   createAgentControlRunService,
+  requireRunOperationId,
 } = require('../services/agentControlRuns');
 const {
   AgentControlCreativeError,
@@ -555,12 +557,28 @@ function createAgentControlRouter(options = {}) {
         targetHandle: input.targetHandle,
       });
       const patch = scopeAgentPatch(snapshot.patch, scope);
-      const patchPreview = database().previewCanvasPatch(scope.canvasId, patch, {
-        actorId: scope.actorId,
-        sessionId: scope.sessionId,
-        projectId: scope.projectId,
-        authority: agentPatchAuthority(),
-      });
+      // The read-only capability must recover the same immutable placement as
+      // the approval route, rather than simulate adding its existing node again.
+      const recovery = resolveAppliedAssetPlacement(database(), scope.canvasId, { ...snapshot, patch });
+      const patchPreview = recovery.status === 'applied'
+        ? {
+            patchId: recovery.patch.id,
+            baseRevision: recovery.application.baseRevision,
+            currentRevision: recovery.application.baseRevision,
+            previewDigest: recovery.application.previewDigest,
+            summary: recovery.application.summary,
+            diagnosticsResolved: recovery.application.diagnosticsResolved || [],
+            affectedNodeIds: recovery.application.affectedNodeIds || [],
+            affectedEdgeIds: recovery.application.affectedEdgeIds || [],
+            changes: recovery.application.changes || [],
+            warnings: [],
+          }
+        : database().previewCanvasPatch(scope.canvasId, patch, {
+            actorId: scope.actorId,
+            sessionId: scope.sessionId,
+            projectId: scope.projectId,
+            authority: agentPatchAuthority(),
+          });
       return {
         preview: {
           ...patchPreview,
@@ -659,6 +677,19 @@ function createAgentControlRouter(options = {}) {
         instanceId: runtimeConfig.BACKEND_INSTANCE_ID,
         ...compatibility,
         pairingRequired: true,
+        runControl: {
+          schema: 't8-agent-run-control-v1',
+          singleUsePlan: true,
+          operationLookup: true,
+          approvalLookup: true,
+        },
+        assetControl: {
+          schema: 't8-agent-asset-control-v1',
+          approvalLookup: true,
+          hashLookup: true,
+          patchLookup: true,
+          maxImportBytes: assetImportMaxBytes(runtimeConfig),
+        },
       },
     }));
   });
@@ -880,7 +911,7 @@ function createAgentControlRouter(options = {}) {
         actorId: session.actorId,
         sessionId: session.sessionId,
       });
-      const operationId = String(req.body?.operationId || `run-start-${prepared.plan.planDigest.slice(0, 32)}`);
+      const operationId = requireRunOperationId(req.body?.operationId || `run-start-${prepared.plan.planDigest.slice(0, 32)}`);
       const approval = approvals.create({
         action: 'run.start',
         operationId,
@@ -906,6 +937,13 @@ function createAgentControlRouter(options = {}) {
     }
   });
 
+  router.get('/run-start-approvals/by-operation/:operationId', (req, res, next) => {
+    try {
+      const session = auth.authenticate(bearerToken(req), ['run:execute']);
+      return res.json(response({ data: approvals.inspectOperation({ action: 'run.start', operationId: req.params.operationId, sessionId: session.sessionId, projectId: String(req.query?.projectId || ''), canvasId: String(req.query?.canvasId || '') }) }));
+    } catch (error) { return next(error); }
+  });
+
   router.post('/run-retry-approvals', (req, res, next) => {
     try {
       const session = auth.authenticate(bearerToken(req), ['run:execute']);
@@ -917,7 +955,7 @@ function createAgentControlRouter(options = {}) {
       };
       const publicPlan = runs().retryPlan(req.body?.intentId, scope);
       const prepared = runs().startPreview(publicPlan.planId, scope);
-      const operationId = String(req.body?.operationId || `run-retry-${prepared.plan.planDigest.slice(0, 32)}`);
+      const operationId = requireRunOperationId(req.body?.operationId || `run-retry-${prepared.plan.planDigest.slice(0, 32)}`);
       const approval = approvals.create({
         action: 'run.retry',
         operationId,
@@ -968,6 +1006,15 @@ function createAgentControlRouter(options = {}) {
     } catch (error) {
       return next(error);
     }
+  });
+
+  router.get('/run-intents/by-operation/:operationId', (req, res, next) => {
+    try {
+      const session = auth.authenticate(bearerToken(req), ['run:read']);
+      return res.json(response({ data: runs().inspectOperation(req.params.operationId, {
+        projectId: String(req.query?.projectId || ''), canvasId: String(req.query?.canvasId || ''), actorId: session.actorId, sessionId: session.sessionId,
+      }) }));
+    } catch (error) { return next(error); }
   });
 
   router.get('/run-intents/:intentId', (req, res, next) => {
@@ -1312,13 +1359,14 @@ function createAgentControlRouter(options = {}) {
         throw new CanvasAgentToolError('agent_scope_not_found', '素材查询目标不存在或不属于当前项目', 404);
       }
       return res.json(response({
-        data: assets().search({
+        data: { projectId, canvasId, canvasRevision: Number(document.revision), ...assets().search({
           projectId,
           kind: req.query?.kind,
+          contentHash: req.query?.contentHash,
           query: req.query?.query,
           limit: req.query?.limit,
           offset: req.query?.offset,
-        }),
+        }) },
       }));
     } catch (error) {
       return next(error);
@@ -1557,6 +1605,13 @@ function createAgentControlRouter(options = {}) {
     }
   });
 
+  for (const [path, action, scopes] of [
+    ['/asset-import-approvals/by-operation/:operationId', 'asset.import', ['asset:transfer']],
+    ['/asset-place-approvals/by-operation/:operationId', 'asset.place', ['asset:read', 'canvas:write']],
+  ]) router.get(path, (req, res, next) => {
+    try { const session = auth.authenticate(bearerToken(req), scopes); return res.json(response({ data: approvals.inspectOperation({ action, operationId: req.params.operationId, sessionId: session.sessionId, projectId: String(req.query?.projectId || ''), canvasId: String(req.query?.canvasId || '') }) })); } catch (error) { return next(error); }
+  });
+
   router.post('/asset-import-approvals', async (req, res, next) => {
     try {
       const session = auth.authenticate(bearerToken(req), ['asset:transfer']);
@@ -1670,6 +1725,18 @@ function createAgentControlRouter(options = {}) {
     } catch (error) {
       return next(error);
     }
+  });
+
+  router.get('/patches/:patchId', (req, res, next) => {
+    try {
+      const session = auth.authenticate(bearerToken(req), ['canvas:read']), projectId = String(req.query?.projectId || ''), canvasId = String(req.query?.canvasId || ''), document = database().getCanvas(canvasId);
+      if (!document || document.projectId !== projectId) throw new CanvasAgentToolError('agent_scope_not_found', 'Patch 查询目标不存在或不属于当前项目', 404);
+      // Public receipt fields only: reading a canvas already exposes its graph.
+      // Exact duplicate asset placements may legitimately predate this actor.
+      const application = database().getCanvasPatchApplication(canvasId, req.params.patchId, { actorId: session.actorId, projectId, includeAllActors: true });
+      if (!application) throw new CanvasAgentToolError('PATCH_APPLICATION_NOT_FOUND', '没有这次 Patch 的应用记录', 404);
+      return res.json(response({ data: { projectId, canvasId, patchId: application.patchId, status: application.status, baseRevision: application.baseRevision, appliedRevision: application.appliedRevision, affectedNodeIds: application.affectedNodeIds || [] } }));
+    } catch (error) { return next(error); }
   });
 
   router.get('/patches', (req, res, next) => {

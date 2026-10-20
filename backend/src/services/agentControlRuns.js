@@ -23,6 +23,14 @@ class AgentControlRunError extends Error {
   }
 }
 
+function requireRunOperationId(value) {
+  const operationId = String(value || '');
+  if (!/^[A-Za-z0-9][A-Za-z0-9._:-]{7,159}$/.test(operationId)) {
+    throw new AgentControlRunError('RUN_OPERATION_ID_INVALID', '运行 operationId 无效');
+  }
+  return operationId;
+}
+
 function digest(value) {
   const stable = (input) => {
     if (input === undefined || input === null) return 'null';
@@ -361,6 +369,7 @@ function publicIntent(intent) {
     projectId: String(intent.projectId || ''),
     canvasId: String(intent.canvasId || ''),
     canvasRevision: Number(intent.canvasRevision) || 0,
+    operationId: String(intent.idempotencyKey || ''),
     nodeIds: normalizeNodeIds(intent.nodeIds),
     requestedBy: String(intent.requestedBy || ''),
     provider: intent.provider || null,
@@ -644,6 +653,7 @@ function createAgentControlRunService(options = {}) {
 
   function startPreview(planId, scope = {}) {
     const plan = requirePlan(planId, scope);
+    if (plan.submissionOperationId) throw new AgentControlRunError('RUN_PLAN_ALREADY_SUBMITTED', '这份运行计划已提交；请查询原运行意图，不要再次申请启动', 409);
     const document = documentFor(plan.projectId, plan.canvasId);
     if (Number(document.revision) !== plan.canvasRevision) {
       throw new AgentControlRunError('RUN_CANVAS_STALE', '画布 revision 已变化，未提交运行；请重新生成计划', 409, {
@@ -687,23 +697,31 @@ function createAgentControlRunService(options = {}) {
   }
 
   function complete(plan, context = {}) {
+    if (!plan || !Number.isFinite(Number(plan.expiresAt)) || Number(plan.expiresAt) <= now()) throw new AgentControlRunError('RUN_PLAN_EXPIRED', '运行计划已过期，未提交运行', 409);
+    const actorId = String(context.actorId || plan.actorId || '');
+    const sessionId = String(context.sessionId || plan.sessionId || '');
+    if (actorId !== String(plan.actorId || '') || sessionId !== String(plan.sessionId || '')) throw new AgentControlRunError('RUN_PLAN_SCOPE_MISMATCH', '运行计划不属于当前 Agent 会话', 403);
+    const owned = requirePlan(plan.id, { projectId: plan.projectId, canvasId: plan.canvasId, actorId, sessionId });
+    if (owned.planDigest !== plan.planDigest) throw new AgentControlRunError('RUN_PLAN_SCOPE_MISMATCH', '运行计划引用已变化', 409);
+    plan = owned;
     const document = documentFor(plan.projectId, plan.canvasId);
     if (Number(document.revision) !== plan.canvasRevision) {
       throw new AgentControlRunError('RUN_CANVAS_STALE', '批准后画布已变化，未提交运行；请重新生成计划', 409);
     }
     const currentAuthority = deriveRunIntentAuthority(document, plan.requestedNodeIds);
     assertRunIntentAuthorityMatches(plan.authority, currentAuthority);
-    const operationId = String(context.operationId || '');
-    if (!/^[A-Za-z0-9][A-Za-z0-9._:-]{7,159}$/.test(operationId)) {
-      throw new AgentControlRunError('RUN_OPERATION_ID_INVALID', '运行 operationId 无效');
-    }
+    const operationId = requireRunOperationId(context.operationId);
+    if (plan.submissionOperationId && plan.submissionOperationId !== operationId) throw new AgentControlRunError('RUN_PLAN_ALREADY_SUBMITTED', '这份运行计划已使用另一个操作引用，未再次提交', 409);
+    // This is the existing in-memory plan's single-use binding. The durable
+    // run_intents ledger remains the only reservation/execution authority.
+    plan.submissionOperationId = operationId;
     const intent = database.createRunIntent({
       projectId: plan.projectId,
       canvasId: plan.canvasId,
       canvasRevision: plan.canvasRevision,
       nodeIds: plan.requestedNodeIds,
       idempotencyKey: operationId,
-      requestedBy: String(context.actorId || plan.actorId),
+      requestedBy: actorId,
       provider: plan.provider,
       model: plan.model,
       estimatedCost: null,
@@ -711,7 +729,16 @@ function createAgentControlRunService(options = {}) {
       executionAuthority: plan.authority,
       confirmationRequired: false,
     });
+    if (!intent || intent.projectId !== plan.projectId || intent.canvasId !== plan.canvasId || intent.requestedBy !== actorId || Number(intent.canvasRevision) !== plan.canvasRevision || digest(normalizeNodeIds(intent.nodeIds)) !== digest(normalizeNodeIds(plan.requestedNodeIds)) || intent.idempotencyKey !== operationId) throw new AgentControlRunError('RUN_OPERATION_CONFLICT', '运行操作引用已属于其他范围，未返回该运行信息', 409);
+    try { assertRunIntentAuthorityMatches(plan.authority, intent.executionAuthority); } catch (_) { throw new AgentControlRunError('RUN_OPERATION_CONFLICT', '运行操作引用的授权范围不一致', 409); }
     return publicIntent(intent);
+  }
+
+  function inspectOperation(operationId, scope = {}) {
+    operationId = requireRunOperationId(operationId);
+    const intent = database.getRunIntentByKey(String(scope.projectId || ''), String(operationId));
+    if (!intent || String(intent.canvasId || '') !== String(scope.canvasId || '') || String(intent.requestedBy || '') !== String(scope.actorId || '')) throw new AgentControlRunError('RUN_INTENT_NOT_FOUND', '运行请求不存在或不属于当前 Agent', 404);
+    return inspect(intent.id, scope);
   }
 
   function list(scope = {}, filters = {}) {
@@ -782,6 +809,7 @@ function createAgentControlRunService(options = {}) {
     complete,
     createPlan,
     inspect,
+    inspectOperation,
     list,
     requirePlan,
     retryPlan,
@@ -793,5 +821,6 @@ module.exports = {
   AgentControlRunError,
   createAgentControlRunService,
   publicIntent,
+  requireRunOperationId,
   verifyCompletionEvidence,
 };

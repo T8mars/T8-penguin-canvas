@@ -399,6 +399,15 @@ function createAgentControlApprovalService(options = {}) {
       .sort((left, right) => left.createdAt.localeCompare(right.createdAt));
   }
 
+  function inspectOperation(input = {}) {
+    cleanup();
+    const record = [...approvals.values()].find((item) => item.action === String(input.action || '') && item.operationId === String(input.operationId || '') && item.sessionId === String(input.sessionId || ''));
+    if (!record || record.projectId !== String(input.projectId || '') || record.canvasId !== String(input.canvasId || '') || record.supersededAt) throw new AgentControlApprovalError('APPROVAL_NOT_FOUND', '待确认操作不存在或不属于当前会话', 404);
+    // Same authenticated native session only. Its polling secret already has
+    // the same disclosure boundary as create(); this never approves/completes.
+    return creationResponse(record, true);
+  }
+
   function approve(id) {
     cleanup();
     const record = approvals.get(String(id || ''));
@@ -504,6 +513,7 @@ function createAgentControlApprovalService(options = {}) {
     finishCompletion,
     invalidateBinding,
     listPending,
+    inspectOperation,
     publishMutation,
     subscribeMutations,
   };

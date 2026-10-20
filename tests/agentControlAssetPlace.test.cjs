@@ -11,9 +11,18 @@ const express = require('express');
 
 const { createAgentControlAuthService } = require('../backend/src/services/agentControlAuth.js');
 const { createAgentControlApprovalService } = require('../backend/src/services/agentControlApprovals.js');
-const { createAgentControlAssetService, resolveAppliedAssetPlacement } = require('../backend/src/services/agentControlAssets.js');
+const { createAgentControlAssetService, resolveAppliedAssetPlacement, assetPlacementPatch, publicDownloadPreview } = require('../backend/src/services/agentControlAssets.js');
 const { canvasPatchRequestDigest, previewCanvasPatch } = require('../backend/src/services/canvasPatch.js');
 const agentControlRoute = require('../backend/src/routes/agentControl.js');
+
+test('native upload metadata size survives placement and export previews', () => {
+  const asset = { id: 'EXAMPLE_ASSET', kind: 'image', filename: 'EXAMPLE.png', mimeType: 'image/png', contentHash: 'a'.repeat(64), metadata: { size: 67 } };
+  const placement = assetPlacementPatch(asset, { projectId: 'EXAMPLE_PROJECT', canvasId: 'EXAMPLE_CANVAS', revision: 1, nodes: [] });
+  assert.equal(placement.asset.size, 67);
+  assert.equal(placement.patch.operations[0].payload.node.data.fileSize, 67);
+  assert.deepEqual(placement.patch.operations[0].payload.node.data.fileSizes, [67]);
+  assert.equal(publicDownloadPreview(asset, { basename: 'EXAMPLE.png' }).file.size, 67);
+});
 
 function request(server, options = {}, body = null) {
   const address = server.address();

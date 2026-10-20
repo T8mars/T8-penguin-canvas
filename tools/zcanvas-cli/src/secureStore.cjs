@@ -5,10 +5,18 @@ const crypto = require('node:crypto');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const { withStoreLock } = require('./secureStoreTransactions.cjs');
 
 const STORE_SCHEMA = 't8-zcanvas-secure-store-v1';
 const STORE_LIMIT = 256 * 1024;
 const DPAPI_ENTROPY = 't8-zcanvas-agent-control-v1';
+const TRANSACTION_PROTOCOL = 't8-zcanvas-secure-store-transaction-v1';
+const snapshots = new WeakMap();
+
+function remember(store, filePath, bytes) {
+  snapshots.set(store, { path: path.resolve(filePath), hash: bytes == null ? null : crypto.createHash('sha256').update(bytes).digest('hex') });
+  return store;
+}
 
 class SecureStoreError extends Error {
   constructor(code, message) {
@@ -121,7 +129,9 @@ function readStore(options = {}) {
     if (!stat.isFile() || stat.isSymbolicLink() || stat.size > STORE_LIMIT) {
       throw new SecureStoreError('CREDENTIAL_STORE_INVALID', 'Agent 凭据存储无效');
     }
-    const parsed = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    const bytes = fs.readFileSync(filePath);
+    if (bytes.length > STORE_LIMIT) throw new SecureStoreError('CREDENTIAL_STORE_INVALID', 'Agent 凭据存储无效');
+    const parsed = JSON.parse(bytes.toString('utf8'));
     if (parsed?.schema !== STORE_SCHEMA
       || !parsed.sessions || typeof parsed.sessions !== 'object'
       || !parsed.pending || typeof parsed.pending !== 'object'
@@ -133,35 +143,65 @@ function readStore(options = {}) {
     if (!parsed.contexts) parsed.contexts = {};
     if (!parsed.approvals) parsed.approvals = {};
     if (!parsed.recipeSigning) parsed.recipeSigning = null;
-    return parsed;
+    return remember(parsed, filePath, bytes);
   } catch (error) {
-    if (error?.code === 'ENOENT') return emptyStore();
+    if (error?.code === 'ENOENT') return remember(emptyStore(), filePath, null);
     if (error instanceof SecureStoreError) throw error;
     throw new SecureStoreError('CREDENTIAL_STORE_INVALID', '无法读取 Agent 凭据存储');
   }
 }
 
-function writeStore(store, options = {}) {
-  const filePath = storePath(options);
+function writeStoreAtomic(store, options, lease) {
+  const filePath = lease.filename;
   const directory = path.dirname(filePath);
   fs.mkdirSync(directory, { recursive: true, mode: 0o700 });
-  const tempPath = `${filePath}.${process.pid}.${Date.now()}.tmp`;
+  const tempPath = `${filePath}.${lease.pid}.${lease.nonce}.tmp`;
   const serialized = `${JSON.stringify(store)}\n`;
   if (Buffer.byteLength(serialized, 'utf8') > STORE_LIMIT) {
     throw new SecureStoreError('CREDENTIAL_STORE_FULL', 'Agent 凭据存储超过安全限制');
   }
   try {
-    fs.writeFileSync(tempPath, serialized, { encoding: 'utf8', mode: 0o600, flag: 'wx' });
+    const descriptor = fs.openSync(tempPath, 'wx', 0o600);
+    try { fs.writeFileSync(descriptor, serialized, 'utf8'); fs.fsyncSync(descriptor); }
+    finally { fs.closeSync(descriptor); }
     fs.renameSync(tempPath, filePath);
     try { fs.chmodSync(filePath, 0o600); } catch (_) {}
+    remember(store, storePath(options), serialized);
   } finally {
     try { fs.rmSync(tempPath, { force: true }); } catch (_) {}
   }
 }
 
+function locked(options, work) {
+  try { return withStoreLock(storePath(options), work); }
+  catch (error) {
+    if (error instanceof SecureStoreError) throw error;
+    const code = /^(?:CREDENTIAL_STORE_[A-Z_]+|PAIRING_PROGRESS_CHANGED|PAIRING_ALREADY_PENDING)$/.test(String(error.code || '')) ? error.code : 'CREDENTIAL_STORE_WRITE_FAILED';
+    throw new SecureStoreError(code, code === 'CREDENTIAL_STORE_BUSY' ? '另一进程正在更新 Agent 配对，请稍后再试；未覆盖已有凭据' : 'Agent 凭据更新未完成，已有记录未被无条件覆盖');
+  }
+}
+function updateStore(options, update) {
+  return locked(options, lease => {
+    const store = readStore(options), result = update(store);
+    if (result.changed !== false) writeStoreAtomic(store, options, lease);
+    return result.value;
+  });
+}
+function writeStore(store, options = {}) {
+  return locked(options, lease => {
+    const current = readStore(options), previous = snapshots.get(store), actual = snapshots.get(current);
+    if ((!previous && actual.hash !== null) || (previous && (previous.path !== actual.path || previous.hash !== actual.hash))) throw new SecureStoreError('CREDENTIAL_STORE_CHANGED', '凭据快照已变化，请重新读取后再更新');
+    if (!store || store.schema !== STORE_SCHEMA || !store.sessions || !store.pending) throw new SecureStoreError('CREDENTIAL_STORE_INVALID', 'Agent 凭据存储格式不兼容');
+    writeStoreAtomic(store, options, lease);
+  });
+}
+
+function assertExpected(record, idField, expected, origin) {
+  if (expected !== undefined && (!record || record[idField] !== expected || (origin !== undefined && record.origin !== origin))) throw new SecureStoreError('PAIRING_PROGRESS_CHANGED', '配对或会话已由另一进程更新，未覆盖新的记录');
+}
+
 function storePending(instance, pairing, options = {}) {
-  const store = readStore(options);
-  store.pending[instance.instanceId] = {
+  const record = {
     instanceId: instance.instanceId,
     origin: instance.origin,
     pairingId: pairing.pairingId,
@@ -170,8 +210,16 @@ function storePending(instance, pairing, options = {}) {
     pollSecretProtected: protectValue(pairing.pollSecret, options),
     protection: (options.platform || process.platform) === 'win32' ? 'windows-dpapi-current-user' : 'restricted-file',
   };
-  writeStore(store, options);
-  return { ...store.pending[instance.instanceId], pollSecretProtected: undefined };
+  return updateStore(options, store => {
+    const previous = store.pending[instance.instanceId];
+    if (previous?.pairingId === pairing.pairingId) {
+      if (previous.origin !== instance.origin || previous.userCode !== pairing.userCode || previous.expiresAt !== pairing.expiresAt) throw new SecureStoreError('PAIRING_PROGRESS_CHANGED', '同一配对请求的身份信息已变化，未覆盖原记录');
+      return { value: { ...previous, pollSecretProtected: undefined }, changed: false };
+    }
+    if (previous && !(Date.parse(previous.expiresAt) <= Date.now())) throw new SecureStoreError('PAIRING_ALREADY_PENDING', '此实例已有待确认配对，请先在画布处理已有请求');
+    store.pending[instance.instanceId] = record;
+    return { value: { ...record, pollSecretProtected: undefined } };
+  });
 }
 
 function loadPending(instanceId, options = {}) {
@@ -186,16 +234,16 @@ function loadPending(instanceId, options = {}) {
 }
 
 function deletePending(instanceId, options = {}) {
-  const store = readStore(options);
-  const existed = Boolean(store.pending[String(instanceId || '')]);
-  delete store.pending[String(instanceId || '')];
-  writeStore(store, options);
-  return existed;
+  return updateStore(options, store => {
+    const key = String(instanceId || '');
+    assertExpected(store.pending[key], 'pairingId', options.expectedPairingId, options.expectedOrigin);
+    const existed = Boolean(store.pending[key]); delete store.pending[key];
+    return { value: existed };
+  });
 }
 
 function storeSession(instance, session, options = {}) {
-  const store = readStore(options);
-  store.sessions[instance.instanceId] = {
+  const record = {
     instanceId: instance.instanceId,
     origin: instance.origin,
     sessionId: session.sessionId,
@@ -203,9 +251,13 @@ function storeSession(instance, session, options = {}) {
     accessTokenProtected: protectValue(session.accessToken, options),
     protection: (options.platform || process.platform) === 'win32' ? 'windows-dpapi-current-user' : 'restricted-file',
   };
-  delete store.pending[instance.instanceId];
-  writeStore(store, options);
-  return { ...store.sessions[instance.instanceId], accessTokenProtected: undefined };
+  return updateStore(options, store => {
+    const pending = store.pending[instance.instanceId];
+    if (session.pairingId !== undefined) assertExpected(pending, 'pairingId', session.pairingId, instance.origin);
+    else if (pending && !(Date.parse(pending.expiresAt) <= Date.now())) throw new SecureStoreError('PAIRING_PROGRESS_CHANGED', '当前待配对请求需要匹配的身份，未覆盖它');
+    store.sessions[instance.instanceId] = record; delete store.pending[instance.instanceId];
+    return { value: { ...record, accessTokenProtected: undefined } };
+  });
 }
 
 function loadSession(instanceId, options = {}) {
@@ -220,11 +272,12 @@ function loadSession(instanceId, options = {}) {
 }
 
 function deleteSession(instanceId, options = {}) {
-  const store = readStore(options);
-  const existed = Boolean(store.sessions[String(instanceId || '')]);
-  delete store.sessions[String(instanceId || '')];
-  writeStore(store, options);
-  return existed;
+  return updateStore(options, store => {
+    const key = String(instanceId || '');
+    assertExpected(store.sessions[key], 'sessionId', options.expectedSessionId, options.expectedOrigin);
+    const existed = Boolean(store.sessions[key]); delete store.sessions[key];
+    return { value: existed };
+  });
 }
 
 function configuredInstances(options = {}) {
@@ -264,7 +317,7 @@ function getRecipeSigningSecret(options = {}) {
   }
   const secret = crypto.randomBytes(32).toString('base64url');
   const keyId = crypto.createHash('sha256').update(secret).digest('hex').slice(0, 20);
-  store.recipeSigning = {
+  const candidate = {
     keyId,
     secretProtected: protectValue(secret, options),
     protection: (options.platform || process.platform) === 'win32'
@@ -272,12 +325,15 @@ function getRecipeSigningSecret(options = {}) {
       : 'restricted-file',
     createdAt: new Date().toISOString(),
   };
-  writeStore(store, options);
-  return { keyId, secret };
+  const selected = updateStore(options, current => {
+    if (current.recipeSigning?.secretProtected) return { value: { record: current.recipeSigning, created: false }, changed: false };
+    current.recipeSigning = candidate;
+    return { value: { record: candidate, created: true } };
+  });
+  return selected.created ? { keyId, secret } : { keyId: String(selected.record.keyId || ''), secret: unprotectValue(selected.record.secretProtected, options) };
 }
 
 function setWorkspaceContext(instanceId, context, options = {}) {
-  const store = readStore(options);
   const key = String(instanceId || '').trim();
   const projectId = String(context?.projectId || '').trim();
   const canvasId = String(context?.canvasId || '').trim();
@@ -286,14 +342,13 @@ function setWorkspaceContext(instanceId, context, options = {}) {
     || !/^[A-Za-z0-9][A-Za-z0-9._:-]{0,159}$/.test(canvasId)) {
     throw new SecureStoreError('WORKSPACE_CONTEXT_INVALID', '工作区项目或画布 ID 无效');
   }
-  store.contexts[key] = {
+  const record = {
     instanceId: key,
     projectId,
     canvasId,
     selectedAt: new Date().toISOString(),
   };
-  writeStore(store, options);
-  return store.contexts[key];
+  return updateStore(options, store => { store.contexts[key] = record; return { value: record }; });
 }
 
 function getWorkspaceContext(instanceId, options = {}) {
@@ -303,13 +358,12 @@ function getWorkspaceContext(instanceId, options = {}) {
 }
 
 function storeApproval(instance, approval, options = {}) {
-  const store = readStore(options);
   const approvalRequestId = String(approval.approvalRequestId || '');
   if (!approvalRequestId) {
     throw new SecureStoreError('APPROVAL_INVALID', '待确认操作缺少 approvalRequestId');
   }
   const key = `${instance.instanceId}:${approvalRequestId}`;
-  store.approvals[key] = {
+  const record = {
     instanceId: instance.instanceId,
     origin: instance.origin,
     approvalRequestId,
@@ -323,8 +377,7 @@ function storeApproval(instance, approval, options = {}) {
     pollSecretProtected: protectValue(approval.pollSecret, options),
     protection: (options.platform || process.platform) === 'win32' ? 'windows-dpapi-current-user' : 'restricted-file',
   };
-  writeStore(store, options);
-  return { ...store.approvals[key], pollSecretProtected: undefined };
+  return updateStore(options, store => { store.approvals[key] = record; return { value: { ...record, pollSecretProtected: undefined } }; });
 }
 
 function approvalRecordsForInstance(store, instanceId) {
@@ -361,19 +414,19 @@ function deleteApproval(instanceId, approvalRequestIdOrOptions = {}, maybeOption
   const options = typeof approvalRequestIdOrOptions === 'string'
     ? maybeOptions
     : approvalRequestIdOrOptions;
-  const store = readStore(options);
-  let existed = false;
-  for (const [key, record] of Object.entries(store.approvals || {})) {
-    if (String(record?.instanceId || '') !== String(instanceId || '')) continue;
-    if (approvalRequestId && record.approvalRequestId !== approvalRequestId) continue;
-    existed = true;
-    delete store.approvals[key];
-  }
-  writeStore(store, options);
-  return existed;
+  return updateStore(options, store => {
+    let existed = false;
+    for (const [key, record] of Object.entries(store.approvals || {})) {
+      if (String(record?.instanceId || '') !== String(instanceId || '')) continue;
+      if (approvalRequestId && record.approvalRequestId !== approvalRequestId) continue;
+      existed = true; delete store.approvals[key];
+    }
+    return { value: existed };
+  });
 }
 
 module.exports = {
+  TRANSACTION_PROTOCOL,
   DPAPI_ENTROPY,
   STORE_LIMIT,
   STORE_SCHEMA,

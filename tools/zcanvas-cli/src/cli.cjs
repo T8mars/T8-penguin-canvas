@@ -609,6 +609,7 @@ async function handleAuth(subcommand, parsed, human) {
   const instance = await selectInstance(String(parsed.flags.get('instance') || ''));
 
   if (action === 'pair') {
+    if (configuredInstances().pending.some(item => item.instanceId === instance.instanceId)) throw new AgentClientError('PAIRING_ALREADY_PENDING', '此实例已有待确认配对，请先在画布处理已有请求');
     const payload = await requestAgentControl(instance, '/api/agent-control/v1/pairings', {
       method: 'POST',
       body: {
@@ -649,7 +650,7 @@ async function handleAuth(subcommand, parsed, human) {
       throw new AgentClientError('PAIRING_NOT_STARTED', '没有找到此画布实例的待确认配对，请先运行 zcanvas auth pair');
     }
     if (Date.parse(String(pending.expiresAt || '')) <= Date.now()) {
-      deletePending(instance.instanceId);
+      deletePending(instance.instanceId, { expectedPairingId: pending.pairingId, expectedOrigin: instance.origin });
       throw new AgentClientError('PAIRING_EXPIRED', 'Agent 配对验证码已过期，请重新发起配对并核对新的验证码');
     }
     const payload = await requestAgentControl(
@@ -674,11 +675,11 @@ async function handleAuth(subcommand, parsed, human) {
       return EXIT_CODES.CONFIRMATION_REQUIRED;
     }
     if (result.status === 'denied') {
-      deletePending(instance.instanceId);
+      deletePending(instance.instanceId, { expectedPairingId: pending.pairingId, expectedOrigin: instance.origin });
       throw new AgentClientError('PAIRING_DENIED', '画布用户已拒绝此 Agent 连接');
     }
     if (result.status !== 'approved' || !result.accessToken) {
-      deletePending(instance.instanceId);
+      deletePending(instance.instanceId, { expectedPairingId: pending.pairingId, expectedOrigin: instance.origin });
       throw new AgentClientError('PAIRING_TOKEN_ALREADY_ISSUED', '配对凭据已领取或失效，请重新发起配对');
     }
     storeSession(instance, result);
@@ -719,7 +720,7 @@ async function handleAuth(subcommand, parsed, human) {
       ]);
       return EXIT_CODES.OK;
     } catch (error) {
-      if (['AUTH_EXPIRED', 'PAIRING_REQUIRED'].includes(error?.code)) deleteSession(instance.instanceId);
+      if (['AUTH_EXPIRED', 'PAIRING_REQUIRED'].includes(error?.code)) deleteSession(instance.instanceId, { expectedSessionId: session.sessionId, expectedOrigin: instance.origin });
       throw error;
     }
   }
@@ -737,7 +738,7 @@ async function handleAuth(subcommand, parsed, human) {
       method: 'DELETE',
       accessToken: session.accessToken,
     });
-    deleteSession(instance.instanceId);
+    deleteSession(instance.instanceId, { expectedSessionId: session.sessionId, expectedOrigin: instance.origin });
     emit(envelope({
       message: 'Agent 连接已撤销，本机安全凭据已删除',
       data: { instanceId: instance.instanceId, ...payload.data },
@@ -767,7 +768,7 @@ async function authenticatedRequest(instance, session, pathname, options = {}) {
       accessToken: session.accessToken,
     });
   } catch (error) {
-    if (['AUTH_EXPIRED', 'PAIRING_REQUIRED'].includes(error?.code)) deleteSession(instance.instanceId);
+    if (['AUTH_EXPIRED', 'PAIRING_REQUIRED'].includes(error?.code)) deleteSession(instance.instanceId, { expectedSessionId: session.sessionId, expectedOrigin: instance.origin });
     throw error;
   }
 }
@@ -1075,10 +1076,10 @@ async function handlePatch(subcommand, parsed, human) {
       return EXIT_CODES.CONFIRMATION_REQUIRED;
     }
     if (result.status === 'denied') {
-      deleteApproval(instance.instanceId);
+      deleteApproval(instance.instanceId, approval.approvalRequestId);
       throw new AgentClientError('PATCH_APPROVAL_DENIED', '画布用户已拒绝此操作');
     }
-    deleteApproval(instance.instanceId);
+    deleteApproval(instance.instanceId, approval.approvalRequestId);
     emit(envelope({
       message: result.action === 'patch.revert' ? 'Patch 已创建新的撤销 revision' : 'Patch 已应用',
       data: result,

@@ -7,6 +7,8 @@ const path = require('node:path');
 const INSTANCE_SCHEMA = 't8-agent-control-instance-v1';
 const INSTANCE_FILE_LIMIT = 32 * 1024;
 const INSTANCE_LIST_LIMIT = 256;
+const INSTANCE_ENTRY_LIMIT = 32768;
+const INSTANCE_READ_LIMIT = INSTANCE_FILE_LIMIT * INSTANCE_LIST_LIMIT;
 
 function registryDirectories(env = process.env, homeDir = os.homedir()) {
   const directories = [];
@@ -70,26 +72,49 @@ function readInstanceDescriptors(options = {}) {
   const now = Number(options.now) || Date.now();
   const descriptors = [];
   const seen = new Set();
+  let readBytes = 0;
   for (const directory of registryDirectories(options.env, options.homeDir)) {
     let entries;
     try {
-      entries = fs.readdirSync(directory, { withFileTypes: true })
-        .filter((entry) => entry.isFile() && /^[A-Za-z0-9_-]{43,128}\.json$/.test(entry.name))
-        .slice(0, INSTANCE_LIST_LIMIT);
+      entries = fs.readdirSync(directory, { withFileTypes: true });
+      if (entries.length > INSTANCE_ENTRY_LIMIT) {
+        const error = new Error('Agent instance registry exceeds the bounded scan limit');
+        error.code = 'INSTANCE_REGISTRY_LIMIT';
+        throw error;
+      }
+      // Stale files do not consume the live-descriptor window. Prefer recent
+      // atomic heartbeats, but validate the JSON heartbeat as the authority.
+      entries = entries.filter((entry) => entry.isFile() && /^[A-Za-z0-9_-]{43,128}\.json$/.test(entry.name))
+        .flatMap((entry) => {
+          try {
+            const stat = fs.lstatSync(path.join(directory, entry.name));
+            return stat.isFile() && !stat.isSymbolicLink() && stat.size <= INSTANCE_FILE_LIMIT ? [{ name: entry.name, stat }] : [];
+          } catch (_) { return []; }
+        })
+        .sort((left, right) => right.stat.mtimeMs - left.stat.mtimeMs || left.name.localeCompare(right.name));
     } catch (error) {
       if (error?.code === 'ENOENT') continue;
       throw error;
     }
     for (const entry of entries) {
+      if (descriptors.length >= INSTANCE_LIST_LIMIT) break;
+      if (readBytes + entry.stat.size + 1 > INSTANCE_READ_LIMIT) continue;
       const filePath = path.join(directory, entry.name);
+      let fd;
       try {
-        const stat = fs.lstatSync(filePath);
-        if (!stat.isFile() || stat.isSymbolicLink() || stat.size > INSTANCE_FILE_LIMIT) continue;
-        const descriptor = validateDescriptor(JSON.parse(fs.readFileSync(filePath, 'utf8')), now);
+        fd = fs.openSync(filePath, 'r');
+        const opened = fs.fstatSync(fd);
+        if (!opened.isFile() || opened.size !== entry.stat.size || opened.dev !== entry.stat.dev || opened.ino !== entry.stat.ino) continue;
+        readBytes += opened.size + 1;
+        const bytes = Buffer.alloc(opened.size + 1); let size = 0;
+        while (size < bytes.length) { const read = fs.readSync(fd, bytes, size, bytes.length - size, size); if (!read) break; size += read; }
+        const after = fs.fstatSync(fd);
+        if (size !== opened.size || after.size !== opened.size || after.mtimeMs !== opened.mtimeMs) continue;
+        const descriptor = validateDescriptor(JSON.parse(bytes.subarray(0, size).toString('utf8')), now);
         if (!descriptor || seen.has(descriptor.instanceId)) continue;
         seen.add(descriptor.instanceId);
         descriptors.push(descriptor);
-      } catch (_) {}
+      } catch (_) {} finally { if (fd !== undefined) fs.closeSync(fd); }
     }
   }
   return descriptors.sort((left, right) => left.instanceId.localeCompare(right.instanceId));
@@ -133,6 +158,8 @@ async function discoverInstances(options = {}) {
 module.exports = {
   INSTANCE_FILE_LIMIT,
   INSTANCE_LIST_LIMIT,
+  INSTANCE_ENTRY_LIMIT,
+  INSTANCE_READ_LIMIT,
   INSTANCE_SCHEMA,
   discoverInstances,
   probeInstance,

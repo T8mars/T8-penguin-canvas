@@ -971,7 +971,6 @@ function seedanceNetworkCause(error) {
 function seedanceRetryIsKnownPreRequestFailure(error) {
   const cause = seedanceNetworkCause(error);
   const code = String(cause?.code || error?.code || '').trim().toUpperCase();
-  const message = String(cause?.message || error?.message || '');
   return [
     'CERT_HAS_EXPIRED',
     'DEPTH_ZERO_SELF_SIGNED_CERT',
@@ -979,7 +978,7 @@ function seedanceRetryIsKnownPreRequestFailure(error) {
     'UNABLE_TO_GET_ISSUER_CERT',
     'UNABLE_TO_GET_ISSUER_CERT_LOCALLY',
     'UNABLE_TO_VERIFY_LEAF_SIGNATURE',
-  ].includes(code) || /certificate|self signed|unable to verify|issuer cert/i.test(message);
+  ].includes(code);
 }
 
 async function secureFetch(url, init = {}) {
@@ -996,11 +995,13 @@ async function secureFetch(url, init = {}) {
   } catch (error) {
     if (init?.signal?.aborted) throw error;
     const safeRead = ['GET', 'HEAD'].includes(method);
-    const stableSubmission = Boolean(headerValue(request.headers, 'idempotency-key'));
     // TLS trust can fail before an HTTP request exists on older Electron CA
     // bundles. That case is safe to retry with the provider-pinned CA even
     // when a legacy caller has no submission key.
-    if (!safeRead && !stableSubmission && !seedanceRetryIsKnownPreRequestFailure(error)) {
+    // A carried identity is correlation, not proof that this gateway deduplicates
+    // a replay. After an ambiguous paid write, retain/query the original task;
+    // only exact TLS verification failures known to precede HTTP may recover.
+    if (!safeRead && !seedanceRetryIsKnownPreRequestFailure(error)) {
       throw error;
     }
     try {
