@@ -187,7 +187,7 @@ async function electronMain() {
       await until(() => js(`document.querySelector('[data-canvas-close-hold]')?.getAttribute('data-canvas-close-phase')==='waiting'`), 'Packaged transport phase fence missing');
       // Observe a complete production polling interval without shortening it.
       // The compiled API guard must stop requests before even reaching fetch.
-      await js(`window.updateFixtureRequests=[];const before=window.fetch;window.fetch=(...args)=>{window.updateFixtureRequests.push(typeof args[0]==='string'?args[0]:args[0].url);return before(...args);}`);
+      await js(`window.updateFixtureRequests=[];const before=window.fetch;window.fetch=(...args)=>{window.updateFixtureRequests.push(typeof args[0]==='string'?args[0]:args[0].url);return before(...args);};void 0;`);
       await pause(16_000);
       const requests = await js(`window.updateFixtureRequests.filter(url=>new URL(url,location.href).pathname==='/api/status')`);
       assert.deepEqual(requests, [], 'Compiled App re-probed backend after save ACK');
