@@ -1,5 +1,6 @@
 import { createContext, lazy, Suspense, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ComponentType, type CSSProperties, type DragEvent as ReactDragEvent, type MouseEvent as ReactMouseEvent, type RefObject, type SetStateAction } from 'react';
 import { useTranslation } from 'react-i18next';
+import { registerCanvasActiveContext } from '../utils/agentActiveContext';
 import DesktopDataStorage from './DesktopDataStorage';
 import CanvasRestoreDialog from './CanvasRestoreDialog';
 import NodeDomLanguageBoundary from '../i18n/NodeDomLanguageBoundary';
@@ -4378,6 +4379,15 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, onReadinessChange, onR
   const loadedCanvasIdRef = useRef<string | null>(loadedCanvasId);
   loadedRef.current = loaded;
   loadedCanvasIdRef.current = loadedCanvasId;
+  useEffect(() => registerCanvasActiveContext(window.t8pc?.agentControl, () => ({
+    loaded: loadedRef.current,
+    currentCanvasId: useCanvasStore.getState().activeId,
+    loadedCanvasId: loadedCanvasIdRef.current,
+    initializedCanvasId: initializedFlowCanvasId,
+    projectId: activeProjectIdRef.current,
+    canvasId: activeId,
+    revision: activeId ? canvasRevisionsRef.current.get(activeId) : undefined,
+  })), [activeId, initializedFlowCanvasId]);
   useEffect(() => () => {
     // Late responses from a retired keyed editor are always off-screen. The
     // current editor owns rendering; shared pending state survives the switch.

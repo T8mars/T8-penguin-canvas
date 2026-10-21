@@ -1290,5 +1290,6 @@ module.exports = {
   waitForRuntimeStorageCloseLifecycle,
   agentControlAuthService: require('./services/agentControlAuth').agentControlAuthService,
   agentControlCompatibilitySnapshot: require('./services/agentControlCompatibility').compatibilitySnapshot,
+  agentControlContextService: require('./services/agentControlContext').agentControlContextService,
   agentControlApprovalService: require('./services/agentControlApprovals').agentControlApprovalService,
 };

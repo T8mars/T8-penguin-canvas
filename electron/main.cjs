@@ -41,6 +41,7 @@ const APP_VERSION = require('../package.json').version;
 const { createDataStorage } = require('./dataStorage.cjs');
 const { createStartupDiagnostics, installStartupConsoleCapture, registerStartupDiagnosticsIpc } = require('./startupDiagnostics.cjs');
 const { createAgentToolsManager, registerAgentToolsIpc } = require('./agentTools.cjs');
+const { createActiveContextProvider } = require('./agentContext.cjs');
 let agentToolsManager = null;
 let desktopDataStorage = null;
 let dataStorageRestartPending = false;
@@ -2284,6 +2285,18 @@ async function startBackend() {
       const error = start?.error || new Error('后端未返回可验证的监听状态');
       throw error;
     }
+    backendModule?.agentControlContextService?.setProvider(createActiveContextProvider({
+      ipcMain,
+      getWindows: () => mainWindow ? [mainWindow] : [],
+      isTrustedUrl: (value) => {
+        try {
+          const target = new URL(value);
+          if (target.username || target.password) return false;
+          return target.origin === `http://127.0.0.1:${backendPort}`
+            || (!isPackaged() && developmentFrontendUrl() && target.origin === new URL(developmentFrontendUrl()).origin);
+        } catch { return false; }
+      },
+    }));
     if (typeof backendModule?.agentControlApprovalService?.subscribeMutations === 'function') {
       agentControlMutationUnsubscribe?.();
       agentControlMutationUnsubscribe = backendModule.agentControlApprovalService.subscribeMutations((event) => {

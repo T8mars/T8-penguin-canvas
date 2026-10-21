@@ -83,9 +83,10 @@ const CREATIVE_CLI_OPERATIONS = Object.freeze(
 function operationCapabilities(runtime = {}) {
   const offlineSafe = new Set(['help', 'version', 'capabilities', 'status', 'skill', 'app', 'sessions']);
   const appOnly = new Set(['auth']);
-  const pairingOnly = new Set(['workspace.list', 'workspace.use']);
+  const pairingOnly = new Set(['workspace.list', 'workspace.use', 'workspace.active']);
   const scopeRequirements = {
     'workspace.list': ['canvas:read'],
+    'workspace.active': ['canvas:read'],
     'workspace.use': ['canvas:read'],
     'doctor.inspect': ['canvas:read'],
     'doctor.validate': ['canvas:read'],
@@ -135,6 +136,7 @@ function operationCapabilities(runtime = {}) {
   const contractVerified = new Set([
     'version', 'capabilities', 'status', 'skill.install', 'skill.update', 'skill.rollback',
     'skill.verify', 'skill.uninstall', 'app.list', 'app.discover', 'sessions',
+    'workspace.active',
     'recipe.list', 'recipe.show', 'recipe.save', 'recipe.export', 'recipe.import',
     'recipe.pin', 'recipe.rollback', 'recipe.verify',
     'doctor.inspect', 'doctor.validate', 'doctor.schema', 'doctor.simulate',
@@ -824,10 +826,19 @@ async function creatorWorkspaceContext(instance, session) {
 
 async function handleWorkspace(subcommand, parsed, human) {
   const action = subcommand || 'current';
-  if (!['list', 'use', 'current'].includes(action)) {
-    throw new AgentClientError('USAGE_ERROR', `未知 workspace 子命令：${action}；可用 list、use、current`);
+  if (!['list', 'use', 'current', 'active'].includes(action)) {
+    throw new AgentClientError('USAGE_ERROR', `未知 workspace 子命令：${action}；可用 list、use、current、active`);
   }
   const { instance, session } = await authenticatedInstance(parsed);
+  if (action === 'active') {
+    const payload = await authenticatedRequest(instance, session, '/api/agent-control/v1/active-context');
+    if (payload.data?.schema !== 't8-agent-active-context-v1' || payload.data.instanceId !== instance.instanceId) {
+      throw new AgentClientError('ACTIVE_CONTEXT_INVALID', '桌面活动上下文合同不匹配；请使用配套工具，不会改选目标');
+    }
+    emit(envelope({ message: '已返回桌面窗口只读定位；不更改 Agent 已选目标或授权', data: payload.data }),
+      human, [JSON.stringify(payload.data)]);
+    return EXIT_CODES.OK;
+  }
   if (action === 'current') {
     const context = getWorkspaceContext(instance.instanceId);
     if (!context) {

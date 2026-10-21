@@ -3,8 +3,8 @@
 更新：2026-10-21。仅维护当前事实；长期规则见根 `SKILL.md` 和 `AGENTS.md`。本页预算 80 行 / 8 KiB，旧检查点迁入专题，不追加长日报。
 
 - 默认目录 `E:\PenguinPravite\T8-penguin-canvas`；branch `codex/release-v3.0.8-volcengine-assets-ux`，common dir `.git`。开工以git/worktree门为准；正式源码/Tag固定后记录在发布专题，不移动。
-- package `3.3.9` 已同源双平台Latest发布；见[发布专题](release-v3.3.9.md)。旧v3.3.8 Tag/六资产冻结，未覆盖。
-- 本版安装升级、真人配对和 F8–F10 按 `owner-approved-post-release-v3.3.9` 后补，不视为通过；Mac为ad-hoc未公证预览，仅额度不足可延期。
+- package `3.4.0` 已授权准备，尚未正式构建；见[发布专题](release-v3.4.0.md)。旧v3.3.9 Tag/六资产冻结。
+- 本版安装升级、真人配对和 F8–F10 按 `owner-approved-post-release-v3.4.0` 后补，不视为通过；Mac为ad-hoc未公证预览，仅额度不足可延期。
 
 ## 当前检查点
 
@@ -12,7 +12,7 @@
 
 | 事项 | 当前事实与下一步 |
 | --- | --- |
-| DSH工具配套 | v3.3.9已发布：九字段及内容校验、同版本刷新；95项与包内修复通过，真人配对后补，见[专题](agent-tools-installed-cli-compat.md)。原接入见[交接](dsh-native-integration-20261020.md)。 |
+| DSH工具配套 | v3.3.9[工具修复](agent-tools-installed-cli-compat.md)已发布。新增只读[活动定位](agent-active-context.md)已开发验证、未发布；真人配对/安装现场后补。 |
 | 画布保存冲突 | 已随v3.3.6双平台发布：有界合并与冲突确认，两次20主题复查；215回归、隔离画布25项通过。旧确认/加载不回退、目录不复活、医生移动协议修正。CAS不放宽，现场/安装版后补，见[专题](canvas-save-conflict-20261019.md)。 |
 | Strata本地LLM | 已随v3.3.5双平台发布：两轮20轮审查修8项，315回归及最新隔离画布16项通过。前轮真实识图通过，本轮冷启动上游503未通过；用户要求服务先不动。范围/未验收见[专题](strata-llm.md)。 |
 | ArtCraft体验增强 | 已随v3.3.4双平台发布：灵感板/编辑版本/独立世界节点/Story草稿；完整App实链、28主题组合、142项及正式构建通过。排除/搁置项见[专题](artcraft-canvas-ux.md)。 |

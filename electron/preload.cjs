@@ -107,6 +107,21 @@ contextBridge.exposeInMainWorld('t8pc', {
     clear: (profileId) => ipcRenderer.invoke('t8pc:parse-auth:clear', profileId),
   },
   agentControl: {
+    onActiveContextRequest: (callback) => {
+      if (typeof callback !== 'function') return () => {};
+      const listener = (_event, requestId) => {
+        if (typeof requestId !== 'string' || requestId.length > 80) return;
+        let context = { ready: false };
+        try {
+          const value = canvasCloseRequest && !canvasCloseRequest.cancelled ? null : callback();
+          context = { ready: value?.ready === true, projectId: value?.projectId,
+            canvasId: value?.canvasId, revision: value?.revision };
+        } catch { /* An unmounted/loading editor is not an active target. */ }
+        ipcRenderer.send('t8pc:agent-control:context-result', { requestId, context });
+      };
+      ipcRenderer.on('t8pc:agent-control:context-request', listener);
+      return () => ipcRenderer.removeListener('t8pc:agent-control:context-request', listener);
+    },
     getConnectionSummary: () => ipcRenderer.invoke('t8pc:agent-control:connection-summary'),
     listPendingPairings: () => ipcRenderer.invoke('t8pc:agent-control:list-pending'),
     approvePairing: (input) => ipcRenderer.invoke('t8pc:agent-control:approve', {

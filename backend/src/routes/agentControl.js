@@ -48,6 +48,7 @@ const {
   runtimeDecisionModels,
 } = require('../services/creatorAgentModelDecision');
 const { compatibilitySnapshot } = require('../services/agentControlCompatibility');
+const { ACTIVE_CONTEXT_SCHEMA, agentControlContextService } = require('../services/agentControlContext');
 const {
   publicCreativeCapabilities,
   publicCreativeCapabilityGraph,
@@ -677,6 +678,7 @@ function createAgentControlRouter(options = {}) {
         instanceId: runtimeConfig.BACKEND_INSTANCE_ID,
         ...compatibility,
         pairingRequired: true,
+        activeContext: { schema: ACTIVE_CONTEXT_SCHEMA, scope: 'canvas:read', readOnly: true },
         runControl: {
           schema: 't8-agent-run-control-v1',
           singleUsePlan: true,
@@ -802,6 +804,14 @@ function createAgentControlRouter(options = {}) {
     } catch (error) {
       return next(error);
     }
+  });
+
+  router.get('/active-context', async (req, res, next) => {
+    try {
+      auth.authenticate(bearerToken(req), ['canvas:read']);
+      const data = await (options.contextService || agentControlContextService).snapshot(runtimeConfig.BACKEND_INSTANCE_ID);
+      return res.json(response({ data }));
+    } catch (error) { return next(error); }
   });
 
   router.get('/workspaces', (req, res, next) => {

@@ -64,7 +64,8 @@
       "subcommands": [
         "list",
         "use",
-        "current"
+        "current",
+        "active"
       ]
     },
     {

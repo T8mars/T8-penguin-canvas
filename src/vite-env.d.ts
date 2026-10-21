@@ -384,6 +384,8 @@ interface Window {
       clear: (profileId: string) => Promise<T8ParseAuthResult>;
     };
     agentControl?: {
+      onActiveContextRequest?: (callback: () => { ready: boolean; projectId?: string | null;
+        canvasId?: string | null; revision?: number }) => () => void;
       getConnectionSummary: () => Promise<T8AgentControlIpcResult<T8AgentControlConnectionSummary>>;
       listPendingPairings: () => Promise<T8AgentControlIpcResult<T8AgentControlPairing[]>>;
       approvePairing: (input: {
