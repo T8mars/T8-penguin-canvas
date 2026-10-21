@@ -24,6 +24,7 @@ for (const realNsis of [false, true]) test(`native Electron save receipt, SQLite
   const result = JSON.parse(line.slice('T8_UPDATE_EXIT_RESULT='.length));
   assert.equal(result.saveCalls, 1); assert.equal(result.launches, 1);
   assert.equal(result.storageClosed, true); assert.equal(result.lateWriteRead, true); assert.equal(result.reopened, true);
+  assert.equal(result.transportFence, true);
   assert.ok(result.phases.includes('updater.waitingForStorage'));
   if (realNsis) {
     const marker = path.join(root, 'installer-result.txt'), deadline = Date.now() + 12_000;

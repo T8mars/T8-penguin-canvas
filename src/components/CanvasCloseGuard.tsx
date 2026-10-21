@@ -25,6 +25,7 @@ export function CanvasCloseGuard({ runtime }: { runtime: { closeObserver: Canvas
       if (root) root.inert = true;
       const notice = document.createElement('div');
       notice.setAttribute('data-canvas-close-hold', 'true');
+      notice.setAttribute('data-canvas-close-phase', 'saving');
       notice.setAttribute('role', 'status');
       const message = document.createElement('div');
       message.textContent = t('generationHistory.savingBeforeClose');
@@ -70,6 +71,9 @@ export function CanvasCloseGuard({ runtime }: { runtime: { closeObserver: Canvas
       cancellationWatch = window.setInterval(() => {
         if (disposed || cancelled()) { restore(); return; }
         const current = phase?.() || 'saving';
+        // A retained successful receipt is already closing even before the
+        // first main-process phase event arrives (ordinary quit has none).
+        notice.setAttribute('data-canvas-close-phase', current === 'saving' && accepted ? 'closing' : current);
         const keys = {
           closing: 'generationHistory.savedBeforeClose',
           waiting: 'generationHistory.waitingBeforeClose',
@@ -89,7 +93,10 @@ export function CanvasCloseGuard({ runtime }: { runtime: { closeObserver: Canvas
           flush: () => runtime.closeObserver?.flush(),
         });
         accepted = result.ok && !disposed && !cancelled();
-        if (accepted) message.textContent = t('generationHistory.savedBeforeClose');
+        if (accepted) {
+          notice.setAttribute('data-canvas-close-phase', 'closing');
+          message.textContent = t('generationHistory.savedBeforeClose');
+        }
         return accepted ? result : { ok: false, reason: result.reason || 'save' };
       } finally {
         if (!accepted) restore();

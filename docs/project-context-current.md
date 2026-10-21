@@ -3,8 +3,8 @@
 更新：2026-10-21。仅维护当前事实；长期规则见根 `SKILL.md` 和 `AGENTS.md`。本页预算 80 行 / 8 KiB，旧检查点迁入专题，不追加长日报。
 
 - 默认目录 `E:\PenguinPravite\T8-penguin-canvas`；branch `codex/release-v3.0.8-volcengine-assets-ux`，common dir `.git`。开工以git/worktree门为准；正式源码/Tag固定后记录在发布专题，不移动。
-- package `3.4.0` 已同源双平台Latest发布；见[发布专题](release-v3.4.0.md)。旧v3.3.9 Tag/六资产冻结。
-- 本版安装升级、真人配对和 F8–F10 按 `owner-approved-post-release-v3.4.0` 后补，不视为通过；Mac为ad-hoc未公证预览，仅额度不足可延期。
+- package `3.4.1` 已获正式打包/发布授权，待唯一构建；见[发布专题](release-v3.4.1.md)。旧v3.4.0 Tag/六资产冻结。
+- 本版现场自动升级、真人配对及F8–F10按 `owner-approved-post-release-v3.4.1` 后补，不视为通过；Mac为ad-hoc未公证预览，仅额度不足可延期。
 
 ## 当前检查点
 
@@ -19,7 +19,7 @@
 | 节点清晰度 / 平价香蕉低价 / 豆包 | v3.3.4已发布；实网8/8解码、14主题672组样式/控件及相关回归通过。安装版/用户GPU未验，模型与工作流见[专题](nb-lowprice-doubao.md)。 |
 | Mai / Topaz | 分别随v3.3.3/v3.3.2双平台发布；实网完整解码与限定回归通过，完整UI/安装版未验收，见[Mai](mai-image.md)、[Topaz](topaz-video-upscale.md)。 |
 | 平价香蕉2.1 / Flux / Vidu Q4 | 已随v3.3.1双平台发布；六模型、Flux新Tab，旧默认不变。八条实网成功并完整解码，R2V转MP3；159/159回归、独立后端49/49通过。八份无凭据工作流见[专题](nb21-flux-viduq4.md)；安装升级及端到端UI未验收。 |
-| 自动更新退出 | 已随v3.3.8发布：真实关闭回执、有界等待自动续装、只读故障面板；115项、真实Electron/SQLite/测试NSIS及包内验证通过，现场待验。见[专题](auto-update-close-hold-20261021.md)。 |
+| 自动更新退出 | 旧版手动恢复到v3.4.0，现场ready；停探测/新请求补修已授权v3.4.1发布。47回归及两项原生组合通过，随机端口复验/旧隔离缺口见[专题](auto-update-close-hold-20261021.md)。 |
 | 启动诊断/修复 | v3.2.8/3.2.9已发布；同次校验、候选线程、旧名补回通过限定回归，现场未验。细项见[修复](startup-history-fix-20261008.md)及[诊断](startup-diagnostics.md)。 |
 | 工坊香蕉2.1 | 已随v3.2.6双平台发布，仅新增模型，旧默认/参数不变；真实文生图与图生图通过。见[专题](nano-banana21-workshop.md)。 |
 | RH 媒体误判 | 已随v3.2.6双平台发布：媒体保留上传；专项18/18、相邻40/40通过。两个应用真实元数据确认误判，一个真实素材上传/任务/结果完整解码成功；安装版未复验。见[专题](rh-media-field-validation-20261007.md)。 |

@@ -27,7 +27,7 @@ function fixture({ initiallyInert = false, wait = async () => ({ ok: true }), in
     document: {
       getElementById: () => root, activeElement: { blur() {} },
       createElement: () => {
-        const notice = { style: {}, children: [], setAttribute() {}, appendChild(child) { this.children.push(child); }, remove: () => notices.delete(notice) };
+        const notice = { style: {}, children: [], attributes: new Map(), setAttribute(key, value) { this.attributes.set(key, value); }, appendChild(child) { this.children.push(child); }, remove: () => notices.delete(notice) };
         return notice;
       },
       body: { appendChild: notice => notices.add(notice) },
@@ -106,11 +106,25 @@ test('stable close guard is outside the keyed ReactFlow editor', () => {
   assert.match(source, /return persistenceRuntime\.recoveryCommit\(canvasId, document, baseline\)/);
 });
 
+test('transport stays open during save and stays fenced after ACK without native phase events', async () => {
+  let finish;
+  const f = fixture({ wait: () => new Promise(resolve => { finish = resolve; }) });
+  const pending = f.close(() => false);
+  const notice = [...f.notices][0];
+  assert.equal(notice.attributes.get('data-canvas-close-phase'), 'saving');
+  finish({ ok: true }); await pending;
+  assert.equal(notice.attributes.get('data-canvas-close-phase'), 'closing');
+  [...f.timers.values()][0]();
+  assert.equal(notice.attributes.get('data-canvas-close-phase'), 'closing');
+  assert.equal(f.root.inert, true); f.cleanup();
+});
+
 test('the retained hold shows actual exit phases and exposes failure actions without unlocking the canvas', async () => {
   const f = fixture(); let phase = 'saving';
   await f.close(() => false, () => phase);
   const notice = [...f.notices][0], [message, actions] = notice.children;
   assert.equal(message.textContent, 'generationHistory.savedBeforeClose');
+  assert.equal(notice.attributes.get('data-canvas-close-phase'), 'closing');
   for (const [next, expected] of [
     ['closing', 'generationHistory.savedBeforeClose'],
     ['waiting', 'generationHistory.waitingBeforeClose'],
@@ -121,6 +135,7 @@ test('the retained hold shows actual exit phases and exposes failure actions wit
     assert.equal(message.textContent, expected);
     assert.equal(actions.hidden, next !== 'update-error');
     assert.equal(f.root.inert, true);
+    assert.equal(notice.attributes.get('data-canvas-close-phase'), next);
   }
   assert.equal(actions.children.length, 2);
   f.cleanup();

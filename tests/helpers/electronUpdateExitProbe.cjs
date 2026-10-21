@@ -70,8 +70,10 @@ app.whenReady().then(async () => {
   const effectStart = guard.indexOf('  useEffect(() => {');
   const effectEnd = guard.indexOf('  }, [runtime, t]);', effectStart) + '  }, [runtime, t]);'.length;
   const saveCode = transpile(fs.readFileSync(path.join(project, 'src/utils/canvasCloseSave.ts'), 'utf8'));
+  const exitCode = transpile(fs.readFileSync(path.join(project, 'src/utils/canvasExitTransport.ts'), 'utf8'));
   await window.webContents.executeJavaScript(`
     (() => { const exports={}; ${saveCode}; globalThis.waitForCanvasCloseSave=exports.waitForCanvasCloseSave; })();
+    (() => { const exports={}; ${exitCode}; globalThis.canvasBackendFetch=exports.canvasBackendFetch; })();
     globalThis.useEffect=callback=>{globalThis.releaseProbe=callback();};
     globalThis.t=key=>key;
     let dirty=true, queued=false;
@@ -149,13 +151,15 @@ SectionEnd
   // then release real server work. It must still have a live database here.
   assert.equal(hold.inert, true); assert.match(hold.text, /savedBeforeClose|waitingBeforeClose/);
   assert.equal(database.db.open, true); assert.equal(launches, 0); assert.equal(saveCalls, 1);
+  const transport = await window.webContents.executeJavaScript(`canvasBackendFetch('/__exit_probe_must_not_run').then(()=>false,error=>error.message==='CANVAS_EXIT_IN_PROGRESS')`);
+  assert.equal(transport, true);
   app.once('will-quit', () => {
     try {
       assert.equal(launches, 1); assert.equal(lateWriteRead, true);
       const reopened = new ProjectDatabase(config.PROJECT_DB_FILE, { projectDatabaseStoragePolicy32: config.PROJECT_DB_STORAGE_POLICY_32 });
       assert.equal(reopened.getCanvas('isolated-update').nodes[0].data.text, 'durable');
       void reopened.close(); clearTimeout(watchdog);
-      console.log('T8_UPDATE_EXIT_RESULT=' + JSON.stringify({ saveCalls, launches, storageClosed: !database.db.open, lateWriteRead, reopened: true, phases }));
+      console.log('T8_UPDATE_EXIT_RESULT=' + JSON.stringify({ saveCalls, launches, storageClosed: !database.db.open, lateWriteRead, reopened: true, transportFence: transport, phases }));
     } catch (error) { console.error(error.stack); process.exitCode = 1; }
   });
   releaseWriter();

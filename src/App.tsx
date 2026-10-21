@@ -37,6 +37,7 @@ import { portraitResourceToNodeData } from './utils/portraitResource';
 import { createUploadDataFromItems, type MediaKind } from './utils/mediaCollection';
 import { applyUiFontPreference } from './utils/uiFont';
 import { markCanvasPerformance } from './utils/canvasPerformanceProbe';
+import { isCanvasExitTransportClosed } from './utils/canvasExitTransport';
 import { observeRendererStartup, recordRendererStartupStage } from './utils/startupDiagnostics';
 import {
   deriveCanvasStartupReadiness,
@@ -830,7 +831,11 @@ function App() {
   }, []);
 
   const checkBackendNow = useCallback(async () => {
+    if (isCanvasExitTransportClosed()) return false;
     const ok = await api.checkBackendStatus();
+    // A probe started before the save ACK must not publish a disconnect/retry
+    // after shutdown begins or bootstrap a different server on a reused port.
+    if (isCanvasExitTransportClosed()) return false;
     setBackendStatus(ok ? 'ok' : 'error');
     if (ok) void api.markBackendFrontendInteractive();
     return ok;
