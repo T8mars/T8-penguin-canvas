@@ -1,6 +1,15 @@
 {
+  "electronReleaseV342": {
+    "status": "released-v3.4.2-dual-platform-verified",
+    "version": "3.4.2",
+    "tag": "v3.4.2",
+    "latest": true,
+    "evidence": "docs/release-v3.4.2.md",
+    "postReleaseEvidence": "owner-approved-post-release-v3.4.2",
+    "macBoundary": "same-tag-ad-hoc-preview; no-quota-deferral-used"
+  },
   "mossImage20261023": {
-    "status": "implemented-live-t2i-i2i-verified-with-upstream-failure",
+    "status": "released-v3.4.2-live-t2i-i2i-verified-with-upstream-failure",
     "releaseIncluded": true,
     "provider": "seedance-nz",
     "models": [
@@ -2980,13 +2989,58 @@
     ]
   },
   "release": {
-    "status": "release-authorized-v3.4.2",
+    "status": "released-v3.4.2-dual-platform-verified",
     "version": "3.4.2",
     "date": "2026-10-23",
     "tag": "v3.4.2",
-    "latest": false,
+    "latest": true,
+    "sourceCommit": "f01f1c422aa732cad2e53b747f815b39e845de6c",
+    "publishedAt": "2026-10-22T20:43:09Z",
+    "url": "https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.4.2",
     "details": "docs/release-v3.4.2.md",
-    "postReleaseEvidence": "owner-approved-post-release-v3.4.2"
+    "postReleaseEvidence": "owner-approved-post-release-v3.4.2",
+    "verification": [
+      "Unique Windows build and same-tag real Apple Silicon build passed; all six assets independently full-download verified, with both updater manifests matching. Prior v3.4.1 Tag/assets and Windows assets during Mac append unchanged.",
+      "156 model/adjacent regressions, 112 isolated production-control combinations and 20 release/packaging contracts passed. Formal encrypted-package probe verified Moss frontend, contract and authority plus fresh TEMP database and actual storage close; first stale test-digest failure retained, no product rebuild.",
+      "Real Moss text generation and image editing succeeded and outputs fully decoded. First 9:16 text task returned upstream 805 with final charge 0 and remains failed, not 3/3 green. Full canvas, installed upgrade, affected users and F8-F10 remain deferred, not passed. Mac ad-hoc/unnotarized; no quota deferral used."
+    ],
+    "draft": false,
+    "prerelease": false,
+    "assets": {
+      "windowsInstaller": {
+        "name": "T8-PenguinCanvas-Setup-3.4.2.exe",
+        "bytes": 1379780691,
+        "sha256": "8556c1e51f5ce45af1e0e90ba8522f019495cc239ca7f064b90256b5c1086ef4"
+      },
+      "windowsBlockmap": {
+        "name": "T8-PenguinCanvas-Setup-3.4.2.exe.blockmap",
+        "bytes": 1438893,
+        "sha256": "87bd049fc877de38180a133139c07c7712ebeddf8d310504809db0eea720dcb2"
+      },
+      "windowsUpdater": {
+        "name": "latest.yml",
+        "bytes": 362,
+        "sha256": "68498bc834fb333c4d708fceb9ee839adf47c20b8ed357a205ea13f7b0b5b383"
+      },
+      "macDmg": {
+        "name": "T8-PenguinCanvas-3.4.2-mac-arm64.dmg",
+        "bytes": 519477052,
+        "sha256": "ba98b08b462e51c0082279851c9767f633e44ffef4a775c4233acbdcac8f8144"
+      },
+      "macZip": {
+        "name": "T8-PenguinCanvas-3.4.2-mac-arm64.zip",
+        "bytes": 511277628,
+        "sha256": "05044cb3c4d068e03ce88c82560b0a7ab9264be1bb707f23d5a64993974b09bd"
+      },
+      "macUpdater": {
+        "name": "latest-mac.yml",
+        "bytes": 536,
+        "sha256": "7d29d3e6ed62e0f2429303645ef423a12474e34e978ce3bbd5fbbac53ccbc9fd"
+      }
+    },
+    "macWorkflow": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/39851318483",
+    "macAttempt": 1,
+    "macWorkflowConclusion": "success"
   },
   "minimaxMusic3PromptEnhancer": {
     "status": "released-v2.9.3",
@@ -10293,8 +10347,8 @@
     "version": "3.4.2",
     "semverVersion": "3.4.2",
     "versionNumberPolicy": "T8 版本号仍采用 x.y.z 三段，但每一段只允许 0-9；任一段到 9 后下一次发布必须向左进位，禁止任一段出现两位数字。例：1.9.9 的下一版必须是 2.0.0。",
-    "versionNote": "v3.4.2 Moss发布已授权，唯一正式构建/上传待执行；见docs/release-v3.4.2.md。",
-    "installer": "T8-PenguinCanvas-Setup-3.4.2.exe（正式构建待执行）",
+    "versionNote": "v3.4.2 Moss同源双平台已发布；六资产完整回下载通过，上游805案例和现场边界保留，见docs/release-v3.4.2.md。",
+    "installer": "T8-PenguinCanvas-Setup-3.4.2.exe（1379780691 bytes）；唯一正式构建及独立完整回下载通过。",
     "updaterInstallMode": "自动更新下载完成后不得静默安装：main.cjs 必须设置 autoInstallOnAppQuit=false，显式安装调用 quitAndInstall(false,true)；electron/build-resources/installer.nsh 通过 SetSilent normal 让新版 NSIS 安装器即使收到旧客户端传入的 /S 也尽量切回前台安装向导。",
     "installerShortcutPolicy": "安装完成后必须创建桌面和开始菜单快捷方式：package.json build.nsis.createDesktopShortcut 必须为 \"always\"，createStartMenuShortcut 必须为 true；electron/build-resources/installer.nsh 必须保留 customInstall 兜底 CreateShortCut \"$newStartMenuLink\" 与 \"$DESKTOP\\${SHORTCUT_NAME}.lnk\"，防止更新安装/keepShortcuts 路径遗漏入口。",
     "updaterEntryPolicy": "顶栏桌面更新入口不得只因 window.t8pc.updater 缺失就静默消失；Electron UA 或 t8pc.getInfo/openExternal 可用时必须显示诊断入口，提示重新安装完整桌面包，Web/纯浏览器环境才隐藏。状态为 not-available 时按钮仍保留“更新”字样，避免用户误以为自动更新入口被删除。",

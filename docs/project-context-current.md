@@ -3,7 +3,7 @@
 更新：2026-10-23。仅维护当前事实；长期规则见根 `SKILL.md` 和 `AGENTS.md`。预算80行/8 KiB，历史见专题。
 
 - 默认目录 `E:\PenguinPravite\T8-penguin-canvas`；branch `codex/release-v3.0.8-volcengine-assets-ux`，common dir `.git`。开工以git/worktree门为准；正式源码/Tag固定后记录在发布专题，不移动。
-- package `3.4.2` 发布准备中；见[发布专题](release-v3.4.2.md)。v3.4.1 Tag/六资产冻结。
+- package `3.4.2` 同源双平台Latest已发布，六资产完整回下载通过；见[发布专题](release-v3.4.2.md)。v3.4.1 Tag/六资产冻结。
 - 本版现场、完整画布及F8–F10按 `owner-approved-post-release-v3.4.2` 后补，不视为通过；Mac为ad-hoc未公证预览，仅额度不足可延期。
 
 ## 当前检查点
@@ -17,7 +17,7 @@
 | Strata本地LLM | 已随v3.3.5双平台发布：两轮20轮审查修8项，315回归及最新隔离画布16项通过。前轮真实识图通过，本轮冷启动上游503未通过；用户要求服务先不动。范围/未验收见[专题](strata-llm.md)。 |
 | ArtCraft体验增强 | 已随v3.3.4双平台发布：灵感板/编辑版本/独立世界节点/Story草稿；完整App实链、28主题组合、142项及正式构建通过。排除/搁置项见[专题](artcraft-canvas-ux.md)。 |
 | 节点清晰度 / 平价香蕉低价 / 豆包 | v3.3.4已发布；实网8/8解码、14主题672组样式/控件及相关回归通过。安装版/用户GPU未验，模型与工作流见[专题](nb-lowprice-doubao.md)。 |
-| Moss / Mai / Topaz | Moss新增Tab/三模板未发布；实网文生/编辑解码通过，另有805失败保留；见[Moss](moss-image.md)。已发布[Mai](mai-image.md)/[Topaz](topaz-video-upscale.md)实网解码通过，完整UI/安装版未验。 |
+| Moss / Mai / Topaz | Moss随v3.4.2发布；实网文生/编辑解码通过，另有805失败保留；见[Moss](moss-image.md)。已发布[Mai](mai-image.md)/[Topaz](topaz-video-upscale.md)实网解码通过，完整UI/安装版未验。 |
 | 平价香蕉2.1 / Flux / Vidu Q4 | 已随v3.3.1双平台发布；六模型、Flux新Tab，旧默认不变。八条实网成功并完整解码，R2V转MP3；159/159回归、独立后端49/49通过。八份无凭据工作流见[专题](nb21-flux-viduq4.md)；安装升级及端到端UI未验收。 |
 | 自动更新退出 | 停探测/新请求补修随v3.4.1双平台发布；51回归/发布门、两项原生组合与正式包随机端口三场通过。用户现场自动升级后补；旧手动恢复及隔离缺口见[专题](auto-update-close-hold-20261021.md)。 |
 | 启动诊断/修复 | v3.2.8/3.2.9已发布；同次校验、候选线程、旧名补回通过限定回归，现场未验。细项见[修复](startup-history-fix-20261008.md)及[诊断](startup-diagnostics.md)。 |
