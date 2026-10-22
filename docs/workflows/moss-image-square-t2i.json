@@ -1,0 +1,78 @@
+{
+  "schema": "t8-workflow-fragment",
+  "version": 1,
+  "title": "moss-image-square-t2i",
+  "nodes": [
+    {
+      "id": "generation",
+      "type": "image",
+      "position": {
+        "x": 430,
+        "y": 80
+      },
+      "data": {
+        "label": "Moss Image",
+        "model": "moss-image",
+        "apiModel": "moss-image",
+        "providerSource": "zhenzhen",
+        "imageBuiltinSource": "seedance-nz",
+        "aspectRatio": "1:1",
+        "sizeLevel": "",
+        "prompt": "A friendly penguin standing beside a yellow ceramic cup, pale blue studio background, clean detailed illustration, no text.",
+        "referenceImages": [],
+        "imageOnlyOutput": true,
+        "reuseResult": false
+      }
+    },
+    {
+      "id": "output",
+      "type": "output",
+      "position": {
+        "x": 850,
+        "y": 80
+      },
+      "data": {
+        "label": "结果 / Result"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "output-edge",
+      "source": "generation",
+      "target": "output"
+    }
+  ],
+  "nodeCount": 2,
+  "edgeCount": 1,
+  "nodeTypes": [
+    "image",
+    "output"
+  ],
+  "topologyPreview": {
+    "nodes": [
+      {
+        "id": "generation",
+        "type": "image",
+        "label": "Moss Image",
+        "x": 480,
+        "y": 130
+      },
+      {
+        "id": "output",
+        "type": "output",
+        "label": "结果 / Result",
+        "x": 900,
+        "y": 130
+      }
+    ],
+    "edges": [
+      {
+        "id": "output-edge",
+        "source": "generation",
+        "target": "output"
+      }
+    ]
+  },
+  "savedAt": "2026-10-23T00:00:00.000Z"
+}

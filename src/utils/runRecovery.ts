@@ -1,5 +1,6 @@
 import { minimumProviderMediaPollCount } from './providerTimeoutPolicy';
 import nbDoubao from '../../backend/src/shared/nbLowpriceDoubaoContract.json';
+import mossImage from '../../backend/src/shared/mossImageContract.json';
 
 export type RunRecoveryKind =
   | 'runninghub'
@@ -110,7 +111,7 @@ export function inferRunRecoveryDescriptor(payload: Record<string, unknown>): Ru
         outputFormat: 'pcm', sampleRate: nbDoubao.audio.iclFields.sample_rate.options.includes(String(payload.sampleRate)) ? String(payload.sampleRate) : '24000',
       } : {}),
     };
-    if (lowerModel.includes('seedream') || nbDoubao.banana.models.includes(lowerModel) || lowerModel === 'mai-image-2-6' || lowerModel === 'mai-image-2-6-flash' || lowerModel === 'vosr2-image-upscale' || lowerModel === 'flux-3-image' || lowerModel === 'zhenzhen-image-nb-2.1') {
+    if (lowerModel === mossImage.model || lowerModel.includes('seedream') || nbDoubao.banana.models.includes(lowerModel) || lowerModel === 'mai-image-2-6' || lowerModel === 'mai-image-2-6-flash' || lowerModel === 'vosr2-image-upscale' || lowerModel === 'flux-3-image' || lowerModel === 'zhenzhen-image-nb-2.1') {
       return { version: 1, kind: 'seedream-nz', taskId, model, pollIntervalMs, maxPolls };
     }
     if (lowerModel.startsWith('wan-')) return { version: 1, kind: 'wan', taskId, model, pollIntervalMs, maxPolls };

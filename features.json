@@ -1,12 +1,69 @@
 {
+  "mossImage20261023": {
+    "status": "implemented-live-t2i-i2i-verified-with-upstream-failure",
+    "releaseIncluded": true,
+    "provider": "seedance-nz",
+    "models": [
+      "moss-image"
+    ],
+    "summary": "Independent Moss Image tab; exact ratio-only contract, at most one PNG reference, shared recovery/history/authority and three credential-free workflows. Existing defaults unchanged.",
+    "details": "docs/moss-image.md"
+  },
   "electronReleaseV341": {
     "status": "released-v3.4.1-dual-platform-verified",
     "version": "3.4.1",
     "tag": "v3.4.1",
-    "latest": true,
+    "latest": false,
     "evidence": "docs/release-v3.4.1.md",
     "postReleaseEvidence": "owner-approved-post-release-v3.4.1",
-    "macBoundary": "same-tag-ad-hoc-preview; no-quota-deferral-used"
+    "macBoundary": "same-tag-ad-hoc-preview; no-quota-deferral-used",
+    "date": "2026-10-21",
+    "sourceCommit": "7d05f7ab1615a983afe9a84bf4ff167be150b3d7",
+    "publishedAt": "2026-10-21T06:16:59Z",
+    "url": "https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.4.1",
+    "details": "docs/release-v3.4.1.md",
+    "verification": [
+      "Unique Windows formal build and same-tag real Apple Silicon build completed. Six assets independently full-download verified; updater manifests matched; Windows assets unchanged during Mac append and previous v3.4.0 Tag/assets unchanged.",
+      "51 targeted/release-gate cases and 22 packaging contracts passed. Full compiled packaged Canvas with random ports and fresh TEMP storage verified the transport fence, CAS save, actual storage close, native updater and harmless NSIS exit; not an in-place user installation.",
+      "User-site automatic upgrade, native human pairing and F8-F10 remain deferred, not passed. Earlier manual old-process recovery is not normal auto-update acceptance. Mac remains ad-hoc and unnotarized; no quota deferral used."
+    ],
+    "draft": false,
+    "prerelease": false,
+    "assets": {
+      "windowsInstaller": {
+        "name": "T8-PenguinCanvas-Setup-3.4.1.exe",
+        "bytes": 1379777435,
+        "sha256": "279ce8b38a40dcb5b00d298e73c8915c021a957f26bc76e63cf143c50b0467b4"
+      },
+      "windowsBlockmap": {
+        "name": "T8-PenguinCanvas-Setup-3.4.1.exe.blockmap",
+        "bytes": 1439420,
+        "sha256": "69143a8cc45fb7bf8cc281daf6d9e1a7e64bb729be613f4d1ce5590a45b0a0fd"
+      },
+      "windowsUpdater": {
+        "name": "latest.yml",
+        "bytes": 362,
+        "sha256": "3005d088cfcf0644d4815406c4b135ebd42d21414460d5aa85f18164379b6176"
+      },
+      "macDmg": {
+        "name": "T8-PenguinCanvas-3.4.1-mac-arm64.dmg",
+        "bytes": 519460791,
+        "sha256": "2121595a05a09cb0bc03990b6d1ef53c51ae242d18e6022dc699c59a6fa9bb76"
+      },
+      "macZip": {
+        "name": "T8-PenguinCanvas-3.4.1-mac-arm64.zip",
+        "bytes": 511273894,
+        "sha256": "dcc327bdf54a8193435e73812043505ffbeee6684acd0b5aaf170406c21b62a9"
+      },
+      "macUpdater": {
+        "name": "latest-mac.yml",
+        "bytes": 536,
+        "sha256": "48c79b6320550fe238dd63a4f4f135d5c2f6a70e40053835d718aa312ec5d52a"
+      }
+    },
+    "macWorkflow": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/39554486792",
+    "macAttempt": 1,
+    "macWorkflowConclusion": "success"
   },
   "electronReleaseV340": {
     "status": "released-v3.4.0-dual-platform-verified",
@@ -212,7 +269,7 @@
     "details": "docs/zcanvas-saved-media-transfer.md"
   },
   "$schema": "本文件为 T8-penguin-canvas 节点清单防丢失锁,任何节点删减都需要在 roadmap.md 中说明并更新本文件。",
-  "version": "3.4.1",
+  "version": "3.4.2",
   "zcanvasRunApprovalRecovery20261020": {
     "status": "released-v3.3.7-local-verified",
     "summary": "原生运行计划单次操作绑定、同作用域GET恢复；20项限定回归与全新TEMP实际路由/账本通过，未运行Provider，真实窗口/生产版待验。",
@@ -2923,58 +2980,13 @@
     ]
   },
   "release": {
-    "status": "released-v3.4.1-dual-platform-verified",
-    "version": "3.4.1",
-    "date": "2026-10-21",
-    "tag": "v3.4.1",
-    "latest": true,
-    "sourceCommit": "7d05f7ab1615a983afe9a84bf4ff167be150b3d7",
-    "publishedAt": "2026-10-21T06:16:59Z",
-    "url": "https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.4.1",
-    "details": "docs/release-v3.4.1.md",
-    "postReleaseEvidence": "owner-approved-post-release-v3.4.1",
-    "verification": [
-      "Unique Windows formal build and same-tag real Apple Silicon build completed. Six assets independently full-download verified; updater manifests matched; Windows assets unchanged during Mac append and previous v3.4.0 Tag/assets unchanged.",
-      "51 targeted/release-gate cases and 22 packaging contracts passed. Full compiled packaged Canvas with random ports and fresh TEMP storage verified the transport fence, CAS save, actual storage close, native updater and harmless NSIS exit; not an in-place user installation.",
-      "User-site automatic upgrade, native human pairing and F8-F10 remain deferred, not passed. Earlier manual old-process recovery is not normal auto-update acceptance. Mac remains ad-hoc and unnotarized; no quota deferral used."
-    ],
-    "draft": false,
-    "prerelease": false,
-    "assets": {
-      "windowsInstaller": {
-        "name": "T8-PenguinCanvas-Setup-3.4.1.exe",
-        "bytes": 1379777435,
-        "sha256": "279ce8b38a40dcb5b00d298e73c8915c021a957f26bc76e63cf143c50b0467b4"
-      },
-      "windowsBlockmap": {
-        "name": "T8-PenguinCanvas-Setup-3.4.1.exe.blockmap",
-        "bytes": 1439420,
-        "sha256": "69143a8cc45fb7bf8cc281daf6d9e1a7e64bb729be613f4d1ce5590a45b0a0fd"
-      },
-      "windowsUpdater": {
-        "name": "latest.yml",
-        "bytes": 362,
-        "sha256": "3005d088cfcf0644d4815406c4b135ebd42d21414460d5aa85f18164379b6176"
-      },
-      "macDmg": {
-        "name": "T8-PenguinCanvas-3.4.1-mac-arm64.dmg",
-        "bytes": 519460791,
-        "sha256": "2121595a05a09cb0bc03990b6d1ef53c51ae242d18e6022dc699c59a6fa9bb76"
-      },
-      "macZip": {
-        "name": "T8-PenguinCanvas-3.4.1-mac-arm64.zip",
-        "bytes": 511273894,
-        "sha256": "dcc327bdf54a8193435e73812043505ffbeee6684acd0b5aaf170406c21b62a9"
-      },
-      "macUpdater": {
-        "name": "latest-mac.yml",
-        "bytes": 536,
-        "sha256": "48c79b6320550fe238dd63a4f4f135d5c2f6a70e40053835d718aa312ec5d52a"
-      }
-    },
-    "macWorkflow": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/39554486792",
-    "macAttempt": 1,
-    "macWorkflowConclusion": "success"
+    "status": "release-authorized-v3.4.2",
+    "version": "3.4.2",
+    "date": "2026-10-23",
+    "tag": "v3.4.2",
+    "latest": false,
+    "details": "docs/release-v3.4.2.md",
+    "postReleaseEvidence": "owner-approved-post-release-v3.4.2"
   },
   "minimaxMusic3PromptEnhancer": {
     "status": "released-v2.9.3",
@@ -10278,11 +10290,11 @@
       "T8_ENABLE_LOCAL_PRIVATE": "开发环境和普通本机构建可选；0=关闭本机 local-private/extensions 私有扩展。正式 dist:release 固定为 1，不能被父环境降级。GitHub/clean clone 因为没有 local-private 目录，不包含充值实现。",
       "T8_DISABLE_LOCAL_EXTENSIONS": "开发环境可选；1=关闭本地扩展。正式 dist:release 固定为 0，确保本机私有 sidecar 参与加密打包与后置校验。"
     },
-    "version": "3.4.1",
-    "semverVersion": "3.4.1",
+    "version": "3.4.2",
+    "semverVersion": "3.4.2",
     "versionNumberPolicy": "T8 版本号仍采用 x.y.z 三段，但每一段只允许 0-9；任一段到 9 后下一次发布必须向左进位，禁止任一段出现两位数字。例：1.9.9 的下一版必须是 2.0.0。",
-    "versionNote": "v3.4.1关闭传输补修双平台已发布；限定回归、正式包及六资产完整回下载通过；用户现场后补，见docs/release-v3.4.1.md。",
-    "installer": "T8-PenguinCanvas-Setup-3.4.1.exe（1379777435 bytes）；唯一正式构建及独立完整回下载通过。",
+    "versionNote": "v3.4.2 Moss发布已授权，唯一正式构建/上传待执行；见docs/release-v3.4.2.md。",
+    "installer": "T8-PenguinCanvas-Setup-3.4.2.exe（正式构建待执行）",
     "updaterInstallMode": "自动更新下载完成后不得静默安装：main.cjs 必须设置 autoInstallOnAppQuit=false，显式安装调用 quitAndInstall(false,true)；electron/build-resources/installer.nsh 通过 SetSilent normal 让新版 NSIS 安装器即使收到旧客户端传入的 /S 也尽量切回前台安装向导。",
     "installerShortcutPolicy": "安装完成后必须创建桌面和开始菜单快捷方式：package.json build.nsis.createDesktopShortcut 必须为 \"always\"，createStartMenuShortcut 必须为 true；electron/build-resources/installer.nsh 必须保留 customInstall 兜底 CreateShortCut \"$newStartMenuLink\" 与 \"$DESKTOP\\${SHORTCUT_NAME}.lnk\"，防止更新安装/keepShortcuts 路径遗漏入口。",
     "updaterEntryPolicy": "顶栏桌面更新入口不得只因 window.t8pc.updater 缺失就静默消失；Electron UA 或 t8pc.getInfo/openExternal 可用时必须显示诊断入口，提示重新安装完整桌面包，Web/纯浏览器环境才隐藏。状态为 not-available 时按钮仍保留“更新”字样，避免用户误以为自动更新入口被删除。",

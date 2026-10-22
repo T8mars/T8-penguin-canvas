@@ -5,6 +5,7 @@ const nb21FluxViduContract = require('../shared/nb21FluxViduQ4Contract.json');
 const nbDoubaoContract = require('../shared/nbLowpriceDoubaoContract.json');
 const topazVideoContract = require('../shared/topazVideoContract.json');
 const maiImageContract = require('../shared/maiImageContract.json');
+const mossImageContract = require('../shared/mossImageContract.json');
 
 const RUN_INTENT_AUTHORITY_SCHEMA = 't8-run-intent-authority-v1';
 const MAX_CANVAS_NODES = 20_000;
@@ -55,6 +56,7 @@ const LOCAL_EXECUTION_NODE_TYPES = new Set([
 ]);
 
 const IMAGE_RUNTIME_MODELS = Object.freeze({
+  [mossImageContract.model]: { defaultModel: mossImageContract.model, models: [mossImageContract.model] },
   'mai-image-2-6': { defaultModel: maiImageContract.models[0], models: maiImageContract.models },
   'gpt-image-2': {
     defaultModel: 'gpt-image-2-all',
@@ -157,6 +159,7 @@ const VIDEO_RUNTIME_MODELS = Object.freeze({
 });
 
 const SEEDANCE_NZ_IMAGE_RUNTIME_MODELS = new Set([
+  mossImageContract.model,
   ...nbDoubaoContract.banana.models,
   ...maiImageContract.models,
   nb21FluxViduContract.banana21.model, nb21FluxViduContract.flux.model,

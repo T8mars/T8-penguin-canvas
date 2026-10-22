@@ -339,6 +339,7 @@ export interface SeedreamNzSubmitRequest {
     | 'flux-3-image'
     | 'mai-image-2-6'
     | 'mai-image-2-6-flash'
+    | 'moss-image'
     | 'zhenzhen-image-nb-pro'
     | 'qwen-image-3.0-t2i'
     | 'qwen-image-3.0-i2i'

@@ -26,6 +26,7 @@ const { resolveBundledFfprobe, resolveBundledFfmpeg } = require('./llmMedia');
 const NB_FLUX_VIDU = require('../shared/nb21FluxViduQ4Contract.json');
 const TOPAZ_VIDEO_CONTRACT = require('../shared/topazVideoContract.json');
 const MAI_IMAGE_CONTRACT = require('../shared/maiImageContract.json');
+const MOSS_IMAGE_CONTRACT = require('../shared/mossImageContract.json');
 const NB_DOUBAO = require('../shared/nbLowpriceDoubaoContract.json');
 const { isDoubaoVoiceModel, buildDoubaoVoicePayload } = require('./doubaoVoiceContract');
 const NB_LOWPRICE_MODELS = new Set(NB_DOUBAO.banana.models);
@@ -133,6 +134,7 @@ const ZHENZHEN_IMAGE_NB_MODELS = new Set([
   ZHENZHEN_IMAGE_NB_PRO_MODEL,
 ]);
 const ZHENZHEN_APIMART_IMAGE_MODELS = new Set([
+  MOSS_IMAGE_CONTRACT.model,
   ...MAI_IMAGE_MODELS,
   FLUX3_IMAGE_MODEL,
   ZHENZHEN_IMAGE_G_V2_LOWPRICE_MODEL,
@@ -2832,6 +2834,22 @@ async function buildApimartImagePayload(request, apiKey, options = {}) {
     };
   }
   const prompt = normalizeApimartPrompt(request.prompt, model);
+  if (model === MOSS_IMAGE_CONTRACT.model) {
+    const sources = request.images ?? request.refImages ?? [];
+    if (!Array.isArray(sources) || sources.some(source => typeof source !== 'string' || !source.trim())) {
+      throw new Error('Moss images 必须是有效参考图数组');
+    }
+    if (sources.length > MOSS_IMAGE_CONTRACT.maxImages) throw new Error('Moss 最多支持 1 张参考图');
+    const ratio = request.ratio ?? request.metadata?.ratio ?? MOSS_IMAGE_CONTRACT.defaultRatio;
+    if (!MOSS_IMAGE_CONTRACT.ratios.includes(ratio)) throw new Error('Moss 不支持该画面比例');
+    // Closed whitelist: no resolution, n, size, seed or previous-model fields.
+    const payload = { model, prompt, metadata: { ratio } };
+    if (sources.length) payload.images = [await uploadMedia(sources[0], 'image', apiKey, {
+      ...options, maxBytes: IMAGE_REFERENCE_MAX_BYTES, normalizeImagePng: true,
+      cacheVariant: 'moss-png', fileName: 'moss-reference.png', allowedMimes: ['image/png'],
+    })];
+    return { payload, model, taskType: sources.length ? 'i2i' : 't2i' };
+  }
   if (MAI_IMAGE_MODELS.has(model)) {
     const contract = MAI_IMAGE_CONTRACT;
     const refs = normalizeList(request.images || request.refImages);
@@ -6496,6 +6514,7 @@ module.exports = {
   VIDU_Q4_MODELS,
   FLUX3_IMAGE_MODEL,
   MAI_IMAGE_CONTRACT,
+  MOSS_IMAGE_CONTRACT,
   MAI_IMAGE_MODELS,
   ZHENZHEN_IMAGE_NB_21_MODEL,
   buildViduQ4Payload,

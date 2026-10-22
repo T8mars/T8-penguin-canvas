@@ -5,6 +5,7 @@ import { ZHENZHEN_IMAGE_G25_MODELS, ZHENZHEN_IMAGE_G25_LOWPRICE_MODEL, ZHENZHEN_
   ZHENZHEN_IMAGE_G25_OFFICIAL_MAX_IMAGES, validateGptImage25Size } from '../providers/models';
 import { historyImageBasicSettings } from './historyImageBasicSettings';
 import { MAI_IMAGE_TAB, isMaiImageModel, buildMaiImageRequest } from './maiImage';
+import { MOSS_IMAGE_CONTRACT, buildMossImageRequest } from './mossImage';
 
 const baseKeys = ['model', 'apiModel', 'aspectRatio', 'sizeLevel', 'imageBuiltinSource', 'providerSource', 'providerId', 'providerModel',
   'zhenzhenImageG25Size', 'zhenzhenImageG25Resolution', 'zhenzhenImageG25Count'];
@@ -16,6 +17,18 @@ const officialKeys = ['zhenzhenImageG25CustomWidth', 'zhenzhenImageG25CustomHeig
 export function readHistoryBudgetImageInput(data: Record<string, unknown>) {
   const settings = historyImageBasicSettings(data);
   if (!settings) throw new Error('历史未记录完整图像输入，未套用当前默认值');
+  if (settings.model === MOSS_IMAGE_CONTRACT.model) {
+    const keys = ['model', 'apiModel', 'aspectRatio', 'sizeLevel', 'imageBuiltinSource', 'providerSource', 'providerId', 'providerModel'];
+    const context = data.historyResolvedInput as { prompt: string; referenceImages: string[] };
+    const invalid = () => new Error('历史 Moss 输入不完整或已不兼容，未套用当前默认值');
+    if (settings.apiModel !== MOSS_IMAGE_CONTRACT.model || settings.imageBuiltinSource !== 'seedance-nz'
+      || settings.providerSource !== 'zhenzhen' || settings.providerId !== '' || settings.providerModel !== ''
+      || settings.sizeLevel !== '' || keys.some(key => !Object.hasOwn(settings, key))
+      || context.referenceImages.some(url => !url.trim())) throw invalid();
+    try { buildMossImageRequest(context.prompt, context.referenceImages, String(settings.aspectRatio)); } catch { throw invalid(); }
+    return { settings: Object.fromEntries(keys.map(key => [key, settings[key]])), prompt: context.prompt,
+      media: context.referenceImages.map((url, index) => ({ kind: 'image' as const, url, label: `图片 ${index + 1}` })) };
+  }
   if (settings.model === MAI_IMAGE_TAB) {
     const keys = ['model', 'apiModel', 'aspectRatio', 'sizeLevel', 'imageBuiltinSource', 'providerSource', 'providerId', 'providerModel',
       'maiSize', 'maiResolution', 'maiCustomRatio', 'maiWidth', 'maiHeight', 'maiAutoAspectRatio', 'maiWebGrounding'];

@@ -8,6 +8,8 @@ import { useOrderedMaterials } from './useOrderedMaterials';
 import MaterialPreviewSection from './MaterialPreviewSection';
 import ReuseResultToggle from './ReuseResultToggle';
 import MaiImageControls from './MaiImageControls';
+import MossImageControls from './MossImageControls';
+import { buildMossImageRequest, MOSS_IMAGE_CONTRACT } from '../../utils/mossImage';
 import { buildMaiImageRequest, maiImageSettings } from '../../utils/maiImage';
 import MentionPromptInput from './MentionPromptInput';
 import SmartImage from '../SmartImage';
@@ -19,7 +21,7 @@ import { SEEDREAM_NZ_FAMILIES, seedreamNzFamily, seedreamNzFamilyChange, seedrea
 import {
   FLUX3_IMAGE_MODEL, ZHENZHEN_IMAGE_NB_21_MODEL, NB_FLUX_VIDU_CONTRACT,
   isNbLowpriceModel, NB_LOWPRICE_DOUBAO_CONTRACT,
-  MAI_IMAGE_TAB, isMaiImageModel,
+  MAI_IMAGE_TAB, isMaiImageModel, MOSS_IMAGE_MODEL,
   IMAGE_MODELS,
   FAL_REGISTRY,
   GPT_FAL_SIZES,
@@ -471,9 +473,11 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
     || modelDef.id === 'nano-banana-pro'
     || modelDef.id === 'grok-image'
     || modelDef.id === FLUX3_IMAGE_MODEL
-    || modelDef.id === MAI_IMAGE_TAB;
+    || modelDef.id === MAI_IMAGE_TAB
+    || modelDef.id === MOSS_IMAGE_MODEL;
   const isFluxImage = !isExternalSelected && modelDef.id === FLUX3_IMAGE_MODEL;
   const isMaiImage = !isExternalSelected && modelDef.id === MAI_IMAGE_TAB;
+  const isMossImage = !isExternalSelected && modelDef.id === MOSS_IMAGE_MODEL;
   const maiSettings = maiImageSettings(d || {});
   const isQwenImageTab = modelDef.paramKind === 'qwen-image-3.0';
   const isQwenImage21Tab = modelDef.paramKind === 'qwen-image-global-2.1';
@@ -482,7 +486,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
   const isVosr2ImageTab = modelDef.paramKind === 'vosr2-upscale';
   const isZhenzhenBudgetImageSelected = !isExternalSelected
     && isBudgetImageTab
-    && (isFluxImage || isMaiImage || d?.imageBuiltinSource === 'seedance-nz' || isZhenzhenBudgetImageModel(savedApiModel));
+    && (isFluxImage || isMaiImage || isMossImage || d?.imageBuiltinSource === 'seedance-nz' || isZhenzhenBudgetImageModel(savedApiModel));
   const isZhenzhenBudgetMjSelected = !isExternalSelected
     && modelDef.paramKind === 'mj'
     && d?.imageBuiltinSource === 'seedance-nz';
@@ -493,7 +497,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
     || isSeedreamLayerTab
     || isWanImageTab
     || isVosr2ImageTab;
-  const budgetDefaultApiModel = isMaiImage ? MAI_IMAGE_TAB : isFluxImage ? FLUX3_IMAGE_MODEL : modelDef.id === 'grok-image'
+  const budgetDefaultApiModel = isMossImage ? MOSS_IMAGE_MODEL : isMaiImage ? MAI_IMAGE_TAB : isFluxImage ? FLUX3_IMAGE_MODEL : modelDef.id === 'grok-image'
     ? ZHENZHEN_IMAGE_GK_V15_MODEL
     : modelDef.id === 'nano-banana-2'
       ? ZHENZHEN_IMAGE_NB_2_MODEL
@@ -501,7 +505,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
         ? ZHENZHEN_IMAGE_NB_PRO_MODEL
         : ZHENZHEN_IMAGE_G2_T2I_MODEL;
   const builtinApiModelOptions = isZhenzhenBudgetImageSelected
-    ? isFluxImage || isMaiImage ? modelDef.apiModelOptions : modelDef.id === 'grok-image'
+    ? isFluxImage || isMaiImage || isMossImage ? modelDef.apiModelOptions : modelDef.id === 'grok-image'
       ? ZHENZHEN_BUDGET_GROK_MODEL_OPTIONS
       : modelDef.id === 'nano-banana-2'
         ? ZHENZHEN_BUDGET_BANANA_2_MODEL_OPTIONS
@@ -563,7 +567,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
         : modelDef.aspectRatios;
   const effectiveAspectRatio = effectiveAspectRatios.includes(aspectRatio)
     ? aspectRatio
-    : (isZhenzhenImageG2 ? 'adaptive' : isZhenzhenGrokImageV2Edit ? 'auto' : isQwenImage21Tab ? '3:4' : '1:1');
+    : (isMossImage ? MOSS_IMAGE_CONTRACT.defaultRatio : isZhenzhenImageG2 ? 'adaptive' : isZhenzhenGrokImageV2Edit ? 'auto' : isQwenImage21Tab ? '3:4' : '1:1');
   const effectiveSizes = isZhenzhenImageG2
     ? ['1K']
     : isZhenzhenLowpriceImage
@@ -577,7 +581,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
       : (isZhenzhenGrokImageV2 || isZhenzhenGrokImageV2Edit || isZhenzhenGrokImage || isZhenzhenGrokImageEdit)
         ? []
         : modelDef.sizes;
-  const effectiveSizeLevel = isZhenzhenImageG2
+  const effectiveSizeLevel = isMossImage ? '' : isZhenzhenImageG2
     ? '1K'
     : isZhenzhenNb2Lite
       ? '1K'
@@ -840,6 +844,11 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
   // 切换模型时,如果当前比例/尺寸不在新模型选项里则重置
   const switchModel = (mId: string) => {
     const newDef = IMAGE_MODELS.find((m) => m.id === mId) || IMAGE_MODELS[0];
+    if (newDef.id === MOSS_IMAGE_MODEL) {
+      update({ model: newDef.id, apiModel: MOSS_IMAGE_MODEL, imageBuiltinSource: 'seedance-nz',
+        aspectRatio: MOSS_IMAGE_CONTRACT.defaultRatio, sizeLevel: '' });
+      return;
+    }
     if (newDef.id === MAI_IMAGE_TAB) {
       update({ model: newDef.id, apiModel: MAI_IMAGE_TAB, imageBuiltinSource: 'seedance-nz',
         aspectRatio: '', sizeLevel: '', ...maiImageSettings(d || {}) });
@@ -966,6 +975,11 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
   };
 
   const switchApiModel = (nextApiModel: string) => {
+    if (nextApiModel === MOSS_IMAGE_MODEL) {
+      update({ model: MOSS_IMAGE_MODEL, apiModel: nextApiModel, imageBuiltinSource: 'seedance-nz',
+        aspectRatio: MOSS_IMAGE_CONTRACT.ratios.includes(aspectRatio) ? aspectRatio : MOSS_IMAGE_CONTRACT.defaultRatio, sizeLevel: '' });
+      return;
+    }
     if (isMaiImageModel(nextApiModel)) {
       update({ model: MAI_IMAGE_TAB, apiModel: nextApiModel, imageBuiltinSource: 'seedance-nz',
         aspectRatio: '', sizeLevel: '' });
@@ -1094,7 +1108,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
     void getNodes;
     return {
       prompt: prompts.join('\n').trim(),
-      images: isFluxImage || isZhenzhenNb21 || isMaiImage || isNbLowprice ? images : images.slice(0, maxRefs),
+      images: isFluxImage || isZhenzhenNb21 || isMaiImage || isMossImage || isNbLowprice ? images : images.slice(0, maxRefs),
     };
   };
 
@@ -1191,7 +1205,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
     setDownloadNotice(null);
     const { upstreamImages, basePrompt, compiledPrompt, finalPrompt } = resolveGenerationInput();
     const src = `image:${id.slice(0, 6)}`;
-    if ((isFluxImage || isZhenzhenNb21 || isMaiImage || isNbLowprice) && upstreamImages.length > maxRefs) {
+    if ((isFluxImage || isZhenzhenNb21 || isMaiImage || isMossImage || isNbLowprice) && upstreamImages.length > maxRefs) {
       setError(translate('nodes:generation.newBudgetModels.tooManyImages', { count: maxRefs }));
       return;
     }
@@ -1209,6 +1223,10 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
     );
     if (isMaiImage) {
       try { buildMaiImageRequest(apiModel, finalPrompt, upstreamImages, maiSettings); }
+      catch (error: any) { setError(translate(error.message)); return; }
+    }
+    if (isMossImage) {
+      try { buildMossImageRequest(finalPrompt, upstreamImages, effectiveAspectRatio); }
       catch (error: any) { setError(translate(error.message)); return; }
     }
     if (!basePrompt && promptRequired && (!isComfyExternal || comfyHasPromptField)) {
@@ -2054,7 +2072,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
           : isZhenzhenBudgetImageSelected
           ? apiModel
           : seedreamNzRuntimeModel(seedreamNzModelFamily, providerRefs.length);
-        const imageFamilyLabel = isMaiImage ? 'MAI Image 2.6 / Flash' : isVosr2ImageTab
+        const imageFamilyLabel = isMossImage ? 'Moss Image' : isMaiImage ? 'MAI Image 2.6 / Flash' : isVosr2ImageTab
           ? 'Vosr2 图片超分'
           : isSeedreamLayerTab
           ? 'Seedream 分层'
@@ -2073,7 +2091,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
           : isZhenzhenApimartImage
             ? 'APIMart Image'
             : 'Seedream';
-        const sizeLabel = isMaiImage
+        const sizeLabel = isMossImage ? effectiveAspectRatio : isMaiImage
           ? providerRefs.length ? '参考图决定尺寸 · 单张 PNG'
             : maiSettings.maiAutoAspectRatio ? `auto · ${maiSettings.maiResolution}`
             : maiSettings.maiSize === 'custom_pixels' ? `${maiSettings.maiWidth}x${maiSettings.maiHeight}`
@@ -2111,7 +2129,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
           `${seedanceNzProviderLabel} ${imageFamilyLabel} 提交: model=${expectedModel} 参考图=${providerRefs.length} 尺寸=${sizeLabel}`,
           src,
         );
-        const submit = await submitSeedreamNz(isMaiImage ? buildMaiImageRequest(apiModel, finalPrompt, providerRefs, maiSettings) : isVosr2ImageTab ? {
+        const submit = await submitSeedreamNz(isMaiImage ? buildMaiImageRequest(apiModel, finalPrompt, providerRefs, maiSettings) : isMossImage ? buildMossImageRequest(finalPrompt, providerRefs, effectiveAspectRatio) : isVosr2ImageTab ? {
           model: VOSR2_IMAGE_UPSCALE_MODEL,
           images: providerRefs,
         } : {
@@ -3193,12 +3211,14 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
             {IMAGE_MODELS
               .filter((m) => m.id !== FLUX3_IMAGE_MODEL || isZhenzhenBudgetPlatformSelected)
               .filter((m) => m.id !== MAI_IMAGE_TAB || isZhenzhenBudgetPlatformSelected)
+              .filter((m) => m.id !== MOSS_IMAGE_MODEL || isZhenzhenBudgetPlatformSelected)
               .filter((m) => !isZhenzhenBudgetPlatformSelected
                 || m.id === 'gpt-image-2'
                 || m.id === 'nano-banana-2'
                 || m.id === 'nano-banana-pro'
                 || m.id === FLUX3_IMAGE_MODEL
                 || m.id === MAI_IMAGE_TAB
+                || m.id === MOSS_IMAGE_MODEL
                 || m.id === 'grok-image'
                 || m.id === 'qwen-image-3.0'
                 || m.id === QWEN_IMAGE_GLOBAL_21_MODEL
@@ -3292,7 +3312,8 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
           <div className="rounded border border-cyan-400/25 bg-cyan-500/5 px-2 py-1.5 text-[10px] leading-4 text-cyan-100/80">
             <div>{`贞贞的平价AI小屋 · ${apiModel}`}</div>
             <div>
-              {isMaiImage ? translate('nodes:generation.mai.description')
+              {isMossImage ? translate('nodes:generation.moss.description')
+                : isMaiImage ? translate('nodes:generation.mai.description')
                 : isFluxImage ? translate('nodes:generation.newBudgetModels.fluxDescription')
                 : isNbLowprice ? translate('nodes:generation.newBudgetModels.nbLowpriceDescription')
                 : isZhenzhenNb21 ? translate('nodes:generation.newBudgetModels.bananaDescription')
@@ -3325,6 +3346,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
         )}
 
         {isMaiImage && <MaiImageControls data={maiSettings} referenceCount={orderedImages.length} update={update} />}
+        {isMossImage && <MossImageControls ratio={effectiveAspectRatio} update={update} />}
         {isFluxImage && (
           <div className="nodrag nowheel rounded border border-cyan-400/25 p-2 space-y-2">
             <label className="flex items-center gap-2 text-xs">
@@ -3742,7 +3764,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
         )}
 
         {/* 比例 + 尺寸;Seedream 使用像素尺寸 + 输出格式,Grok Image 只需要比例 */}
-        {(!isFal && !isMj && !isComfyExternal && !isMaiImage && !isQwenImageTab && !isQwenImage21Tab && !isSeedreamLayerTab && !isWanImageTab && !isGptImage25 && !isZhenzhenImageG25) && (
+        {(!isFal && !isMj && !isComfyExternal && !isMaiImage && !isMossImage && !isQwenImageTab && !isQwenImage21Tab && !isSeedreamLayerTab && !isWanImageTab && !isGptImage25 && !isZhenzhenImageG25) && (
           <div className={`grid gap-2 ${isSeedream || (!isGrokImage && effectiveSizes.length) ? 'grid-cols-2' : 'grid-cols-1'}`}>
             {effectiveAspectRatios.length > 0 && <div>
               <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.aspectRatio')}</label>

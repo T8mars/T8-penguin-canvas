@@ -1,6 +1,6 @@
 {
   "schema": "t8-creative-runtime-catalog-v1",
-  "sourceDigest": "b167dc235c4255ef208d8a34c7d5689bddc920cf45b57b92f2e0eaf8ad25f3fa",
+  "sourceDigest": "ea989d7163fcc45971d1408b3679ebb6310bc0d328118c88174838e98f68b430",
   "generatedFrom": [
     "src/providers/models.ts",
     "src/config/seedance.ts",
@@ -10,6 +10,7 @@
     "backend/src/shared/seedreamNzContract.json",
     "backend/src/shared/nb21FluxViduQ4Contract.json",
     "backend/src/shared/maiImageContract.json",
+    "backend/src/shared/mossImageContract.json",
     "backend/src/shared/nbLowpriceDoubaoContract.json"
   ],
   "platforms": [
@@ -1043,6 +1044,46 @@
         "maxOutputs": 1,
         "referenceSizing": "upstream-controlled",
         "webGrounding": true,
+        "nativeSeed": false,
+        "description": "贞贞的平价AI小屋图像模型"
+      }
+    },
+    {
+      "id": "image:seedance-nz:moss-image",
+      "provider": "seedance-nz",
+      "platformLabel": "贞贞的平价AI小屋",
+      "model": "moss-image",
+      "label": "moss-image",
+      "family": "moss-image",
+      "available": true,
+      "parameters": {
+        "label": "moss-image",
+        "platformLabel": "贞贞的平价AI小屋",
+        "family": "moss-image",
+        "available": true,
+        "tabLabel": "Moss Image",
+        "capabilities": [
+          "t2i",
+          "i2i",
+          "edit"
+        ],
+        "parameterKind": "moss-image",
+        "supportsReference": true,
+        "maxReferenceImages": 1,
+        "sizes": [],
+        "aspectRatios": [
+          "1:1",
+          "2:3",
+          "3:2",
+          "3:4",
+          "4:3",
+          "9:16",
+          "16:9",
+          "21:9"
+        ],
+        "defaultSize": "",
+        "defaultAspectRatio": "9:16",
+        "maxOutputs": 1,
         "nativeSeed": false,
         "description": "贞贞的平价AI小屋图像模型"
       }
@@ -10827,7 +10868,7 @@
   ],
   "counts": {
     "llm": 34,
-    "image": 69,
+    "image": 70,
     "video": 136,
     "audio": 19,
     "actions": 61

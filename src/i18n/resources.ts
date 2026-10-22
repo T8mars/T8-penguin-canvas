@@ -181,6 +181,12 @@ export const zhCN = {
       previousFailed: '本次生成未成功，上一版预览仍保留。',
       previousIdle: '可修改设置后重新生成，上一版预览仍保留。',
       previousHistoryHint: '其他已保存版本可从节点上方的“历史”查看。',
+      moss: {
+        description: 'Moss Image：必填提示词，最多 1 张参考图，8 种比例（默认 9:16）；无分辨率、Seed 或批量参数。',
+        promptRequired: 'Moss Image 提示词不能为空',
+        tooManyImages: 'Moss Image 最多支持 1 张参考图，请移除多余图片',
+        invalidRatio: 'Moss Image 不支持该比例，请选择完整选项',
+      },
       mai: {
         description: 'Mai 2.6 / Flash：必填提示词（上游约 32000 Token），最多 5 张有序参考图；单张 PNG 输出，无 Seed。',
         referenceSizing: '已连接参考图：由模型按参考图比例选择约 1M 像素，文生图尺寸设置不发送。',
@@ -825,6 +831,12 @@ export const enUS = {
       previousFailed: 'This generation did not succeed. The previous preview is still available.',
       previousIdle: 'You can edit the settings and generate again. The previous preview is still available.',
       previousHistoryHint: 'View other saved versions in History above the selected node.',
+      moss: {
+        description: 'Moss Image: required prompt, up to 1 reference and 8 ratios (default 9:16); no resolution, seed or batch parameters.',
+        promptRequired: 'Moss Image requires a prompt',
+        tooManyImages: 'Moss Image supports at most 1 reference. Remove the extras.',
+        invalidRatio: 'Unsupported Moss Image ratio. Select one of the listed options.',
+      },
       mai: {
         description: 'Mai 2.6 / Flash: required prompt (upstream limit approximately 32,000 tokens), up to 5 ordered references; one PNG, no seed.',
         referenceSizing: 'References connected: the model selects about 1M pixels using the reference ratio. Text-generation sizing is not sent.',

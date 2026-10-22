@@ -28,6 +28,7 @@ const SOURCE_PATHS = [
   SEEDREAM_NZ_CONTRACT_SOURCE,
   path.join(ROOT, 'backend', 'src', 'shared', 'nb21FluxViduQ4Contract.json'),
   path.join(ROOT, 'backend', 'src', 'shared', 'maiImageContract.json'),
+  path.join(ROOT, 'backend', 'src', 'shared', 'mossImageContract.json'),
   path.join(ROOT, 'backend', 'src', 'shared', 'nbLowpriceDoubaoContract.json'),
 ];
 
@@ -237,7 +238,7 @@ function buildRuntimeCatalog() {
   for (const rawModel of seedanceNz.IMAGE_MODELS || []) {
     const model = String(rawModel || '').trim();
     if (!model) continue;
-    const family = seedanceNz.MAI_IMAGE_MODELS?.has(model) ? 'mai-image-2-6' : model === seedanceNz.FLUX3_IMAGE_MODEL ? 'flux-3-image'
+    const family = model === seedanceNz.MOSS_IMAGE_CONTRACT.model ? 'moss-image' : seedanceNz.MAI_IMAGE_MODELS?.has(model) ? 'mai-image-2-6' : model === seedanceNz.FLUX3_IMAGE_MODEL ? 'flux-3-image'
       : seedanceNz.QWEN_IMAGE_30_MODELS?.has(model)
       ? 'qwen-image-3.0'
       : model === seedanceNz.VOSR2_IMAGE_UPSCALE_MODEL
@@ -266,7 +267,7 @@ function buildRuntimeCatalog() {
           || model === seedanceNz.ZHENZHEN_IMAGE_GK_V2_REGION_EDIT_MODEL
           ? 'grok-image-tools'
         : 'seedream-v5-pro';
-    const maxReferenceImages = family === 'mai-image-2-6' ? 5 : family === 'flux-3-image' ? 10 : family === 'seedream-layer-decomposition' || family === 'vosr2-image-upscale'
+    const maxReferenceImages = family === 'moss-image' ? 1 : family === 'mai-image-2-6' ? 5 : family === 'flux-3-image' ? 10 : family === 'seedream-layer-decomposition' || family === 'vosr2-image-upscale'
       ? 1
       : family === 'qwen-image-3.0'
         ? (model.endsWith('-i2i') ? 3 : 0)
@@ -295,7 +296,7 @@ function buildRuntimeCatalog() {
       model,
       family,
       {
-        tabLabel: family === 'mai-image-2-6' ? 'Mai' : family === 'flux-3-image' ? 'Flux' : family === 'grok-image' || family === 'grok-image-tools'
+        tabLabel: family === 'moss-image' ? 'Moss Image' : family === 'mai-image-2-6' ? 'Mai' : family === 'flux-3-image' ? 'Flux' : family === 'grok-image' || family === 'grok-image-tools'
           ? 'Grok'
           : family === 'wan-image'
             ? 'Wan Image'
@@ -322,7 +323,7 @@ function buildRuntimeCatalog() {
           : family === 'vosr2-image-upscale'
             ? ['i2i']
           : maxReferenceImages === 0 ? ['t2i'] : ['t2i', 'i2i', 'edit'],
-        parameterKind: family === 'mai-image-2-6' ? 'mai-image' : family === 'flux-3-image' ? 'flux-image' : family === 'grok-image-tools'
+        parameterKind: family === 'moss-image' ? 'moss-image' : family === 'mai-image-2-6' ? 'mai-image' : family === 'flux-3-image' ? 'flux-image' : family === 'grok-image-tools'
           ? (model === seedanceNz.ZHENZHEN_IMAGE_GK_V2_SEGMENT_MODEL ? 'grok-segment' : 'grok-region-edit')
           : seedanceNz.ZHENZHEN_IMAGE_G25_MODELS?.has(model)
             ? (model === seedanceNz.ZHENZHEN_IMAGE_G25_LOWPRICE_MODEL
@@ -341,6 +342,8 @@ function buildRuntimeCatalog() {
                 : 'seedance-nz-image',
         supportsReference: maxReferenceImages !== 0,
         maxReferenceImages,
+        ...(family === 'moss-image' ? { sizes: [], aspectRatios: seedanceNz.MOSS_IMAGE_CONTRACT.ratios,
+          defaultSize: '', defaultAspectRatio: seedanceNz.MOSS_IMAGE_CONTRACT.defaultRatio, maxOutputs: 1, nativeSeed: false } : {}),
         ...(family === 'mai-image-2-6' ? { sizes: seedanceNz.MAI_IMAGE_CONTRACT.resolutions,
           aspectRatios: seedanceNz.MAI_IMAGE_CONTRACT.sizes, defaultSize: '1k', defaultAspectRatio: '1:1',
           maxOutputs: 1, referenceSizing: 'upstream-controlled', webGrounding: true, nativeSeed: false } : {}),

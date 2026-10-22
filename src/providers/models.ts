@@ -6,6 +6,8 @@
 import NB_FLUX_VIDU from '../../backend/src/shared/nb21FluxViduQ4Contract.json';
 import TOPAZ_VIDEO from '../../backend/src/shared/topazVideoContract.json';
 import MAI_IMAGE from '../../backend/src/shared/maiImageContract.json';
+import MOSS_IMAGE from '../../backend/src/shared/mossImageContract.json';
+export const MOSS_IMAGE_MODEL = MOSS_IMAGE.model;
 import NB_DOUBAO from '../../backend/src/shared/nbLowpriceDoubaoContract.json';
 export const NB_LOWPRICE_DOUBAO_CONTRACT = NB_DOUBAO;
 export const NB_LOWPRICE_MODELS = NB_DOUBAO.banana.models;
@@ -36,7 +38,7 @@ export type ProviderType = 'zhenzhen' | 'llm-direct' | 'runninghub';
 //  - 'wan-image'   : Wan 2.7 Global 图像协议,T2I 使用宽高/思考模式,I2I 使用 1-9 张参考图
 //  - 'vosr2-upscale': Vosr2 单图超分协议,只发送 model + images[1]
 //  - 'mj'          : Midjourney 协议,走专属 /api/proxy/mj/* 路由(speed_map + sref/oref)
-export type ImageParamKind = 'gpt-size' | 'gpt-image-2.5' | 'banana-ratio' | 'grok-image' | 'seedream-v5' | 'seedream-layer' | 'qwen-image-3.0' | 'qwen-image-global-2.1' | 'flux-image' | 'mai-image' | 'wan-image' | 'vosr2-upscale' | 'mj';
+export type ImageParamKind = 'gpt-size' | 'gpt-image-2.5' | 'banana-ratio' | 'grok-image' | 'seedream-v5' | 'seedream-layer' | 'qwen-image-3.0' | 'qwen-image-global-2.1' | 'flux-image' | 'mai-image' | 'moss-image' | 'wan-image' | 'vosr2-upscale' | 'mj';
 
 export interface ImageModelDef {
   id: string;             // 节点内部 id(如 'gpt-image-2')
@@ -194,6 +196,7 @@ export const ZHENZHEN_BUDGET_BANANA_PRO_MODEL_OPTIONS = [
 ] as const;
 export const ZHENZHEN_IMAGE_G2_MODEL_OPTIONS = ZHENZHEN_BUDGET_GPT2_MODEL_OPTIONS.slice(0, 2);
 export const ZHENZHEN_APIMART_IMAGE_MODELS = [
+  MOSS_IMAGE_MODEL,
   ...NB_LOWPRICE_MODELS,
   ...MAI_IMAGE_MODELS,
   FLUX3_IMAGE_MODEL,
@@ -411,6 +414,14 @@ export const IMAGE_MODELS: ImageModelDef[] = [
     apiModelOptions: MAI_IMAGE_MODELS.map((value) => ({ value, label: value })),
     aspectRatios: [], defaultAspectRatio: '', sizes: [], defaultSize: '',
     supportsReference: true, maxReferenceImages: MAI_IMAGE.maxImages,
+  },
+  {
+    id: MOSS_IMAGE_MODEL, apiModel: MOSS_IMAGE_MODEL,
+    label: 'Moss Image', tabLabel: 'Moss Image', provider: 'zhenzhen', paramKind: 'moss-image',
+    capabilities: ['t2i', 'i2i', 'edit'],
+    apiModelOptions: [{ value: MOSS_IMAGE_MODEL, label: MOSS_IMAGE_MODEL }],
+    aspectRatios: MOSS_IMAGE.ratios, defaultAspectRatio: MOSS_IMAGE.defaultRatio,
+    sizes: [], defaultSize: '', supportsReference: true, maxReferenceImages: MOSS_IMAGE.maxImages,
   },
   {
     id: 'grok-image',
