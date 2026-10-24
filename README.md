@@ -12,7 +12,7 @@ My favorite girl Go YounJung
 
 > AI 节点画布工作流工具 · Web + Electron 桌面端｜v3.4.3
 >
-> 2026-10-24：v3.4.3 修复右键快速添加菜单在短窗口中被截断的问题，增加原生滚动与边缘适配；Agnes 视频移除退役2.0，改接2.5/Flash新协议，展示完整上游错误。55项回归及72组隔离界面组合通过；两模型实网均返回503队列满，未宣称成功出片，现场证据后补。见[修复与边界](docs/quick-add-agnes25-fix.md)。
+> 2026-10-24：v3.4.3 已发布 Windows/macOS 版：修复右键快速添加菜单在短窗口中被截断的问题，增加原生滚动与边缘适配；Agnes 视频移除退役2.0，改接2.5/Flash新协议，展示完整上游错误。55项回归及72组隔离界面组合通过；两模型实网均返回503队列满，未宣称成功出片，现场证据后补。见[修复与边界](docs/quick-add-agnes25-fix.md)、[发布记录](docs/release-v3.4.3.md)。
 >
 > GitHub：<https://github.com/T8mars/T8-penguin-canvas>
 
