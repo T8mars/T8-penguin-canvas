@@ -11,7 +11,10 @@ const DEFAULT_TIMEOUT_MS = 60 * 60 * 1000;
 const DEFAULT_CHAT_TIMEOUT_MS = 3 * 60 * 1000;
 const DEFAULT_BASE_URL = 'https://apihub.agnes-ai.com/v1';
 const DEFAULT_IMAGE_MODEL = 'agnes-image-2.1-flash';
-const DEFAULT_VIDEO_MODEL = 'agnes-video-v2.0';
+const VIDEO_CONTRACT = require('../shared/agnesVideoContract.json');
+const DEFAULT_VIDEO_MODEL = VIDEO_CONTRACT.models[0];
+const { isIP } = require('node:net');
+const { isPrivateAddress } = require('../utils/safeRemoteMediaFetch');
 const DEFAULT_CHAT_MODEL = 'agnes-2.0-flash';
 const VIDEO_SUCCESS_STATUSES = new Set(['SUCCESS', 'SUCCEED', 'SUCCEEDED', 'COMPLETED', 'COMPLETE', 'DONE', 'FINISHED', 'OK', 'READY']);
 const VIDEO_FAILURE_STATUSES = new Set(['FAILURE', 'FAILED', 'FAIL', 'ERROR', 'ERRORED', 'CANCELED', 'CANCELLED', 'TIMEOUT', 'TIMEDOUT', 'REJECTED', 'EXPIRED']);
@@ -205,37 +208,76 @@ function clampNumber(value, fallback, min, max) {
   return Math.max(min, Math.min(max, Math.round(n)));
 }
 
-function agnesVideoDimensions(aspectRatio = '', resolution = '') {
-  const ratio = String(aspectRatio || '16:9').trim();
-  const [baseW, baseH] = ({
-    '16:9': [1152, 648],
-    '9:16': [648, 1152],
-    '4:3': [1024, 768],
-    '3:4': [768, 1024],
-    '1:1': [768, 768],
-    '21:9': [1280, 544],
-    '9:21': [544, 1280],
-  })[ratio] || [1152, 648];
-  const scale = ({
-    '480p': 0.625,
-    '720p': 1,
-    '780p': 1,
-    '1080p': 1.5,
-  })[String(resolution || '720p').trim().toLowerCase()] || 1;
-  const width = Math.max(64, Math.round((baseW * scale) / 8) * 8);
-  const height = Math.max(64, Math.round((baseH * scale) / 8) * 8);
-  return { width, height };
+function publicVideoRef(value) {
+  const text = String(value || '').trim();
+  let url;
+  try { url = new URL(text); } catch { throw new Error('Agnes 2.5 参考素材需要公网 HTTP(S) URL；请先上传至可公开访问的存储，不能使用本地路径或 Base64。'); }
+  const host = url.hostname.replace(/^\[|\]$/g, '').toLowerCase();
+  if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password
+    || (isIP(host) ? isPrivateAddress(host) : !host.includes('.') || /\.(local|localhost|internal|home\.arpa)$/.test(host))) {
+    throw new Error('Agnes 2.5 无法读取本机或内网参考素材；请使用公网 HTTP(S) URL。');
+  }
+  return url.toString();
 }
 
-function agnesVideoFrameCount(duration, fps = 24) {
-  const seconds = clampNumber(duration, 5, 1, 18);
-  const frameRate = clampNumber(fps, 24, 1, 60);
-  const target = Math.min(441, Math.max(9, seconds * frameRate));
-  const n = Math.max(1, Math.round((target - 1) / 8));
-  return {
-    numFrames: Math.min(441, Math.max(9, 8 * n + 1)),
-    frameRate,
-  };
+function buildAgnesVideoBody(model, input) {
+  if (!VIDEO_CONTRACT.models.includes(model)) throw new Error('请选择 Agnes Video 2.5 或 2.5 Flash。');
+  const params = input.providerParams && typeof input.providerParams === 'object' ? input.providerParams : {};
+  const migrated = (input.model || input.providerModel) === VIDEO_CONTRACT.retiredModel;
+  const seconds = Number(input.seconds ?? input.duration ?? params.seconds ?? params.duration ?? 5);
+  const duration = migrated ? Math.max(4, Math.min(12, Math.round(seconds))) : seconds;
+  if (!VIDEO_CONTRACT.durations.includes(duration)) throw new Error('Agnes 2.5 时长必须为 4–12 秒的整数。');
+  let size = String(input.size || input.resolution || params.size || params.resolution || '720P').toUpperCase();
+  if (migrated && size === '480P') size = '720P';
+  const flash = model.endsWith('-flash');
+  if (!VIDEO_CONTRACT.sizes.includes(size) || (flash && size !== '720P')) throw new Error(flash ? 'Agnes 2.5 Flash 只支持 720P。' : 'Agnes 2.5 分辨率请选择 720P、1080P、1K 或 2K。');
+  const ratio = String(input.aspect_ratio || input.ratio || params.aspect_ratio || params.ratio || '16:9');
+  if (!VIDEO_CONTRACT.ratios.includes(ratio)) throw new Error('Agnes 2.5 不支持该比例，请重新选择。');
+  const images = collectReferenceImageInputs(input.images, input.referenceImages, input.reference_images);
+  const audios = Array.isArray(input.audios) ? input.audios : [];
+  const videos = Array.isArray(input.videos) ? input.videos : [];
+  const first = input.first_frame || params.first_frame;
+  const last = input.last_frame || params.last_frame;
+  const hasRefs = images.length + audios.length + videos.length > 0;
+  const requestedMode = params.mode || input.mode || 'auto';
+  const mode = requestedMode === 'auto' ? first || last ? 'keyframe' : hasRefs ? 'reference' : 'text' : requestedMode;
+  if (!['text', 'keyframe', 'reference'].includes(mode)) throw new Error('Agnes 2.5 模式请选择 text、keyframe 或 reference。');
+  if ((mode === 'text' && (hasRefs || first || last)) || (mode === 'keyframe' && (audios.length || videos.length || images.length > 2))
+    || (mode === 'reference' && (first || last)) || (mode === 'reference' && !hasRefs)) throw new Error('Agnes 2.5 素材与生成模式不匹配，请检查参考素材。');
+  const limits = VIDEO_CONTRACT.limits;
+  if (images.length > (flash ? limits.flashImages : limits.images) || audios.length > limits.audios
+    || videos.length > (flash ? limits.flashVideos : limits.videos) || images.length + audios.length + videos.length > limits.total) {
+    throw new Error(flash ? 'Agnes 2.5 Flash 最多 5 图、3 音频，不支持参考视频；请移除多余素材。' : 'Agnes 2.5 最多 8 图、3 音频、1 视频，共不超过 12 个素材；请移除多余素材。');
+  }
+  const body = { model, prompt: String(input.prompt).trim(), seconds: String(duration), mode, size, aspect_ratio: ratio };
+  if (mode === 'keyframe') {
+    if ((first || last) && images.length) throw new Error('Agnes 2.5 首尾帧不能同时使用两套图片输入。');
+    const firstRef = first || images[0]; const lastRef = last || images[1];
+    if (!firstRef && !lastRef) throw new Error('Agnes 2.5 首尾帧模式至少需要一张图片。');
+    if (firstRef) body.first_frame = publicVideoRef(firstRef);
+    if (lastRef) body.last_frame = publicVideoRef(lastRef);
+  } else if (mode === 'reference') {
+    if (images.length) body.images = images.map(publicVideoRef);
+    if (audios.length) body.audios = audios.map(publicVideoRef);
+    if (videos.length) body.videos = videos.map(value => {
+      const item = typeof value === 'string' ? { url: value } : value;
+      const out = { url: publicVideoRef(item?.url) };
+      if (item.start_seconds != null) {
+        if (typeof item.start_seconds !== 'number' || !Number.isFinite(item.start_seconds) || item.start_seconds < 0) throw new Error('Agnes 参考视频起始时间不合法。');
+        out.start_seconds = item.start_seconds;
+      }
+      if (item.require_audio != null) {
+        if (typeof item.require_audio !== 'boolean') throw new Error('Agnes 参考视频 require_audio 必须为布尔值。');
+        out.require_audio = item.require_audio;
+      }
+      return out;
+    });
+  }
+  if (input.seed != null && Number(input.seed) >= 0) {
+    if (!Number.isSafeInteger(Number(input.seed))) throw new Error('Agnes seed 必须为整数。');
+    body.seed = Number(input.seed);
+  }
+  return body;
 }
 
 function imageResponseFormat(provider, input = {}) {
@@ -376,6 +418,7 @@ async function generateImage(provider, input = {}, options = {}) {
 }
 
 async function waitForAgnesVideoTask(provider, videoId, model, options = {}) {
+  const timeoutMs = normalizeProviderMediaTimeoutMs(options.timeoutMs, { fallback: DEFAULT_TIMEOUT_MS });
   const maxPolls = clampNumber(options.maxPolls, 120, 1, 240);
   const sleepImpl = options.sleepImpl || ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
   let lastRaw = {};
@@ -388,7 +431,7 @@ async function waitForAgnesVideoTask(provider, videoId, model, options = {}) {
     const res = await fetchWithTimeout(query.toString(), {
       method: 'GET',
       headers: bearerHeaders(provider),
-      timeoutMs: options.timeoutMs,
+      timeoutMs,
       fetchImpl: options.fetchImpl,
     });
     const raw = await responseJson(res);
@@ -396,20 +439,18 @@ async function waitForAgnesVideoTask(provider, videoId, model, options = {}) {
     trace = mergeProviderTrace(trace, providerTrace(res, raw, { pollCount: i + 1 }));
     if (!res.ok) {
       if (VIDEO_TRANSIENT_HTTP_STATUSES.has(Number(res.status))) continue;
-      const error = new Error(`Agnes 视频任务查询失败：HTTP ${res.status}${raw?.message ? ` ${trimBodyForError(raw.message)}` : ''}`);
+      const error = new Error(`Agnes 视频任务查询失败：HTTP ${res.status} ${trimBodyForError(raw?.error || raw?.detail || raw?.message || raw)}`);
       Object.assign(error, trace);
       throw error;
     }
-    const urls = [...new Set(collectVideoUrls(raw))];
-    if (urls.length) return { raw, videoUrls: urls, ...trace };
     const status = videoStatus(raw);
     if (VIDEO_FAILURE_STATUSES.has(status)) {
       const error = new Error(`Agnes 视频任务失败：${trimBodyForError(raw?.message || raw?.error || status)}`);
       Object.assign(error, trace);
       throw error;
     }
-    if (VIDEO_SUCCESS_STATUSES.has(status) && !urls.length) {
-      return { raw, videoUrls: [], ...trace };
+    if (VIDEO_SUCCESS_STATUSES.has(status)) {
+      return { raw, videoUrls: [...new Set(collectVideoUrls(raw))], ...trace };
     }
   }
   const error = new Error(`Agnes 视频任务超时：${trimBodyForError(JSON.stringify(lastRaw)) || videoId}`);
@@ -431,33 +472,16 @@ async function generateVideo(provider, input = {}, options = {}) {
   let trace = {};
   try {
     model = selectedModel(input.model || input.providerModel, provider.videoModels, provider.defaults?.videoModel || DEFAULT_VIDEO_MODEL);
+    if (model === VIDEO_CONTRACT.retiredModel) model = DEFAULT_VIDEO_MODEL;
   } catch (e) {
     return { ok: false, code: 'invalid_model', providerId: provider.id, protocol: provider.protocol, error: e.message };
   }
 
-  const params = input.providerParams && typeof input.providerParams === 'object' ? input.providerParams : {};
-  const { width, height } = agnesVideoDimensions(input.aspect_ratio || input.ratio || params.aspect_ratio || params.ratio, input.resolution || params.resolution);
-  const { numFrames, frameRate } = agnesVideoFrameCount(input.duration ?? params.duration, params.frameRate ?? params.frame_rate ?? 24);
-  const customNumFrames = params.numFrames ?? params.num_frames;
-  const body = {
-    model,
-    prompt,
-    width: clampNumber(params.width, width, 64, 4096),
-    height: clampNumber(params.height, height, 64, 4096),
-    num_frames: customNumFrames === '' || customNumFrames == null ? numFrames : clampNumber(customNumFrames, numFrames, 9, 441),
-    frame_rate: frameRate,
-  };
-  if (input.seed != null && Number(input.seed) >= 0) body.seed = Number(input.seed);
-
+  let body;
   try {
-    const refs = await resolveImageRefs(input.images || input.referenceImages || input.reference_images, {
-      baseUrl: options.baseUrl,
-      target: params.referenceTarget || params.videoReferenceTarget || provider.defaults?.videoReferenceTarget || 'base64',
-    });
-    if (refs.length === 1) body.image = refs[0];
-    if (refs.length > 1) body.extra_body = { image: refs.slice(0, 4) };
+    body = buildAgnesVideoBody(model, input);
   } catch (e) {
-    return { ok: false, code: 'invalid_reference', providerId: provider.id, protocol: provider.protocol, error: e?.message || '参考图解析失败。' };
+    return { ok: false, code: 'invalid_video_parameters', providerId: provider.id, protocol: provider.protocol, model, error: e.message };
   }
 
   try {
@@ -478,12 +502,12 @@ async function generateVideo(provider, input = {}, options = {}) {
         providerId: provider.id,
         protocol: provider.protocol,
         model,
-        error: `Agnes 视频调用失败：HTTP ${res.status}${raw?.message ? ` ${trimBodyForError(raw.message)}` : ''}`,
+        error: `Agnes 视频调用失败：HTTP ${res.status} ${trimBodyForError(raw?.error || raw?.detail || raw?.message || raw)}`,
         raw,
         ...trace,
       };
     }
-    let videoUrls = [...new Set(collectVideoUrls(raw))];
+    let videoUrls = VIDEO_SUCCESS_STATUSES.has(videoStatus(raw)) ? [...new Set(collectVideoUrls(raw))] : [];
     const taskId = extractTaskId(raw);
     let finalRaw = raw;
     if (!videoUrls.length && taskId) {
@@ -520,10 +544,9 @@ async function testProvider(provider, options = {}) {
 module.exports = {
   agnesApiBaseUrl,
   agnesRootUrl,
-  agnesVideoDimensions,
-  agnesVideoFrameCount,
   generateChat,
   generateImage,
   generateVideo,
+  waitForAgnesVideoTask,
   testProvider,
 };

@@ -1,4 +1,5 @@
 import type { AdvancedProviderConfig, AdvancedProviderSummary, CanvasProviderSource } from '../types/canvas';
+import { AGNES_VIDEO, agnesVideoModel } from './agnesVideo';
 
 const MASKED_RE = /^\*{2,}/;
 
@@ -248,7 +249,7 @@ const FALLBACK_MODELS: Record<AdvancedProviderNodeKind, Partial<Record<string, s
   },
   video: {
     'openai-compatible': [],
-    agnes: ['agnes-video-v2.0'],
+    agnes: AGNES_VIDEO.models,
     volcengine: [
       'doubao-seedance-2-0-260128',
       'doubao-seedance-2-0-fast-260128',
@@ -322,6 +323,13 @@ export function advancedProviderModelOptions(
   kind: AdvancedProviderNodeKind,
 ): string[] {
   if (!provider) return [];
+  if (provider.protocol === 'agnes' && kind === 'video') {
+    return uniqueCompact([
+      agnesVideoModel(defaultModelForKind(provider, kind)),
+      ...AGNES_VIDEO.models,
+      ...listForKind(provider, kind),
+    ]).filter(model => model !== AGNES_VIDEO.retiredModel);
+  }
   if (provider.profile === 'strata') return kind === 'llm' ? uniqueCompact(provider.chatModels || []) : [];
   if (provider.protocol === 'comfyui' && kind === 'image') {
     return uniqueCompact((provider.comfyuiConfig?.workflows || []).map((workflow) => workflow.id || workflow.name));
@@ -362,7 +370,8 @@ export function resolveAdvancedProviderSelection(
     const provider = available.find((item) => item.id === currentId && item.protocol === currentSource);
     if (provider) {
       const models = advancedProviderModelOptions(provider, kind);
-      const requested = String(current?.providerModel || '').trim();
+      const saved = String(current?.providerModel || '').trim();
+      const requested = provider.protocol === 'agnes' && kind === 'video' ? agnesVideoModel(saved) : saved;
       return {
         providerSource: provider.protocol,
         providerId: provider.id,

@@ -10,7 +10,9 @@ https://www.runninghub.cn/?inviteCode=rh-v1121
 My favorite girl Go YounJung
 # 🐧 贞贞的无限画布（企鹅共创版） · T8-penguin-canvas
 
-> AI 节点画布工作流工具 · Web + Electron 桌面端｜v3.4.2
+> AI 节点画布工作流工具 · Web + Electron 桌面端｜v3.4.3
+>
+> 2026-10-24：v3.4.3 修复右键快速添加菜单在短窗口中被截断的问题，增加原生滚动与边缘适配；Agnes 视频移除退役2.0，改接2.5/Flash新协议，展示完整上游错误。55项回归及72组隔离界面组合通过；两模型实网均返回503队列满，未宣称成功出片，现场证据后补。见[修复与边界](docs/quick-add-agnes25-fix.md)。
 >
 > GitHub：<https://github.com/T8mars/T8-penguin-canvas>
 
@@ -58,12 +60,12 @@ My favorite girl Go YounJung
 
 一个面向 AI 创作的 **节点式画布**：拖拽节点、连线编排、生成图像 / 视频 / 音频、调用 LLM、串接 RunningHub 工作流，叠加批量执行、智能对齐、打组、主题模板与终端日志。Web 浏览器和桌面端均可使用。
 
-![status](https://img.shields.io/badge/version-v3.4.2-brightgreen) ![node](https://img.shields.io/badge/node-84-blue) ![react](https://img.shields.io/badge/react-19-61dafb) ![electron](https://img.shields.io/badge/electron-33-47848f) ![license](https://img.shields.io/badge/license-MIT-yellow)
+![status](https://img.shields.io/badge/version-v3.4.3-brightgreen) ![node](https://img.shields.io/badge/node-84-blue) ![react](https://img.shields.io/badge/react-19-61dafb) ![electron](https://img.shields.io/badge/electron-33-47848f) ![license](https://img.shields.io/badge/license-MIT-yellow)
 
 ## 💻 桌面版下载
 
-- **Windows x64**：在 [v3.4.2 Release](https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.4.2) 下载 `T8-PenguinCanvas-Setup-3.4.2.exe`。
-- **macOS Apple Silicon**：在 [v3.4.2 Release](https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.4.2) 下载 `T8-PenguinCanvas-3.4.2-mac-arm64.dmg`。支持 M1/M2/M3/M4 等 arm64 Mac，最低 macOS 12，使用 ad-hoc 完整性签名且尚无 Apple Developer ID 公证；首次打开请在 Finder 中右键应用并选择“打开”。Intel Mac 暂不支持。
+- **Windows x64**：在 [v3.4.3 Release](https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.4.3) 下载 `T8-PenguinCanvas-Setup-3.4.3.exe`。
+- **macOS Apple Silicon**：在 [v3.4.3 Release](https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.4.3) 下载 `T8-PenguinCanvas-3.4.3-mac-arm64.dmg`。支持 M1/M2/M3/M4 等 arm64 Mac，最低 macOS 12，使用 ad-hoc 完整性签名且尚无 Apple Developer ID 公证；首次打开请在 Finder 中右键应用并选择“打开”。Intel Mac 暂不支持。
 
 ---
 

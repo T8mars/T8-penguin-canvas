@@ -89,6 +89,7 @@ export const zhCN = {
     canvasError: '画布渲染出错了，已被错误边界捕获',
   },
   canvas: {
+    quickAddTitle: '快速添加节点',
     generationHistory: generationHistoryZh,
     state: {
       noCanvasTitle: '🐧 贞贞的无限画布（企鹅共创版）', noCanvas: '请先在左侧创建或选择一个画布',
@@ -181,6 +182,11 @@ export const zhCN = {
       previousFailed: '本次生成未成功，上一版预览仍保留。',
       previousIdle: '可修改设置后重新生成，上一版预览仍保留。',
       previousHistoryHint: '其他已保存版本可从节点上方的“历史”查看。',
+      agnes: {
+        title: 'Agnes 2.5 视频参数', mode: '生成模式', auto: '自动（按素材选择）', text: '文生视频', keyframe: '首尾帧（按图片顺序）', reference: '多模态参考',
+        hint: '2.5 使用时长、分辨率档位和比例，不发送宽高或帧数。参考素材必须为公网 URL；本地文件请先上传到公开存储。标准版按量计费，Flash 当前为限时免费且仅支持 720P。',
+        migrated: '视频 2.0 已退役；此节点已兼容为 2.5，旧帧数参数不再发送。',
+      },
       moss: {
         description: 'Moss Image：必填提示词，最多 1 张参考图，8 种比例（默认 9:16）；无分辨率、Seed 或批量参数。',
         promptRequired: 'Moss Image 提示词不能为空',
@@ -587,7 +593,7 @@ export const zhCN = {
       'openai-compatible': { label: 'OpenAI 兼容', subtitle: '接入兼容 OpenAI 格式的图像 / 视频 / LLM 服务', description: '适合接入你自己的中转站、One API、New API 或其他兼容 /v1/chat/completions、/v1/images/generations、/v1/images/edits、/v1/videos/generations 的服务。', connectionHint: 'Base URL 填到 /v1 这一层，例如 https://api.example.com/v1；Key 留空会保留后端已保存的密钥。', modelHint: '每行一个模型名。只填你确实要在节点里选择的模型，空白时会使用内置兜底示例。' },
       modelscope: { label: 'ModelScope', subtitle: '接入 ModelScope 的异步图像任务与兼容聊天接口', description: '适合把 ModelScope 上的图像模型加入图像节点，也可以给 LLM 节点填入可用的聊天模型。', connectionHint: 'Base URL 通常使用 ModelScope API 地址；Token 填 ModelScope 访问令牌。', modelHint: '图像模型建议填写 ModelScope 模型 ID，例如 owner/model-name；聊天模型按平台实际模型名填写。' },
       volcengine: { label: '火山引擎', subtitle: '接入火山方舟 / Seedream / Seedance', description: '适合用火山引擎做 Seedream 图像、Seedance 视频或方舟聊天模型。生成调用使用方舟 Ark API Key，不使用 Access Key ID / Secret Access Key；使用 Seedance2.0 前需要先在火山方舟控制台开通对应模型服务。', connectionHint: 'Base URL 填火山方舟 API 地址；Seedream / Seedance / LLM 生成必须填方舟 Ark API Key。Access Key ID / Secret Access Key 是另一类凭证，请放到下方火山 AK/SK 高级项。', modelHint: '图像、视频、聊天模型分别按火山控制台里的模型接入点填写，每行一个。Seedance2.0 / Seedance2.0 Fast 如果未在方舟控制台开通，提交会返回 ModelNotOpen / HTTP 404。' },
-      agnes: { label: 'Agnes AI', subtitle: '接入 Agnes AI 免费模型 API', description: '适合用 Agnes AI 的免费额度接入 LLM、图像和视频节点。LLM 使用 OpenAI 兼容 /v1/chat/completions 并按长响应等待；图像使用 Agnes 的 OpenAI JSON 图片接口；视频使用 /v1/videos 提交并由 /agnesapi 查询结果。', connectionHint: 'Base URL 默认使用 https://apihub.agnes-ai.com/v1；API Key 可在 Agnes 平台的 API Keys 页面创建。填好 Key、启用平台并保存后，在节点的“高级来源”里选择 Agnes AI。', modelHint: '默认模型：LLM agnes-2.0-flash；图像 agnes-image-2.1-flash / agnes-image-2.0-flash；视频 agnes-video-v2.0。图像尺寸跟随图像节点比例/尺寸，视频比例/时长/分辨率会自动换算为 Agnes 宽高和帧数；本机参考图会自动转成可提交给远端任务的 base64 图片内容。' },
+      agnes: { label: 'Agnes AI', subtitle: '接入 Agnes AI 多模态 API', description: '接入 Agnes AI 的 LLM、图像和视频节点；收费与额度以模型及账户为准。LLM 使用 OpenAI 兼容 /v1/chat/completions 并按长响应等待；图像使用 Agnes 的 OpenAI JSON 图片接口；视频使用 /v1/videos 提交并由 /agnesapi 查询结果。', connectionHint: 'Base URL 默认使用 https://apihub.agnes-ai.com/v1；API Key 可在 Agnes 平台的 API Keys 页面创建。填好 Key、启用平台并保存后，在节点的“高级来源”里选择 Agnes AI。', modelHint: '默认 LLM/图像模型不变；视频已升级 Agnes Video 2.5 / 2.5 Flash，2.0 已退役。视频使用 seconds、size、aspect_ratio 和 mode，不发送宽高/帧数。参考素材必须为公网 URL，本地文件须先上传到公开存储；标准版按量计费，Flash 当前限时免费。' },
       comfyui: { label: 'ComfyUI', subtitle: '接入 ComfyUI 工作流', description: '默认适合把本机 ComfyUI 的 API Workflow 接到图像节点；开启高危远端开关或由后端环境启用后，也可接入其他可信 ComfyUI 地址。', connectionHint: '默认填写本机 ComfyUI，例如 http://127.0.0.1:8188；如需其他地址，可开启下方高危开关，或由后端设置 T8_COMFYUI_ALLOW_REMOTE=1。多个实例可一行一个。', modelHint: '图像节点里选择的是工作流 ID/名称，不需要填写模型列表。' },
       'jimeng-cli': { label: '即梦 CLI', subtitle: '通过本地 dreamina / 即梦 CLI 调用图像和视频', description: '适合已经在本机配置好即梦 CLI 的用户。它不走 API Key，而是调用本地命令并轮询任务结果。', connectionHint: '填写 dreamina 可执行文件路径；如果 CLI 装在 WSL 里，再打开 WSL 并填写发行版名称。', modelHint: '当前节点按即梦 CLI v1.4.14 适配。图像支持 seedream-5.0-pro（CLI 参数 5.0Pro）、seedream-5.0、seedream-4.7 等；视频支持 seedance2.0fast_vip、seedance2.0_vip（720P/1080P/4K）、seedance2.0mini、seedance1.5pro、seedance1.0fast。每行一个。' },
     },
@@ -739,6 +745,7 @@ export const enUS = {
     canvasError: 'Canvas rendering failed and was caught by the error boundary',
   },
   canvas: {
+    quickAddTitle: 'Quick add node',
     generationHistory: generationHistoryEn,
     state: {
       noCanvasTitle: "🐧 Zhenzhen's Infinite Canvas (Penguin Co-creation Edition)", noCanvas: 'Create or select a canvas from the sidebar.',
@@ -831,6 +838,11 @@ export const enUS = {
       previousFailed: 'This generation did not succeed. The previous preview is still available.',
       previousIdle: 'You can edit the settings and generate again. The previous preview is still available.',
       previousHistoryHint: 'View other saved versions in History above the selected node.',
+      agnes: {
+        title: 'Agnes 2.5 video settings', mode: 'Generation mode', auto: 'Auto (based on media)', text: 'Text to video', keyframe: 'First/last frames (image order)', reference: 'Multimodal reference',
+        hint: '2.5 uses duration, resolution tier and aspect ratio, not width/height or frame count. References require public URLs; upload local files to public storage first. Standard is metered; Flash is currently promotional and 720P only.',
+        migrated: 'Video 2.0 is retired. This node now uses 2.5; legacy frame parameters are not sent.',
+      },
       moss: {
         description: 'Moss Image: required prompt, up to 1 reference and 8 ratios (default 9:16); no resolution, seed or batch parameters.',
         promptRequired: 'Moss Image requires a prompt',
@@ -1233,7 +1245,7 @@ export const enUS = {
       'openai-compatible': { label: 'OpenAI-compatible', subtitle: 'Connect OpenAI-compatible image, video, and LLM services', description: 'Use your own gateway, One API, New API, or another service compatible with /v1/chat/completions, /v1/images/generations, /v1/images/edits, or /v1/videos/generations.', connectionHint: 'Set Base URL at the /v1 level, for example https://api.example.com/v1. Leave the key empty to preserve the saved backend secret.', modelHint: 'Enter one model per line. Include only models you intend to select in nodes; an empty list uses built-in examples.' },
       modelscope: { label: 'ModelScope', subtitle: 'Connect ModelScope asynchronous image tasks and compatible chat', description: 'Add ModelScope image models to the image node and supported chat models to the LLM node.', connectionHint: 'Normally use the ModelScope API address as Base URL and enter a ModelScope access token.', modelHint: 'For image models, use a ModelScope model ID such as owner/model-name. Use the actual platform model name for chat.' },
       volcengine: { label: 'Volcengine', subtitle: 'Connect Volcengine Ark, Seedream, and Seedance', description: 'Use Volcengine for Seedream images, Seedance video, or Ark chat. Generation uses an Ark API key, not an Access Key ID / Secret Access Key. Enable the corresponding Ark service before using Seedance 2.0.', connectionHint: 'Set the Ark API Base URL and enter an Ark API key for Seedream, Seedance, or LLM generation. Put Access Key ID / Secret Access Key credentials in the optional AK/SK section below.', modelHint: 'Enter image, video, and chat endpoint IDs from the Volcengine console, one per line. An unopened Seedance 2.0 service returns ModelNotOpen / HTTP 404.' },
-      agnes: { label: 'Agnes AI', subtitle: 'Connect the Agnes AI free-model API', description: 'Use Agnes AI quotas for LLM, image, and video nodes. Chat uses the OpenAI-compatible endpoint, images use the Agnes OpenAI JSON interface, and video submits to /v1/videos before polling /agnesapi.', connectionHint: 'Keep the default https://apihub.agnes-ai.com/v1 Base URL and create an API key on Agnes. Enable and save it, then choose Agnes AI as the advanced source in a node.', modelHint: 'Defaults: agnes-2.0-flash for LLM, agnes-image-2.1-flash / agnes-image-2.0-flash for image, and agnes-video-v2.0 for video. Node size, duration, and references are converted automatically.' },
+      agnes: { label: 'Agnes AI', subtitle: 'Connect the Agnes AI multimodal API', description: 'Use Agnes AI quotas for LLM, image, and video nodes. Chat uses the OpenAI-compatible endpoint, images use the Agnes OpenAI JSON interface, and video submits to /v1/videos before polling /agnesapi.', connectionHint: 'Keep the default https://apihub.agnes-ai.com/v1 Base URL and create an API key on Agnes. Enable and save it, then choose Agnes AI as the advanced source in a node.', modelHint: 'LLM/image defaults are unchanged. Video uses Agnes Video 2.5 / 2.5 Flash; 2.0 is retired. Video sends seconds, size, aspect_ratio and mode, not width/height or frames. References require public URLs; upload local files to public storage first. Standard is metered; Flash is currently promotional.' },
       comfyui: { label: 'ComfyUI', subtitle: 'Connect a ComfyUI workflow', description: 'Connect a local ComfyUI API Workflow to the image node by default. Trusted remote endpoints require the explicit high-risk switch or T8_COMFYUI_ALLOW_REMOTE=1.', connectionHint: 'Use a local endpoint such as http://127.0.0.1:8188 by default. Enter one instance per line; enable remote access only for trusted services.', modelHint: 'The image node selects a workflow ID/name, so no model list is required.' },
       'jimeng-cli': { label: 'Jimeng CLI', subtitle: 'Run image and video through local dreamina / Jimeng CLI', description: 'For users who have configured Jimeng CLI locally. It invokes a local command and polls tasks instead of using an API key.', connectionHint: 'Enter the dreamina executable path. If installed in WSL, enable WSL and enter its distribution name.', modelHint: 'Adapted to Jimeng CLI v1.4.14. Supported image and video models include Seedream 5.x/4.7 and Seedance 2.0/1.x variants; enter one per line.' },
     },

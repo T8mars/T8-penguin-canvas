@@ -1,8 +1,5 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
@@ -121,7 +118,7 @@ test('Agnes adapter sends image edit aliases in extra_body.image without edits-o
   assert.equal(Object.prototype.hasOwnProperty.call(calls[0].body, 'tags'), false);
 });
 
-test('Agnes adapter converts video controls to width height and polls agnesapi', async () => {
+test('Agnes 2.5 sends tier, ratio, seconds and mode without legacy fields and polls video_id', async () => {
   const agnes = adapters.getAdapterForProtocol('agnes');
   const calls: any[] = [];
   const provider = {
@@ -129,16 +126,16 @@ test('Agnes adapter converts video controls to width height and polls agnesapi',
     protocol: 'agnes',
     baseUrl: 'https://apihub.agnes-ai.com/v1',
     apiKey: 'sk-secret',
-    videoModels: ['agnes-video-v2.0'],
+    videoModels: ['agnes-video-2.5'],
   };
 
   const result = await agnes.generateVideo(provider, {
     prompt: 'a tiny penguin waves',
-    model: 'agnes-video-v2.0',
+    model: 'agnes-video-2.5',
     aspect_ratio: '9:16',
-    resolution: '480p',
-    duration: 2,
-    providerParams: { frameRate: 8 },
+    resolution: '720p',
+    duration: 5,
+    providerParams: { frameRate: 8, width: 400, height: 600, num_frames: 18 },
   }, {
     fetchImpl: async (url: string, init: any = {}) => {
       calls.push({ url, method: init.method || 'GET', body: init.body ? JSON.parse(init.body) : null });
@@ -159,14 +156,14 @@ test('Agnes adapter converts video controls to width height and polls agnesapi',
   assert.deepEqual(result.videoUrls, ['https://cdn.example.com/agnes.mp4']);
   assert.equal(calls[0].url, 'https://apihub.agnes-ai.com/v1/videos');
   assert.deepEqual(calls[0].body, {
-    model: 'agnes-video-v2.0',
+    model: 'agnes-video-2.5',
     prompt: 'a tiny penguin waves',
-    width: 408,
-    height: 720,
-    num_frames: 17,
-    frame_rate: 8,
+    mode: 'text',
+    seconds: '5',
+    size: '720P',
+    aspect_ratio: '9:16',
   });
-  assert.match(calls[1].url, /^https:\/\/apihub\.agnes-ai\.com\/agnesapi\?video_id=vid-1&model_name=agnes-video-v2\.0$/);
+  assert.match(calls[1].url, /^https:\/\/apihub\.agnes-ai\.com\/agnesapi\?video_id=vid-1&model_name=agnes-video-2\.5$/);
 });
 
 test('Agnes chat uses the shared three-minute LLM cap instead of the OpenAI compatible 8s default', async (t) => {
@@ -207,17 +204,8 @@ test('Agnes chat uses the shared three-minute LLM cap instead of the OpenAI comp
   assert.equal(usedThreeMinuteTimeout, true);
 });
 
-test('Agnes video sends local T8 reference images as base64 payloads for remote task workers', async (t) => {
+test('Agnes 2.5 rejects local references before submission rather than sending unsupported base64', async () => {
   const agnes = adapters.getAdapterForProtocol('agnes');
-  const config = require('../backend/src/config.js');
-  const oldInputDir = config.INPUT_DIR;
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 't8-agnes-video-ref-'));
-  t.after(() => {
-    config.INPUT_DIR = oldInputDir;
-    fs.rmSync(tmpDir, { recursive: true, force: true });
-  });
-  config.INPUT_DIR = tmpDir;
-  fs.writeFileSync(path.join(tmpDir, 'ref.png'), Buffer.from('PNGDATA'));
 
   const calls: any[] = [];
   const provider = {
@@ -225,15 +213,15 @@ test('Agnes video sends local T8 reference images as base64 payloads for remote 
     protocol: 'agnes',
     baseUrl: 'https://apihub.agnes-ai.com/v1',
     apiKey: 'sk-secret',
-    videoModels: ['agnes-video-v2.0'],
+    videoModels: ['agnes-video-2.5'],
   };
 
   const result = await agnes.generateVideo(provider, {
     prompt: 'a tiny penguin waves',
-    model: 'agnes-video-v2.0',
+    model: 'agnes-video-2.5',
     aspect_ratio: '9:16',
-    resolution: '480p',
-    duration: 2,
+    resolution: '720p',
+    duration: 5,
     images: ['http://127.0.0.1:18766/files/input/ref.png'],
     providerParams: { frameRate: 8 },
   }, {
@@ -252,10 +240,9 @@ test('Agnes video sends local T8 reference images as base64 payloads for remote 
     maxPolls: 1,
   });
 
-  assert.equal(result.ok, true);
-  assert.equal(calls[0].body.image, Buffer.from('PNGDATA').toString('base64'));
-  assert.doesNotMatch(calls[0].body.image, /^data:image\//);
-  assert.doesNotMatch(calls[0].body.image, /^https?:\/\/127\.0\.0\.1/);
+  assert.equal(result.ok, false);
+  assert.match(result.error, /公网|内网/);
+  assert.equal(calls.length, 0);
 });
 
 test('Agnes video failure errors stringify nested provider error objects', async () => {
@@ -265,12 +252,12 @@ test('Agnes video failure errors stringify nested provider error objects', async
     protocol: 'agnes',
     baseUrl: 'https://apihub.agnes-ai.com/v1',
     apiKey: 'sk-secret',
-    videoModels: ['agnes-video-v2.0'],
+    videoModels: ['agnes-video-2.5'],
   };
 
   const result = await agnes.generateVideo(provider, {
     prompt: 'a tiny penguin waves',
-    model: 'agnes-video-v2.0',
+    model: 'agnes-video-2.5',
   }, {
     fetchImpl: async (url: string, init: any = {}) => {
       if (String(url).endsWith('/v1/videos')) {
@@ -300,13 +287,13 @@ test('Agnes video polling treats HTTP 429 as a transient status', async () => {
     protocol: 'agnes',
     baseUrl: 'https://apihub.agnes-ai.com/v1',
     apiKey: 'sk-secret',
-    videoModels: ['agnes-video-v2.0'],
+    videoModels: ['agnes-video-2.5'],
   };
   let pollCount = 0;
 
   const result = await agnes.generateVideo(provider, {
     prompt: 'a tiny penguin waves',
-    model: 'agnes-video-v2.0',
+    model: 'agnes-video-2.5',
   }, {
     fetchImpl: async (url: string, init: any = {}) => {
       if (String(url).endsWith('/v1/videos')) {

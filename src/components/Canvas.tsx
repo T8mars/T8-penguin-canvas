@@ -2,6 +2,7 @@ import { createContext, lazy, Suspense, useCallback, useContext, useEffect, useL
 import { useTranslation } from 'react-i18next';
 import { registerCanvasActiveContext } from '../utils/agentActiveContext';
 import DesktopDataStorage from './DesktopDataStorage';
+import CanvasQuickAddMenu from './CanvasQuickAddMenu';
 import CanvasRestoreDialog from './CanvasRestoreDialog';
 import NodeDomLanguageBoundary from '../i18n/NodeDomLanguageBoundary';
 import {
@@ -16696,67 +16697,8 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, onReadinessChange, onR
       })()}
 
       {/* 画布空白区右键菜单: 快速添加节点 */}
-      {paneMenu && (() => {
-        const QUICK_NODES = NODE_REGISTRY.filter(
-          (n) => n.category === 'input' || n.category === 'core'
-        );
-        const COLOR_HEX: Record<string, string> = {
-          sky: '#7dd3fc', amber: '#fcd34d', rose: '#fda4af', fuchsia: '#f0abfc',
-          violet: '#c4b5fd', emerald: '#6ee7b7', cyan: '#67e8f9', indigo: '#a5b4fc',
-          orange: '#fdba74', pink: '#f9a8d4', slate: '#cbd5e1', teal: '#5eead4',
-        };
-        const itemCls = 't8-context-menu__item';
-        return (
-          <>
-            {/* 遮罩层 */}
-            <div
-              data-canvas-floating-ui="pane-menu-backdrop"
-              className="fixed inset-0 z-30"
-              onClick={closePaneMenu}
-              onContextMenu={(e) => {
-                e.preventDefault();
-                closePaneMenu();
-              }}
-            />
-            <div
-              data-canvas-floating-ui="pane-menu"
-              className="fixed z-40 overflow-hidden t8-context-menu t8-context-menu--quick-add"
-              style={{
-                left: Math.min(paneMenu.x, window.innerWidth - 220),
-                top: Math.min(paneMenu.y, window.innerHeight - 360),
-                width: 200,
-              }}
-            >
-              <div className="t8-context-menu__header">
-                快速添加节点
-              </div>
-              {QUICK_NODES.map((meta) => {
-                const Icon = (LucideIcons as any)[meta.icon] || LucideIcons.Box;
-                const color = COLOR_HEX[meta.color] || COLOR_HEX.slate;
-                return (
-                  <button
-                    key={meta.type}
-                    className={itemCls}
-                    onClick={() => {
-                      const at = { x: paneMenu.x, y: paneMenu.y };
-                      closePaneMenu();
-                      addNode(meta.type as NodeType, { atScreen: at });
-                    }}
-                  >
-                    <span
-                      className="t8-context-menu__node-icon"
-                      style={{ '--t8-menu-icon-color': color } as CSSProperties}
-                    >
-                      <Icon size={13} />
-                    </span>
-                    <span className="flex-1 truncate">{meta.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </>
-        );
-      })()}
+      {paneMenu && <CanvasQuickAddMenu point={paneMenu} containerRef={canvasShellRef}
+        onClose={closePaneMenu} onAdd={(type, at) => addNode(type, { atScreen: at })} />}
     </div>
   );
 }

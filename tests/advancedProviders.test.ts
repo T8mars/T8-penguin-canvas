@@ -28,7 +28,7 @@ test('normalizeAdvancedProviders migrates missing settings to disabled default p
     'agnes-image-2.1-flash',
     'agnes-image-2.0-flash',
   ]);
-  assert.deepEqual(providers.find((provider: any) => provider.id === 'agnes')?.videoModels, ['agnes-video-v2.0']);
+  assert.deepEqual(providers.find((provider: any) => provider.id === 'agnes')?.videoModels, ['agnes-video-2.5', 'agnes-video-2.5-flash']);
   assert.deepEqual(providers.find((provider: any) => provider.id === 'agnes')?.chatModels, ['agnes-2.0-flash']);
   assert.deepEqual(providers.find((provider: any) => provider.id === 'modelscope')?.chatModels, [
     'Qwen/Qwen3-235B-A22B',

@@ -134,7 +134,7 @@ test('advancedProviderModelOptions uses explicit lists before safe provider defa
       protocol: 'agnes',
       defaults: { videoModel: 'agnes-video-v2.0' },
     } as any, 'video'),
-    ['agnes-video-v2.0'],
+    ['agnes-video-2.5', 'agnes-video-2.5-flash'],
   );
   assert.deepEqual(
     advancedProviderModelOptions({
@@ -377,9 +377,8 @@ test('Agnes provider settings and video node controls are exposed', () => {
   assert.match(settings, /https:\/\/apihub\.agnes-ai\.com\/v1/);
   assert.match(settings, /AGNES_API_KEY_URL = 'https:\/\/platform\.agnes-ai\.com\/settings\/apiKeys'/);
   assert.match(videoNode, /providerSelection\.provider\?\.protocol === 'agnes'/);
-  assert.match(videoNode, /Agnes 视频参数/);
-  assert.match(videoNode, /frameRate/);
-  assert.match(videoNode, /numFrames/);
+  assert.match(videoNode, /AgnesVideoControls/);
+  assert.doesNotMatch(videoNode, /agnesFrameRate|agnesNumFrames/);
 });
 
 test('OpenAI compatible provider settings advertise image edit endpoint', () => {

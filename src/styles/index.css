@@ -4570,6 +4570,22 @@ html[data-theme-visual="op"] .t8-group-box__handle {
   backdrop-filter: var(--t8-context-menu-backdrop, blur(10px));
 }
 
+.t8-context-menu--quick-add {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+.t8-context-menu--quick-add > .t8-context-menu__header { flex: 0 0 auto; }
+.t8-context-menu__scroll {
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  scrollbar-width: auto;
+  scrollbar-color: var(--t8-text-muted, #64748b) var(--t8-bg-panel, #111827);
+}
+
 .t8-context-menu__header {
   display: flex;
   align-items: center;

@@ -1,5 +1,7 @@
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import AgnesVideoControls from './AgnesVideoControls';
+import { AGNES_VIDEO } from '../../utils/agnesVideo';
 import { Handle, Position, useReactFlow, type NodeProps } from '@xyflow/react';
 import { AlertCircle, Loader2, Video as VideoIcon, Sparkles, Square, X } from 'lucide-react';
 import { useCanvasNodeRenderMode } from '../CanvasNodeRenderMode';
@@ -245,8 +247,8 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
   const jimengImageLimit = jimengSeedanceMode === 'multiframe'
     ? JIMENG_CLI_MULTIFRAME.images
     : jimengSeedanceLimits.images;
-  const agnesFrameRate = Number(providerParams.frameRate ?? providerParams.frame_rate ?? 24) || 24;
-  const agnesNumFrames = providerParams.numFrames ?? providerParams.num_frames ?? '';
+  const isAgnesFlash = isAgnesExternalSelected && externalProviderModel === 'agnes-video-2.5-flash';
+  const agnesMigrated = isAgnesExternalSelected && d?.providerModel === AGNES_VIDEO.retiredModel;
   const updateProviderParams = (patch: Record<string, any>) => update({ providerParams: { ...providerParams, ...patch } });
   // 主模型 id (对应 VIDEO_MODELS 项)
   const rawModel = typeof d?.model === 'string' ? d.model : '';
@@ -362,12 +364,13 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
     ? ['16:9', '9:16', '1:1', '3:2', '2:3']
     : ['16:9', '9:16'];
   const rawRatio: string = d?.ratio || activeModelOption?.defaultRatio || modelDef.defaultRatio;
-  const ratio: string = isApimartBudgetVideo && !apimartRatioOptions.includes(rawRatio) ? '16:9' : rawRatio;
+  const ratio: string = isAgnesExternalSelected && !AGNES_VIDEO.ratios.includes(rawRatio) ? '16:9'
+    : isApimartBudgetVideo && !apimartRatioOptions.includes(rawRatio) ? '16:9' : rawRatio;
   const rawDuration: number = d?.duration
     ?? activeModelOption?.defaultDuration
     ?? modelDef.defaultDuration
     ?? (activeModelOption?.durations?.[0] || modelDef.durations?.[0] || 0);
-  const duration: number = isApimartV31
+  const duration: number = isAgnesExternalSelected ? Math.max(4, Math.min(12, Math.round(Number(rawDuration) || 5))) : isApimartV31
     ? 8
     : isApimartGrok
       ? Math.max(6, Math.min(30, Number(rawDuration) || 6))
@@ -376,7 +379,9 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
           : rawDuration;
   const rawResolution: string = d?.resolution
     || (isJimengSeedanceSelected ? '720p' : activeModelOption?.defaultResolution || modelDef.defaultResolution || '');
-  const resolution: string = isApimartOmni
+  const resolution: string = isAgnesExternalSelected
+    ? isAgnesFlash ? '720P' : AGNES_VIDEO.sizes.includes(rawResolution.toUpperCase()) ? rawResolution.toUpperCase() : '720P'
+    : isApimartOmni
     ? '720p'
     : isApimartOmniLowprice && !['720p', '1080p', '4k'].includes(rawResolution.toLowerCase())
       ? '720p'
@@ -490,7 +495,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
   const ratioOptions = isJimengSeedanceSelected
     ? ['16:9', '9:16', '1:1', '4:3', '3:4', '21:9']
     : isAgnesExternalSelected
-    ? ['16:9', '9:16', '1:1', '4:3', '3:4', '21:9']
+    ? AGNES_VIDEO.ratios
     : isApimartBudgetVideo
     ? apimartRatioOptions
     : isGrok15New
@@ -499,7 +504,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
   const durationOptions = isJimengSeedanceSelected
     ? jimengSeedanceDurationOptions(externalProviderModel)
     : isAgnesExternalSelected
-    ? [1, 2, 3, 4, 5, 6, 8, 10, 12, 15, 18]
+    ? AGNES_VIDEO.durations
     : isApimartOmni
     ? []
     : isApimartOmniLowprice
@@ -518,7 +523,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
   const resolutionOptions = isJimengSeedanceSelected
     ? jimengSeedanceResolutionOptions(externalProviderModel, jimengSeedanceMode === 'multiframe')
     : isAgnesExternalSelected
-    ? ['480p', '720p', '1080p']
+    ? isAgnesFlash ? ['720P'] : AGNES_VIDEO.sizes
     : isApimartOmni
     ? ['720p']
     : isApimartOmniLowprice
@@ -636,7 +641,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
     [localRefImages, localRefVideos, localRefAudios, id],
   );
   const maxMentionRefs =
-    isUpscaler
+    isAgnesExternalSelected ? isAgnesFlash ? AGNES_VIDEO.limits.flashImages : AGNES_VIDEO.limits.images : isUpscaler
       ? 0
       : isWan
       ? isWan30 ? wan30Mode === 'i2v' ? 2 : 10 : 1
@@ -681,7 +686,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
         ? 1
         : falReg.maxRefImages
       : modelDef.maxRefImages;
-  const maxMentionVideos = isUpscaler
+  const maxMentionVideos = isAgnesExternalSelected ? isAgnesFlash ? 0 : 1 : isUpscaler
     ? 1
     : isAnimate
     ? 1
@@ -702,7 +707,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
     : isApimartOmniLowprice && apimartOmniLowpriceMode === 'reference_video'
     ? 1
     : isJimengSeedanceSelected ? jimengSeedanceLimits.videos : 0;
-  const maxMentionAudios = isViduQ4 && viduMode === 'r2v' ? 3 : isMinimaxH3V2
+  const maxMentionAudios = isAgnesExternalSelected ? 3 : isViduQ4 && viduMode === 'r2v' ? 3 : isMinimaxH3V2
     ? 4
     : isSeedance25 && seedance25Mode === 'multi'
     ? SEEDANCE25_MULTI_MAX_AUDIOS
@@ -721,7 +726,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
     ],
     [orderedImages, orderedVideos, orderedAudios, localRefMaterials, maxMentionRefs, maxMentionVideos, maxMentionAudios],
   );
-  const supportsActiveMaterials = isFlux3
+  const supportsActiveMaterials = isAgnesExternalSelected ? true : isFlux3
     ? flux3Mode === 'i2v' || flux3Mode === 'v2v'
     : isSeedance25
     ? seedance25Mode !== 't2v'
@@ -729,7 +734,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
 
   // 分组动态跟随子模型: Seedance / 即梦 CLI 支持 image/video/audio, 其他 (grok/veo/sora) 仅 image
   const previewGroups = useMemo<ReadonlyArray<'text' | 'image' | 'video' | 'audio'>>(
-    () => (modelDef.kind === 'seedance' || isJimengSeedanceSelected
+    () => (isAgnesExternalSelected ? ['text', 'image', 'video', 'audio'] : modelDef.kind === 'seedance' || isJimengSeedanceSelected
       ? ['text', 'image', 'video', 'audio']
       : isApimartOmni
         ? ['text', 'image', 'video']
@@ -760,7 +765,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
       : isHailuoH3 && hailuoMode === 'multi'
         ? ['text', 'image', 'video', 'audio']
         : ['text', 'image']),
-    [modelDef.kind, isJimengSeedanceSelected, isApimartOmni, isApimartOmniLowprice, apimartOmniLowpriceMode, isAnimate, isUpscaler, isWan30, wan30Mode, isKling, klingMode, isSeedance25, seedance25Mode, isFlux3, flux3Mode, isViduQ4, viduMode, isMinimaxH3V2, isMinimaxH3OwAudioDrive, isHailuoH3, hailuoMode],
+    [isAgnesExternalSelected, modelDef.kind, isJimengSeedanceSelected, isApimartOmni, isApimartOmniLowprice, apimartOmniLowpriceMode, isAnimate, isUpscaler, isWan30, wan30Mode, isKling, klingMode, isSeedance25, seedance25Mode, isFlux3, flux3Mode, isViduQ4, viduMode, isMinimaxH3V2, isMinimaxH3OwAudioDrive, isHailuoH3, hailuoMode],
   );
 
   // 收集上游 prompt + 参考图/视频/音频 (按用户拖拽顺序), 合并本地拖入素材
@@ -776,9 +781,9 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
     };
     return {
       prompt: prompts.join('\n').trim(),
-      imageUrls: isViduQ4 ? [...upImageUrls, ...localRefImages] : dedupe([...upImageUrls, ...localRefImages]),
-      videoUrls: isTopaz ? [...upVideoUrls, ...localRefVideos, ...(topazVideoUrl ? [topazVideoUrl] : [])] : dedupe([...upVideoUrls, ...localRefVideos]),
-      audioUrls: isViduQ4 ? [...upAudioUrls, ...localRefAudios] : dedupe([...upAudioUrls, ...localRefAudios]),
+      imageUrls: isViduQ4 || isAgnesExternalSelected ? [...upImageUrls, ...localRefImages] : dedupe([...upImageUrls, ...localRefImages]),
+      videoUrls: isAgnesExternalSelected ? [...upVideoUrls, ...localRefVideos] : isTopaz ? [...upVideoUrls, ...localRefVideos, ...(topazVideoUrl ? [topazVideoUrl] : [])] : dedupe([...upVideoUrls, ...localRefVideos]),
+      audioUrls: isViduQ4 || isAgnesExternalSelected ? [...upAudioUrls, ...localRefAudios] : dedupe([...upAudioUrls, ...localRefAudios]),
     };
   };
 
@@ -1656,9 +1661,10 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
       update(beginVideoRegeneration(d));
       if (isExternalSelected && providerSelection.provider) {
         const providerModel = externalProviderModel;
-        const refs = imageUrls.slice(0, Math.max(1, maxMentionRefs || modelDef.maxRefImages || 8));
-        const videoRefs = videoUrls.slice(0, maxMentionVideos);
-        const audioRefs = audioUrls.slice(0, maxMentionAudios);
+        // Agnes validates all ordered inputs before POST; never silently discard excess references.
+        const refs = isAgnesExternalSelected ? imageUrls : imageUrls.slice(0, Math.max(1, maxMentionRefs || modelDef.maxRefImages || 8));
+        const videoRefs = isAgnesExternalSelected ? videoUrls : videoUrls.slice(0, maxMentionVideos);
+        const audioRefs = isAgnesExternalSelected ? audioUrls : audioUrls.slice(0, maxMentionAudios);
         logBus.info(
           isJimengSeedanceSelected
             ? `扩展平台视频提交: ${providerSelection.provider.label || providerSelection.provider.id} · ${providerModel} · 图${refs.length}/视${videoRefs.length}/音${audioRefs.length}`
@@ -2608,7 +2614,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
     if (payload.kind === 'image' && payload.url) {
       const cur = Array.isArray(d?.localRefImages) ? d.localRefImages : [];
       if (cur.indexOf(payload.url) !== -1) return;
-      const cap = isAnimate
+      const cap = isAgnesExternalSelected ? maxMentionRefs : isAnimate
         ? 1
         : isWan
         ? 1
@@ -2627,14 +2633,14 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
             : (modelDef.maxRefImages || 7) + 4;
       if (cur.length >= cap) return;
       update({ localRefImages: [...cur, payload.url] });
-    } else if (payload.kind === 'video' && payload.url && (isAnimate || isJimengSeedanceSelected || isApimartOmni || (isApimartOmniLowprice && apimartOmniLowpriceMode === 'reference_video') || isUpscaler || (isFlux3 && flux3Mode === 'v2v') || (isKling && klingMode === 'edit'))) {
+    } else if (payload.kind === 'video' && payload.url && (isAgnesExternalSelected || isAnimate || isJimengSeedanceSelected || isApimartOmni || (isApimartOmniLowprice && apimartOmniLowpriceMode === 'reference_video') || isUpscaler || (isFlux3 && flux3Mode === 'v2v') || (isKling && klingMode === 'edit'))) {
       const cur = Array.isArray(d?.localRefVideos) ? d.localRefVideos : [];
-      const cap = isAnimate || isUpscaler || isApimartOmni || isApimartOmniLowprice || (isFlux3 && flux3Mode === 'v2v') || (isKling && klingMode === 'edit') ? 1 : jimengSeedanceLimits.videos;
+      const cap = isAgnesExternalSelected ? maxMentionVideos : isAnimate || isUpscaler || isApimartOmni || isApimartOmniLowprice || (isFlux3 && flux3Mode === 'v2v') || (isKling && klingMode === 'edit') ? 1 : jimengSeedanceLimits.videos;
       if (cur.indexOf(payload.url) !== -1 || cur.length >= cap) return;
       update({ localRefVideos: [...cur, payload.url] });
-    } else if (payload.kind === 'audio' && payload.url && isJimengSeedanceSelected) {
+    } else if (payload.kind === 'audio' && payload.url && (isAgnesExternalSelected || isJimengSeedanceSelected)) {
       const cur = Array.isArray(d?.localRefAudios) ? d.localRefAudios : [];
-      if (cur.indexOf(payload.url) !== -1 || cur.length >= jimengSeedanceLimits.audios) return;
+      if (cur.indexOf(payload.url) !== -1 || cur.length >= (isAgnesExternalSelected ? maxMentionAudios : jimengSeedanceLimits.audios)) return;
       update({ localRefAudios: [...cur, payload.url] });
     } else if (payload.kind === 'text' && typeof payload.text === 'string') {
       update({ prompt: payload.text });
@@ -2644,6 +2650,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
     id,
     accepts: isJimengSeedanceSelected
       ? ['image', 'video', 'audio', 'text']
+      : isAgnesExternalSelected ? ['image', 'video', 'audio', 'text']
       : isApimartOmni ? ['image', 'video', 'text']
       : isApimartOmniLowprice
         ? apimartOmniLowpriceMode === 'reference_video' ? ['video', 'text'] : apimartOmniLowpriceMode === 'text' ? ['text'] : ['image', 'text']
@@ -2792,7 +2799,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
                             ratio: '16:9',
                             duration: 5,
                             resolution: '720p',
-                            providerParams: { ...providerParams, frameRate: 24 },
+                            providerParams: { ...providerParams, mode: 'auto' },
                           }
                           : {}),
                       });
@@ -4047,45 +4054,8 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
           </div>
         )}
 
-        {isAgnesExternalSelected && (
-          <div className="rounded border border-emerald-300/20 bg-emerald-400/[0.06] p-2 space-y-2">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-[10px] font-semibold text-white/75">Agnes 视频参数</span>
-              <span className="text-[9px] text-emerald-100/60">/v1/videos</span>
-            </div>
-            <div className="grid grid-cols-2 gap-1.5">
-              <div>
-                <label className="text-[10px] text-white/50 block mb-1">帧率</label>
-                <select
-                  value={String(agnesFrameRate)}
-                  onChange={(e) => updateProviderParams({ frameRate: Number(e.target.value) || 24 })}
-                  className="w-full rounded bg-white/5 border border-white/10 px-2 py-1 text-xs text-white outline-none focus:border-white/30"
-                >
-                  {[8, 12, 16, 24, 30].map((fps) => (
-                    <option key={fps} value={fps} className="bg-zinc-900">{fps} fps</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="text-[10px] text-white/50 block mb-1">帧数覆盖</label>
-                <input
-                  type="number"
-                  min={9}
-                  max={441}
-                  value={String(agnesNumFrames)}
-                  onChange={(e) => updateProviderParams({
-                    numFrames: e.target.value ? Math.max(9, Math.min(441, Number(e.target.value) || 9)) : '',
-                  })}
-                  placeholder="自动"
-                  className="w-full rounded bg-white/5 border border-white/10 px-2 py-1 text-xs text-white outline-none focus:border-white/30 placeholder:text-white/25"
-                />
-              </div>
-            </div>
-            <div className="text-[10px] leading-relaxed text-white/45">
-              默认由比例、分辨率和时长换算宽高与帧数；通常只需要调比例、时长和分辨率，特殊测试再覆盖帧数。
-            </div>
-          </div>
-        )}
+        {isAgnesExternalSelected && <AgnesVideoControls mode={providerParams.mode || 'auto'}
+          migrated={agnesMigrated} update={updateProviderParams} />}
 
         {/* veo 专用选项(非FAL) */}
         {!isExternalSelected && !isFal && modelDef.kind === 'veo' && !isVeoOmni && !isApimartBudgetVideo && (
