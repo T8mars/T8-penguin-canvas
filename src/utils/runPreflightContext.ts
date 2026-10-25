@@ -1,4 +1,5 @@
 import type { Edge, Node } from '@xyflow/react';
+import { readMotionPending, motionVersions } from './motionVideo.ts';
 import { IMAGE_MODELS, VIDEO_MODELS, isFalModel, isFalVideoModel, isMaiImageModel, MAI_IMAGE_TAB, ZHENZHEN_IMAGE_NB_21_MODEL, FLUX3_IMAGE_MODEL } from '../providers/models.ts';
 import { MOSS_IMAGE_MODEL } from '../providers/models.ts';
 import type { ApiSettings, AdvancedProviderConfig } from '../types/canvas.ts';
@@ -319,6 +320,17 @@ function builtInCredentialNotice(node: Node, settings: ApiSettings): RunPrefligh
     }
   }
   const { source } = selectedProviderFields(node);
+
+  if (node.type === 'code-animation') {
+    let pending;
+    try { pending = readMotionPending(data.motionPending); }
+    catch { return capabilityNotice(node, 'provider.motion-pending-invalid', '待恢复动画任务信息不完整，请从生成历史找回；不会重新提交。'); }
+    if (!pending && data.motionOperation === 'revise' && !motionVersions(data.motionVersions).some(v => v.id === data.motionBaseVersionId)) {
+      return capabilityNotice(node, 'provider.motion-base-missing', '请选择一个已完成的代码动画版本后再修改。');
+    }
+    return configuredSecret(settings.zhenzhenSd2ApiKey) ? null
+      : capabilityNotice(node, 'provider.seedance-nz-credential-missing', missingDomesticCredentialMessage());
+  }
 
   if (node.type === 'story') {
     const mode = String(data.storyRunMode || 'all');

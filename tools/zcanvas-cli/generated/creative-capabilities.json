@@ -3,7 +3,7 @@
   "generatedFrom": "tools/zcanvas-cli/creativeCapabilityManifest.json",
   "sourceSchema": "t8-creative-capability-manifest-v1",
   "sourceVersion": "0.1.0-dev",
-  "sourceDigest": "569f2c8be144e05120ca629b2826383a06c4d6565ab3896c2dc61807bb9f7c27",
+  "sourceDigest": "35bb3f4a925c60886c9e10e739c340218c9b1abceb4c40a738cc73cec33c5948",
   "principles": {
     "oneSentenceStart": true,
     "directCanvasMutation": false,
@@ -51,6 +51,7 @@
         "text",
         "seedance",
         "seedance25",
+        "code-animation",
         "output"
       ],
       "supports": [
@@ -175,6 +176,7 @@
         "upload",
         "model-3d-upload",
         "model-3d-preview",
+        "code-animation",
         "world-scene",
         "model-3d",
         "grok-image-tools",

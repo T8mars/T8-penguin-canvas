@@ -1417,6 +1417,7 @@ const FalToolboxNode = lazyCanvasNode(() => import('./nodes/FalToolboxNode'), 'F
 const Model3DPreviewNode = lazyCanvasNode(() => import('./nodes/Model3DPreviewNode'), 'Model3DPreviewNode');
 const Model3DNode = lazyCanvasNode(() => import('./nodes/Model3DNode'), 'Model3DNode');
 const WorldSceneNode = lazyCanvasNode(() => import('./nodes/WorldSceneNode'), 'WorldSceneNode');
+const CodeAnimationNode = lazyCanvasNode(() => import('./nodes/CodeAnimationNode'), 'CodeAnimationNode');
 const VolcengineAssetsNode = lazyCanvasNode(() => import('./nodes/VolcengineAssetsNode'), 'VolcengineAssetsNode');
 const GrokImageToolsNode = lazyCanvasNode(() => import('./nodes/GrokImageToolsNode'), 'GrokImageToolsNode');
 const FaceExpression3DNode = lazyCanvasNode(() => import('./nodes/FaceExpression3DNode'), 'FaceExpression3DNode');
@@ -1512,6 +1513,7 @@ const SPECIFIC_NODES: Record<string, any> = {
   'model-3d-preview': Model3DPreviewNode,
   'model-3d': Model3DNode,
   'world-scene': WorldSceneNode,
+  'code-animation': CodeAnimationNode,
   'grok-image-tools': GrokImageToolsNode,
   'face-expression-3d': FaceExpression3DNode,
   'previs-studio': PrevisStudioNode,
@@ -1884,6 +1886,7 @@ const INITIAL_DATA: Record<string, Record<string, any>> = {
     error: '',
   },
   cinematic: { kind: 'cinematic', cinematicLanguage: 'en', cinematicStrength: 'balanced' },
+  'code-animation': { model: 'zhenzhen/motion-video', prompt: '', duration: 15, ratio: '16:9', resolution: '720p', motionOperation: 'generate', motionTemplate: 'api_default', motionMusic: 'api_default', status: 'idle' },
   'video-motion': { kind: 'video-motion', motionLanguage: 'en' },
   'portrait-master': {
     portraitLanguage: 'en',
@@ -9606,6 +9609,7 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, onReadinessChange, onR
     const RUNTIME_KEYS = [
       'status', 'taskId', 'progress', 'error',
       'isRunning', 'isPolling', 'pollingTimer',
+      'motionPending', 'motionAcceptanceUnknown', 'motionStage', 'motionProgress', 'motionBaseVersionId', 'motionRevisionInstruction', 'motionOperation',
     ];
     const sanitize = (data: any) => {
       const next: any = { ...(data || {}) };
@@ -11560,7 +11564,8 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, onReadinessChange, onR
       const phToOrig = new Map<string, string>();
       placeholderIds.forEach((phId, origId) => phToOrig.set(phId, origId));
       // 运行时字段黑名单
-      const RUNTIME_KEYS = ['status', 'taskId', 'progress', 'error', 'isRunning', 'isPolling', 'pollingTimer'];
+      const RUNTIME_KEYS = ['status', 'taskId', 'progress', 'error', 'isRunning', 'isPolling', 'pollingTimer',
+        'motionPending', 'motionAcceptanceUnknown', 'motionStage', 'motionProgress', 'motionBaseVersionId', 'motionRevisionInstruction', 'motionOperation'];
       const sanitize = (data: any) => {
         const next: any = { ...(data || {}) };
         for (const k of RUNTIME_KEYS) delete next[k];

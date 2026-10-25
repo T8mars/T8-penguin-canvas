@@ -66,6 +66,7 @@ export const NODE_DEFAULT_SIZE: Record<string, { w: number; h: number }> = {
   'model-3d-preview': { w: 520, h: 440 },
   'model-3d': { w: 360, h: 560 },
   'world-scene': { w: 500, h: 640 },
+  'code-animation': { w: 390, h: 630 },
   'director-storyboard': { w: 460, h: 760 },
   'grok-image-tools': { w: 360, h: 520 },
   'face-expression-3d': { w: 520, h: 520 },

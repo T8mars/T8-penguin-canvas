@@ -13,6 +13,7 @@ import { Box, Camera, MonitorPlay, Type as TypeIcon, Image as ImageIcon, Video a
 import { useCanvasNodeRenderMode } from '../CanvasNodeRenderMode';
 import { approveCanvasDialogNodes } from '../../utils/canvasDialogChanges';
 import { useUpdateNodeData } from './useUpdateNodeData';
+import { motionAssetRefs, motionSlotVideos } from '../../utils/motionVideo';
 import { useThemeStore } from '../../stores/theme';
 import { logBus } from '../../stores/logs';
 import { PORT_COLOR } from '../../config/portTypes';
@@ -336,10 +337,10 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
       const list = Array.isArray(upstreamNodes) ? upstreamNodes : [];
       for (const n of list) {
         const sid = (n as any)?.id || '';
-        const collectNodeTextOutput = shouldCollectNodeTextOutput((n as any)?.type, n?.data);
         const handles = handleMap.get(sid) || new Set<string | null>([null]);
         const routedData = selectSourceHandleData((n?.data || {}) as Record<string, unknown>, handles);
         for (const ud of routedData as any[]) {
+        const collectNodeTextOutput = shouldCollectNodeTextOutput((n as any)?.type, n?.data, ud);
 
         // 显式素材集: 按内部顺序透传；跳过旧字段读取，避免素材集同步字段造成重复。
         if ((n as any)?.type === 'material-set' && Array.isArray(ud.materialSetItems)) {
@@ -404,7 +405,9 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
         if (Array.isArray(ud.directModelUrls)) ud.directModelUrls.forEach((u: any) => pushUnique(out.models, u));
 
       // 视频
-        pushUnique(out.videos, ud.videoUrl);
+        const animationSlots = motionAssetRefs(ud);
+        if (animationSlots.length) out.videos.push(...animationSlots.map(slot => slot.url));
+        else pushUnique(out.videos, ud.videoUrl);
 
       // === v1.2.9.14: Suno 双端口语义 (与 FramePair 同模式) ===
       // AudioNode (Suno) 同时具备 audioUrl + audioUrl_1 字段时按 sourceHandle 过滤,
@@ -1205,6 +1208,9 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
       collected.audios.length > 0 ||
       collected.models.length > 0;
     const passText = hasNonText ? '' : (displayText || '');
+    const motionRefs = (Array.isArray(upstreamNodes) ? upstreamNodes : []).flatMap(n =>
+      selectSourceHandleData(n.data, handleMap.get(n.id) || new Set()).flatMap(value => motionAssetRefs(value)))
+      .filter(ref => collected.videos.includes(ref.url));
     const next: any = {
       prompt: passText,
       text: passText,
@@ -1213,6 +1219,7 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
       imageUrls: publishedImageUrls.slice(),
       urls: publishedImageUrls.slice(),
       videoUrl: collected.videos[0] || '',
+      ...(motionRefs.length || d.motionAssetRefs?.length ? { videoUrls: motionSlotVideos(collected.videos, motionRefs), motionAssetRefs: motionRefs } : {}),
       audioUrl: collected.audios[0] || '',
       audioUrl_1: collected.audios[1] || '', // 透传 Suno 双轨副轨避免串联丢失
       modelUrl: collected.models[0] || '',
@@ -1249,9 +1256,9 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
       JSON.stringify(cur.modelUrls) !== JSON.stringify(next.modelUrls) ||
       JSON.stringify(cur.textSegments) !== JSON.stringify(next.textSegments) ||
       JSON.stringify(cur.segments) !== JSON.stringify(next.segments);
-    if (changed) update(next);
+    if (changed || JSON.stringify(d.motionAssetRefs || []) !== JSON.stringify(motionRefs)) update(next);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [displayText, collected, publishedImageUrls]);
+  }, [displayText, collected, publishedImageUrls, upstreamNodes, handleMap]);
 
   // === v1.2.10.2: 自动保存到本地路径 ===
   // 设计要点:

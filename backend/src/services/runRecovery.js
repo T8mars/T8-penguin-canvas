@@ -3,6 +3,7 @@
 const { minimumProviderMediaPollCount } = require('../providers/providerTimeoutPolicy');
 const viduQ4Models = new Set(require('../shared/nb21FluxViduQ4Contract.json').viduQ4.models);
 const nbDoubao = require('../shared/nbLowpriceDoubaoContract.json');
+const motionVideo = require('../shared/motionVideoContract.json');
 
 const ACTIVE_STATUSES = new Set(['queued', 'running', 'polling']);
 const RECOVERY_KINDS = new Set([
@@ -18,6 +19,7 @@ const RECOVERY_KINDS = new Set([
   'fashvsr',
   'vosr2',
   'topaz',
+  'motion',
   'animate',
   'vidu',
   'seed-audio',
@@ -85,6 +87,7 @@ function normalizeRunRecoveryDescriptor(value) {
     statusUrl: boundedText(value.statusUrl, 4096) || null,
     endpoint: boundedText(value.endpoint, 1024) || null,
     model: boundedText(value.model, 240) || null,
+    ...(kind === 'motion' && /^seedance-nz:[a-f0-9]{64}$/.test(String(value.connectionRef || '')) ? { connectionRef: String(value.connectionRef) } : {}),
     ...(value.model === nbDoubao.audio.iclModel && value.outputFormat === 'pcm' ? {
       outputFormat: 'pcm', sampleRate: nbDoubao.audio.iclFields.sample_rate.options.includes(String(value.sampleRate)) ? String(value.sampleRate) : '24000',
     } : {}),
@@ -94,6 +97,7 @@ function normalizeRunRecoveryDescriptor(value) {
     pollIntervalMs,
     maxPolls: Math.min(7200, minimumProviderMediaPollCount(pollIntervalMs, value.maxPolls || 1200)),
   };
+  if (kind === 'motion' && (!descriptor.connectionRef || !motionVideo.models.includes(descriptor.model))) return null;
   if (kind === 'suno') return descriptor.taskIds.length ? descriptor : null;
   if (kind === 'image-fal' || kind === 'video-fal') {
     return descriptor.requestId && (descriptor.responseUrl || descriptor.endpoint) ? descriptor : null;
@@ -146,6 +150,7 @@ function recoveryRequest(baseUrl, descriptor) {
   if (descriptor.kind === 'fashvsr') return get(`/api/proxy/video/fashvsr/status/${taskId}`);
   if (descriptor.kind === 'vosr2') return get(`/api/proxy/video/vosr2/status/${taskId}`);
   if (descriptor.kind === 'topaz') return get(`/api/proxy/video/topaz/status/${taskId}`);
+  if (descriptor.kind === 'motion') return get(`/api/proxy/video/motion/status/${taskId}?${new URLSearchParams({ model: descriptor.model, connectionRef: descriptor.connectionRef })}`);
   if (descriptor.kind === 'animate') return get(`/api/proxy/video/animate/status/${taskId}`);
   if (descriptor.kind === 'vidu') return get(`/api/proxy/video/vidu/status/${taskId}${viduQ4Models.has(descriptor.model) ? `?model=${encodeURIComponent(descriptor.model)}` : ''}`);
   if (descriptor.kind === 'seed-audio') {
@@ -174,7 +179,7 @@ function normalizedState(value) {
 
 function outputKindForDescriptor(descriptor) {
   if (descriptor.kind === 'seed-audio' || descriptor.kind === 'suno') return 'audio';
-  if (['seedance', 'wan', 'happyhorse', 'hailuo', 'flux3', 'kling', 'upscaler', 'fashvsr', 'vosr2', 'topaz', 'animate', 'vidu', 'video', 'video-fal'].includes(descriptor.kind)) return 'video';
+  if (['seedance', 'wan', 'happyhorse', 'hailuo', 'flux3', 'kling', 'upscaler', 'fashvsr', 'vosr2', 'topaz', 'motion', 'animate', 'vidu', 'video', 'video-fal'].includes(descriptor.kind)) return 'video';
   return 'image';
 }
 
@@ -203,7 +208,7 @@ function normalizeRecoveryPayload(payload, descriptor) {
   if (doubao && state === 'succeeded' && (!orderedAudioUrls.length || (descriptor.model === 'doubao-voice-clone' && !speaker))) state = 'failed';
   return {
     state,
-    outputs: [...(orderedAudioUrls || (descriptor.kind === 'topaz' && Array.isArray(data?.videoUrls) && data.videoUrls.length
+    outputs: [...(orderedAudioUrls || (['topaz', 'motion'].includes(descriptor.kind) && Array.isArray(data?.videoUrls) && data.videoUrls.length
       ? data.videoUrls.map((url) => boundedText(url, 16384)).filter(Boolean) : [...new Set(rawUrls)])).map((sourceUrl, index) => ({
       kind,
       sourceUrl,

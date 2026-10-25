@@ -1,0 +1,25 @@
+{
+  "schema": "t8-motion-video-contract-v1",
+  "models": ["zhenzhen/motion-video", "zhenzhen/motion-video-pro"],
+  "durations": [15, 30, 45, 60],
+  "ratios": ["16:9", "9:16", "1:1"],
+  "resolutions": ["720p", "1080p"],
+  "templates": [
+    { "id": "hype-kinetic", "group": "brand" },
+    { "id": "swiss-minimal", "group": "brand" },
+    { "id": "cinematic-trailer", "group": "brand" },
+    { "id": "cyber-glitch", "group": "technology" },
+    { "id": "blueprint-tech", "group": "technology" },
+    { "id": "code-cinema", "group": "technology" },
+    { "id": "data-story", "group": "technology" },
+    { "id": "synthwave", "group": "illustration" },
+    { "id": "chalk-hand", "group": "illustration" },
+    { "id": "voxel-world", "group": "illustration" }
+  ],
+  "textFields": ["title", "subtitle", "signature", "language"],
+  "music": ["auto"],
+  "maxAssets": 4,
+  "defaults": { "model": "zhenzhen/motion-video", "operation": "generate", "duration": 15, "ratio": "16:9", "resolution": "720p" },
+  "stages": ["queued", "storyboarding", "coding", "checking", "media_generating", "preview_ready", "rendering", "succeeded", "failed"],
+  "resultSchema": "t8-motion-video-result-v1"
+}

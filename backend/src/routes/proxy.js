@@ -17,6 +17,8 @@ const { getWhitePng } = require('../utils/whitePng');
 const { tryDecodeDuckPayload } = require('../utils/duckPayload');
 const { normalizeLlmMessageMedia } = require('../providers/llmMedia');
 const seedanceNz = require('../providers/seedanceNz');
+const { contract: motionVideoContract, motionConnectionRef, motionError } = require('../providers/motionVideoContract');
+const { writeMotionVideoMetadata } = require('../services/motionVideoMetadata');
 const nbDoubao = require('../shared/nbLowpriceDoubaoContract.json');
 const { wrapPcm16MonoWav, hasAudioContainerHeader } = require('../utils/pcmAudio');
 const {
@@ -4347,6 +4349,88 @@ router.get('/video/fashvsr/status/:tid', async (req, res) => {
       error: proxyPublicError(error, 'FlashVSR 视频超分查询失败', [apiKey]),
       ...seedanceNzTrace(error),
     });
+  }
+});
+
+function resolveMotionConnection(taskId, expectedRef, verifyCurrent = false) {
+  const configuredKey = String(loadRawSettings()?.zhenzhenSd2ApiKey || '').trim();
+  const remembered = recallTaskMeta(taskId, 'motion-nz');
+  const expected = String(expectedRef || '').trim();
+  if (expected && !/^seedance-nz:[a-f0-9]{64}$/.test(expected)) throw motionError('代码动画连接引用无效');
+  const candidates = verifyCurrent ? [configuredKey] : [remembered?.apiKey, configuredKey].filter(Boolean);
+  const apiKey = candidates.find(key => key && (verifyCurrent || !expected || motionConnectionRef(key) === expected));
+  if (!apiKey) {
+    if (!configuredKey && !remembered?.apiKey) throw motionError('请先设置贞贞的平价AI小屋 API Key', 'MOTION_CONNECTION_MISSING', 409);
+    throw motionError('代码动画使用的连接已变化，请验证当前连接后继续查询原任务', 'MOTION_CONNECTION_CHANGED', 409);
+  }
+  return { apiKey, connectionRef: motionConnectionRef(apiKey), remembered };
+}
+
+router.get('/video/motion/connection', (_req, res) => {
+  const key = String(loadRawSettings()?.zhenzhenSd2ApiKey || '').trim();
+  res.json({ success: true, data: { configured: Boolean(key), connectionRef: motionConnectionRef(key) } });
+});
+
+router.post('/video/motion/submit', async (req, res) => {
+  let apiKey = '';
+  try {
+    const built = seedanceNz.buildMotionVideoPayload(req.body || {});
+    const connection = resolveMotionConnection(built.payload.motion?.revise_from, req.body?.connectionRef);
+    apiKey = connection.apiKey;
+    const result = await seedanceNz.submitMotionVideoTask({ ...built.payload, operation: built.operation }, apiKey, { signal: req.t8AbortSignal });
+    rememberTaskKey(result.taskId, apiKey, { provider: 'motion-nz', model: result.model, operation: result.operation });
+    return res.json({ success: true, data: { taskId: result.taskId, model: result.model, operation: result.operation,
+      connectionRef: connection.connectionRef, ...seedanceNzTrace(result) } });
+  } catch (error) {
+    proxyRouteError('proxy/video/motion/submit 错误', error, [apiKey]);
+    return res.status(proxyErrorStatus(error)).json({ success: false, code: error.code || 'motion_submit_failed',
+      error: proxyPublicError(error, '代码动画提交失败', [apiKey]), ...seedanceNzTrace(error) });
+  }
+});
+
+router.get('/video/motion/status/:tid', async (req, res) => {
+  let apiKey = '';
+  try {
+    const connection = resolveMotionConnection(req.params.tid, req.query.connectionRef, req.query.verifyConnection === '1');
+    apiKey = connection.apiKey;
+    const model = String(req.query.model || connection.remembered?.model || '');
+    if (model && !motionVideoContract.models.includes(model)) throw motionError('代码动画模型无效');
+    const result = await seedanceNz.queryMotionVideoTask(req.params.tid, apiKey, { model, signal: req.t8AbortSignal });
+    if (req.query.verifyConnection === '1') rememberTaskKey(req.params.tid, apiKey, { provider: 'motion-nz', model: result.model });
+    const motionResult = { ...result.motionResult, taskId: req.params.tid, model: result.model, connectionRef: connection.connectionRef };
+    const data = { status: result.status, stage: result.stage, progress: result.progress, model: result.model,
+      connectionRef: connection.connectionRef, motionResult, failReason: result.failReason,
+      attachmentsAvailable: { cover: Boolean(result.coverUrl), preview: Boolean(result.previewUrl), html: Boolean(result.htmlPreviewUrl), subtitle: Boolean(result.subtitleUrl) },
+      videoUrl: null, videoUrls: [], ...seedanceNzTrace(result) };
+    // Permission/base verification is read-only and must not fetch a whole finished movie.
+    if (req.query.inspect === '1') return res.json({ success: true, data });
+    if (result.status === 'succeeded' && result.coverUrl) {
+      try {
+        const cover = await materializeRemoteTaskOutput({ status: result.status, remoteUrl: result.coverUrl, kind: 'image',
+          materializationKey: `motion-cover:${req.params.tid}`, providerFetchImpl: seedanceNz.fetchRemote, signal: req.t8AbortSignal });
+        if (cover.url) motionResult.coverUrl = cover.url;
+        else motionResult.warnings.push('cover_unavailable');
+      } catch { motionResult.warnings.push('cover_unavailable'); }
+    }
+    for (const [index, remoteUrl] of result.videoUrls.entries()) {
+      const materialized = await materializeRemoteTaskOutput({ status: result.status, remoteUrl, kind: 'video',
+        materializationKey: `motion-nz:${req.params.tid}:${index}`, providerFetchImpl: seedanceNz.fetchRemote, signal: req.t8AbortSignal });
+      if (materialized.failure) return sendCompletedRemoteOutputFailure(res, materialized.failure, data, {
+        defaultCode: 'motion_output_unusable', defaultMessage: '视频已生成，但保存到本地失败，请重试保存原任务。' });
+      if (materialized.url) {
+        data.videoUrls.push(materialized.url);
+        try {
+          if (!writeMotionVideoMetadata(config.OUTPUT_DIR, materialized.url, motionResult)) motionResult.warnings.push('metadata_unavailable');
+        } catch { motionResult.warnings.push('metadata_unavailable'); }
+      }
+    }
+    data.videoUrl = data.videoUrls[0] || null;
+    return res.json({ success: true, data });
+  } catch (error) {
+    proxyRouteError('proxy/video/motion/status 错误', error, [apiKey]);
+    if (sendTaskResultQueryRecovery(res, error, { taskId: req.params.tid })) return;
+    return res.status(proxyErrorStatus(error)).json({ success: false, code: error.code || 'motion_query_failed',
+      error: proxyPublicError(error, '代码动画查询失败', [apiKey]), ...seedanceNzTrace(error) });
   }
 });
 

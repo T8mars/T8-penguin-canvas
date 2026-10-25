@@ -351,6 +351,19 @@ function hasAuthoritativeImageReference(node, context) {
 function providerDeclarationForNode(node, context = {}) {
   const type = boundedString(node?.type, 120);
   const data = isRecord(node?.data) ? node.data : {};
+  if (type === 'code-animation') {
+    const models = require('../shared/motionVideoContract.json').models;
+    const versions = Array.isArray(data.motionVersions) ? data.motionVersions : [];
+    const base = data.motionOperation === 'revise' ? versions.find(v => v?.id === data.motionBaseVersionId) : null;
+    const pending = data.motionPending;
+    if (pending != null && (pending.schema !== 't8-motion-video-input-v1'
+      || !/^[A-Za-z0-9._:-]{1,512}$/.test(pending.taskId || '') || !/^seedance-nz:[a-f0-9]{64}$/.test(pending.connectionRef || ''))) {
+      throw authorityError('intent_motion_pending_invalid', '待恢复动画任务身份不完整，不会重新提交', [node.id]);
+    }
+    const model = pending != null ? pending.request?.model : data.motionOperation === 'revise' ? base?.result?.model : (data.model || models[0]);
+    if (!models.includes(model)) throw authorityError('intent_motion_model_invalid', '代码动画模型或修订基准无效', [node.id]);
+    return { provider: 'seedance-nz', model };
+  }
 
   if (REMOTE_UNSUPPORTED_HOST_ONLY_NODE_TYPES.has(type)) {
     throw authorityError(

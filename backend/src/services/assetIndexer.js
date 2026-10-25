@@ -2358,6 +2358,11 @@ class AssetIndexer {
       );
       const contentHash = String(stableSource.contentHash).toLowerCase();
       const artifactUid = stableEntityUuid('t8-host-artifact-v1', attempt.entityUid, prepared.outputOrdinal);
+      // Read auxiliary provider data from the verified local media receipt, never
+      // from caller-supplied metadata. Match the exact task/model/connection and bytes.
+      const motionResult = detected.kind === 'video'
+        ? require('./motionVideoMetadata').readMotionVideoMetadata(this.config.OUTPUT_DIR, materialized.absolute, contentHash, attempt.metadata?.recovery)
+        : null;
       artifacts.push({
         opId: stableEntityUuid('t8-host-artifact-operation-v1', attempt.entityUid, prepared.outputOrdinal),
         artifactUid,
@@ -2372,6 +2377,7 @@ class AssetIndexer {
         sourcePath: materialized.absolute,
         metadata: {
           ...stableSource.metadata,
+          ...(motionResult ? { motionResult } : {}),
           size: byteSize,
           extension: detected.extension,
           root: 'output',

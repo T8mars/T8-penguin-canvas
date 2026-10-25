@@ -27,6 +27,7 @@ const NB_FLUX_VIDU = require('../shared/nb21FluxViduQ4Contract.json');
 const TOPAZ_VIDEO_CONTRACT = require('../shared/topazVideoContract.json');
 const MAI_IMAGE_CONTRACT = require('../shared/maiImageContract.json');
 const MOSS_IMAGE_CONTRACT = require('../shared/mossImageContract.json');
+const { buildMotionVideoPayload, normalizeMotionVideoResponse, motionError } = require('./motionVideoContract');
 const NB_DOUBAO = require('../shared/nbLowpriceDoubaoContract.json');
 const { isDoubaoVoiceModel, buildDoubaoVoicePayload } = require('./doubaoVoiceContract');
 const NB_LOWPRICE_MODELS = new Set(NB_DOUBAO.banana.models);
@@ -6440,6 +6441,34 @@ async function queryLegacyVideoTask(taskId, apiKey, options = {}, label = 'Vosr2
   };
 }
 
+async function submitMotionVideoTask(request, apiKey, options = {}) {
+  if (!String(apiKey || '').trim()) throw motionError('请先设置贞贞的平价AI小屋 API Key');
+  const built = buildMotionVideoPayload(request);
+  if (built.operation === 'revise') {
+    // Read-only ownership/completion preflight. Never use a paid submit to test a base task.
+    const base = await queryMotionVideoTask(built.payload.motion.revise_from, apiKey, { ...options, model: built.model });
+    if (base.status !== 'succeeded') throw motionError('请选择自己已完成的代码动画作为修改基准', 'MOTION_BASE_NOT_COMPLETED', 409);
+  }
+  const response = await fetchProviderResponse(getFetchImpl(options), `${cleanBaseUrl(options.baseUrl)}/v1/video/generations`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` }, body: JSON.stringify(built.payload),
+  }, options, 'seedance.nz 代码动画提交');
+  const data = await responseJson(response, 'seedance.nz 代码动画提交');
+  if (!response.ok || data?.success === false) throw createUpstreamError(data, response);
+  const taskId = requiredTaskId(data?.task_id || data?.id || data?.data?.task_id || data?.data?.id, 'seedance.nz 代码动画提交', response);
+  return { taskId, model: built.model, operation: built.operation, ...safeProviderTrace(response, data, { pollCount: 0 }) };
+}
+
+async function queryMotionVideoTask(taskId, apiKey, options = {}) {
+  if (!String(apiKey || '').trim()) throw motionError('请先设置贞贞的平价AI小屋 API Key');
+  const id = requiredTaskId(taskId, 'seedance.nz 代码动画查询');
+  const response = await fetchProviderResponse(getFetchImpl(options), `${cleanBaseUrl(options.baseUrl)}/v1/video/generations/${encodeURIComponent(id)}`, {
+    headers: { Authorization: `Bearer ${apiKey}` },
+  }, options, 'seedance.nz 代码动画查询');
+  const data = await responseJson(response, 'seedance.nz 代码动画查询');
+  if (!response.ok || data?.success === false) throw createUpstreamError(data, response);
+  return { ...normalizeMotionVideoResponse(data, { model: options.model, secrets: [apiKey] }), ...safeProviderTrace(response, data) };
+}
+
 async function queryTopazVideoTask(taskId, apiKey, options = {}) {
   // Reuse the legacy transport/status mapping, while preserving the full Topaz output list.
   return queryLegacyVideoTask(taskId, apiKey, { ...options, preserveVideoUrls: true }, 'Topaz 视频修复');
@@ -6745,6 +6774,9 @@ module.exports = {
   buildTopazVideoPayload,
   submitTopazVideoTask,
   queryTopazVideoTask,
+  buildMotionVideoPayload,
+  submitMotionVideoTask,
+  queryMotionVideoTask,
   buildVosr2VideoPayload,
   buildAnimateMotionTransferPayload,
   buildViduPayload,

@@ -1,0 +1,111 @@
+{
+  "schema": "t8-workflow-fragment",
+  "version": 1,
+  "title": "motion-video-standard-revise",
+  "nodes": [
+    {
+      "id": "description",
+      "type": "text",
+      "position": {
+        "x": 0,
+        "y": 80
+      },
+      "data": {
+        "label": "动画描述 / Description",
+        "text": "Create a clean title animation: HELLO, CREATE, YOUR STORY. Large readable typography, geometric shapes and smooth transitions."
+      }
+    },
+    {
+      "id": "animation",
+      "type": "code-animation",
+      "position": {
+        "x": 430,
+        "y": 80
+      },
+      "data": {
+        "label": "先选择自己的成功版本 / Select your completed version first",
+        "model": "zhenzhen/motion-video",
+        "prompt": "",
+        "duration": 15,
+        "ratio": "16:9",
+        "resolution": "720p",
+        "motionOperation": "revise",
+        "motionTemplate": "api_default",
+        "motionMusic": "api_default",
+        "motionRevisionInstruction": "Change CREATE to MAKE; keep the rest as similar as possible."
+      }
+    },
+    {
+      "id": "output",
+      "type": "output",
+      "position": {
+        "x": 900,
+        "y": 80
+      },
+      "data": {
+        "label": "视频结果 / Video result"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "description-edge",
+      "source": "description",
+      "target": "animation",
+      "targetHandle": "prompt"
+    },
+    {
+      "id": "output-edge",
+      "source": "animation",
+      "sourceHandle": "video",
+      "target": "output"
+    }
+  ],
+  "nodeCount": 3,
+  "edgeCount": 2,
+  "nodeTypes": [
+    "text",
+    "code-animation",
+    "output"
+  ],
+  "topologyPreview": {
+    "nodes": [
+      {
+        "id": "description",
+        "type": "text",
+        "label": "动画描述 / Description",
+        "x": 0,
+        "y": 80
+      },
+      {
+        "id": "animation",
+        "type": "code-animation",
+        "label": "先选择自己的成功版本 / Select your completed version first",
+        "x": 430,
+        "y": 80
+      },
+      {
+        "id": "output",
+        "type": "output",
+        "label": "视频结果 / Video result",
+        "x": 900,
+        "y": 80
+      }
+    ],
+    "edges": [
+      {
+        "id": "description-edge",
+        "source": "description",
+        "target": "animation",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "output-edge",
+        "source": "animation",
+        "sourceHandle": "video",
+        "target": "output"
+      }
+    ]
+  },
+  "savedAt": "2026-10-26T00:00:00.000Z"
+}

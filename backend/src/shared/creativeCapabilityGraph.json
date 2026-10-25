@@ -22,20 +22,20 @@
     "coverageReceiptCompiler": "tools/zcanvas-cli/src/capabilityCoverage.cjs"
   },
   "sourceDigests": {
-    "creativeCapabilityManifest": "569f2c8be144e05120ca629b2826383a06c4d6565ab3896c2dc61807bb9f7c27",
-    "canvasNodeSchema": "46eb5e5bd55a7616fe0dda868b20a7c648e059e6fe1c75b43979d83f6072e71c",
-    "canvasNodeSchemaFile": "0ad1b7219b5ff180a6f8b421a04a1d798b9cccf01ac8370705dc3d60adf2a409",
-    "i18nNodeCatalog": "3ddab69ed9eba871d4a0633ff67c755d5fac41a9767171d3b0a2f0def96ec2af",
-    "i18nRendererResources": "50c7c66bfb4b8f217324273eea76580afa506d095be417739247211f25708f5c",
+    "creativeCapabilityManifest": "35bb3f4a925c60886c9e10e739c340218c9b1abceb4c40a738cc73cec33c5948",
+    "canvasNodeSchema": "bebf0d39eccb763915aff4f6f261b62704d44d783835172ca54346c3c022760f",
+    "canvasNodeSchemaFile": "3dca3beb97141e2b6374862620c701248eeffbbf2e95172a8900b7f743e0a4c4",
+    "i18nNodeCatalog": "f2be89d366d7e46a019363a0fef4aba45d10e27ebf1edfc53246818ceb38d329",
+    "i18nRendererResources": "0f3b5b6390a296a58c10059552b01b0a60cc8be54501b730afec97de71e6a38a",
     "i18nElectronCatalog": "bab981c4f10262117b0912e8be73c22b9a938b7fb232ba0f5b14b7efea0767ad",
-    "runtimeCatalogSources": "ea989d7163fcc45971d1408b3679ebb6310bc0d328118c88174838e98f68b430",
-    "runtimeCatalogArtifact": "67c9114cfef5c24a126f91372bc82f6c0f9b2312553530b4fa45f291fb268cfb",
+    "runtimeCatalogSources": "7f6f083af334b2f7e1c55374574974f09cff8eeab22524d395f64b60597acf67",
+    "runtimeCatalogArtifact": "8bc5f72e430e3da39933b4d7a8da8a465b82867b3d2f9099e0229af8cecceb4b",
     "handlerBindings": "3cd8cde3c05d1642d72ce8cbfae2874d1bdf986592ae431ef7d66b043da257b5",
     "capabilityGraphCompiler": "a3716d239b91e1c4775f5996b3865ba3ab8fd652263138feef0a56de40851c24",
     "coverageReceiptCompiler": "68c02167cb5317107edd346223a5e5999168e447bacbb977ff8e9678e6753fe7",
     "canonicalTextDigestCompiler": "b0afcf28a257fbbd8f391edc117348f8f2ede1b4a039ae91bce25a8d563ac0cf"
   },
-  "aggregateDigest": "1550f04be1923a7b02615e614dda02cee8f102f433dbdc7c6db40cf19c236163",
+  "aggregateDigest": "d4ed4b9a806d3f8d2bc486bcc28e85f700ade1d7aa06b8fe7c3770ded9f68607",
   "principles": {
     "oneSentenceStart": true,
     "directCanvasMutation": false,
@@ -47,18 +47,18 @@
   "counts": {
     "capabilities": 39,
     "handlers": 39,
-    "nodes": 84,
-    "executableNodes": 65,
-    "generatableNodes": 13,
-    "referencedNodes": 75,
+    "nodes": 85,
+    "executableNodes": 66,
+    "generatableNodes": 14,
+    "referencedNodes": 76,
     "unreferencedNodes": 9,
-    "directCapabilityNodes": 75,
+    "directCapabilityNodes": 76,
     "internalCompatNodes": 1,
     "semanticSupersededNodes": 8,
     "publicCapabilityGapNodes": 0,
-    "accountedNodes": 84,
+    "accountedNodes": 85,
     "unexplainedNodes": 0,
-    "fullyOperableNodes": 20,
+    "fullyOperableNodes": 21,
     "runtimeEntries": 320,
     "runtimeByKind": {
       "llm": 34,
@@ -181,6 +181,7 @@
         "text",
         "seedance",
         "seedance25",
+        "code-animation",
         "output"
       ],
       "supports": [
@@ -513,6 +514,7 @@
         "upload",
         "model-3d-upload",
         "model-3d-preview",
+        "code-animation",
         "world-scene",
         "model-3d",
         "grok-image-tools",
@@ -3608,6 +3610,54 @@
         "preview": true,
         "apply": true,
         "run": false,
+        "verify": true,
+        "resume": false,
+        "rollback": true,
+        "recover": true
+      }
+    },
+    {
+      "type": "code-animation",
+      "label": "代码动画",
+      "description": "用文字生成动效视频，选择历史版本或分镜用自然语言修改，保留新旧成片",
+      "category": "core",
+      "hidden": false,
+      "executable": true,
+      "generatable": true,
+      "agentExposure": "direct-capability",
+      "coverageReason": "registered-capability-reference",
+      "accounting": {
+        "status": "direct-capability",
+        "reasonCode": "registered-capability-reference",
+        "semanticCapabilityIds": [
+          "canvas.node-add",
+          "create.video"
+        ],
+        "evidence": [
+          "tools/zcanvas-cli/creativeCapabilityManifest.json"
+        ]
+      },
+      "inputs": [
+        "text"
+      ],
+      "outputs": [
+        "video",
+        "text"
+      ],
+      "capabilityIds": [
+        "canvas.node-add",
+        "create.video"
+      ],
+      "handlerIds": [
+        "creative-action:graph.node-add",
+        "creative-plan:create.video"
+      ],
+      "coverage": {
+        "understand": true,
+        "plan": true,
+        "preview": true,
+        "apply": true,
+        "run": true,
         "verify": true,
         "resume": false,
         "rollback": true,
@@ -7452,7 +7502,7 @@
   ],
   "runtime": {
     "schema": "t8-creative-runtime-catalog-v1",
-    "sourceDigest": "ea989d7163fcc45971d1408b3679ebb6310bc0d328118c88174838e98f68b430",
+    "sourceDigest": "7f6f083af334b2f7e1c55374574974f09cff8eeab22524d395f64b60597acf67",
     "platforms": [
       {
         "id": "zhenzhen",
@@ -14474,17 +14524,17 @@
   "coverageReceipt": {
     "schema": "t8-creative-capability-coverage-receipt-v1",
     "sourceDigests": {
-      "capabilityManifest": "569f2c8be144e05120ca629b2826383a06c4d6565ab3896c2dc61807bb9f7c27",
-      "nodeSchema": "46eb5e5bd55a7616fe0dda868b20a7c648e059e6fe1c75b43979d83f6072e71c",
-      "runtimeCatalog": "ea989d7163fcc45971d1408b3679ebb6310bc0d328118c88174838e98f68b430",
+      "capabilityManifest": "35bb3f4a925c60886c9e10e739c340218c9b1abceb4c40a738cc73cec33c5948",
+      "nodeSchema": "bebf0d39eccb763915aff4f6f261b62704d44d783835172ca54346c3c022760f",
+      "runtimeCatalog": "7f6f083af334b2f7e1c55374574974f09cff8eeab22524d395f64b60597acf67",
       "handlerBindings": "3cd8cde3c05d1642d72ce8cbfae2874d1bdf986592ae431ef7d66b043da257b5",
       "receiptCompiler": "68c02167cb5317107edd346223a5e5999168e447bacbb977ff8e9678e6753fe7"
     },
     "inventory": {
       "nodes": {
-        "total": 84,
-        "executable": 65,
-        "generatable": 13
+        "total": 85,
+        "executable": 66,
+        "generatable": 14
       },
       "runtime": {
         "llm": 34,
@@ -14505,6 +14555,6 @@
       "missingCompatibilityEdges": []
     },
     "complete": true,
-    "digest": "9e7f0ff21a08749adc1a555c226b73f854d9c8e6f47f752a1e63fdf627a116ca"
+    "digest": "2123f8997fd133abe616ab67f8c8236e7d867c9f2da34c63e4ccd2eab248ef88"
   }
 }

@@ -177,6 +177,7 @@ function readGenerationHistoryInput(database, event) {
 function resolvedHistoryPrompt(snapshot) {
   const input = snapshot?.node?.data?.historyResolvedInput;
   if (!input || typeof input.prompt !== 'string') return null;
+  if (snapshot.node.type === 'code-animation' && input.schema === 't8-motion-video-input-v1') return input.prompt;
   if (input.schema === settingsContract.seedanceResolvedInputSchema && input.origin === 'frontend-request') return input.prompt;
   if (snapshot.node.type === 'image' && [settingsContract.imageInputContextSchema, settingsContract.imageSettingsContextSchema].includes(input.schema)
     && input.origin === 'frontend-common-context' && Array.isArray(input.referenceImages)

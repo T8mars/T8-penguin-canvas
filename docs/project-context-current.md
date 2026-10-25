@@ -1,10 +1,10 @@
 # 当前项目上下文
 
-更新：2026-10-24。仅维护当前事实；长期规则见根 `SKILL.md` 和 `AGENTS.md`。预算80行/8 KiB，历史见专题。
+更新：2026-10-26。仅维护当前事实；长期规则见根 `SKILL.md` 和 `AGENTS.md`。预算80行/8 KiB，历史见专题。
 
 - 默认目录 `E:\PenguinPravite\T8-penguin-canvas`；branch `codex/release-v3.0.8-volcengine-assets-ux`，common dir `.git`。开工以git/worktree门为准；正式源码/Tag固定后记录在发布专题，不移动。
-- package `3.4.3` 双平台已发，见[发布专题](release-v3.4.3.md)；v3.4.2 Tag/六资产冻结。
-- 本版现场、完整画布及F8–F10按 `owner-approved-post-release-v3.4.3` 后补，不视为通过；Mac为ad-hoc未公证预览，仅额度不足可延期。
+- package `3.4.4` 发布准备中，见[发布专题](release-v3.4.4.md)；v3.4.3 Tag/六资产冻结。
+- 本版现场、完整画布及F8–F10按 `owner-approved-post-release-v3.4.4` 后补，不视为通过；Mac为ad-hoc未公证预览，仅额度不足可延期。
 
 ## 当前检查点
 
@@ -12,6 +12,7 @@
 
 | 事项 | 当前事实与下一步 |
 | --- | --- |
+| 代码动画 | P0已开发；标准/Pro、修订版本/分镜/恢复及四工作流见[验收](motion-video-development.md)。本轮授权v3.4.4打包发布，现场证据后补。 |
 | DSH工具配套 | v3.3.9[工具修复](agent-tools-installed-cli-compat.md)已发布。只读[活动定位](agent-active-context.md)随v3.4.0发布；真人配对/安装现场后补。 |
 | 画布保存冲突 | 已随v3.3.6双平台发布：有界合并与冲突确认，两次20主题复查；215回归、隔离画布25项通过。旧确认/加载不回退、目录不复活、医生移动协议修正。CAS不放宽，现场/安装版后补，见[专题](canvas-save-conflict-20261019.md)。 |
 | Strata本地LLM | 已随v3.3.5双平台发布：两轮20轮审查修8项，315回归及最新隔离画布16项通过。前轮真实识图通过，本轮冷启动上游503未通过；用户要求服务先不动。范围/未验收见[专题](strata-llm.md)。 |
@@ -32,7 +33,7 @@
 | TUN/代理与日志 | 已随v3.1.8发布：受信Provider域名交给系统网络，不预判Fake-IP；字面量内网/本地域名仍拒绝，普通URL策略不变。日志14天脱敏恢复；34/34及双平台包通过，用户TUN/安装版待验。详见 `feature tunIpv6AndTerminalLogRecovery20260913`。 |
 | 右键/Agnes | v3.4.3已发布：菜单72组合及滚轮/末项点击通过；视频2.0移除、2.5/Flash新协议。实网均503队列满，无成功出片；见[专题](quick-add-agnes25-fix.md)。 |
 | schema32 画布恢复 | 已随 v3.2.1 发布：同库旧 canonical backup/代次不一致可生成十分钟一次性恢复方案，用户在只读界面确认后恢复并保留故障证据；UUID/校验/方案任一不匹配继续阻断，ACK 只前进不回退。专项、相邻矩阵与真实 HTTP 确认 47/47；真实用户旧库证据待补。详见 `feature schema32ExplicitRecovery20260928`。 |
-| Qwen 2.1 / Animate | 已随 v3.2.0 发布：图像/视频节点独立 Tab、精确参数、恢复、可信结果落盘和四份无凭据工作流已接入。T2I、I2I、Animate 三任务均到达 `succeeded`，Animate 产物完成下载解析；Qwen 当次结果下载受本机 Node TLS 中断，未重交付费任务。详见[专题](qwen21-animate-motion-transfer.md)和 `feature qwen21AnimateMotionTransfer20260922`。 |
+| Qwen 2.1 / Animate | v3.2.0已发布，三实网任务成功；Animate已下载，Qwen下载TLS中断且未重交，见[专题](qwen21-animate-motion-transfer.md)。 |
 | 工坊 Suno V6 | 三版本已随 v3.1.6 发布且有出音证据；wild请求 `chirp-hawk-wild` 实际返回 `chirp-hawk`，身份需渠道确认。保留旧模型/默认与独立平价协议，不再自动付费重试。用 `feature sunoWorkshopV620260912` 查完整记录。 |
 | 平价小屋 Suno V6 | 三项动作、34项目录、双语UI和4份无密钥工作流已随 v3.1.6 发布。真实API三动作各有成功案例；失败的纯测试音模型案例明确记录且未冒认。详见[专题与证据](seedance-nz-suno-v6-actions.md)。 |
 | Creator 技能市场 | 首期基础能力已随 v3.1.6 发布；真实模型作品、质量盲评、新手试点、生态治理和完整整体验收仍未完成。用 `feature creatorSkillMarket20260910` 查询。 |

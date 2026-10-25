@@ -45,6 +45,7 @@ const EXPECTED_SIGNATURES: Record<string, string> = {
   'model-3d-preview': 'static|null[model3d]->null[image]',
   'model-3d': 'static|null[text|image]->null[model3d]',
   'world-scene': 'static|input[model3d]->image[image],scene[model3d]',
+  'code-animation': 'static|prompt[text]->video[video],storyboard[text]',
   'volcengine-assets': 'static|none->image[image],video[video],audio[audio]',
   'localization-master': 'static|source-media[video|audio],source-text[text],voice-references[audio|video]->localized-video[video],dubbed-audio[audio],subtitles[text],manifest[metadata]',
   'grok-image-tools': 'static|null[image|metadata]->null[image|metadata]',

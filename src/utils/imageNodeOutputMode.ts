@@ -6,7 +6,12 @@ const IMAGE_OUTPUT_NODE_TYPES = new Set(['image', 'edit']);
  * Missing data is treated as the new default so existing saved canvases migrate
  * without rewriting their documents.
  */
-export function shouldCollectNodeTextOutput(nodeType: unknown, data: unknown): boolean {
+export function shouldCollectNodeTextOutput(nodeType: unknown, data: unknown, routedData?: unknown): boolean {
+  if (nodeType === 'code-animation') {
+    // Only the explicitly routed storyboard is text output, never the draft.
+    data = routedData ?? data;
+    return Boolean(data && typeof data === 'object' && typeof (data as Record<string, unknown>).outputText === 'string');
+  }
   if (!IMAGE_OUTPUT_NODE_TYPES.has(String(nodeType || ''))) return true;
   if (!data || typeof data !== 'object') return false;
   return (data as Record<string, unknown>).imageOnlyOutput === false;

@@ -4,6 +4,8 @@ import { ArrowRightLeft } from 'lucide-react';
 import { useUpdateNodeData } from './useUpdateNodeData';
 import { collectMaterialSetBucketsFromData, valueOfMaterialSetItem } from '../../utils/materialSet';
 import { shouldCollectNodeTextOutput } from '../../utils/imageNodeOutputMode';
+import { selectSourceHandleData } from '../../utils/sourceHandleData';
+import { motionAssetRefs, motionSlotVideos } from '../../utils/motionVideo';
 
 /**
  * RelayNode - 数据中转
@@ -42,7 +44,7 @@ const RelayNode = (p: NodeProps) => {
   // signature 覆盖所有透传字段，上游任何一项变化都会触发重算。
   const upstreamSignature = useMemo(() => {
     const list = Array.isArray(upstreamNodes) ? upstreamNodes : [];
-    return list
+    return JSON.stringify(upstreamConnections.map(c => [c.source, c.sourceHandle])) + list
       .map((n) => {
         const uid = n?.id || '';
         const ud = (n?.data as any) || {};
@@ -68,14 +70,17 @@ const RelayNode = (p: NodeProps) => {
           arrSig('materialSetItems'),
           arrSig('urls'),
           arrSig('generatedImages'),
+          JSON.stringify(ud.outputs || null), arrSig('motionAssetRefs'),
         ].join('|');
       })
       .join('::');
-  }, [upstreamNodes]);
+  }, [upstreamNodes, upstreamConnections]);
 
   // 监听上游变化，自动透传
   useEffect(() => {
     const nodes = Array.isArray(upstreamNodes) ? upstreamNodes : [];
+    const motionRefs = nodes.flatMap(n => selectSourceHandleData(n.data, new Set(upstreamConnections.filter(c => c.source === n.id).map(c => c.sourceHandle)))
+      .flatMap(value => motionAssetRefs(value)));
 
     // 零上游时主动清理自身透传字段，避免下游读到错乱的残留数据
     if (upstreamIds.length === 0) {
@@ -90,7 +95,7 @@ const RelayNode = (p: NodeProps) => {
         audioUrls: d?.audioUrls,
       });
       const empty = JSON.stringify({});
-      if (cur !== empty) {
+      if (cur !== empty || motionAssetRefs(d).length) {
         update({
           prompt: undefined,
           imageUrl: undefined,
@@ -100,6 +105,7 @@ const RelayNode = (p: NodeProps) => {
           videoUrls: undefined,
           audioUrl: undefined,
           audioUrls: undefined,
+          motionAssetRefs: [],
         });
       }
       return;
@@ -112,7 +118,11 @@ const RelayNode = (p: NodeProps) => {
 
     for (const uid of upstreamIds) {
       const n = nodes.find((x) => x.id === uid);
-      const ud = (n?.data as any) || {};
+      const original = (n?.data as any) || {};
+      // Named animation ports must not leak the draft prompt through a video
+      // connection or leak a video through the storyboard text connection.
+      const selected = selectSourceHandleData(original, new Set(upstreamConnections.filter(c => c.source === uid).map(c => c.sourceHandle)));
+      const ud = original.outputs?.storyboard ? Object.assign({}, ...selected) : original;
       if (n?.type === 'material-set' && Array.isArray(ud.materialSetItems)) {
         const buckets = collectMaterialSetBucketsFromData(ud);
         buckets.text.forEach((item) => pushUnique(texts, valueOfMaterialSetItem(item)));
@@ -121,7 +131,7 @@ const RelayNode = (p: NodeProps) => {
         buckets.audio.forEach((item) => pushUnique(audios, item.url));
         continue;
       }
-      if (shouldCollectNodeTextOutput(n?.type, n?.data)) {
+      if (shouldCollectNodeTextOutput(n?.type, n?.data, ud)) {
         // 文本：优先取 outputText (OutputNode 手动编辑后的) > reply (LLM) > prompt > text
         const textArrayFields = ['textSegments', 'segments', 'texts'];
         const textArrayField = textArrayFields.find((field) => Array.isArray(ud[field]) && ud[field].length > 0);
@@ -154,7 +164,8 @@ const RelayNode = (p: NodeProps) => {
       imageUrls: images.length > 1 ? images : undefined,
       urls: images.length > 1 ? images : undefined, // 向后兼容，给老代码读 urls 的地方也能拿到
       videoUrl: videos[0],
-      videoUrls: videos.length > 1 ? videos : undefined,
+      videoUrls: motionSlotVideos(videos, motionRefs).length > 1 ? motionSlotVideos(videos, motionRefs) : undefined,
+      motionAssetRefs: motionRefs,
       audioUrl: audios[0],
       audioUrls: audios.length > 1 ? audios : undefined,
     };
@@ -169,6 +180,7 @@ const RelayNode = (p: NodeProps) => {
       videoUrls: d?.videoUrls,
       audioUrl: d?.audioUrl,
       audioUrls: d?.audioUrls,
+      motionAssetRefs: d?.motionAssetRefs || [],
     });
     const next = JSON.stringify({
       prompt: merged.prompt,
@@ -179,6 +191,7 @@ const RelayNode = (p: NodeProps) => {
       videoUrls: merged.videoUrls,
       audioUrl: merged.audioUrl,
       audioUrls: merged.audioUrls,
+      motionAssetRefs: merged.motionAssetRefs,
     });
     if (cur !== next) update(merged);
     // eslint-disable-next-line react-hooks/exhaustive-deps

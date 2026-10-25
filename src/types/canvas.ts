@@ -36,6 +36,7 @@ export type NodeType =
   | 'model-3d-preview'
   | 'model-3d'
   | 'world-scene'
+  | 'code-animation'
   | 'grok-image-tools'
   | 'face-expression-3d'
   | 'previs-studio'

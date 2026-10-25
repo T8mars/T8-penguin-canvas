@@ -63,10 +63,10 @@ test('ImageNode exposes the default-on output setting and every text collector h
   assert.match(imageNode, /update\(\{ imageOnlyOutput: event\.currentTarget\.checked \}\)/);
   assert.match(imageNode, /translate\('nodes:image\.imageOnly'\)/);
   assert.match(imageNode, /aria-label=\{translate\('nodes:image\.imageOnlyAria'\)\}/);
-  assert.match(upstreamMaterials, /shouldCollectNodeTextOutput\(n\.type, n\.data\)/);
-  assert.match(outputNode, /shouldCollectNodeTextOutput\(\(n as any\)\?\.type, n\?\.data\)/);
+  assert.match(upstreamMaterials, /shouldCollectNodeTextOutput\(n\.type, n\.data, ud\)/);
+  assert.match(outputNode, /shouldCollectNodeTextOutput\(\(n as any\)\?\.type, n\?\.data, ud\)/);
   assert.match(outputNode, /ud\.imageOnlyOutput === false/);
-  assert.match(relayNode, /shouldCollectNodeTextOutput\(n\?\.type, n\?\.data\)/);
+  assert.match(relayNode, /shouldCollectNodeTextOutput\(n\?\.type, n\?\.data, ud\)/);
   assert.match(relayNode, /useNodeConnections\(\{ id: p\.id, handleType: 'target' \}\)/);
   assert.match(relayNode, /useNodesData\(upstreamIds\)/);
   assert.match(randomRouteNode, /shouldCollectNodeTextOutput\(upstreamNode\?\.type, upstreamNode\?\.data\)/);

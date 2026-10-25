@@ -10,8 +10,10 @@ import { creativeUxZh, creativeUxEn } from './creativeUxCatalog';
 import { strataZh, strataEn } from './strataCatalog';
 import { canvasSaveZh, canvasSaveEn } from './canvasSaveCatalog';
 import { agentToolsZh, agentToolsEn } from './agentToolsCatalog';
+import { motionVideoZh, motionVideoEn } from './motionVideoCatalog';
 
 export const zhCN = {
+  motionVideo: motionVideoZh,
   canvasSave: canvasSaveZh,
   creativeUx: creativeUxZh,
   workbenches: {
@@ -668,6 +670,7 @@ export const zhCN = {
 } as const;
 
 export const enUS = {
+  motionVideo: motionVideoEn,
   canvasSave: canvasSaveEn,
   creativeUx: creativeUxEn,
   workbenches: {

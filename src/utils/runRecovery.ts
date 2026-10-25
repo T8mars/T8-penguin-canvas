@@ -1,6 +1,7 @@
 import { minimumProviderMediaPollCount } from './providerTimeoutPolicy';
 import nbDoubao from '../../backend/src/shared/nbLowpriceDoubaoContract.json';
 import mossImage from '../../backend/src/shared/mossImageContract.json';
+import motionVideo from '../../backend/src/shared/motionVideoContract.json';
 
 export type RunRecoveryKind =
   | 'runninghub'
@@ -15,6 +16,7 @@ export type RunRecoveryKind =
   | 'fashvsr'
   | 'vosr2'
   | 'topaz'
+  | 'motion'
   | 'animate'
   | 'vidu'
   | 'seed-audio'
@@ -33,6 +35,7 @@ export interface RunRecoveryDescriptor {
   requestId?: string;
   endpoint?: string;
   model?: string;
+  connectionRef?: string;
   outputFormat?: 'pcm';
   sampleRate?: string;
   site?: 'cn' | 'intl';
@@ -43,7 +46,7 @@ export interface RunRecoveryDescriptor {
 }
 const RECOVERY_KINDS = new Set<RunRecoveryKind>([
   'runninghub', 'seedance', 'seedream-nz', 'wan', 'happyhorse', 'hailuo', 'flux3', 'kling', 'upscaler', 'fashvsr', 'vosr2', 'animate', 'vidu', 'seed-audio', 'suno',
-  'topaz', 'image', 'mj', 'video', 'image-fal', 'video-fal',
+  'topaz', 'motion', 'image', 'mj', 'video', 'image-fal', 'video-fal',
 ]);
 
 function text(value: unknown, maxLength: number): string {
@@ -67,6 +70,7 @@ function normalizeExplicitRecovery(value: unknown): RunRecoveryDescriptor | null
     requestId: text(raw.requestId, 512) || undefined,
     endpoint: text(raw.endpoint, 1024) || undefined,
     model: text(raw.model, 240) || undefined,
+    ...(kind === 'motion' && /^seedance-nz:[a-f0-9]{64}$/.test(String(raw.connectionRef || '')) ? { connectionRef: String(raw.connectionRef) } : {}),
     ...(raw.model === nbDoubao.audio.iclModel && raw.outputFormat === 'pcm' ? {
       outputFormat: 'pcm' as const,
       sampleRate: nbDoubao.audio.iclFields.sample_rate.options.includes(String(raw.sampleRate)) ? String(raw.sampleRate) : '24000',
@@ -77,6 +81,7 @@ function normalizeExplicitRecovery(value: unknown): RunRecoveryDescriptor | null
     pollIntervalMs,
     maxPolls: Math.min(7200, minimumProviderMediaPollCount(pollIntervalMs, Number(raw.maxPolls) || 1200)),
   };
+  if (kind === 'motion' && (!descriptor.connectionRef || !motionVideo.models.includes(descriptor.model || ''))) return null;
   if (kind === 'suno') return descriptor.taskIds?.length ? descriptor : null;
   if (kind === 'image-fal' || kind === 'video-fal') {
     return descriptor.requestId && descriptor.endpoint ? descriptor : null;
@@ -106,6 +111,7 @@ export function inferRunRecoveryDescriptor(payload: Record<string, unknown>): Ru
   }
   if (provider === 'seedance-nz') {
     const lowerModel = model.toLowerCase();
+    if (motionVideo.models.includes(model)) return normalizeExplicitRecovery({ kind: 'motion', taskId, model, connectionRef: payload.connectionRef, pollIntervalMs, maxPolls });
     if (lowerModel.includes('seed-audio') || [nbDoubao.audio.cloneModel, nbDoubao.audio.iclModel].includes(lowerModel)) return { version: 1, kind: 'seed-audio', taskId, model, pollIntervalMs, maxPolls,
       ...(lowerModel === nbDoubao.audio.iclModel && payload.outputFormat === 'pcm' ? {
         outputFormat: 'pcm', sampleRate: nbDoubao.audio.iclFields.sample_rate.options.includes(String(payload.sampleRate)) ? String(payload.sampleRate) : '24000',

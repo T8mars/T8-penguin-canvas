@@ -60,6 +60,14 @@
         }
       ]
     },
+    "code-animation": {
+      "resolver": "static",
+      "inputs": [{ "id": "prompt", "kinds": ["text"], "required": false, "minConnections": 0, "maxConnections": null }],
+      "outputs": [
+        { "id": "video", "kinds": ["video"], "required": false, "minConnections": 0, "maxConnections": null },
+        { "id": "storyboard", "kinds": ["text"], "required": false, "minConnections": 0, "maxConnections": null }
+      ]
+    },
     "world-scene": {
       "resolver": "static",
       "inputs": [{ "id": "input", "kinds": ["model3d"], "required": false, "minConnections": 0, "maxConnections": null }],
@@ -2318,6 +2326,35 @@
       "generation": {
         "allowedDataFields": {},
         "defaults": {}
+      }
+    },
+    {
+      "type": "code-animation",
+      "label": "代码动画",
+      "category": "core",
+      "description": "用文字生成动效视频，选择历史版本或分镜用自然语言修改，保留新旧成片",
+      "icon": "Video",
+      "color": "teal",
+      "ports": { "inputs": ["text"], "outputs": ["video", "text"] },
+      "executable": true,
+      "generatable": true,
+      "generation": {
+        "allowedDataFields": {
+          "model": { "type": "string", "enum": ["zhenzhen/motion-video", "zhenzhen/motion-video-pro"] },
+          "prompt": { "type": "string" },
+          "duration": { "type": "number", "enum": [15, 30, 45, 60] },
+          "ratio": { "type": "string", "enum": ["16:9", "9:16", "1:1"] },
+          "resolution": { "type": "string", "enum": ["720p", "1080p"] },
+          "motionOperation": { "type": "string", "enum": ["generate", "revise"] },
+          "motionBaseVersionId": { "type": "string" },
+          "motionRevisionInstruction": { "type": "string" },
+          "motionTemplate": { "type": "string", "enum": ["api_default", "hype-kinetic", "swiss-minimal", "cinematic-trailer", "cyber-glitch", "blueprint-tech", "code-cinema", "data-story", "synthwave", "chalk-hand", "voxel-world"] },
+          "motionTitle": { "type": "string" }, "motionSubtitle": { "type": "string" },
+          "motionSignature": { "type": "string" }, "motionLanguage": { "type": "string" },
+          "motionKeywords": { "type": "string" },
+          "motionMusic": { "type": "string", "enum": ["api_default", "auto"] }
+        },
+        "defaults": { "model": "zhenzhen/motion-video", "prompt": "", "duration": 15, "ratio": "16:9", "resolution": "720p", "motionOperation": "generate", "motionTemplate": "api_default", "motionMusic": "api_default", "status": "idle" }
       }
     },
     {

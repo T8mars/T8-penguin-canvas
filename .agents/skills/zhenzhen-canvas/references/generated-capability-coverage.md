@@ -3,22 +3,22 @@
 > Machine-generated from the real Canvas Node Schema, creative capability manifest,
 > runtime model/action catalog, and handler bindings. Do not edit by hand.
 
-- Aggregate SHA-256: `1550f04be1923a7b02615e614dda02cee8f102f433dbdc7c6db40cf19c236163`
+- Aggregate SHA-256: `d4ed4b9a806d3f8d2bc486bcc28e85f700ade1d7aa06b8fe7c3770ded9f68607`
 - Capabilities / handlers: **39 / 39**
-- Canvas nodes: **84**
-- Referenced / unreferenced nodes: **75 / 9**
-- Accounted / unexplained nodes: **84 / 0**
-- Direct capability nodes: **75**
+- Canvas nodes: **85**
+- Referenced / unreferenced nodes: **76 / 9**
+- Accounted / unexplained nodes: **85 / 0**
+- Direct capability nodes: **76**
 - Internal compatibility nodes: **1**
 - Semantically superseded nodes: **8**
 - Public capability gaps: **0**
-- Fully operable nodes: **20**
+- Fully operable nodes: **21**
 - Runtime model/action entries: **320**
-- Dynamic node inventory (total / executable / generatable): **84 / 65 / 13**
+- Dynamic node inventory (total / executable / generatable): **85 / 66 / 14**
 - Dynamic runtime inventory (LLM / image / video / audio / actions): **34 / 70 / 136 / 19 / 61**
 - Operation risk contracts: **196** (L0 115, L1 53, L2 28, L3 0)
 - Unknown node references: **0**
-- Coverage receipt: `t8-creative-capability-coverage-receipt-v1` / `9e7f0ff21a08749adc1a555c226b73f854d9c8e6f47f752a1e63fdf627a116ca`
+- Coverage receipt: `t8-creative-capability-coverage-receipt-v1` / `2123f8997fd133abe616ab67f8c8236e7d867c9f2da34c63e4ccd2eab248ef88`
 
 “Understand” means the node exists in the authoritative schema. Other columns are true only
 when at least one registered high-level capability explicitly advertises that operation.
@@ -28,6 +28,7 @@ when at least one registered high-level capability explicitly advertises that op
 | `upload` 上传素材 | input | direct-capability | yes | — | `asset.import`, `asset.place`, `canvas.node-add`, `edit.image`, `edit.video` | yes | yes | yes | yes | yes | yes |
 | `model-3d-upload` 3D素材上传 | input | direct-capability | — | — | `canvas.node-add` | yes | yes | yes | — | yes | yes |
 | `model-3d-preview` 3D模型预览 | input | direct-capability | — | — | `canvas.node-add` | yes | yes | yes | — | yes | yes |
+| `code-animation` 代码动画 | core | direct-capability | yes | yes | `canvas.node-add`, `create.video` | yes | yes | yes | yes | yes | yes |
 | `world-scene` 3D世界 | 3d | direct-capability | yes | — | `canvas.node-add` | yes | yes | yes | — | yes | yes |
 | `model-3d` 3D | core | direct-capability | yes | — | `canvas.node-add` | yes | yes | yes | — | yes | yes |
 | `grok-image-tools` Grok 分割编辑 | core | direct-capability | yes | — | `canvas.node-add` | yes | yes | yes | — | yes | yes |

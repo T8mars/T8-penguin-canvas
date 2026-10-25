@@ -1634,6 +1634,36 @@ export interface TopazVideoSubmitRequest {
   quality: 'Ultra' | 'Max' | 'High' | 'Medium' | 'Low';
 }
 
+export interface MotionQueryResult {
+  status: string; stage: string; progress: number | null; model: string; connectionRef: string;
+  videoUrl: string | null; videoUrls: string[]; failReason?: string; recoverable?: boolean;
+  motionResult: import('../utils/motionVideo').MotionResult;
+}
+export async function getMotionConnection(transport: ProviderSubmissionTransport = {}) {
+  const r = await fetch('/api/proxy/video/motion/connection', { signal: transport.signal });
+  const data = await safeJsonResponse(r, 'Motion connection');
+  if (!r.ok || !data.success) throw providerResponseError(r, data);
+  return data.data as { configured: boolean; connectionRef: string };
+}
+export async function submitMotionVideo(req: import('../utils/motionVideo').MotionRequest, transport: ProviderSubmissionTransport = {}) {
+  const r = await fetch('/api/proxy/video/motion/submit', {
+    method: 'POST', headers: providerSubmissionHeaders(transport), body: JSON.stringify(req), signal: transport.signal,
+  });
+  const data = await safeJsonResponse(r, 'Motion submit');
+  if (!r.ok || !data.success) throw providerResponseError(r, data);
+  return withProviderTransportTrace(data.data as { taskId: string; model: string; connectionRef: string }, r);
+}
+export async function queryMotionVideo(taskId: string, model: string, connectionRef: string,
+  transport: ProviderSubmissionTransport & { inspect?: boolean; verifyConnection?: boolean } = {}) {
+  const params = new URLSearchParams({ model, connectionRef });
+  if (transport.inspect) params.set('inspect', '1');
+  if (transport.verifyConnection) params.set('verifyConnection', '1');
+  const r = await fetch(`/api/proxy/video/motion/status/${encodeURIComponent(taskId)}?${params}`, { signal: transport.signal });
+  const data = await safeJsonResponse(r, 'Motion query');
+  if (!r.ok || !data.success) throw providerResponseError(r, data);
+  return withProviderTransportTrace(data.data as MotionQueryResult, r);
+}
+
 export async function submitTopazVideo(req: TopazVideoSubmitRequest, transport: ProviderSubmissionTransport = {}) {
   const r = await fetch('/api/proxy/video/topaz/submit', {
     method: 'POST', headers: providerSubmissionHeaders(transport), body: JSON.stringify(req), signal: transport.signal,
