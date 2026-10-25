@@ -3,7 +3,7 @@
 更新：2026-10-26。仅维护当前事实；长期规则见根 `SKILL.md` 和 `AGENTS.md`。预算80行/8 KiB，历史见专题。
 
 - 默认目录 `E:\PenguinPravite\T8-penguin-canvas`；branch `codex/release-v3.0.8-volcengine-assets-ux`，common dir `.git`。开工以git/worktree门为准；正式源码/Tag固定后记录在发布专题，不移动。
-- package `3.4.4` 发布准备中，见[发布专题](release-v3.4.4.md)；v3.4.3 Tag/六资产冻结。
+- package `3.4.4` 双平台已发，见[发布专题](release-v3.4.4.md)；v3.4.3 Tag/六资产冻结。
 - 本版现场、完整画布及F8–F10按 `owner-approved-post-release-v3.4.4` 后补，不视为通过；Mac为ad-hoc未公证预览，仅额度不足可延期。
 
 ## 当前检查点
@@ -12,7 +12,7 @@
 
 | 事项 | 当前事实与下一步 |
 | --- | --- |
-| 代码动画 | P0已开发；标准/Pro、修订版本/分镜/恢复及四工作流见[验收](motion-video-development.md)。本轮授权v3.4.4打包发布，现场证据后补。 |
+| 代码动画 | P0已开发；标准/Pro、修订版本/分镜/恢复及四工作流见[验收](motion-video-development.md)。已随v3.4.4双平台发布，现场证据后补。 |
 | DSH工具配套 | v3.3.9[工具修复](agent-tools-installed-cli-compat.md)已发布。只读[活动定位](agent-active-context.md)随v3.4.0发布；真人配对/安装现场后补。 |
 | 画布保存冲突 | 已随v3.3.6双平台发布：有界合并与冲突确认，两次20主题复查；215回归、隔离画布25项通过。旧确认/加载不回退、目录不复活、医生移动协议修正。CAS不放宽，现场/安装版后补，见[专题](canvas-save-conflict-20261019.md)。 |
 | Strata本地LLM | 已随v3.3.5双平台发布：两轮20轮审查修8项，315回归及最新隔离画布16项通过。前轮真实识图通过，本轮冷启动上游503未通过；用户要求服务先不动。范围/未验收见[专题](strata-llm.md)。 |
