@@ -3106,16 +3106,60 @@
     ]
   },
   "release": {
-    "status": "authorized-v3.4.5-build-pending",
+    "status": "released-v3.4.5-dual-platform-verified",
     "version": "3.4.5",
     "tag": "v3.4.5",
-    "latest": false,
+    "latest": true,
     "evidence": "docs/release-v3.4.5.md",
     "postReleaseEvidence": "owner-approved-post-release-v3.4.5",
-    "macBoundary": "same-tag-ad-hoc-preview; only-real-quota-shortage-may-defer",
+    "macBoundary": "same-tag-ad-hoc-preview; no-quota-deferral-used",
     "date": "2026-10-27",
     "details": "docs/release-v3.4.5.md",
-    "url": "https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.4.5"
+    "url": "https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.4.5",
+    "sourceCommit": "751c66be3faa5a66a7bc9cb9baefca8acb841fbe",
+    "publishedAt": "2026-10-27T04:54:49Z",
+    "draft": false,
+    "prerelease": false,
+    "macWorkflow": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/40452372828",
+    "verification": [
+      "Windows/Mac unique builds, encrypted package probe and full downloads passed; both updater manifests match. Details: docs/release-v3.4.5.md.",
+      "Both updater manifests match; Windows assets during Mac append and previous v3.4.4 Tag/assets unchanged.",
+      "Six real API paths and controlled full Canvas validation are separate evidence; installed-user/F8–F10 remain deferred."
+    ],
+    "assets": {
+      "windowsInstaller": {
+        "name": "T8-PenguinCanvas-Setup-3.4.5.exe",
+        "bytes": 1379870673,
+        "sha256": "a7bbd3fbbf2544c1ed7f9e13681b9ecfb569ae7d58ba96653c4f6ac9c2fdf67f"
+      },
+      "windowsBlockmap": {
+        "name": "T8-PenguinCanvas-Setup-3.4.5.exe.blockmap",
+        "bytes": 1439610,
+        "sha256": "19bf2177b1e1b139e564c03659aaf5d58128029491b3fe7ed4ea61ef83c89f52"
+      },
+      "windowsUpdater": {
+        "name": "latest.yml",
+        "bytes": 362,
+        "sha256": "16348961c99ea0bd72c38fbb37971823a86ef5324a9237ef6814d37b8a02d863"
+      },
+      "macDmg": {
+        "name": "T8-PenguinCanvas-3.4.5-mac-arm64.dmg",
+        "bytes": 519583733,
+        "sha256": "462c611ec3deff69dcc184348c6e6422119b0ffab07eabf0f89f5217da806fc2"
+      },
+      "macZip": {
+        "name": "T8-PenguinCanvas-3.4.5-mac-arm64.zip",
+        "bytes": 511371601,
+        "sha256": "3cb0acffd853f6e0d908894ec848b83a00eecf7e3d97582cd9bdfefaf07baf87"
+      },
+      "macUpdater": {
+        "name": "latest-mac.yml",
+        "bytes": 536,
+        "sha256": "c7fa9527f944e4fdcde000e1a2d094e3a96aa35eecb936f4450c7c1449b9b4db"
+      }
+    },
+    "macAttempt": 1,
+    "macWorkflowConclusion": "success"
   },
   "minimaxMusic3PromptEnhancer": {
     "status": "released-v2.9.3",
@@ -10422,8 +10466,8 @@
     "version": "3.4.5",
     "semverVersion": "3.4.5",
     "versionNumberPolicy": "T8 版本号仍采用 x.y.z 三段，但每一段只允许 0-9；任一段到 9 后下一次发布必须向左进位，禁止任一段出现两位数字。例：1.9.9 的下一版必须是 2.0.0。",
-    "versionNote": "v3.4.5既有Kling Tab增加五模型，见docs/release-v3.4.5.md。",
-    "installer": "T8-PenguinCanvas-Setup-3.4.5.exe；正式构建及完整回下载待执行。",
+    "versionNote": "v3.4.5 Kling 4双平台已发布，见docs/release-v3.4.5.md。",
+    "installer": "T8-PenguinCanvas-Setup-3.4.5.exe；唯一正式构建与完整回下载通过。",
     "updaterInstallMode": "自动更新下载完成后不得静默安装：main.cjs 必须设置 autoInstallOnAppQuit=false，显式安装调用 quitAndInstall(false,true)；electron/build-resources/installer.nsh 通过 SetSilent normal 让新版 NSIS 安装器即使收到旧客户端传入的 /S 也尽量切回前台安装向导。",
     "installerShortcutPolicy": "安装完成后必须创建桌面和开始菜单快捷方式：package.json build.nsis.createDesktopShortcut 必须为 \"always\"，createStartMenuShortcut 必须为 true；electron/build-resources/installer.nsh 必须保留 customInstall 兜底 CreateShortCut \"$newStartMenuLink\" 与 \"$DESKTOP\\${SHORTCUT_NAME}.lnk\"，防止更新安装/keepShortcuts 路径遗漏入口。",
     "updaterEntryPolicy": "顶栏桌面更新入口不得只因 window.t8pc.updater 缺失就静默消失；Electron UA 或 t8pc.getInfo/openExternal 可用时必须显示诊断入口，提示重新安装完整桌面包，Web/纯浏览器环境才隐藏。状态为 not-available 时按钮仍保留“更新”字样，避免用户误以为自动更新入口被删除。",
@@ -16823,19 +16867,20 @@
     ]
   },
   "klingV4Models20261027": {
-    "status": "release-v3.4.5-pending",
+    "status": "released-v3.4.5",
     "date": "2026-10-27",
     "description": "视频节点既有Kling内增加五个Kling 4模型；不新增节点，保留旧默认。主体/音色ID复用、GET恢复及八份无凭据工作流。",
     "details": "docs/kling-v4.md",
     "verification": "六条实网成功并解码；133专项/相邻回归、完整临时画布通过；安装版/用户现场未验。"
   },
   "electronReleaseV345": {
-    "status": "authorized-v3.4.5-build-pending",
+    "status": "released-v3.4.5-dual-platform-verified",
     "version": "3.4.5",
     "tag": "v3.4.5",
-    "latest": false,
+    "latest": true,
     "evidence": "docs/release-v3.4.5.md",
     "postReleaseEvidence": "owner-approved-post-release-v3.4.5",
-    "macBoundary": "same-tag-ad-hoc-preview; only-real-quota-shortage-may-defer"
+    "macBoundary": "same-tag-ad-hoc-preview; no-quota-deferral-used",
+    "sourceCommit": "751c66be3faa5a66a7bc9cb9baefca8acb841fbe"
   }
 }

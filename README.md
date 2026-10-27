@@ -12,7 +12,7 @@ My favorite girl Go YounJung
 
 > AI 节点画布工作流工具 · Web + Electron 桌面端｜v3.4.5
 >
-> 2026-10-27：v3.4.5发布准备：原有视频节点的Kling中增加五个Kling 4模型，支持主体/音色ID复用及原任务续查；六条实网与完整开发画布已验证，提供八份工作流，见[功能说明](docs/kling-v4.md)、[发布记录](docs/release-v3.4.5.md)。
+> 2026-10-27：v3.4.5已发布Windows/macOS版：原有视频节点的Kling中增加五个Kling 4模型，支持主体/音色ID复用及原任务续查；六条实网与完整开发画布已验证，提供八份工作流，见[功能说明](docs/kling-v4.md)、[发布记录](docs/release-v3.4.5.md)。
 >
 > 2026-10-26：v3.4.4代码动画已发布Windows/macOS版：新增独立标准版/Pro节点、十种风格、放大工作台、分镜和历史版本修订、原任务恢复及四份工作流。开发回归与完整画布受控接口验证通过；实网质量和安装/现场边界见[开发说明](docs/motion-video-development.md)、[发布记录](docs/release-v3.4.4.md)。
 >
