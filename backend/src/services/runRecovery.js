@@ -4,6 +4,7 @@ const { minimumProviderMediaPollCount } = require('../providers/providerTimeoutP
 const viduQ4Models = new Set(require('../shared/nb21FluxViduQ4Contract.json').viduQ4.models);
 const nbDoubao = require('../shared/nbLowpriceDoubaoContract.json');
 const motionVideo = require('../shared/motionVideoContract.json');
+const klingV4 = require('../shared/klingV4Contract.json');
 
 const ACTIVE_STATUSES = new Set(['queued', 'running', 'polling']);
 const RECOVERY_KINDS = new Set([
@@ -87,6 +88,7 @@ function normalizeRunRecoveryDescriptor(value) {
     statusUrl: boundedText(value.statusUrl, 4096) || null,
     endpoint: boundedText(value.endpoint, 1024) || null,
     model: boundedText(value.model, 240) || null,
+    ...(kind === 'kling' && klingV4.referenceTypes.includes(value.referenceType) ? { referenceType: value.referenceType } : {}),
     ...(kind === 'motion' && /^seedance-nz:[a-f0-9]{64}$/.test(String(value.connectionRef || '')) ? { connectionRef: String(value.connectionRef) } : {}),
     ...(value.model === nbDoubao.audio.iclModel && value.outputFormat === 'pcm' ? {
       outputFormat: 'pcm', sampleRate: nbDoubao.audio.iclFields.sample_rate.options.includes(String(value.sampleRate)) ? String(value.sampleRate) : '24000',
@@ -145,7 +147,7 @@ function recoveryRequest(baseUrl, descriptor) {
   if (descriptor.kind === 'happyhorse') return get(`/api/proxy/video/happyhorse/status/${taskId}`);
   if (descriptor.kind === 'hailuo') return get(`/api/proxy/video/hailuo/status/${taskId}${descriptor.model ? `?model=${encodeURIComponent(descriptor.model)}` : ''}`);
   if (descriptor.kind === 'flux3') return get(`/api/proxy/video/flux3/status/${taskId}`);
-  if (descriptor.kind === 'kling') return get(`/api/proxy/video/kling/status/${taskId}`);
+  if (descriptor.kind === 'kling') return get(`/api/proxy/video/kling/status/${taskId}${klingV4.models.includes(descriptor.model) ? `?model=${encodeURIComponent(descriptor.model)}${descriptor.referenceType ? `&referenceType=${encodeURIComponent(descriptor.referenceType)}` : ''}` : ''}`);
   if (descriptor.kind === 'upscaler') return get(`/api/proxy/video/upscaler/status/${taskId}`);
   if (descriptor.kind === 'fashvsr') return get(`/api/proxy/video/fashvsr/status/${taskId}`);
   if (descriptor.kind === 'vosr2') return get(`/api/proxy/video/vosr2/status/${taskId}`);
@@ -186,6 +188,14 @@ function outputKindForDescriptor(descriptor) {
 function normalizeRecoveryPayload(payload, descriptor) {
   const data = payload?.data && typeof payload.data === 'object' ? payload.data : payload;
   let state = normalizedState(data?.status ?? data?.state ?? data?.task_status ?? data?.code);
+  if (descriptor.kind === 'kling' && klingV4.auxiliaryModels.includes(descriptor.model)) {
+    let reference; try { reference = JSON.parse(data?.auxiliaryText); } catch { /* missing result remains pending */ }
+    const usable = reference?.schema === klingV4.referenceSchema && reference.model === descriptor.model
+      && (descriptor.model.endsWith('element') ? reference.elementId : reference.voiceId);
+    return { state: data?.recoverable || state === 'succeeded' && !usable ? 'pending' : state,
+      outputs: state === 'succeeded' && usable && !data?.recoverable ? [{ kind: 'text', text: data.auxiliaryText, filename: 'recovered-kling-reference.json' }, ...(data.audioUrl ? [{ kind: 'audio', sourceUrl: data.audioUrl, filename: 'recovered-kling-preview.wav' }] : [])] : [],
+      error: boundedText(data?.failReason || data?.error, 4000) || null, providerStatus: boundedText(data?.status, 160) || null, usage: data?.usage || {} };
+  }
   if (descriptor.kind === 'runninghub') {
     if (String(data?.code) === '0') state = 'succeeded';
     else if (String(data?.code) === '805') state = 'failed';
@@ -208,7 +218,7 @@ function normalizeRecoveryPayload(payload, descriptor) {
   if (doubao && state === 'succeeded' && (!orderedAudioUrls.length || (descriptor.model === 'doubao-voice-clone' && !speaker))) state = 'failed';
   return {
     state,
-    outputs: [...(orderedAudioUrls || (['topaz', 'motion'].includes(descriptor.kind) && Array.isArray(data?.videoUrls) && data.videoUrls.length
+    outputs: [...(orderedAudioUrls || ((['topaz', 'motion'].includes(descriptor.kind) || descriptor.kind === 'kling' && klingV4.videoModels.includes(descriptor.model)) && Array.isArray(data?.videoUrls) && data.videoUrls.length
       ? data.videoUrls.map((url) => boundedText(url, 16384)).filter(Boolean) : [...new Set(rawUrls)])).map((sourceUrl, index) => ({
       kind,
       sourceUrl,

@@ -1322,6 +1322,7 @@ export async function queryHailuo(
 }
 
 export type KlingModel =
+  | 'kling-v4-custom-element' | 'kling-v4-custom-voice' | 'kling-v4-i2v' | 'kling-v4-omni' | 'kling-v4-t2v'
   | 'kling-v3.0-std-t2v'
   | 'kling-v3.0-pro-t2v'
   | 'kling-v3-turbo-std-t2v'
@@ -1347,11 +1348,25 @@ export type KlingModel =
 export interface KlingSubmitRequest {
   model: KlingModel;
   prompt?: string;
-  duration: 5 | 10;
+  duration?: number;
   ratio?: string;
   negativePrompt?: string;
   images?: string[];
   videos?: string[];
+  resolution?: string;
+  watermark?: string;
+  videoUrlsText?: string;
+  imageElementIds?: string[];
+  videoElementIds?: string[];
+  voiceIds?: string[];
+  elementName?: string;
+  referenceType?: string;
+  elementVoiceId?: string;
+  tagList?: string;
+  voiceName?: string;
+  voiceSource?: string;
+  audioUrl?: string;
+  videoId?: string;
 }
 
 export async function submitKling(req: KlingSubmitRequest, transport: ProviderSubmissionTransport = {}): Promise<{
@@ -1361,6 +1376,7 @@ export async function submitKling(req: KlingSubmitRequest, transport: ProviderSu
 } & ProviderTransportTrace> {
   const r = await fetch('/api/proxy/video/kling/submit', {
     method: 'POST',
+    signal: transport.signal,
     headers: providerSubmissionHeaders(transport),
     body: JSON.stringify(req),
   });
@@ -1369,8 +1385,13 @@ export async function submitKling(req: KlingSubmitRequest, transport: ProviderSu
   return withProviderTransportTrace(data.data, r);
 }
 
-export async function queryKling(taskId: string): Promise<HappyHorseQueryResult> {
-  const r = await fetch(`/api/proxy/video/kling/status/${encodeURIComponent(taskId)}`);
+export async function queryKling(taskId: string, model?: string, transport: { signal?: AbortSignal; referenceType?: string } = {}): Promise<HappyHorseQueryResult & {
+  videoUrls?: string[]; audioUrl?: string | null; auxiliaryText?: string; elementId?: string; voiceId?: string;
+}> {
+  const params = new URLSearchParams();
+  if (model) params.set('model', model);
+  if (transport.referenceType) params.set('referenceType', transport.referenceType);
+  const r = await fetch(`/api/proxy/video/kling/status/${encodeURIComponent(taskId)}${params.size ? `?${params}` : ''}`, { signal: transport.signal });
   const data = await safeJsonResponse(r, 'Kling 查询');
   if (!r.ok || !data.success) throw providerResponseError(r, data);
   return withProviderTransportTrace(data.data, r);

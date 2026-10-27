@@ -74,6 +74,10 @@ export function captureGenerationHistoryInput(nodes: Node[], edges: Edge[], node
   const captureNode = (node: Node): HistoryInputNode => {
     // Never recycle a previously restored/user-supplied derived capture.
     const { historyResolvedInput: _stale, ...data } = node.data;
+    if (node.type === 'video') {
+      for (const key of ['klingV4Pending', 'klingV4AcceptanceUnknown']) delete data[key];
+      if (node === target) delete data.klingV4Result;
+    }
     if (node.type === 'code-animation') {
       // The resolved input is the immutable request. Prior videos/storyboards
       // belong to result history and must not recursively inflate the archive.

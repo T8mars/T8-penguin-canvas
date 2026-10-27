@@ -1,5 +1,8 @@
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import KlingV4Controls from './KlingV4Controls';
+import { captureKlingV4, executeKlingV4, readKlingV4Pending, isKlingV4Model, isKlingV4Aux, klingV4Reference, klingV4Settings } from '../../utils/klingV4';
+import { useCanvasStore } from '../../stores/canvas';
 import AgnesVideoControls from './AgnesVideoControls';
 import { AGNES_VIDEO } from '../../utils/agnesVideo';
 import { Handle, Position, useReactFlow, type NodeProps } from '@xyflow/react';
@@ -195,10 +198,19 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
   const hasAutoOutput = useHasAutoOutput(id);
   const { getEdges, getNodes } = useReactFlow();
   const [error, setError] = useState<string | null>(null);
+  const [klingWaiting, setKlingWaiting] = useState(false);
   const pollTimer = useRef<number | null>(null);
   const pollRejectRef = useRef<((reason?: any) => void) | null>(null);
   const generationRunRef = useRef(0);
   const src = `video:${id.slice(0, 6)}`;
+  const klingOrigin = useRef({ canvasId: useCanvasStore.getState().activeId, entityUid: (getNodes().find(n => n.id === id) as any)?.entityUid });
+  const klingMounted = useRef(true);
+  useEffect(() => { klingMounted.current = true; return () => { klingMounted.current = false; }; }, []);
+  const patchKling = (patch: Record<string, unknown>) => {
+    const state = useCanvasStore.getState(), node = getNodes().find(n => n.id === id);
+    if (klingMounted.current && state.activeId === klingOrigin.current.canvasId && (node as any)?.entityUid === klingOrigin.current.entityUid
+      && state.canvases.find(c => c.id === state.activeId)?.status !== 'archived') update(patch);
+  };
 
   // 主题适配 (默认科技风深色, 传递给聚合预览区)
   const { theme, style: themeStyle } = useThemeStore();
@@ -294,6 +306,9 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
   const isFlux3 = !isExternalSelected && modelDef.kind === 'flux3';
   const isSeedance25 = !isExternalSelected && modelDef.kind === 'seedance25';
   const isKling = !isExternalSelected && modelDef.kind === 'kling';
+  const isKlingV4 = Boolean(d.klingV4Pending) || isKling && isKlingV4Model(apiModel);
+  const klingV4Model = d.klingV4Pending?.model || apiModel;
+  const klingV4Aux = isKlingV4 && isKlingV4Aux(klingV4Model);
   const isUpscaler = !isExternalSelected && modelDef.kind === 'upscaler';
   const isFashVsr = isUpscaler && apiModel === FASHVSR_VIDEO_UPSCALE_MODEL;
   const isVosr2 = isUpscaler && apiModel === VOSR2_VIDEO_UPSCALE_MODEL;
@@ -645,6 +660,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
       ? 0
       : isWan
       ? isWan30 ? wan30Mode === 'i2v' ? 2 : 10 : 1
+      : isKlingV4 ? klingV4Model === 'kling-v4-omni' ? 10 : klingV4Model === 'kling-v4-custom-element' ? d.klingV4ReferenceType === 'video_refer' ? 0 : 4 : klingV4Model === 'kling-v4-i2v' ? 2 : 0
       : isKling
       ? klingMode === 'i2v' ? 2 : klingMode === 'r2v' ? 4 : 0
       : isVidu
@@ -686,7 +702,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
         ? 1
         : falReg.maxRefImages
       : modelDef.maxRefImages;
-  const maxMentionVideos = isAgnesExternalSelected ? isAgnesFlash ? 0 : 1 : isUpscaler
+  const maxMentionVideos = isKlingV4 ? klingV4Model === 'kling-v4-omni' ? 5 : klingV4Model === 'kling-v4-custom-element' && d.klingV4ReferenceType === 'video_refer' ? 1 : 0 : isAgnesExternalSelected ? isAgnesFlash ? 0 : 1 : isUpscaler
     ? 1
     : isAnimate
     ? 1
@@ -707,7 +723,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
     : isApimartOmniLowprice && apimartOmniLowpriceMode === 'reference_video'
     ? 1
     : isJimengSeedanceSelected ? jimengSeedanceLimits.videos : 0;
-  const maxMentionAudios = isAgnesExternalSelected ? 3 : isViduQ4 && viduMode === 'r2v' ? 3 : isMinimaxH3V2
+  const maxMentionAudios = isKlingV4 ? klingV4Model === 'kling-v4-custom-voice' && d.klingV4VoiceSource !== 'video_id' ? 1 : 0 : isAgnesExternalSelected ? 3 : isViduQ4 && viduMode === 'r2v' ? 3 : isMinimaxH3V2
     ? 4
     : isSeedance25 && seedance25Mode === 'multi'
     ? SEEDANCE25_MULTI_MAX_AUDIOS
@@ -734,7 +750,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
 
   // 分组动态跟随子模型: Seedance / 即梦 CLI 支持 image/video/audio, 其他 (grok/veo/sora) 仅 image
   const previewGroups = useMemo<ReadonlyArray<'text' | 'image' | 'video' | 'audio'>>(
-    () => (isAgnesExternalSelected ? ['text', 'image', 'video', 'audio'] : modelDef.kind === 'seedance' || isJimengSeedanceSelected
+    () => (isKlingV4 ? ['text', 'image', 'video', 'audio'] : isAgnesExternalSelected ? ['text', 'image', 'video', 'audio'] : modelDef.kind === 'seedance' || isJimengSeedanceSelected
       ? ['text', 'image', 'video', 'audio']
       : isApimartOmni
         ? ['text', 'image', 'video']
@@ -765,15 +781,19 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
       : isHailuoH3 && hailuoMode === 'multi'
         ? ['text', 'image', 'video', 'audio']
         : ['text', 'image']),
-    [isAgnesExternalSelected, modelDef.kind, isJimengSeedanceSelected, isApimartOmni, isApimartOmniLowprice, apimartOmniLowpriceMode, isAnimate, isUpscaler, isWan30, wan30Mode, isKling, klingMode, isSeedance25, seedance25Mode, isFlux3, flux3Mode, isViduQ4, viduMode, isMinimaxH3V2, isMinimaxH3OwAudioDrive, isHailuoH3, hailuoMode],
+    [isKlingV4, isAgnesExternalSelected, modelDef.kind, isJimengSeedanceSelected, isApimartOmni, isApimartOmniLowprice, apimartOmniLowpriceMode, isAnimate, isUpscaler, isWan30, wan30Mode, isKling, klingMode, isSeedance25, seedance25Mode, isFlux3, flux3Mode, isViduQ4, viduMode, isMinimaxH3V2, isMinimaxH3OwAudioDrive, isHailuoH3, hailuoMode],
   );
 
   // 收集上游 prompt + 参考图/视频/音频 (按用户拖拽顺序), 合并本地拖入素材
   const collectUpstream = (): { prompt: string; imageUrls: string[]; videoUrls: string[]; audioUrls: string[] } => {
-    const prompts = orderedTexts.map((t) => t.url).filter((s) => !!s);
+    const prompts = orderedTexts.map((t) => t.url).filter((s) => !!s && (!isKlingV4 || !klingV4Reference(s)));
     const upImageUrls = orderedImages.map((m) => m.url).filter((s) => !!s);
     const upVideoUrls = orderedVideos.map((m) => m.url).filter((s) => !!s);
-    const upAudioUrls = orderedAudios.map((m) => m.url).filter((s) => !!s);
+    const auxiliarySourceIds = new Set(isKlingV4 && klingV4Model !== 'kling-v4-custom-voice'
+      ? orderedTexts.filter(m => klingV4Reference(m.url)).map(m => m.sourceNodeId) : []);
+    // A connected voice result includes an ID and an optional preview. Omni and
+    // element association consume its ID; unrelated raw audio is still rejected.
+    const upAudioUrls = orderedAudios.filter(m => !auxiliarySourceIds.has(m.sourceNodeId)).map((m) => m.url).filter((s) => !!s);
     const dedupe = (items: string[]) => {
       const out: string[] = [];
       for (const item of items) if (item && !out.includes(item)) out.push(item);
@@ -781,9 +801,9 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
     };
     return {
       prompt: prompts.join('\n').trim(),
-      imageUrls: isViduQ4 || isAgnesExternalSelected ? [...upImageUrls, ...localRefImages] : dedupe([...upImageUrls, ...localRefImages]),
-      videoUrls: isAgnesExternalSelected ? [...upVideoUrls, ...localRefVideos] : isTopaz ? [...upVideoUrls, ...localRefVideos, ...(topazVideoUrl ? [topazVideoUrl] : [])] : dedupe([...upVideoUrls, ...localRefVideos]),
-      audioUrls: isViduQ4 || isAgnesExternalSelected ? [...upAudioUrls, ...localRefAudios] : dedupe([...upAudioUrls, ...localRefAudios]),
+      imageUrls: isKlingV4 || isViduQ4 || isAgnesExternalSelected ? [...upImageUrls, ...localRefImages] : dedupe([...upImageUrls, ...localRefImages]),
+      videoUrls: isKlingV4 || isAgnesExternalSelected ? [...upVideoUrls, ...localRefVideos] : isTopaz ? [...upVideoUrls, ...localRefVideos, ...(topazVideoUrl ? [topazVideoUrl] : [])] : dedupe([...upVideoUrls, ...localRefVideos]),
+      audioUrls: isKlingV4 || isViduQ4 || isAgnesExternalSelected ? [...upAudioUrls, ...localRefAudios] : dedupe([...upAudioUrls, ...localRefAudios]),
     };
   };
 
@@ -1226,7 +1246,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
   };
 
   const handleGenerate = async (reporter?: RunNodeLifecycleReporter) => {
-    if (status === 'submitting' || status === 'polling' || reporter?.signal?.aborted) return;
+    if ((isKlingV4 ? klingWaiting : status === 'submitting' || status === 'polling') || reporter?.signal?.aborted) return;
     if (savedExternalMissing) {
       const message = translate('settings:strata.sourceUnavailable');
       setError(message); update({ status: 'error', error: message });
@@ -1257,6 +1277,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
       : [];
     if (
       !finalPrompt
+      && !isKlingV4
       && !isAnimate
       && !(isWan && (!isWan30 || wan30Mode === 'i2v'))
       && !isUpscaler
@@ -1649,7 +1670,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
         : isSeedanceNzVideo
           ? 'seedance-nz'
           : 'zhenzhen';
-    const traceModel = isExternalSelected && providerSelection.provider ? externalProviderModel : apiModel;
+    const traceModel = isKlingV4 ? klingV4Model : isExternalSelected && providerSelection.provider ? externalProviderModel : apiModel;
     const onExecutionAbort = () => {
       if (isCurrentGenerationRun(runId)) stopLocalGeneration();
     };
@@ -1658,6 +1679,27 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
       await reporter?.providerRequest({ provider: traceProvider, model: traceModel });
       if (!isCurrentGenerationRun(runId) || reporter?.signal?.aborted) return;
       taskCompletionSound.primeAudio();
+      if (isKlingV4) {
+        if (!reporter) throw Error('Kling 4运行需要共享运行记录');
+        const pending = readKlingV4Pending(d.klingV4Pending);
+        if (!pending && d.klingV4AcceptanceUnknown) throw Error(translate('klingV4:unknown'));
+        const request = pending?.request || captureKlingV4(d, klingV4Model, finalPrompt, { imageUrls, videoUrls, audioUrls }, orderedTexts.map(t => t.url));
+        setKlingWaiting(true);
+        patchKling({ ...beginVideoRegeneration(d), status: 'submitting', error: '' });
+        const output = await executeKlingV4(request, reporter, {
+          pending: value => patchKling({ klingV4Pending: value, klingV4AcceptanceUnknown: false, taskId: value.taskId, status: 'polling' }),
+          stage: stage => patchKling({ progress: translate(`klingV4:${stage}`) }),
+        }, pending);
+        if (isKlingV4Aux(output.model)) patchKling({ status: 'success', error: '', progress: '', taskId: null, klingV4Pending: null,
+          klingV4Result: { model: output.model, elementId: output.elementId, voiceId: output.voiceId, referenceType: output.referenceType, audioUrl: output.audioUrl },
+          outputText: output.auxiliaryText, texts: [output.auxiliaryText], reply: '', videoUrl: '', videoUrls: [], audioUrl: output.audioUrl || '',
+        });
+        else patchKling({ ...completeVideoRegeneration(output.videoUrls || [], request.prompt), taskId: null, klingV4Pending: null,
+          klingV4Result: null, outputText: '', texts: [], reply: '', audioUrl: '',
+        });
+        taskCompletionSound.notifyComplete(id, 'video');
+        return { klingV4Handled: true as const };
+      }
       update(beginVideoRegeneration(d));
       if (isExternalSelected && providerSelection.provider) {
         const providerModel = externalProviderModel;
@@ -2500,10 +2542,14 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
       // v1.2.9.11: await 让 useRunTrigger 等到任务真正完成才 markDone
       return await startPolling(r.taskId, runId, reporter, finalPrompt);
     } catch (e: any) {
+      if (isKlingV4 && e?.klingV4AcceptanceUnknown) patchKling({ klingV4AcceptanceUnknown: true });
       if (!isCurrentGenerationRun(runId) || reporter?.signal?.aborted) return;
       const msg = normalizeProviderErrorMessage(e, '提交失败');
       setError(msg);
-      update({ status: 'error', error: msg });
+      if (isKlingV4) patchKling({ status: 'error', error: msg,
+        ...(e?.klingV4AcceptanceUnknown ? { klingV4AcceptanceUnknown: true } : {}), ...(e?.klingV4Terminal ? { klingV4Pending: null, taskId: null } : {}),
+      });
+      else update({ status: 'error', error: msg });
       await reporter?.providerResponse({
         provider: traceProvider,
         model: traceModel,
@@ -2518,6 +2564,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
       logBus.error(`提交失败: ${msg}`, src);
       throw e;
     } finally {
+      if (isKlingV4 && klingMounted.current) setKlingWaiting(false);
       reporter?.signal?.removeEventListener('abort', onExecutionAbort);
     }
   };
@@ -2538,8 +2585,9 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
   };
   const cancelRunTrigger = useRunTrigger(id, async (reporter) => {
     const completed = await handleGenerate(reporter);
-    assertFreshGenerationCompleted(Boolean(completed?.length));
-    const assets = collectRunOutputAssets({ videoUrls: completed });
+    if (completed && !Array.isArray(completed) && completed.klingV4Handled) return;
+    assertFreshGenerationCompleted(Boolean(Array.isArray(completed) && completed.length));
+    const assets = collectRunOutputAssets({ videoUrls: Array.isArray(completed) ? completed : [] });
     assertFreshGenerationCompleted(assets.length > 0);
     await reporter.output({ status: 'succeeded', outputCount: assets.length, assets });
   }, 'video', {
@@ -2548,11 +2596,13 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
       const { prompt: upstreamPrompt, imageUrls, videoUrls, audioUrls } = collectUpstream();
       const resolvedLocalPrompt = resolveMediaMentions(localPrompt, promptMentions, mentionMaterials);
       const finalPrompt = (upstreamPrompt || resolvedLocalPrompt || '').trim();
+      const klingRequest = isKlingV4 ? readKlingV4Pending(d.klingV4Pending)?.request || captureKlingV4(d, klingV4Model, finalPrompt, { imageUrls, videoUrls, audioUrls }, orderedTexts.map(t => t.url)) : null;
       // This is the common frontend input before branch-specific slicing,
       // conversion and options. It is not a complete Provider request or a
       // license to restore unrecorded options using today's defaults.
       return { schema: historyInputContract.videoInputContextSchema, origin: 'frontend-common-context',
         prompt: finalPrompt, localRefImages: [...imageUrls], localRefVideos: [...videoUrls], localRefAudios: [...audioUrls],
+        ...(klingRequest ? { prompt: klingRequest.prompt || '', klingV4Request: klingRequest } : {}),
         // Video start offsets belong to the archived reference slots, not to
         // arbitrary current videos. Capture for full-input recovery only.
         ...(!isExternalSelected && isHailuo && isMinimaxH3V2 ? {
@@ -2563,6 +2613,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
           providerSource: isExternalSelected ? providerSelection.providerSource : 'zhenzhen',
           providerId: isExternalSelected ? providerSelection.providerId : '',
           providerModel: isExternalSelected ? externalProviderModel : '',
+          ...(klingRequest ? { ...klingV4Settings(klingRequest), mainId: 'kling-v3.0', model: klingRequest.model, videoBuiltinSource: 'seedance-nz', providerSource: 'zhenzhen', providerId: '', providerModel: '', ratio: klingRequest.ratio || '', duration: klingRequest.duration || 0, resolution: klingRequest.resolution || '', seed: -1 } : {}),
           ...(!isExternalSelected && !isFal && videoBuiltinSource === 'zhenzhen' ? {
             ...(isGrok15New ? { size: grok15NewSize } : {}),
             ...(modelDef.kind === 'sora' ? { soraPrivate } : {}),
@@ -2580,7 +2631,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
             ...(isTopaz ? { topazQuality } : {}),
             ...(isApimartBudgetVideo && isApimartOmniLowprice ? { apimartOmniLowpriceMode, apimartOmniLowpriceNsfwCheck } : {}),
             ...(isSeedance25 ? { generateAudio, returnLastFrame } : {}),
-            ...(isKling && klingMode !== 'edit' ? { klingNegativePrompt } : {}),
+            ...(isKling && !isKlingV4 && klingMode !== 'edit' ? { klingNegativePrompt } : {}),
             ...(isVidu ? { ...(isViduQ4 ? { generateAudio, viduQ4IsRec, viduQ4Watermark } : { viduSeed }),
               ...(viduMode === 'short-play' ? { viduScriptName, viduStyle, viduAssetType, viduAssetNamePrefix, viduAssetDescription } : {}),
             } : {}),
@@ -2597,7 +2648,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
         },
       };
     },
-    shouldReuseResult: (nodeData) => shouldReuseGenerationResult('video', nodeData),
+    shouldReuseResult: (nodeData) => isKlingV4Aux(String(nodeData.model)) ? nodeData.reuseResult === true && Boolean(nodeData.klingV4Result && nodeData.outputText) : shouldReuseGenerationResult('video', nodeData),
   });
 
   // === 跨节点拖拽: source (输出视频可拖出) ===
@@ -2633,14 +2684,14 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
             : (modelDef.maxRefImages || 7) + 4;
       if (cur.length >= cap) return;
       update({ localRefImages: [...cur, payload.url] });
-    } else if (payload.kind === 'video' && payload.url && (isAgnesExternalSelected || isAnimate || isJimengSeedanceSelected || isApimartOmni || (isApimartOmniLowprice && apimartOmniLowpriceMode === 'reference_video') || isUpscaler || (isFlux3 && flux3Mode === 'v2v') || (isKling && klingMode === 'edit'))) {
+    } else if (payload.kind === 'video' && payload.url && (isKlingV4 && maxMentionVideos > 0 || isAgnesExternalSelected || isAnimate || isJimengSeedanceSelected || isApimartOmni || (isApimartOmniLowprice && apimartOmniLowpriceMode === 'reference_video') || isUpscaler || (isFlux3 && flux3Mode === 'v2v') || (isKling && klingMode === 'edit'))) {
       const cur = Array.isArray(d?.localRefVideos) ? d.localRefVideos : [];
-      const cap = isAgnesExternalSelected ? maxMentionVideos : isAnimate || isUpscaler || isApimartOmni || isApimartOmniLowprice || (isFlux3 && flux3Mode === 'v2v') || (isKling && klingMode === 'edit') ? 1 : jimengSeedanceLimits.videos;
+      const cap = isKlingV4 || isAgnesExternalSelected ? maxMentionVideos : isAnimate || isUpscaler || isApimartOmni || isApimartOmniLowprice || (isFlux3 && flux3Mode === 'v2v') || (isKling && klingMode === 'edit') ? 1 : jimengSeedanceLimits.videos;
       if (cur.indexOf(payload.url) !== -1 || cur.length >= cap) return;
       update({ localRefVideos: [...cur, payload.url] });
-    } else if (payload.kind === 'audio' && payload.url && (isAgnesExternalSelected || isJimengSeedanceSelected)) {
+    } else if (payload.kind === 'audio' && payload.url && (isKlingV4 && maxMentionAudios > 0 || isAgnesExternalSelected || isJimengSeedanceSelected)) {
       const cur = Array.isArray(d?.localRefAudios) ? d.localRefAudios : [];
-      if (cur.indexOf(payload.url) !== -1 || cur.length >= (isAgnesExternalSelected ? maxMentionAudios : jimengSeedanceLimits.audios)) return;
+      if (cur.indexOf(payload.url) !== -1 || cur.length >= (isKlingV4 || isAgnesExternalSelected ? maxMentionAudios : jimengSeedanceLimits.audios)) return;
       update({ localRefAudios: [...cur, payload.url] });
     } else if (payload.kind === 'text' && typeof payload.text === 'string') {
       update({ prompt: payload.text });
@@ -2648,7 +2699,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
   };
   const { dropProps, isAccepting } = useMaterialDropTarget({
     id,
-    accepts: isJimengSeedanceSelected
+    accepts: isKlingV4 ? ['text', 'image', 'video', 'audio'] : isJimengSeedanceSelected
       ? ['image', 'video', 'audio', 'text']
       : isAgnesExternalSelected ? ['image', 'video', 'audio', 'text']
       : isApimartOmni ? ['image', 'video', 'text']
@@ -2662,11 +2713,11 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
     onDrop: handleDrop,
   });
 
-  const isBusy = status === 'submitting' || status === 'polling';
+  const isBusy = isKlingV4 ? klingWaiting : status === 'submitting' || status === 'polling';
   const refsCount = orderedImages.length + localRefImages.length;
   const videoRefsCount = orderedVideos.length + localRefVideos.length;
   const audioRefsCount = orderedAudios.length + localRefAudios.length;
-  const previewTitle = isWan
+  const previewTitle = isKlingV4 ? translate('klingV4:title') : isWan
     ? `上游素材 · 首帧图 ${Math.min(refsCount, 1)}/1`
     : isUpscaler
     ? `上游素材 · 输入 MP4 ${Math.min(videoRefsCount, 1)}/1`
@@ -2771,6 +2822,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
                 <div>
                   <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.platform')}</label>
                   <select
+                    disabled={Boolean(d.klingV4Pending)}
                     value={isExternalSelected
                       ? providerSelection.providerId
                       : videoBuiltinSource === 'seedance-nz'
@@ -2866,6 +2918,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
         <div>
           <label className="text-[10px] text-white/50 block mb-1">模型类型</label>
           <select
+            disabled={Boolean(d.klingV4Pending)}
             value={modelDef.id}
             onChange={(e) => switchMainModel(e.target.value)}
             className="w-full rounded bg-white/5 border border-white/10 px-2 py-1 text-xs text-white outline-none focus:border-white/30"
@@ -2882,6 +2935,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
           <div>
             <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.specificModel')}</label>
             <select
+              disabled={Boolean(d.klingV4Pending)}
               value={apiModel}
               onChange={(e) => {
                 const nextModel = e.target.value;
@@ -3380,7 +3434,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
           </div>
         )}
 
-        {isKling && (
+        {isKling && !isKlingV4 && (
           <div className="rounded border border-sky-300/20 bg-sky-400/[0.06] px-2 py-1.5 text-[10px] leading-relaxed text-white/55">
             {klingMode === 't2v'
               ? '文生视频必须填写提示词，不发送参考图。'
@@ -3857,7 +3911,8 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
           </>
         )}
 
-        {isKling && (
+        {isKlingV4 && <KlingV4Controls data={d} model={klingV4Model} update={patchKling} linkedCount={orderedTexts.filter(t => klingV4Reference(t.url)).length} />}
+        {isKling && !isKlingV4 && (
           <div className="rounded border border-sky-300/20 bg-sky-400/[0.06] p-2 space-y-2">
             <div className={klingMode === 'edit' ? '' : 'grid grid-cols-2 gap-1.5'}>
               {klingMode !== 'edit' && (
@@ -4281,7 +4336,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
         )}
 
         {/* Prompt */}
-        {!isUpscaler && !isAnimate && <div>
+        {!isUpscaler && !isAnimate && !(isKlingV4 && klingV4Model === 'kling-v4-custom-voice') && <div>
               <label className="text-[10px] text-white/50 block mb-1">
                 {isWan30 && wan30Mode === 'r2v'
                   ? translate('nodes:video.wan30LocalPromptRequired')
@@ -4307,7 +4362,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
 
         <ReuseResultToggle
           checked={d?.reuseResult === true}
-          hasResult={hasReusableGenerationResult('video', d)}
+          hasResult={klingV4Aux ? Boolean(d.klingV4Result && d.outputText) : hasReusableGenerationResult('video', d)}
           onChange={(checked) => update({ reuseResult: checked })}
           accentColor="#fb7185"
         />
@@ -4317,7 +4372,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
             onClick={() => requestCanvasNodeRun(id)}
             className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 text-xs font-medium transition-colors"
           >
-            <Sparkles size={12} /> {translate(isUpscaler ? 'nodes:video.startUpscale' : 'nodes:video.generateVideo')}
+            <Sparkles size={12} /> {isKlingV4 ? translate(d.klingV4Pending ? 'klingV4:resume' : klingV4Aux ? 'klingV4:create' : 'klingV4:generate') : translate(isUpscaler ? 'nodes:video.startUpscale' : 'nodes:video.generateVideo')}
           </button>
         ) : (
           <button

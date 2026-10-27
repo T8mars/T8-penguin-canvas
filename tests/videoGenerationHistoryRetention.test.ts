@@ -29,6 +29,8 @@ function fixture(branch: 'standard' | 'external' | 'fal-sync' | 'fal-poll') {
   const scope: any = Object.fromEntries([...new Set(source.match(/\bis[A-Z]\w+/g))].map(name => [name, false]));
   Object.assign(scope, {
     cancelRunTrigger: () => true,
+    savedExternalMissing: false,
+    animateImageUrl: '', animateVideoUrl: '',
     id: 'fixture', d: state.data, src: 'fixture', localPrompt: 'new prompt', promptMentions: [], mentionMaterials: [],
     assertFreshGenerationCompleted, beginVideoRegeneration, completeVideoRegeneration, collectRunOutputAssets,
     collectUpstream: () => ({ prompt: '', imageUrls: [], videoUrls: [], audioUrls: [] }), resolveMediaMentions: (prompt: string) => prompt,

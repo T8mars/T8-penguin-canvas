@@ -1,6 +1,6 @@
 {
   "schema": "t8-creative-runtime-catalog-v1",
-  "sourceDigest": "7f6f083af334b2f7e1c55374574974f09cff8eeab22524d395f64b60597acf67",
+  "sourceDigest": "badfa917d9e8ed5c2dd9d7b2b5f2fc4f24aadf9fc8aba7ac13106e84e306d8ed",
   "generatedFrom": [
     "src/providers/models.ts",
     "src/config/seedance.ts",
@@ -4992,6 +4992,206 @@
       "available": true,
       "parameters": {
         "label": "kling-v3.0-std-t2v（文生标准）",
+        "platformLabel": "贞贞的平价AI小屋",
+        "family": "kling-v3.0",
+        "available": true,
+        "nodeKind": "kling",
+        "ratios": [
+          "adaptive",
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "9:16",
+          "21:9"
+        ],
+        "defaultRatio": "16:9",
+        "durations": [
+          5,
+          10
+        ],
+        "defaultDuration": 5,
+        "resolutions": [],
+        "defaultResolution": "",
+        "supportsImages": true,
+        "supportsVideos": false,
+        "supportsAudios": false,
+        "maxReferenceImages": 4,
+        "maxReferenceVideos": 0,
+        "maxReferenceAudios": 0,
+        "description": "Kling · 文生/图生/首尾帧/O3 参考生视频与视频编辑"
+      }
+    },
+    {
+      "id": "video:seedance-nz:kling-v4-custom-element",
+      "provider": "seedance-nz",
+      "platformLabel": "贞贞的平价AI小屋",
+      "model": "kling-v4-custom-element",
+      "label": "kling-v4-custom-element",
+      "family": "kling-v3.0",
+      "available": true,
+      "parameters": {
+        "label": "kling-v4-custom-element",
+        "platformLabel": "贞贞的平价AI小屋",
+        "family": "kling-v3.0",
+        "available": true,
+        "nodeKind": "kling",
+        "ratios": [
+          "adaptive",
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "9:16",
+          "21:9"
+        ],
+        "defaultRatio": "16:9",
+        "durations": [
+          5,
+          10
+        ],
+        "defaultDuration": 5,
+        "resolutions": [],
+        "defaultResolution": "",
+        "supportsImages": true,
+        "supportsVideos": false,
+        "supportsAudios": false,
+        "maxReferenceImages": 4,
+        "maxReferenceVideos": 0,
+        "maxReferenceAudios": 0,
+        "description": "Kling · 文生/图生/首尾帧/O3 参考生视频与视频编辑"
+      }
+    },
+    {
+      "id": "video:seedance-nz:kling-v4-custom-voice",
+      "provider": "seedance-nz",
+      "platformLabel": "贞贞的平价AI小屋",
+      "model": "kling-v4-custom-voice",
+      "label": "kling-v4-custom-voice",
+      "family": "kling-v3.0",
+      "available": true,
+      "parameters": {
+        "label": "kling-v4-custom-voice",
+        "platformLabel": "贞贞的平价AI小屋",
+        "family": "kling-v3.0",
+        "available": true,
+        "nodeKind": "kling",
+        "ratios": [
+          "adaptive",
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "9:16",
+          "21:9"
+        ],
+        "defaultRatio": "16:9",
+        "durations": [
+          5,
+          10
+        ],
+        "defaultDuration": 5,
+        "resolutions": [],
+        "defaultResolution": "",
+        "supportsImages": true,
+        "supportsVideos": false,
+        "supportsAudios": false,
+        "maxReferenceImages": 4,
+        "maxReferenceVideos": 0,
+        "maxReferenceAudios": 0,
+        "description": "Kling · 文生/图生/首尾帧/O3 参考生视频与视频编辑"
+      }
+    },
+    {
+      "id": "video:seedance-nz:kling-v4-i2v",
+      "provider": "seedance-nz",
+      "platformLabel": "贞贞的平价AI小屋",
+      "model": "kling-v4-i2v",
+      "label": "kling-v4-i2v",
+      "family": "kling-v3.0",
+      "available": true,
+      "parameters": {
+        "label": "kling-v4-i2v",
+        "platformLabel": "贞贞的平价AI小屋",
+        "family": "kling-v3.0",
+        "available": true,
+        "nodeKind": "kling",
+        "ratios": [
+          "adaptive",
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "9:16",
+          "21:9"
+        ],
+        "defaultRatio": "16:9",
+        "durations": [
+          5,
+          10
+        ],
+        "defaultDuration": 5,
+        "resolutions": [],
+        "defaultResolution": "",
+        "supportsImages": true,
+        "supportsVideos": false,
+        "supportsAudios": false,
+        "maxReferenceImages": 4,
+        "maxReferenceVideos": 0,
+        "maxReferenceAudios": 0,
+        "description": "Kling · 文生/图生/首尾帧/O3 参考生视频与视频编辑"
+      }
+    },
+    {
+      "id": "video:seedance-nz:kling-v4-omni",
+      "provider": "seedance-nz",
+      "platformLabel": "贞贞的平价AI小屋",
+      "model": "kling-v4-omni",
+      "label": "kling-v4-omni",
+      "family": "kling-v3.0",
+      "available": true,
+      "parameters": {
+        "label": "kling-v4-omni",
+        "platformLabel": "贞贞的平价AI小屋",
+        "family": "kling-v3.0",
+        "available": true,
+        "nodeKind": "kling",
+        "ratios": [
+          "adaptive",
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "9:16",
+          "21:9"
+        ],
+        "defaultRatio": "16:9",
+        "durations": [
+          5,
+          10
+        ],
+        "defaultDuration": 5,
+        "resolutions": [],
+        "defaultResolution": "",
+        "supportsImages": true,
+        "supportsVideos": false,
+        "supportsAudios": false,
+        "maxReferenceImages": 4,
+        "maxReferenceVideos": 0,
+        "maxReferenceAudios": 0,
+        "description": "Kling · 文生/图生/首尾帧/O3 参考生视频与视频编辑"
+      }
+    },
+    {
+      "id": "video:seedance-nz:kling-v4-t2v",
+      "provider": "seedance-nz",
+      "platformLabel": "贞贞的平价AI小屋",
+      "model": "kling-v4-t2v",
+      "label": "kling-v4-t2v",
+      "family": "kling-v3.0",
+      "available": true,
+      "parameters": {
+        "label": "kling-v4-t2v",
         "platformLabel": "贞贞的平价AI小屋",
         "family": "kling-v3.0",
         "available": true,
@@ -10869,7 +11069,7 @@
   "counts": {
     "llm": 34,
     "image": 70,
-    "video": 136,
+    "video": 141,
     "audio": 19,
     "actions": 61
   }

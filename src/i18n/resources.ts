@@ -11,8 +11,10 @@ import { strataZh, strataEn } from './strataCatalog';
 import { canvasSaveZh, canvasSaveEn } from './canvasSaveCatalog';
 import { agentToolsZh, agentToolsEn } from './agentToolsCatalog';
 import { motionVideoZh, motionVideoEn } from './motionVideoCatalog';
+import { klingV4Zh, klingV4En } from './klingV4Catalog';
 
 export const zhCN = {
+  klingV4: klingV4Zh,
   motionVideo: motionVideoZh,
   canvasSave: canvasSaveZh,
   creativeUx: creativeUxZh,
@@ -670,6 +672,7 @@ export const zhCN = {
 } as const;
 
 export const enUS = {
+  klingV4: klingV4En,
   motionVideo: motionVideoEn,
   canvasSave: canvasSaveEn,
   creativeUx: creativeUxEn,

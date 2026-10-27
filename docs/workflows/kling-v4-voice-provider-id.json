@@ -1,0 +1,83 @@
+{
+  "schema": "t8-workflow-fragment",
+  "version": 1,
+  "title": "kling-v4-voice-provider-id",
+  "nodes": [
+    {
+      "id": "generation",
+      "type": "video",
+      "position": {
+        "x": 430,
+        "y": 60
+      },
+      "data": {
+        "providerSource": "zhenzhen",
+        "providerId": "",
+        "providerModel": "",
+        "videoBuiltinSource": "seedance-nz",
+        "mainId": "kling-v3.0",
+        "model": "kling-v4-custom-voice",
+        "prompt": "",
+        "klingV4Duration": 3,
+        "klingV4Resolution": "720p",
+        "klingV4Ratio": "16:9",
+        "klingV4Watermark": "api_default",
+        "reuseResult": false,
+        "klingV4VoiceName": "MyVoice",
+        "klingV4VoiceSource": "video_id",
+        "klingV4AudioUrl": "",
+        "klingV4VideoId": ""
+      }
+    },
+    {
+      "id": "output",
+      "type": "output",
+      "position": {
+        "x": 900,
+        "y": 60
+      },
+      "data": {
+        "label": "保存结果 / Saved result"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "generation-output",
+      "source": "generation",
+      "target": "output"
+    }
+  ],
+  "nodeCount": 2,
+  "edgeCount": 1,
+  "nodeTypes": [
+    "video",
+    "output"
+  ],
+  "topologyPreview": {
+    "nodes": [
+      {
+        "id": "generation",
+        "type": "video",
+        "x": 430,
+        "y": 60,
+        "label": "kling-v4-custom-voice"
+      },
+      {
+        "id": "output",
+        "type": "output",
+        "x": 900,
+        "y": 60,
+        "label": "保存结果 / Saved result"
+      }
+    ],
+    "edges": [
+      {
+        "id": "generation-output",
+        "source": "generation",
+        "target": "output"
+      }
+    ]
+  },
+  "savedAt": "2026-10-27T00:00:00.000Z"
+}

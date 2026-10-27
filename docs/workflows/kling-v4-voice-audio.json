@@ -1,0 +1,114 @@
+{
+  "schema": "t8-workflow-fragment",
+  "version": 1,
+  "title": "kling-v4-voice-audio",
+  "nodes": [
+    {
+      "id": "voice-sample",
+      "type": "upload",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "data": {
+        "label": "自己的原始语音 / Your original voice sample",
+        "uploadType": "audio",
+        "lockedUploadType": "audio"
+      }
+    },
+    {
+      "id": "generation",
+      "type": "video",
+      "position": {
+        "x": 430,
+        "y": 60
+      },
+      "data": {
+        "providerSource": "zhenzhen",
+        "providerId": "",
+        "providerModel": "",
+        "videoBuiltinSource": "seedance-nz",
+        "mainId": "kling-v3.0",
+        "model": "kling-v4-custom-voice",
+        "prompt": "",
+        "klingV4Duration": 3,
+        "klingV4Resolution": "720p",
+        "klingV4Ratio": "16:9",
+        "klingV4Watermark": "api_default",
+        "reuseResult": false,
+        "klingV4VoiceName": "MyVoice",
+        "klingV4VoiceSource": "audio",
+        "klingV4AudioUrl": "",
+        "klingV4VideoId": ""
+      }
+    },
+    {
+      "id": "output",
+      "type": "output",
+      "position": {
+        "x": 900,
+        "y": 60
+      },
+      "data": {
+        "label": "保存结果 / Saved result"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "voice-sample-generation",
+      "source": "voice-sample",
+      "target": "generation"
+    },
+    {
+      "id": "generation-output",
+      "source": "generation",
+      "target": "output"
+    }
+  ],
+  "nodeCount": 3,
+  "edgeCount": 2,
+  "nodeTypes": [
+    "upload",
+    "video",
+    "output"
+  ],
+  "topologyPreview": {
+    "nodes": [
+      {
+        "id": "voice-sample",
+        "type": "upload",
+        "x": 0,
+        "y": 0,
+        "label": "自己的原始语音 / Your original voice sample"
+      },
+      {
+        "id": "generation",
+        "type": "video",
+        "x": 430,
+        "y": 60,
+        "label": "kling-v4-custom-voice"
+      },
+      {
+        "id": "output",
+        "type": "output",
+        "x": 900,
+        "y": 60,
+        "label": "保存结果 / Saved result"
+      }
+    ],
+    "edges": [
+      {
+        "id": "voice-sample-generation",
+        "source": "voice-sample",
+        "target": "generation"
+      },
+      {
+        "id": "generation-output",
+        "source": "generation",
+        "target": "output"
+      }
+    ]
+  },
+  "savedAt": "2026-10-27T00:00:00.000Z"
+}

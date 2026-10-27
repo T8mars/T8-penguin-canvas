@@ -327,7 +327,7 @@
       ]
     },
     "video": {
-      "resolver": "static",
+      "resolver": "video",
       "inputs": [
         {
           "id": null,
@@ -346,7 +346,7 @@
         {
           "id": null,
           "kinds": [
-            "video"
+            "video", "text", "audio", "metadata"
           ],
           "required": false,
           "minConnections": 0,
@@ -2874,36 +2874,196 @@
           "audio"
         ],
         "outputs": [
-          "video"
+          "video",
+          "text",
+          "audio",
+          "metadata"
         ]
       },
       "executable": true,
       "generatable": true,
       "generation": {
         "allowedDataFields": {
-          "providerSource": { "type": "string", "enum": ["zhenzhen"] },
-          "providerId": { "type": "string", "enum": [""] },
-          "providerModel": { "type": "string", "enum": [""] },
-          "videoBuiltinSource": { "type": "string", "enum": ["zhenzhen", "seedance-nz"] },
-          "mainId": { "type": "string", "enum": ["grok-video-3"] },
-          "model": { "type": "string", "enum": ["grok-video-3", "zhenzhen-video-gk-v15"] },
-          "ratio": { "type": "string", "enum": ["16:9"] },
-          "duration": { "type": "integer", "enum": [6, 15] },
-          "resolution": { "type": "string", "enum": ["720P", "720p"] },
+          "providerSource": {
+            "type": "string",
+            "enum": [
+              "zhenzhen"
+            ]
+          },
+          "providerId": {
+            "type": "string",
+            "enum": [
+              ""
+            ]
+          },
+          "providerModel": {
+            "type": "string",
+            "enum": [
+              ""
+            ]
+          },
+          "videoBuiltinSource": {
+            "type": "string",
+            "enum": [
+              "zhenzhen",
+              "seedance-nz"
+            ]
+          },
+          "mainId": {
+            "type": "string",
+            "enum": [
+              "grok-video-3",
+              "kling-v3.0"
+            ]
+          },
+          "model": {
+            "type": "string",
+            "enum": [
+              "grok-video-3",
+              "zhenzhen-video-gk-v15",
+              "kling-v4-custom-element",
+              "kling-v4-custom-voice",
+              "kling-v4-i2v",
+              "kling-v4-omni",
+              "kling-v4-t2v"
+            ]
+          },
+          "ratio": {
+            "type": "string",
+            "enum": [
+              "16:9",
+              "21:9",
+              "1:1",
+              "9:16",
+              "adaptive"
+            ]
+          },
+          "duration": {
+            "type": "integer",
+            "minimum": 3,
+            "maximum": 30
+          },
+          "resolution": {
+            "type": "string",
+            "enum": [
+              "720P",
+              "720p",
+              "1080p"
+            ]
+          },
           "reuseResult": {
             "type": "boolean"
+          },
+          "klingV4VideoUrls": {
+            "type": "string"
+          },
+          "klingV4ImageElementIds": {
+            "type": "string"
+          },
+          "klingV4VideoElementIds": {
+            "type": "string"
+          },
+          "klingV4VoiceIds": {
+            "type": "string"
+          },
+          "klingV4ElementName": {
+            "type": "string"
+          },
+          "klingV4ElementVideoUrl": {
+            "type": "string"
+          },
+          "klingV4ElementVoiceId": {
+            "type": "string"
+          },
+          "klingV4Tags": {
+            "type": "string"
+          },
+          "klingV4VoiceName": {
+            "type": "string"
+          },
+          "klingV4AudioUrl": {
+            "type": "string"
+          },
+          "klingV4VideoId": {
+            "type": "string"
+          },
+          "klingV4Duration": {
+            "type": "integer",
+            "minimum": 3,
+            "maximum": 30
+          },
+          "klingV4Resolution": {
+            "type": "string",
+            "enum": [
+              "720p",
+              "1080p"
+            ]
+          },
+          "klingV4Ratio": {
+            "type": "string",
+            "enum": [
+              "21:9",
+              "16:9",
+              "1:1",
+              "9:16",
+              "adaptive"
+            ]
+          },
+          "klingV4Watermark": {
+            "type": "string",
+            "enum": [
+              "api_default",
+              "disabled",
+              "enabled"
+            ]
+          },
+          "klingV4ReferenceType": {
+            "type": "string",
+            "enum": [
+              "image_refer",
+              "video_refer"
+            ]
+          },
+          "klingV4VoiceSource": {
+            "type": "string",
+            "enum": [
+              "audio",
+              "video_id"
+            ]
           }
         },
         "defaults": {
           "reuseResult": false
         },
         "connectionPorts": {
-          "dynamic": false,
+          "dynamic": true,
           "inputs": [
-            { "id": null, "kinds": ["text", "image", "video", "audio"], "required": false, "minConnections": 0, "maxConnections": null }
+            {
+              "id": null,
+              "kinds": [
+                "text",
+                "image",
+                "video",
+                "audio"
+              ],
+              "required": false,
+              "minConnections": 0,
+              "maxConnections": null
+            }
           ],
           "outputs": [
-            { "id": null, "kinds": ["video"], "required": false, "minConnections": 0, "maxConnections": null }
+            {
+              "id": null,
+              "kinds": [
+                "video",
+                "text",
+                "audio",
+                "metadata"
+              ],
+              "required": false,
+              "minConnections": 0,
+              "maxConnections": null
+            }
           ]
         }
       }

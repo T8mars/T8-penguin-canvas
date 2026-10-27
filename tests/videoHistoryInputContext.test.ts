@@ -37,7 +37,9 @@ function visit(node: ts.Node) {
     if (node.name.text === 'handleGenerate' && node.initializer && ts.isArrowFunction(node.initializer) && ts.isBlock(node.initializer.body)) {
       // Exact synchronous common-input expressions used by the real submit callback.
       const statements = node.initializer.body.statements;
-      generationPrelude = statements.slice(2, 5).map(statement => statement.getText(tree)).join('\n');
+      const commonStart = statements.findIndex(statement => statement.getText(tree).startsWith('const { prompt: upstreamPrompt'));
+      const commonEnd = statements.findIndex(statement => statement.getText(tree).startsWith('const finalPrompt'));
+      generationPrelude = statements.slice(commonStart, commonEnd + 1).map(statement => statement.getText(tree)).join('\n');
       assert.match(generationPrelude, /const finalPrompt/);
     }
   }
@@ -65,13 +67,13 @@ assert.ok(falStart > 0 && falEnd > falStart && splitDeclaration);
 const falCode = ts.transpileModule(`${splitDeclaration.getText(tree)}\n${source.slice(falStart, falEnd)}\nreturn falReq;`, {
   compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None },
 }).outputText;
-const actualFalPayload = new Function('scope', `with(scope) { ${falCode} }`);
+const actualFalPayload = new Function('scope', `with({isAgnesExternalSelected:false,...scope}) { ${falCode} }`);
 const actualSubmitArguments = (name: string, index: number, scope: Record<string, unknown>) => {
   const argument = submitArguments[name]?.[index]; assert.ok(argument, `${name}:${index} exists in VideoNode`);
   const compiled = ts.transpileModule(`return (${argument});`, {
     compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None },
   }).outputText;
-  return new Function('scope', `with(scope) { ${compiled} }`)(scope);
+  return new Function('scope', `with({isViduQ4:false,...scope}) { ${compiled} }`)(scope);
 };
 const code = ts.transpileModule(`${declarations.join('\n')}\nreturn { capture: ${capture}, inputUsedByGenerate: () => {
   ${generationPrelude}\nreturn { prompt: finalPrompt, localRefImages: imageUrls, localRefVideos: videoUrls, localRefAudios: audioUrls };
@@ -86,6 +88,8 @@ function render(d: Record<string, unknown>, extra: Record<string, unknown> = {})
     modelDef: { id: 'grok', kind: 'grok' }, apiModel: 'grok-video-3', videoBuiltinSource: 'zhenzhen', isFal: false, falReg: null, isVeoOmni: false,
     isApimartBudgetVideo: false, isApimartOmniLowprice: false, isSeedance25: false, isKling: false, isVidu: false,
     isFlux3: false, isWan: false, isHailuo: false, isMinimaxH3V2: false,
+    isKlingV4: false, klingV4Model: '', isViduQ4: false, isAgnesExternalSelected: false, isTopaz: false,
+    setError: () => {},
     ratio: '16:9', duration: 6, resolution: '720p', seed: 0, isExternalSelected: false,
     ...extra,
   });
@@ -313,7 +317,7 @@ test('FAL confirmed node data re-enters actual options, mentions and request con
     ts.forEachChild(node, collectOptions);
   }
   collectOptions(tree); assert.equal(optionDeclarations.length, optionNames.size);
-  const compile = (body: string) => new Function('scope', `with(scope) { ${ts.transpileModule(body, {
+  const compile = (body: string) => new Function('scope', `with({isAgnesExternalSelected:false,isKlingV4:false,...scope}) { ${ts.transpileModule(body, {
     compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None },
   }).outputText} }`);
   const readOptions = compile(`${optionDeclarations.join('\n')}\nreturn { ${[...optionNames].join(',')} };`);
@@ -399,7 +403,7 @@ test('FAL capture and strict settings restoration round-trip actual Veo/Grok/Sor
     const context = render({}, { ...options, isFal: true }).capture();
     const restored = historyVideoBasicSettings({ historyResolvedInput: context })!;
     for (const key of fields) assert.deepEqual(restored[key], options[key]);
-    const scope = { ...options, apiModel: 'fal-model', finalPrompt: 'same prompt', providerParams: {},
+    const scope = { isAgnesExternalSelected: false, ...options, apiModel: 'fal-model', finalPrompt: 'same prompt', providerParams: {},
       images: ['/files/input/original.png'], gkfReferenceUrls: '/files/input/pasted.png', soraCharacterIds: 'retained-character' };
     const before = actualFalPayload(scope);
     assert.deepEqual(actualFalPayload({ ...scope, ...restored, apiModel: scope.apiModel }), before);

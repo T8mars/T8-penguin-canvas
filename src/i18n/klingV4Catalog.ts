@@ -1,0 +1,26 @@
+export const klingV4Zh = {
+  title: 'Kling 4', duration: '时长（3–30秒）', resolution: '清晰度', ratio: '比例', watermark: '水印', apiDefault: '服务默认', enabled: '开启', disabled: '关闭',
+  elementName: '主体名称（1–20字）', referenceType: '主体参考方式', imageReference: '图片：正面图在前', videoReference: '视频主体', elementVoice: '关联音色ID（可选）', tags: '主体标签（每行一个：o_101至o_108）',
+  voiceName: '音色名称（1–20字）', voiceSource: '音色来源', audioSource: '音频素材或网址', videoIdSource: '提供商videoId', audioUrl: '音频网址（与连接/上传音频二选一）', videoId: '提供商videoId（不是本地任务ID）',
+  videoUrls: '额外视频网址（每行一个）', elementVideoUrl: '主体视频网址（与连接/上传视频二选一）', imageIds: '图片主体ID（每行一个）', videoIds: '视频主体ID（每行一个）', voiceIds: '音色ID（每行一个）',
+  imageHint: '需要正面图和1–3张不同视角图；每张最多10MB，最短边至少300px，比例1:2.5–2.5:1。',
+  videoHint: '需要一个3–8秒1080p的16:9或9:16 MP4/MOV；网址最多200MB，本地上传最多50MB。',
+  omniHint: '最多10图、5视频、7主体和3音色；图/视频/主体合计≤15，视频与视频主体合计≤5，视频主体≤3；参考视频总时长≤30秒。',
+  voiceHint: '音频最多10MB。videoId必须来自提供商；生成任务ID不能替代它。', i2vHint: '首帧在前，可选尾帧，最多两张；此模型不发送比例。',
+  idsHint: '主体/音色创建返回可复用ID；可将本节点文本输出连到Omni，或复制ID填写。', pending: '已有任务：运行将继续查询和保存，不会重新提交。', unknown: '提交是否受理尚不明确；请先在平台确认任务，避免重复提交。',
+  acknowledge: '已检查平台任务，允许重新提交', generate: '生成视频', create: '创建并保存ID', resume: '继续查询原任务', copy: '复制ID结果', result: '创建结果', trial: '音色试听', noTrial: '服务未返回试听音频',
+  linked: '已连接的主体/音色结果：{{count}}项', generating: '正在生成', saving: '正在保存结果', query_retry: '查询暂时失败，继续查询原任务',
+};
+export const klingV4En = {
+  title: 'Kling 4', duration: 'Duration (3–30 seconds)', resolution: 'Resolution', ratio: 'Aspect ratio', watermark: 'Watermark', apiDefault: 'API default', enabled: 'Enabled', disabled: 'Disabled',
+  elementName: 'Element name (1–20 characters)', referenceType: 'Element reference', imageReference: 'Images: front view first', videoReference: 'Video element', elementVoice: 'Associated voice ID (optional)', tags: 'Element tags (one per line: o_101 to o_108)',
+  voiceName: 'Voice name (1–20 characters)', voiceSource: 'Voice source', audioSource: 'Audio material or URL', videoIdSource: 'Provider videoId', audioUrl: 'Audio URL (use this or connected/uploaded audio)', videoId: 'Provider videoId (not a local task ID)',
+  videoUrls: 'Additional video URLs (one per line)', elementVideoUrl: 'Element video URL (use this or connected/uploaded video)', imageIds: 'Image element IDs (one per line)', videoIds: 'Video element IDs (one per line)', voiceIds: 'Voice IDs (one per line)',
+  imageHint: 'One front view and 1–3 different views. At most 10MB each, shortest edge 300px, aspect ratio 1:2.5–2.5:1.',
+  videoHint: 'One 3–8 second 1080p MP4/MOV at 16:9 or 9:16. URL up to 200MB; local upload up to 50MB.',
+  omniHint: 'Up to 10 images, 5 videos, 7 elements and 3 voices; images/videos/elements ≤15, videos/video elements ≤5, video elements ≤3. Reference videos total ≤30 seconds.',
+  voiceHint: 'Audio up to 10MB. A provider videoId is required for that source; a generation task ID is not interchangeable.', i2vHint: 'First frame then optional last frame; up to two images. No aspect ratio is sent.',
+  idsHint: 'Element and voice creation returns reusable IDs. Connect this text output to Omni or copy the IDs.', pending: 'An accepted task exists: running resumes querying/saving without resubmitting.', unknown: 'Submission acceptance is unknown. Check your tasks on the platform before submitting again.',
+  acknowledge: 'I checked platform tasks; allow a new submission', generate: 'Generate video', create: 'Create and save IDs', resume: 'Resume original task', copy: 'Copy ID result', result: 'Created result', trial: 'Voice preview', noTrial: 'No voice preview was returned',
+  linked: 'Connected element/voice results: {{count}}', generating: 'Generating', saving: 'Saving result', query_retry: 'Query temporarily failed; checking the original task',
+};

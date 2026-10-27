@@ -1,0 +1,268 @@
+{
+  "schema": "t8-workflow-fragment",
+  "version": 1,
+  "title": "kling-v4-linked-omni",
+  "nodes": [
+    {
+      "id": "front-view",
+      "type": "upload",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "data": {
+        "label": "主体正面图 / Front view",
+        "uploadType": "image",
+        "lockedUploadType": "image"
+      }
+    },
+    {
+      "id": "side-view",
+      "type": "upload",
+      "position": {
+        "x": 0,
+        "y": 260
+      },
+      "data": {
+        "label": "主体不同视角 / Different view",
+        "uploadType": "image",
+        "lockedUploadType": "image"
+      }
+    },
+    {
+      "id": "voice-sample",
+      "type": "upload",
+      "position": {
+        "x": 0,
+        "y": 520
+      },
+      "data": {
+        "label": "自己的原始语音 / Your original voice sample",
+        "uploadType": "audio",
+        "lockedUploadType": "audio"
+      }
+    },
+    {
+      "id": "voice",
+      "type": "video",
+      "position": {
+        "x": 430,
+        "y": 60
+      },
+      "data": {
+        "providerSource": "zhenzhen",
+        "providerId": "",
+        "providerModel": "",
+        "videoBuiltinSource": "seedance-nz",
+        "mainId": "kling-v3.0",
+        "model": "kling-v4-custom-voice",
+        "prompt": "",
+        "klingV4Duration": 3,
+        "klingV4Resolution": "720p",
+        "klingV4Ratio": "16:9",
+        "klingV4Watermark": "api_default",
+        "reuseResult": false,
+        "klingV4VoiceName": "MyVoice",
+        "klingV4VoiceSource": "audio",
+        "klingV4AudioUrl": ""
+      }
+    },
+    {
+      "id": "element",
+      "type": "video",
+      "position": {
+        "x": 860,
+        "y": 60
+      },
+      "data": {
+        "providerSource": "zhenzhen",
+        "providerId": "",
+        "providerModel": "",
+        "videoBuiltinSource": "seedance-nz",
+        "mainId": "kling-v3.0",
+        "model": "kling-v4-custom-element",
+        "prompt": "A friendly toy robot with a round head.",
+        "klingV4Duration": 3,
+        "klingV4Resolution": "720p",
+        "klingV4Ratio": "16:9",
+        "klingV4Watermark": "api_default",
+        "reuseResult": false,
+        "klingV4ElementName": "MyRobot",
+        "klingV4ReferenceType": "image_refer",
+        "klingV4ElementVoiceId": ""
+      }
+    },
+    {
+      "id": "generation",
+      "type": "video",
+      "position": {
+        "x": 1290,
+        "y": 60
+      },
+      "data": {
+        "providerSource": "zhenzhen",
+        "providerId": "",
+        "providerModel": "",
+        "videoBuiltinSource": "seedance-nz",
+        "mainId": "kling-v3.0",
+        "model": "kling-v4-omni",
+        "prompt": "@element_1 gently waves and says hello in the supplied voice.",
+        "klingV4Duration": 3,
+        "klingV4Resolution": "720p",
+        "klingV4Ratio": "16:9",
+        "klingV4Watermark": "api_default",
+        "reuseResult": false,
+        "klingV4VideoUrls": "",
+        "klingV4ImageElementIds": "",
+        "klingV4VideoElementIds": "",
+        "klingV4VoiceIds": ""
+      }
+    },
+    {
+      "id": "output",
+      "type": "output",
+      "position": {
+        "x": 1750,
+        "y": 60
+      },
+      "data": {
+        "label": "保存结果 / Saved result"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "front-view-element",
+      "source": "front-view",
+      "target": "element"
+    },
+    {
+      "id": "side-view-element",
+      "source": "side-view",
+      "target": "element"
+    },
+    {
+      "id": "voice-sample-voice",
+      "source": "voice-sample",
+      "target": "voice"
+    },
+    {
+      "id": "voice-element",
+      "source": "voice",
+      "target": "element"
+    },
+    {
+      "id": "voice-generation",
+      "source": "voice",
+      "target": "generation"
+    },
+    {
+      "id": "element-generation",
+      "source": "element",
+      "target": "generation"
+    },
+    {
+      "id": "generation-output",
+      "source": "generation",
+      "target": "output"
+    }
+  ],
+  "nodeCount": 7,
+  "edgeCount": 7,
+  "nodeTypes": [
+    "upload",
+    "video",
+    "output"
+  ],
+  "topologyPreview": {
+    "nodes": [
+      {
+        "id": "front-view",
+        "type": "upload",
+        "x": 0,
+        "y": 0,
+        "label": "主体正面图 / Front view"
+      },
+      {
+        "id": "side-view",
+        "type": "upload",
+        "x": 0,
+        "y": 260,
+        "label": "主体不同视角 / Different view"
+      },
+      {
+        "id": "voice-sample",
+        "type": "upload",
+        "x": 0,
+        "y": 520,
+        "label": "自己的原始语音 / Your original voice sample"
+      },
+      {
+        "id": "voice",
+        "type": "video",
+        "x": 430,
+        "y": 60,
+        "label": "kling-v4-custom-voice"
+      },
+      {
+        "id": "element",
+        "type": "video",
+        "x": 860,
+        "y": 60,
+        "label": "kling-v4-custom-element"
+      },
+      {
+        "id": "generation",
+        "type": "video",
+        "x": 1290,
+        "y": 60,
+        "label": "kling-v4-omni"
+      },
+      {
+        "id": "output",
+        "type": "output",
+        "x": 1750,
+        "y": 60,
+        "label": "保存结果 / Saved result"
+      }
+    ],
+    "edges": [
+      {
+        "id": "front-view-element",
+        "source": "front-view",
+        "target": "element"
+      },
+      {
+        "id": "side-view-element",
+        "source": "side-view",
+        "target": "element"
+      },
+      {
+        "id": "voice-sample-voice",
+        "source": "voice-sample",
+        "target": "voice"
+      },
+      {
+        "id": "voice-element",
+        "source": "voice",
+        "target": "element"
+      },
+      {
+        "id": "voice-generation",
+        "source": "voice",
+        "target": "generation"
+      },
+      {
+        "id": "element-generation",
+        "source": "element",
+        "target": "generation"
+      },
+      {
+        "id": "generation-output",
+        "source": "generation",
+        "target": "output"
+      }
+    ]
+  },
+  "savedAt": "2026-10-27T00:00:00.000Z"
+}

@@ -321,6 +321,9 @@ function builtInCredentialNotice(node: Node, settings: ApiSettings): RunPrefligh
   }
   const { source } = selectedProviderFields(node);
 
+  if (node.type === 'video' && data.klingV4Pending != null) {
+    return configuredSecret(settings.zhenzhenSd2ApiKey) ? null : capabilityNotice(node, 'provider.seedance-nz-credential-missing', missingDomesticCredentialMessage());
+  }
   if (node.type === 'code-animation') {
     let pending;
     try { pending = readMotionPending(data.motionPending); }

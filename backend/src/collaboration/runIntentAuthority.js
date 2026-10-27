@@ -351,6 +351,13 @@ function hasAuthoritativeImageReference(node, context) {
 function providerDeclarationForNode(node, context = {}) {
   const type = boundedString(node?.type, 120);
   const data = isRecord(node?.data) ? node.data : {};
+  if (type === 'video' && data.klingV4Pending != null) {
+    const pending = data.klingV4Pending;
+    if (!require('../shared/klingV4Contract.json').models.includes(pending.model) || pending.request?.model !== pending.model || !/^[A-Za-z0-9._:-]{1,512}$/.test(pending.taskId || '')) {
+      throw authorityError('intent_kling4_pending_invalid', '待恢复Kling 4任务身份不完整，不会重新提交', [node.id]);
+    }
+    return { provider: 'seedance-nz', model: pending.model };
+  }
   if (type === 'code-animation') {
     const models = require('../shared/motionVideoContract.json').models;
     const versions = Array.isArray(data.motionVersions) ? data.motionVersions : [];

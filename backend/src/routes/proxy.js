@@ -4122,11 +4122,12 @@ router.post('/video/kling/submit', async (req, res) => {
     return res.status(400).json({ success: false, error: '请先在 API 设置中填写“贞贞的平价AI小屋 API Key”' });
   }
   try {
-    const result = await seedanceNz.submitKlingTask(req.body || {}, apiKey);
+    const result = await seedanceNz.submitKlingTask(req.body || {}, apiKey, { signal: req.t8AbortSignal });
     rememberTaskKey(result.taskId, apiKey, {
       provider: 'kling-nz',
       model: result.model,
       taskType: result.taskType,
+      ...(seedanceNz.KLING_V4_MODELS.has(result.model) ? { referenceType: req.body.referenceType || 'image_refer' } : {}),
     });
     return res.json({
       success: true,
@@ -4154,6 +4155,24 @@ router.get('/video/kling/status/:tid', async (req, res) => {
   const apiKey = String(remembered?.apiKey || settings?.zhenzhenSd2ApiKey || '').trim();
   if (!apiKey) return res.status(400).json({ success: false, error: '缺少贞贞的平价AI小屋 API Key' });
   try {
+    const model = String(req.query.model || remembered?.model || '');
+    if (seedanceNz.KLING_V4_MODELS.has(model)) {
+      const result = await seedanceNz.queryKlingV4Task(req.params.tid, model, apiKey, { signal: req.t8AbortSignal });
+      const data = { ...result, failReason: safeDiagnosticText(result.failReason || '', 400, [apiKey]), videoUrls: [], videoUrl: null, audioUrl: null, trialUrl: undefined };
+      for (const [index, remoteUrl] of result.videoUrls.entries()) {
+        const saved = await materializeRemoteTaskOutput({ status: result.status, remoteUrl, kind: 'video', materializationKey: `kling4:${req.params.tid}:${index}`, providerFetchImpl: seedanceNz.fetchRemote, signal: req.t8AbortSignal });
+        if (saved.failure) return sendCompletedRemoteOutputFailure(res, saved.failure, data, { defaultCode: 'kling4_output_unusable', defaultMessage: '视频已生成但尚未保存，请查询原任务。' });
+        if (saved.url) data.videoUrls.push(saved.url);
+      }
+      data.videoUrl = data.videoUrls[0] || null;
+      if (result.status === 'succeeded' && result.trialUrl) {
+        const saved = await materializeRemoteTaskOutput({ status: result.status, remoteUrl: result.trialUrl, kind: 'audio', materializationKey: `kling4-trial:${req.params.tid}`, providerFetchImpl: seedanceNz.fetchRemote, signal: req.t8AbortSignal });
+        if (saved.failure) return sendCompletedRemoteOutputFailure(res, saved.failure, data, { defaultCode: 'kling4_trial_unusable', defaultMessage: 'ID已创建，试听尚未保存，请查询原任务。' });
+        data.audioUrl = saved.url;
+      }
+      if (result.status === 'succeeded' && (result.elementId || result.voiceId)) data.auxiliaryText = JSON.stringify({ schema: 't8-kling-v4-reference-v1', model, elementId: result.elementId, voiceId: result.voiceId, referenceType: remembered?.referenceType || req.query.referenceType || null });
+      return res.json({ success: true, data });
+    }
     const result = await seedanceNz.queryTask(req.params.tid, apiKey);
     const materialized = await materializeRemoteTaskOutput({
       status: result.status,

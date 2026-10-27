@@ -11,7 +11,7 @@ import {
 import { analyzeWorkflow } from '../src/utils/workflowDoctor.ts';
 
 type PortKind = 'text' | 'image' | 'video' | 'audio' | 'model3d' | 'metadata' | 'config' | 'any';
-type Resolver = 'static' | 'upload' | 'material-set' | 'loop' | 'pick-from-set' | 'random-route' | 'subflow' | 'toolbox-param';
+type Resolver = 'video' | 'static' | 'upload' | 'material-set' | 'loop' | 'pick-from-set' | 'random-route' | 'subflow' | 'toolbox-param';
 
 interface ManifestPort {
   id: string | null;
@@ -56,7 +56,7 @@ const EXPECTED_SIGNATURES: Record<string, string> = {
   'feishu-bitable-output': 'static|null[text|image|video|audio|metadata|any]->text[text],metadata[metadata]',
   text: 'static|null[text|image|video|audio]->null[text]',
   image: 'static|null[text|image]->null[image]',
-  video: 'static|null[text|image|video|audio]->null[video]',
+  video: 'video|null[text|image|video|audio]->null[video|text|audio|metadata]',
   'video-edit': 'static|null[video]->null[video|audio]',
   seedance: 'static|null[text|image|video|audio]->null[video]',
   seedance25: 'static|null[text|image|video|audio]->null[video]',
@@ -178,7 +178,7 @@ test('all production types have a valid, exact connection authority matching aud
   assert.deepEqual(Object.keys(manifest.connectionPorts).sort(), Object.keys(EXPECTED_SIGNATURES).sort());
   assert.deepEqual(manifest.types.map((entry) => entry.type).sort(), Object.keys(manifest.connectionPorts).sort());
 
-  const resolvers = new Set<Resolver>(['static', 'upload', 'material-set', 'loop', 'pick-from-set', 'random-route', 'subflow', 'toolbox-param']);
+  const resolvers = new Set<Resolver>(['video', 'static', 'upload', 'material-set', 'loop', 'pick-from-set', 'random-route', 'subflow', 'toolbox-param']);
   const kinds = new Set<PortKind>(['text', 'image', 'video', 'audio', 'model3d', 'metadata', 'config', 'any']);
   for (const [type, authority] of Object.entries(manifest.connectionPorts)) {
     assert.equal(resolvers.has(authority.resolver), true, `${type} resolver`);

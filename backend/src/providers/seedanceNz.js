@@ -315,7 +315,9 @@ const KLING_EDIT_MODELS = new Set([
   'kling-o3-pro-edit',
 ]);
 const KLING_VIDEO_MODELS = new Set([...KLING_T2V_MODELS, ...KLING_I2V_MODELS, ...KLING_R2V_MODELS]);
-const KLING_MODELS = new Set([...KLING_VIDEO_MODELS, ...KLING_EDIT_MODELS]);
+const klingV4 = require('./klingV4');
+const KLING_V4_MODELS = new Set(klingV4.contract.models);
+const KLING_MODELS = new Set([...KLING_VIDEO_MODELS, ...KLING_EDIT_MODELS, ...KLING_V4_MODELS]);
 const KLING_SECONDS = new Set(['5', '10']);
 const KLING_PROMPT_MAX_LENGTH = 20480;
 const KLING_MAX_REFERENCE_IMAGES = 4;
@@ -4326,6 +4328,7 @@ async function uploadKlingImages(sources, apiKey, options = {}) {
 
 async function buildKlingPayload(request, apiKey, options = {}) {
   const model = String(request.model || '').trim();
+  if (KLING_V4_MODELS.has(model)) return klingV4.build(request, apiKey, options, { read: mediaBuffer, upload: uploadMedia, probe: probeFashVsrInput });
   if (!KLING_MODELS.has(model)) throw new Error(`未知 Kling 模型：${model || '(空)'}`);
 
   const taskType = deriveKlingTaskType(model);
@@ -4929,7 +4932,7 @@ async function submitKlingTask(request, apiKey, options = {}) {
   const fetchImpl = getFetchImpl(options);
   const baseUrl = cleanBaseUrl(options.baseUrl);
   const built = await buildKlingPayload(request, apiKey, options);
-  const response = await fetchProviderResponse(fetchImpl, `${baseUrl}/v1/videos`, {
+  const response = await fetchProviderResponse(fetchImpl, `${baseUrl}${KLING_V4_MODELS.has(built.model) ? '/v1/video/generations' : '/v1/videos'}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -4938,9 +4941,21 @@ async function submitKlingTask(request, apiKey, options = {}) {
     body: JSON.stringify(built.payload),
   }, options, 'seedance.nz Kling 任务提交');
   const data = await responseJson(response, 'seedance.nz Kling 任务提交');
-  if (!response.ok) throw createUpstreamError(data, response);
-  const taskId = requiredTaskId(data?.id || data?.task_id || data?.data?.id, 'seedance.nz Kling 任务提交', response);
-  return { taskId, model: built.model, taskType: built.taskType, ...safeProviderTrace(response, data, { pollCount: 0 }) };
+  if (!response.ok || data?.success === false) throw createUpstreamError(data, response);
+  const taskId = requiredTaskId(data?.id || data?.task_id || data?.data?.id || data?.data?.task_id, 'seedance.nz Kling 任务提交', response);
+  return { taskId, model: built.model, taskType: built.kind || built.taskType, ...safeProviderTrace(response, data, { pollCount: 0 }) };
+}
+
+async function queryKlingV4Task(taskId, model, apiKey, options = {}) {
+  if (!String(apiKey || '').trim()) throw new Error('请先设置平价小屋API Key');
+  if (!KLING_V4_MODELS.has(model)) throw Object.assign(new Error('查询Kling 4原任务需要准确模型'), { status: 400 });
+  const id = requiredTaskId(taskId, 'Kling 4查询');
+  const response = await fetchProviderResponse(getFetchImpl(options), `${cleanBaseUrl(options.baseUrl)}/v1/video/generations/${encodeURIComponent(id)}`, {
+    headers: { Authorization: `Bearer ${apiKey}` },
+  }, options, 'seedance.nz Kling 4查询');
+  const data = await responseJson(response, 'seedance.nz Kling 4查询');
+  if (!response.ok || data?.success === false) throw createUpstreamError(data, response);
+  return { ...klingV4.normalize(data, model), ...safeProviderTrace(response, data) };
 }
 
 async function submitUpscalerTask(request, apiKey, options = {}) {
@@ -6620,6 +6635,7 @@ module.exports = {
   KLING_EDIT_MODELS,
   KLING_I2V_MODELS,
   KLING_MODELS,
+  KLING_V4_MODELS,
   KLING_R2V_MODELS,
   KLING_SECONDS,
   KLING_T2V_MODELS,
@@ -6821,6 +6837,7 @@ module.exports = {
   submitHailuoTask,
   submitFlux3Task,
   submitKlingTask,
+  queryKlingV4Task,
   submitUpscalerTask,
   submitFashVsrTask,
   submitVosr2VideoTask,

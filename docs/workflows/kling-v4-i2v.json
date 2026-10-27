@@ -1,0 +1,140 @@
+{
+  "schema": "t8-workflow-fragment",
+  "version": 1,
+  "title": "kling-v4-i2v",
+  "nodes": [
+    {
+      "id": "first-frame",
+      "type": "upload",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "data": {
+        "label": "首帧 / First frame",
+        "uploadType": "image",
+        "lockedUploadType": "image"
+      }
+    },
+    {
+      "id": "last-frame",
+      "type": "upload",
+      "position": {
+        "x": 0,
+        "y": 260
+      },
+      "data": {
+        "label": "可选尾帧 / Optional last frame",
+        "uploadType": "image",
+        "lockedUploadType": "image"
+      }
+    },
+    {
+      "id": "generation",
+      "type": "video",
+      "position": {
+        "x": 430,
+        "y": 60
+      },
+      "data": {
+        "providerSource": "zhenzhen",
+        "providerId": "",
+        "providerModel": "",
+        "videoBuiltinSource": "seedance-nz",
+        "mainId": "kling-v3.0",
+        "model": "kling-v4-i2v",
+        "prompt": "A friendly toy robot gently waves.",
+        "klingV4Duration": 3,
+        "klingV4Resolution": "720p",
+        "klingV4Ratio": "16:9",
+        "klingV4Watermark": "api_default",
+        "reuseResult": false
+      }
+    },
+    {
+      "id": "output",
+      "type": "output",
+      "position": {
+        "x": 900,
+        "y": 60
+      },
+      "data": {
+        "label": "保存结果 / Saved result"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "first-frame-generation",
+      "source": "first-frame",
+      "target": "generation"
+    },
+    {
+      "id": "last-frame-generation",
+      "source": "last-frame",
+      "target": "generation"
+    },
+    {
+      "id": "generation-output",
+      "source": "generation",
+      "target": "output"
+    }
+  ],
+  "nodeCount": 4,
+  "edgeCount": 3,
+  "nodeTypes": [
+    "upload",
+    "video",
+    "output"
+  ],
+  "topologyPreview": {
+    "nodes": [
+      {
+        "id": "first-frame",
+        "type": "upload",
+        "x": 0,
+        "y": 0,
+        "label": "首帧 / First frame"
+      },
+      {
+        "id": "last-frame",
+        "type": "upload",
+        "x": 0,
+        "y": 260,
+        "label": "可选尾帧 / Optional last frame"
+      },
+      {
+        "id": "generation",
+        "type": "video",
+        "x": 430,
+        "y": 60,
+        "label": "kling-v4-i2v"
+      },
+      {
+        "id": "output",
+        "type": "output",
+        "x": 900,
+        "y": 60,
+        "label": "保存结果 / Saved result"
+      }
+    ],
+    "edges": [
+      {
+        "id": "first-frame-generation",
+        "source": "first-frame",
+        "target": "generation"
+      },
+      {
+        "id": "last-frame-generation",
+        "source": "last-frame",
+        "target": "generation"
+      },
+      {
+        "id": "generation-output",
+        "source": "generation",
+        "target": "output"
+      }
+    ]
+  },
+  "savedAt": "2026-10-27T00:00:00.000Z"
+}

@@ -5,6 +5,15 @@ const requiredStrings = ['mainId', 'model', 'videoBuiltinSource', 'ratio', 'reso
   'providerSource', 'providerId', 'providerModel'] as const;
 const requiredNumbers = ['duration', 'seed'] as const;
 export const VIDEO_HISTORY_EXTRA_FIELDS: Record<string, { label: string; type: 'boolean' | 'string' | 'number' | 'number-or-api-default' }> = {
+  klingV4ElementName: { label: 'klingV4ElementName', type: 'string' },
+  klingV4Tags: { label: 'klingV4Tags', type: 'string' },
+  klingV4VoiceName: { label: 'klingV4VoiceName', type: 'string' },
+  klingV4Duration: { label: 'klingV4Duration', type: 'number' },
+  klingV4Resolution: { label: 'klingV4Resolution', type: 'string' },
+  klingV4Ratio: { label: 'klingV4Ratio', type: 'string' },
+  klingV4Watermark: { label: 'klingV4Watermark', type: 'string' },
+  klingV4ReferenceType: { label: 'klingV4ReferenceType', type: 'string' },
+  klingV4VoiceSource: { label: 'klingV4VoiceSource', type: 'string' },
   topazQuality: { label: 'Topaz 修复模型', type: 'string' },
   viduQ4IsRec: { label: 'Vidu Q4 is_rec', type: 'boolean' },
   viduQ4Watermark: { label: 'Vidu Q4 watermark', type: 'boolean' },

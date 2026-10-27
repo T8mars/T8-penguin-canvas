@@ -118,6 +118,7 @@ const AGENT_RUN_VALIDATION_SUBFLOW_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,1
 const PORT_KINDS = new Set(['text', 'image', 'video', 'audio', 'model3d', 'metadata', 'config', 'any']);
 const MATERIAL_PORT_KINDS = new Set(['text', 'image', 'video', 'audio']);
 const CONNECTION_PORT_RESOLVERS = new Set([
+  'video',
   'static',
   'upload',
   'material-set',
@@ -926,6 +927,13 @@ function exactConnectionPortsForNode(node, options = {}) {
   const resolver = String(descriptor.resolver);
   const data = node?.data && typeof node.data === 'object' && !Array.isArray(node.data) ? node.data : {};
   if (resolver === 'static') return descriptorConnectionPorts(type, descriptor);
+  if (resolver === 'video') {
+    const model = String(data.klingV4Pending?.model || data.model || '');
+    const auxiliary = require('../shared/klingV4Contract.json').auxiliaryModels.includes(model) && (!data.providerSource || data.providerSource === 'zhenzhen');
+    const kinds = auxiliary ? model.endsWith('voice') ? ['text', 'audio', 'metadata'] : ['text', 'metadata'] : ['video'];
+    return { inputs: proposalConnectionPorts(descriptor.inputs, `${type} input port`),
+      outputs: proposalConnectionPorts(descriptor.outputs.map(port => narrowedDescriptorPort(port, kinds)), `${type} output port`) };
+  }
   if (resolver === 'upload') {
     const kind = String(data.uploadType || '');
     const kinds = ['image', 'video', 'audio', 'model3d'].includes(kind) ? [kind] : [];

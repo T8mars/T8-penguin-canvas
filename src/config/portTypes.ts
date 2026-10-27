@@ -19,6 +19,7 @@
  */
 import type { Node } from '@xyflow/react';
 import schemaManifest from '../../backend/src/shared/canvasNodeSchema.json' with { type: 'json' };
+import klingV4 from '../../backend/src/shared/klingV4Contract.json';
 import { normalizeRandomRouteSettings, randomRouteOutputHandle } from '../utils/randomRoute.ts';
 
 export type PortType =
@@ -39,6 +40,7 @@ export interface NodePorts {
 }
 
 export type ConnectionPortResolver =
+  | 'video'
   | 'static'
   | 'upload'
   | 'material-set'
@@ -89,6 +91,7 @@ const PORT_TYPES = new Set<PortType>(['text', 'image', 'video', 'audio', 'model3
 const MATERIAL_KINDS = new Set<PortType>(['text', 'image', 'video', 'audio']);
 const UPLOAD_KINDS = new Set<PortType>(['image', 'video', 'audio', 'model3d']);
 const CONNECTION_PORT_RESOLVERS = new Set<ConnectionPortResolver>([
+  'video',
   'static', 'upload', 'material-set', 'loop', 'pick-from-set', 'random-route', 'subflow', 'toolbox-param',
 ]);
 const MANIFEST_CONNECTION_PORTS = (schemaManifest as unknown as CanvasNodePortManifest).connectionPorts;
@@ -299,6 +302,12 @@ export function resolveNodeConnectionPorts(node: Node | null | undefined): NodeC
   if (!authority.resolved) return authority;
   const data = ((node.data || {}) as Record<string, unknown>);
   if (authority.resolver === 'static') return authority;
+  if (authority.resolver === 'video') {
+    const model = String(data.klingV4Pending && typeof data.klingV4Pending === 'object' ? (data.klingV4Pending as Record<string, unknown>).model : data.model || '');
+    const auxiliary = klingV4.auxiliaryModels.includes(model) && (!data.providerSource || data.providerSource === 'zhenzhen');
+    const kinds: PortType[] = auxiliary ? model.endsWith('voice') ? ['text', 'audio', 'metadata'] : ['text', 'metadata'] : ['video'];
+    return { ...authority, outputs: authority.outputs.map(port => portWithKinds(port, kinds)) };
+  }
   if (authority.resolver === 'subflow') return resolveSubflowConnectionPorts(node);
 
   if (authority.resolver === 'upload') {
