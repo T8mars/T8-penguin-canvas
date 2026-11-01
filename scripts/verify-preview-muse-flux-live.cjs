@@ -91,7 +91,7 @@ async function main() {
         report.results[item.id]={passed:true,model:item.model,references:images.length,upstreamHttpStatus:result.upstreamHttpStatus,status:result.status,polls,elapsedSeconds:(Date.now()-started)/1000,outputs:[{file:path.relative(root,file),bytes:downloaded.buffer.length,sha256:crypto.createHash('sha256').update(downloaded.buffer).digest('hex'),...details}]};
         log(item.id, 'verified', 'passed');
       } catch (error) {
-        report.results[item.id] = { passed: false, model: item.model, referenceCount: images.length, 
+        report.results[item.id] = { passed: false, model: item.model, referenceCount: images.length,
           ...(lastResult ? { providerTerminalStatus: lastResult.status, upstreamHttpStatus: lastResult.upstreamHttpStatus, usage: lastResult.usage } : {}),
           error: safeError(error, key) };
         log(item.id, 'failed', report.results[item.id].error);
