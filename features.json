@@ -395,7 +395,7 @@
     "details": "docs/zcanvas-saved-media-transfer.md"
   },
   "$schema": "本文件为 T8-penguin-canvas 节点清单防丢失锁,任何节点删减都需要在 roadmap.md 中说明并更新本文件。",
-  "version": "3.4.5",
+  "version": "3.4.6",
   "zcanvasRunApprovalRecovery20261020": {
     "status": "released-v3.3.7-local-verified",
     "summary": "原生运行计划单次操作绑定、同作用域GET恢复；20项限定回归与全新TEMP实际路由/账本通过，未运行Provider，真实窗口/生产版待验。",
@@ -514,7 +514,12 @@
     "status": "released-v3.3.4-dual-platform-live-verified",
     "releaseIncluded": true,
     "provider": "seedance-nz",
-    "models": ["zhenzhen-image-nb-pro-lowprice", "zhenzhen-image-nb-2.1-lowprice", "doubao-voice-clone", "doubao-seed-icl-2.0"],
+    "models": [
+      "zhenzhen-image-nb-pro-lowprice",
+      "zhenzhen-image-nb-2.1-lowprice",
+      "doubao-voice-clone",
+      "doubao-seed-icl-2.0"
+    ],
     "summary": "Budget-only Banana 2 / Seed Audio additions, authoritative speaker connection, ordered outputs, exact metadata, PCM playback, original-task recovery, nine safe workflows and unconditional crisp node UI.",
     "details": "docs/nb-lowprice-doubao.md",
     "verification": "8/8 real tasks with complete output decoding; 672 Chromium style combinations and production control interactions passed. Targeted protocol, route, authority, Creator and recovery regressions passed; overlapping suites are not summed.",
@@ -578,7 +583,10 @@
     "status": "released-v3.3.3-dual-platform-live-verified",
     "releaseIncluded": true,
     "provider": "seedance-nz",
-    "models": ["mai-image-2-6", "mai-image-2-6-flash"],
+    "models": [
+      "mai-image-2-6",
+      "mai-image-2-6-flash"
+    ],
     "summary": "Budget-only Mai image tab, exact sizing/grounding contract, ordered 0-5 PNG references, original-task recovery, history and six credential-free workflows; old defaults unchanged.",
     "details": "docs/mai-image.md",
     "verification": "6/6 real tasks succeeded with HTTP 200; six PNG outputs fully downloaded, decoded and checked nonblank. 135/135 frontend/protocol/history/workflow regressions and 49/49 backend checks passed, alongside type-check, i18n and capability sync.",
@@ -623,7 +631,14 @@
     "date": "2026-10-10",
     "releaseIncluded": true,
     "provider": "seedance-nz",
-    "models": ["zhenzhen-image-nb-2.1", "flux-3-image", "vidu-q4-preview-global-i2v", "vidu-q4-preview-global-r2v", "vidu-q4-preview-i2v", "vidu-q4-preview-r2v"],
+    "models": [
+      "zhenzhen-image-nb-2.1",
+      "flux-3-image",
+      "vidu-q4-preview-global-i2v",
+      "vidu-q4-preview-global-r2v",
+      "vidu-q4-preview-i2v",
+      "vidu-q4-preview-r2v"
+    ],
     "summary": "Budget-only Banana 2.1 in Banana 2, new Flux image tab, four Q4 models in Vidu. Exact per-model parameters, genuine MP3 references, original-task recovery and eight credential-free workflows; old defaults retained.",
     "details": "docs/nb21-flux-viduq4.md",
     "verification": {
@@ -662,12 +677,36 @@
     "sourceCommit": "bf1dbff365cc169d242d5f8cb1d5358469ff4d83",
     "macWorkflow": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/37675076979",
     "assets": {
-      "windowsInstaller": { "name": "T8-PenguinCanvas-Setup-3.2.9.exe", "bytes": 1375957686, "sha256": "bc16e05ac301528318967cc8bab06f9fd7ea04b93f4475f025a641701ef3b275" },
-      "windowsBlockmap": { "name": "T8-PenguinCanvas-Setup-3.2.9.exe.blockmap", "bytes": 1435166, "sha256": "53df6253d269332a55793226978e03aed469e031bdac4d20b71981447a8b7615" },
-      "windowsUpdater": { "name": "latest.yml", "bytes": 362, "sha256": "4229b95cd86dfebba4578d892d88320ae7ba939ac2f86193c0e9cac4c990cbb2" },
-      "macDmg": { "name": "T8-PenguinCanvas-3.2.9-mac-arm64.dmg", "bytes": 514627889, "sha256": "6b359526f185717be4449390b159c244eba2755956dc3cc9167880a1976ed33b" },
-      "macZip": { "name": "T8-PenguinCanvas-3.2.9-mac-arm64.zip", "bytes": 506546724, "sha256": "2ee7bbd1f986f908b1b8cb8499620d932ddfb68e27822a09f86520e4b28ac76c" },
-      "macUpdater": { "name": "latest-mac.yml", "bytes": 536, "sha256": "c373a1d29f02f8d484d3a08d133e29be9047f77697fe3c93aa57d0701d722f67" }
+      "windowsInstaller": {
+        "name": "T8-PenguinCanvas-Setup-3.2.9.exe",
+        "bytes": 1375957686,
+        "sha256": "bc16e05ac301528318967cc8bab06f9fd7ea04b93f4475f025a641701ef3b275"
+      },
+      "windowsBlockmap": {
+        "name": "T8-PenguinCanvas-Setup-3.2.9.exe.blockmap",
+        "bytes": 1435166,
+        "sha256": "53df6253d269332a55793226978e03aed469e031bdac4d20b71981447a8b7615"
+      },
+      "windowsUpdater": {
+        "name": "latest.yml",
+        "bytes": 362,
+        "sha256": "4229b95cd86dfebba4578d892d88320ae7ba939ac2f86193c0e9cac4c990cbb2"
+      },
+      "macDmg": {
+        "name": "T8-PenguinCanvas-3.2.9-mac-arm64.dmg",
+        "bytes": 514627889,
+        "sha256": "6b359526f185717be4449390b159c244eba2755956dc3cc9167880a1976ed33b"
+      },
+      "macZip": {
+        "name": "T8-PenguinCanvas-3.2.9-mac-arm64.zip",
+        "bytes": 506546724,
+        "sha256": "2ee7bbd1f986f908b1b8cb8499620d932ddfb68e27822a09f86520e4b28ac76c"
+      },
+      "macUpdater": {
+        "name": "latest-mac.yml",
+        "bytes": 536,
+        "sha256": "c373a1d29f02f8d484d3a08d133e29be9047f77697fe3c93aa57d0701d722f67"
+      }
     }
   },
   "electronReleaseV328": {
@@ -681,12 +720,36 @@
     "sourceCommit": "af3530b84ae821695c96c1bce03de432fd1dfb9f",
     "macWorkflow": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/37657034423",
     "assets": {
-      "windowsInstaller": { "name": "T8-PenguinCanvas-Setup-3.2.8.exe", "bytes": 1375947434, "sha256": "cbd217f2c3aa6366f4a5a0d2e90ab6c8a2c04879474ae92c314add50d7c0d90f" },
-      "windowsBlockmap": { "name": "T8-PenguinCanvas-Setup-3.2.8.exe.blockmap", "bytes": 1435481, "sha256": "34dfa55237bbe9e9a3c60e97d4c2bf65e5d85938759b9cc58eb73ff332b3143f" },
-      "windowsUpdater": { "name": "latest.yml", "bytes": 362, "sha256": "301f83b712c0fe04cb8e482de40a768cad8191c1fd9147e277096a0c973ca722" },
-      "macDmg": { "name": "T8-PenguinCanvas-3.2.8-mac-arm64.dmg", "bytes": 514559138, "sha256": "51e26d604a34602f24820afbe7d0de04ba2455f369fb9583531aefe1c642ca92" },
-      "macZip": { "name": "T8-PenguinCanvas-3.2.8-mac-arm64.zip", "bytes": 506536854, "sha256": "d011451255d44328bb30c2d4968876cc174ddfa0e2801af57c44e8bd16489f22" },
-      "macUpdater": { "name": "latest-mac.yml", "bytes": 536, "sha256": "b0b98f8546d5df5e574c2a7de151ae65238a416f56d7e0fc11e103722086f392" }
+      "windowsInstaller": {
+        "name": "T8-PenguinCanvas-Setup-3.2.8.exe",
+        "bytes": 1375947434,
+        "sha256": "cbd217f2c3aa6366f4a5a0d2e90ab6c8a2c04879474ae92c314add50d7c0d90f"
+      },
+      "windowsBlockmap": {
+        "name": "T8-PenguinCanvas-Setup-3.2.8.exe.blockmap",
+        "bytes": 1435481,
+        "sha256": "34dfa55237bbe9e9a3c60e97d4c2bf65e5d85938759b9cc58eb73ff332b3143f"
+      },
+      "windowsUpdater": {
+        "name": "latest.yml",
+        "bytes": 362,
+        "sha256": "301f83b712c0fe04cb8e482de40a768cad8191c1fd9147e277096a0c973ca722"
+      },
+      "macDmg": {
+        "name": "T8-PenguinCanvas-3.2.8-mac-arm64.dmg",
+        "bytes": 514559138,
+        "sha256": "51e26d604a34602f24820afbe7d0de04ba2455f369fb9583531aefe1c642ca92"
+      },
+      "macZip": {
+        "name": "T8-PenguinCanvas-3.2.8-mac-arm64.zip",
+        "bytes": 506536854,
+        "sha256": "d011451255d44328bb30c2d4968876cc174ddfa0e2801af57c44e8bd16489f22"
+      },
+      "macUpdater": {
+        "name": "latest-mac.yml",
+        "bytes": 536,
+        "sha256": "b0b98f8546d5df5e574c2a7de151ae65238a416f56d7e0fc11e103722086f392"
+      }
     }
   },
   "electronReleaseV327": {
@@ -816,7 +879,10 @@
   "githubIssueTriage20261001": {
     "status": "released-v3.2.3-targeted-verified",
     "releaseIncluded": true,
-    "issues": [30, 31],
+    "issues": [
+      30,
+      31
+    ],
     "summary": "RH 三入口共用真实选项解析并移除字段名猜测；本地化运行异步拒绝后释放启动锁，保留 Run 与输入一致性门。",
     "verification": "新专项14/14、相邻十套回归81/81、TypeScript、i18n、feature-sync与公开边界门通过。",
     "boundary": "0开放PR、5开放Issues；现场复验、RH实网及#31输入变化来源未覆盖，Issues保持开放。",
@@ -1020,7 +1086,11 @@
   "sunoWorkshopV620260912": {
     "status": "released-v3.1.6-generation-live-verified-wild-identity-unconfirmed",
     "releaseIncluded": true,
-    "models": { "v6": "chirp-hawk", "v6 wild": "chirp-hawk-wild", "v6 mini": "chirp-goose" },
+    "models": {
+      "v6": "chirp-hawk",
+      "v6 wild": "chirp-hawk-wild",
+      "v6 mini": "chirp-goose"
+    },
     "scope": "Existing Audio node / Suno / Zhenzhen AI Workshop only. Append version options; preserve legacy versions/default v5.5, saved canvas data and independent Budget AI House actions. Shared generate/cover/extend submit routes use exact V6 mv values; V6 Unicode prompt5000/tags1000 validated before upload/Provider submit. Informational 8-minute maximum and provider legacy-to-base redirect, no invented duration parameter.",
     "reference": "F:/AI-T8-video-onekey/ComfyUI/custom_nodes/Comfyui-zhenzhen/suno_workshop.py and Comfly.py; supplied channel contract; https://suno.com/blog/introducing-v6 is product context only, not API specification.",
     "verification": "23/23 focused+adjacent tests (~637ms), 3 changed frontend files transpile syntax clean and backend Node syntax clean, no full semantic/build/UI claim. Actual submit route executed with isolated settings/ledger (no user DB) against ai.t8star.org: one POST/model, all HTTP200, six MP3 files downloaded, SHA256/probed/full audio stream decoded. Sequential BelowNormal, Node192MiB, ffmpeg1thread, no Electron/full suite/agents. Evidence output/suno-v6-live-2026-09-11T17-09-26-045Z/report.json; passed field covers generation/decode, not exact variant identity.",
@@ -1204,11 +1274,33 @@
       "媒体技能固定输入模态/数量、最大产物数/镜头数、检查项目和定义摘要，写入任务快照并在现有 V2 动作与确认入口校验；普通私人导入不会取得媒体执行权限。"
     ],
     "verification": {
-      "electronAbiTests": { "passed": 172, "failed": 0, "files": 9 },
-      "frontendTests": { "passed": 48, "failed": 0, "files": 3 },
-      "skillFormatValidation": { "passed": 3, "qualityCertification": false },
-      "bundle": { "skills": 3, "revision": 1, "serializedBytes": 22649, "sourceDriftCheck": "passed" },
-      "browser": { "scenarios": 3, "passed": 3, "skillHttp": "real-isolated-temporary-store", "conversationAndProvider": "mock", "report": "artifacts/creator-skill-ui/report.json" },
+      "electronAbiTests": {
+        "passed": 172,
+        "failed": 0,
+        "files": 9
+      },
+      "frontendTests": {
+        "passed": 48,
+        "failed": 0,
+        "files": 3
+      },
+      "skillFormatValidation": {
+        "passed": 3,
+        "qualityCertification": false
+      },
+      "bundle": {
+        "skills": 3,
+        "revision": 1,
+        "serializedBytes": 22649,
+        "sourceDriftCheck": "passed"
+      },
+      "browser": {
+        "scenarios": 3,
+        "passed": 3,
+        "skillHttp": "real-isolated-temporary-store",
+        "conversationAndProvider": "mock",
+        "report": "artifacts/creator-skill-ui/report.json"
+      },
       "typeCheck": "passed",
       "i18nCheck": "passed-4484-keys",
       "paidProviderCallsThisStage": 0
@@ -1361,7 +1453,7 @@
       "signedUrlPersisted": false,
       "rawProviderResponsePersisted": false
     },
-  "releaseBoundary": "已随固定源码/Tag d3d16054f049bfa01aa64e1432c5d382cc806f59 正式发布于 v3.1.5；双平台六资产、两套更新清单与远端完整性验证均通过。"
+    "releaseBoundary": "已随固定源码/Tag d3d16054f049bfa01aa64e1432c5d382cc806f59 正式发布于 v3.1.5；双平台六资产、两套更新清单与远端完整性验证均通过。"
   },
   "gptImage25Workshop20260909": {
     "status": "released-v3.1.5-live-verified",
@@ -1686,7 +1778,7 @@
       "sanitizedReport": "output/hailuo-h3-max-turbo-live-20260904/report.json",
       "credentialsPersisted": false,
       "submissionRule": "每个模型只提交一次；任务断点在测试期间复用，完成后不重复提交。",
-        "scope": "核心目录已完成开发与真实 Provider 验收；已纳入 v3.1.4 正式发布范围，Electron、固定 Tag、双平台自动更新资产与远端完整性仍须通过发布门禁。"
+      "scope": "核心目录已完成开发与真实 Provider 验收；已纳入 v3.1.4 正式发布范围，Electron、固定 Tag、双平台自动更新资产与远端完整性仍须通过发布门禁。"
     }
   },
   "hailuoH3MaxVideoModels": {
@@ -1768,7 +1860,7 @@
       "真实本地画布无控制台错误；1280x720 桌面面板实测宽 716.8px，520x800 与 360x740 窄屏均无横向溢出，关闭重开定位最新回复，历史筛选重开归零，三个建议持续可见。",
       "真实 LLM 调用返回“已准备好继续创作。”；回复期间预写的“下一轮草稿：加入暖色晨光”连续保留到正式回复完成。桌面和两档窄屏截图位于 artifacts/creator-agent-wide-fixes-20260901/。",
       "首次启动的隔离真实浏览器验收确认：画布权威状态就绪后 Creator 才出现，六阶段、对话框和启动提示正常，控制台错误为 0；临时项目数据与测试进程已清理。",
-    "已随 v3.1.3 正式发布；固定源码、Windows 与真实 macOS arm64 双平台包、自动更新清单及远端完整回下载均通过。"
+      "已随 v3.1.3 正式发布；固定源码、Windows 与真实 macOS arm64 双平台包、自动更新清单及远端完整回下载均通过。"
     ]
   },
   "electronReleaseV312": {
@@ -1783,12 +1875,36 @@
     "latest": true,
     "macWorkflow": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/33376172560",
     "artifacts": [
-      { "name": "T8-PenguinCanvas-Setup-3.1.2.exe", "size": 1360758784, "sha256": "019c70b144c919207e9f5db3b827d802dbb9063ef8b3895378e50c98ecca6a40" },
-      { "name": "T8-PenguinCanvas-Setup-3.1.2.exe.blockmap", "size": 1418279, "sha256": "48afd60e6c107d5225819964775d3a073cfb9bfdd89f22571f4672f4f42db7ac" },
-      { "name": "latest.yml", "size": 362, "sha256": "2ff3465378796f9060500f177760e357e62f17c7d3254dcaf49bbc195f9fa788" },
-      { "name": "T8-PenguinCanvas-3.1.2-mac-arm64.dmg", "size": 493926733, "sha256": "4420cefe0cd5b114922c182b144f52739bd1d1b5a38d4730ab6753679625e70e" },
-      { "name": "T8-PenguinCanvas-3.1.2-mac-arm64.zip", "size": 486544879, "sha256": "298f121779a33a810d259a56036798b15bbc08c861556f822cb47192dd2a1ff5" },
-      { "name": "latest-mac.yml", "size": 536, "sha256": "3c8424f556a69f3dc7f6a1f7da6a8381244275f888f314c2a55836dd4998fc0b" }
+      {
+        "name": "T8-PenguinCanvas-Setup-3.1.2.exe",
+        "size": 1360758784,
+        "sha256": "019c70b144c919207e9f5db3b827d802dbb9063ef8b3895378e50c98ecca6a40"
+      },
+      {
+        "name": "T8-PenguinCanvas-Setup-3.1.2.exe.blockmap",
+        "size": 1418279,
+        "sha256": "48afd60e6c107d5225819964775d3a073cfb9bfdd89f22571f4672f4f42db7ac"
+      },
+      {
+        "name": "latest.yml",
+        "size": 362,
+        "sha256": "2ff3465378796f9060500f177760e357e62f17c7d3254dcaf49bbc195f9fa788"
+      },
+      {
+        "name": "T8-PenguinCanvas-3.1.2-mac-arm64.dmg",
+        "size": 493926733,
+        "sha256": "4420cefe0cd5b114922c182b144f52739bd1d1b5a38d4730ab6753679625e70e"
+      },
+      {
+        "name": "T8-PenguinCanvas-3.1.2-mac-arm64.zip",
+        "size": 486544879,
+        "sha256": "298f121779a33a810d259a56036798b15bbc08c861556f822cb47192dd2a1ff5"
+      },
+      {
+        "name": "latest-mac.yml",
+        "size": 536,
+        "sha256": "3c8424f556a69f3dc7f6a1f7da6a8381244275f888f314c2a55836dd4998fc0b"
+      }
     ],
     "scope": [
       "Creator Agent 默认入口切换到极简 V2：六步进度、自然对话、三个语义分工明确的建议、单一生成确认、对话内媒体和右上角四项模型设置；每轮正式回复恰好调用一次用户选择的真实 LLM，不使用离线模板冒充成功且全程不显示费用。",
@@ -1825,12 +1941,36 @@
     "latest": false,
     "macWorkflow": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/33286855296",
     "artifacts": [
-      { "name": "T8-PenguinCanvas-Setup-3.1.1.exe", "size": 1321222616, "sha256": "12d45cc3bf390f69325d0a69af5a38a5c57a6ab3c30ca967453d2ff032667f17" },
-      { "name": "T8-PenguinCanvas-Setup-3.1.1.exe.blockmap", "size": 1376749, "sha256": "da933e86432d7d09e81785f862d5db2f59a9f0969dee30144bcd7822cb89daaf" },
-      { "name": "latest.yml", "size": 362, "sha256": "8e767d8794efafcd9c3bec3599554baf796f4b4508add1d9e905220d178f2c65" },
-      { "name": "T8-PenguinCanvas-3.1.1-mac-arm64.dmg", "size": 493680189, "sha256": "f5358085dc70fb8516aa6930dcde7b8cb6851afc0decb5f906bddf1c41c43962" },
-      { "name": "T8-PenguinCanvas-3.1.1-mac-arm64.zip", "size": 486361409, "sha256": "96b1c1fcff69bfe625eabdcbca58e6534adf4e9fe554bdc57b8edad10f5973b5" },
-      { "name": "latest-mac.yml", "size": 536, "sha256": "47084088199a3aea1dd9da3bf509b5fb3e6034ed6e13e89097e8c0af14d0fd31" }
+      {
+        "name": "T8-PenguinCanvas-Setup-3.1.1.exe",
+        "size": 1321222616,
+        "sha256": "12d45cc3bf390f69325d0a69af5a38a5c57a6ab3c30ca967453d2ff032667f17"
+      },
+      {
+        "name": "T8-PenguinCanvas-Setup-3.1.1.exe.blockmap",
+        "size": 1376749,
+        "sha256": "da933e86432d7d09e81785f862d5db2f59a9f0969dee30144bcd7822cb89daaf"
+      },
+      {
+        "name": "latest.yml",
+        "size": 362,
+        "sha256": "8e767d8794efafcd9c3bec3599554baf796f4b4508add1d9e905220d178f2c65"
+      },
+      {
+        "name": "T8-PenguinCanvas-3.1.1-mac-arm64.dmg",
+        "size": 493680189,
+        "sha256": "f5358085dc70fb8516aa6930dcde7b8cb6851afc0decb5f906bddf1c41c43962"
+      },
+      {
+        "name": "T8-PenguinCanvas-3.1.1-mac-arm64.zip",
+        "size": 486361409,
+        "sha256": "96b1c1fcff69bfe625eabdcbca58e6534adf4e9fe554bdc57b8edad10f5973b5"
+      },
+      {
+        "name": "latest-mac.yml",
+        "size": 536,
+        "sha256": "47084088199a3aea1dd9da3bf509b5fb3e6034ed6e13e89097e8c0af14d0fd31"
+      }
     ],
     "scope": [
       "完整承接 v3.1.0 的 Creator Agent 作品化、多语言本地化大师和 Veo TAB 模型 zhenzhen-video-g-omni-1.1-flash-lowprice，不回退旧画布、Provider、模型、工作流或 MiniMax Music3。",
@@ -1893,12 +2033,36 @@
     "latest": true,
     "macWorkflow": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/33084748534",
     "artifacts": [
-      { "name": "T8-PenguinCanvas-Setup-3.0.9.exe", "size": 1354465393, "sha256": "261da569f2c539c9e059e439af9696132cca3feb90a08cdc735a9f8d48d5e62d" },
-      { "name": "T8-PenguinCanvas-Setup-3.0.9.exe.blockmap", "size": 1412817, "sha256": "3a3c71c99148d5cd6c8de4152a0758556abc6067391c4c160e9667c02145b749" },
-      { "name": "latest.yml", "size": 362, "sha256": "138b36c3ac7659f76d175410b85c1647ac91629e71847cebbd148a9056196e5c" },
-      { "name": "T8-PenguinCanvas-3.0.9-mac-arm64.dmg", "size": 468399962, "sha256": "64dc6a724b71dd5906c79ca64db554074f783db58b5e6e54f696078a2a3a1fb3" },
-      { "name": "T8-PenguinCanvas-3.0.9-mac-arm64.zip", "size": 461304305, "sha256": "98fdf87857f4192fcc3e99725b0426603425251ce1b41739e8f85223f4a74be2" },
-      { "name": "latest-mac.yml", "size": 536, "sha256": "a4dd8699441bd0a6f0f1a68d6c451dc848eceddd136a7e8eb29d2de50da953f3" }
+      {
+        "name": "T8-PenguinCanvas-Setup-3.0.9.exe",
+        "size": 1354465393,
+        "sha256": "261da569f2c539c9e059e439af9696132cca3feb90a08cdc735a9f8d48d5e62d"
+      },
+      {
+        "name": "T8-PenguinCanvas-Setup-3.0.9.exe.blockmap",
+        "size": 1412817,
+        "sha256": "3a3c71c99148d5cd6c8de4152a0758556abc6067391c4c160e9667c02145b749"
+      },
+      {
+        "name": "latest.yml",
+        "size": 362,
+        "sha256": "138b36c3ac7659f76d175410b85c1647ac91629e71847cebbd148a9056196e5c"
+      },
+      {
+        "name": "T8-PenguinCanvas-3.0.9-mac-arm64.dmg",
+        "size": 468399962,
+        "sha256": "64dc6a724b71dd5906c79ca64db554074f783db58b5e6e54f696078a2a3a1fb3"
+      },
+      {
+        "name": "T8-PenguinCanvas-3.0.9-mac-arm64.zip",
+        "size": 461304305,
+        "sha256": "98fdf87857f4192fcc3e99725b0426603425251ce1b41739e8f85223f4a74be2"
+      },
+      {
+        "name": "latest-mac.yml",
+        "size": 536,
+        "sha256": "a4dd8699441bd0a6f0f1a68d6c451dc848eceddd136a7e8eb29d2de50da953f3"
+      }
     ],
     "scope": [
       "核心目录开发允许在当前 attached 分支直接运行，不因分支名带 release 强制切换目录或分支；detached HEAD 继续失败关闭。",
@@ -1932,12 +2096,36 @@
     "latest": true,
     "macWorkflow": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/33050616302",
     "artifacts": [
-      { "name": "T8-PenguinCanvas-Setup-3.0.8.exe", "size": 1354463465, "sha256": "18d50bcef887a0c1ae4459dbe91841ec19395a9b96b46148ba0acce84bb1f999" },
-      { "name": "T8-PenguinCanvas-Setup-3.0.8.exe.blockmap", "size": 1413574, "sha256": "cba423e4ee5aace84122e56228c62f93747558f481a34064491fa5055fd824f1" },
-      { "name": "latest.yml", "size": 362, "sha256": "1dcca85d8daf4e4ba29785b2346e5d8a59398e02771768709a95e9d45a07451b" },
-      { "name": "T8-PenguinCanvas-3.0.8-mac-arm64.dmg", "size": 468423467, "sha256": "ecb51699973761f40e2615e2eaa8443edf69c6bc5f5c4269faaf113af79b21a2" },
-      { "name": "T8-PenguinCanvas-3.0.8-mac-arm64.zip", "size": 461302294, "sha256": "c7fdc3912928a4e7794b2e14580ef9da6d0c594f2e29db4eea726412ee6420aa" },
-      { "name": "latest-mac.yml", "size": 536, "sha256": "b3bac7017e33bd4c0e1672a7bf6d5b7576a226167ef0d50b00d4b4a8d7beacf9" }
+      {
+        "name": "T8-PenguinCanvas-Setup-3.0.8.exe",
+        "size": 1354463465,
+        "sha256": "18d50bcef887a0c1ae4459dbe91841ec19395a9b96b46148ba0acce84bb1f999"
+      },
+      {
+        "name": "T8-PenguinCanvas-Setup-3.0.8.exe.blockmap",
+        "size": 1413574,
+        "sha256": "cba423e4ee5aace84122e56228c62f93747558f481a34064491fa5055fd824f1"
+      },
+      {
+        "name": "latest.yml",
+        "size": 362,
+        "sha256": "1dcca85d8daf4e4ba29785b2346e5d8a59398e02771768709a95e9d45a07451b"
+      },
+      {
+        "name": "T8-PenguinCanvas-3.0.8-mac-arm64.dmg",
+        "size": 468423467,
+        "sha256": "ecb51699973761f40e2615e2eaa8443edf69c6bc5f5c4269faaf113af79b21a2"
+      },
+      {
+        "name": "T8-PenguinCanvas-3.0.8-mac-arm64.zip",
+        "size": 461302294,
+        "sha256": "c7fdc3912928a4e7794b2e14580ef9da6d0c594f2e29db4eea726412ee6420aa"
+      },
+      {
+        "name": "latest-mac.yml",
+        "size": 536,
+        "sha256": "b3bac7017e33bd4c0e1672a7bf6d5b7576a226167ef0d50b00d4b4a8d7beacf9"
+      }
     ],
     "scope": [
       "火山素材节点把最多 15 个已选素材集中在节点内一个有界横向预览栏，支持逐项删除和一键清空；预览签名 URL 仅驻留内存。",
@@ -1971,12 +2159,36 @@
     "latest": true,
     "macWorkflow": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/32993331496",
     "artifacts": [
-      { "name": "T8-PenguinCanvas-Setup-3.0.7.exe", "size": 1354459972, "sha256": "264aa349b1448471cb645c2cac7611b1ba6defbf65b4cb9b593c48049a8d14a6" },
-      { "name": "T8-PenguinCanvas-Setup-3.0.7.exe.blockmap", "size": 1413207, "sha256": "2adb9d26747e44dfab349663fab5a242c4f4729909c1a5f44dc53e9aa0035759" },
-      { "name": "latest.yml", "size": 362, "sha256": "627dd9137977c7b66a8ee0f67c30c56abcb26212cfe9b4f4b8fd5ed33cc6a90f" },
-      { "name": "T8-PenguinCanvas-3.0.7-mac-arm64.dmg", "size": 468381079, "sha256": "62d131e7db9f83e22e38ac0be0b5854da5d06da45e539524f7023268e18f4b7a" },
-      { "name": "T8-PenguinCanvas-3.0.7-mac-arm64.zip", "size": 461299243, "sha256": "2f6a1e523d53550a0fe82352c68050d64f8f169f85663c86aab05b59a229beb1" },
-      { "name": "latest-mac.yml", "size": 536, "sha256": "2370e49e15d4145764c0391a732477b3d681c31ef35b369abbbf5628cafbdd9f" }
+      {
+        "name": "T8-PenguinCanvas-Setup-3.0.7.exe",
+        "size": 1354459972,
+        "sha256": "264aa349b1448471cb645c2cac7611b1ba6defbf65b4cb9b593c48049a8d14a6"
+      },
+      {
+        "name": "T8-PenguinCanvas-Setup-3.0.7.exe.blockmap",
+        "size": 1413207,
+        "sha256": "2adb9d26747e44dfab349663fab5a242c4f4729909c1a5f44dc53e9aa0035759"
+      },
+      {
+        "name": "latest.yml",
+        "size": 362,
+        "sha256": "627dd9137977c7b66a8ee0f67c30c56abcb26212cfe9b4f4b8fd5ed33cc6a90f"
+      },
+      {
+        "name": "T8-PenguinCanvas-3.0.7-mac-arm64.dmg",
+        "size": 468381079,
+        "sha256": "62d131e7db9f83e22e38ac0be0b5854da5d06da45e539524f7023268e18f4b7a"
+      },
+      {
+        "name": "T8-PenguinCanvas-3.0.7-mac-arm64.zip",
+        "size": 461299243,
+        "sha256": "2f6a1e523d53550a0fe82352c68050d64f8f169f85663c86aab05b59a229beb1"
+      },
+      {
+        "name": "latest-mac.yml",
+        "size": 536,
+        "sha256": "2370e49e15d4145764c0391a732477b3d681c31ef35b369abbbf5628cafbdd9f"
+      }
     ],
     "scope": [
       "完成 GitHub PR #28 的 12 文件逐项协议审计；PR 前端引用未提交且仓库不存在的 VolcAssetNode，因此继续由核心原生 volcengine-assets 承接，不直接合并不可构建插件。",
@@ -2011,12 +2223,36 @@
     "latest": true,
     "macWorkflow": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/32987354091",
     "artifacts": [
-      { "name": "T8-PenguinCanvas-Setup-3.0.6.exe", "size": 1354460018, "sha256": "49fad093930a587526ae0428aa0b474327a9b466166707935e63371c97a7f3b9" },
-      { "name": "T8-PenguinCanvas-Setup-3.0.6.exe.blockmap", "size": 1413092, "sha256": "15f80f9ba0aff074393008bed6a89a6a56cc918813ff7252b1b06b72919d5bf3" },
-      { "name": "latest.yml", "size": 362, "sha256": "5119cecd6fcc800fcc7bd79c607fa7cb83a3c65e6dc757e456705468d22aacf0" },
-      { "name": "T8-PenguinCanvas-3.0.6-mac-arm64.dmg", "size": 468445338, "sha256": "1ad1147c427a241bf5803c57e400e0e23a5c8aff8a177dfc23a99d4a07c398df" },
-      { "name": "T8-PenguinCanvas-3.0.6-mac-arm64.zip", "size": 461298875, "sha256": "972659e23b0018e9d955aa4b56d8ccd47f459026e208a672cb33a38c72afcaab" },
-      { "name": "latest-mac.yml", "size": 536, "sha256": "320268579ba6b9adf3ad13f16e195ffb021370c0eeac958e1b18e50436f8cd13" }
+      {
+        "name": "T8-PenguinCanvas-Setup-3.0.6.exe",
+        "size": 1354460018,
+        "sha256": "49fad093930a587526ae0428aa0b474327a9b466166707935e63371c97a7f3b9"
+      },
+      {
+        "name": "T8-PenguinCanvas-Setup-3.0.6.exe.blockmap",
+        "size": 1413092,
+        "sha256": "15f80f9ba0aff074393008bed6a89a6a56cc918813ff7252b1b06b72919d5bf3"
+      },
+      {
+        "name": "latest.yml",
+        "size": 362,
+        "sha256": "5119cecd6fcc800fcc7bd79c607fa7cb83a3c65e6dc757e456705468d22aacf0"
+      },
+      {
+        "name": "T8-PenguinCanvas-3.0.6-mac-arm64.dmg",
+        "size": 468445338,
+        "sha256": "1ad1147c427a241bf5803c57e400e0e23a5c8aff8a177dfc23a99d4a07c398df"
+      },
+      {
+        "name": "T8-PenguinCanvas-3.0.6-mac-arm64.zip",
+        "size": 461298875,
+        "sha256": "972659e23b0018e9d955aa4b56d8ccd47f459026e208a672cb33a38c72afcaab"
+      },
+      {
+        "name": "latest-mac.yml",
+        "size": 536,
+        "sha256": "320268579ba6b9adf3ad13f16e195ffb021370c0eeac958e1b18e50436f8cd13"
+      }
     ],
     "scope": [
       "安全吸收 GitHub PR #28 的火山素材导入任务持久化与恢复能力，不直接合入任意 CommonJS 插件宿主、显式 Host 请求头、绝对路径或上游响应泄露。",
@@ -2050,12 +2286,36 @@
     "latest": true,
     "macWorkflow": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/32970660172",
     "artifacts": [
-      { "name": "T8-PenguinCanvas-Setup-3.0.5.exe", "size": 1354449298, "sha256": "fda5e9f55a6a5533bd43665cec735345560669e699ad2be8ac2f7b30ad96d680" },
-      { "name": "T8-PenguinCanvas-Setup-3.0.5.exe.blockmap", "size": 1413385, "sha256": "9b9b19cdd167a0dcb9bfb3325c3be086895e31d4e947cf4aa8d7f6f6c14c6c31" },
-      { "name": "latest.yml", "size": 362, "sha256": "86cb22b40108f420803d8e72527f5eaa9b122a3779edc79287786ee219ebdcb8" },
-      { "name": "T8-PenguinCanvas-3.0.5-mac-arm64.dmg", "size": 468460995, "sha256": "f4fe3af8bcc4777614997f4a48b67609afdfc12b5a7f70f3efbd1b0db02ee4ee" },
-      { "name": "T8-PenguinCanvas-3.0.5-mac-arm64.zip", "size": 461288346, "sha256": "80570dde9f97609c7efc8d851171fc8ed9fc818a15dc8123621e7defcdce1ebc" },
-      { "name": "latest-mac.yml", "size": 536, "sha256": "3490b34b579734ab127698bd8a32181c41560f9749cb0156a9f859a5bbbd8580" }
+      {
+        "name": "T8-PenguinCanvas-Setup-3.0.5.exe",
+        "size": 1354449298,
+        "sha256": "fda5e9f55a6a5533bd43665cec735345560669e699ad2be8ac2f7b30ad96d680"
+      },
+      {
+        "name": "T8-PenguinCanvas-Setup-3.0.5.exe.blockmap",
+        "size": 1413385,
+        "sha256": "9b9b19cdd167a0dcb9bfb3325c3be086895e31d4e947cf4aa8d7f6f6c14c6c31"
+      },
+      {
+        "name": "latest.yml",
+        "size": 362,
+        "sha256": "86cb22b40108f420803d8e72527f5eaa9b122a3779edc79287786ee219ebdcb8"
+      },
+      {
+        "name": "T8-PenguinCanvas-3.0.5-mac-arm64.dmg",
+        "size": 468460995,
+        "sha256": "f4fe3af8bcc4777614997f4a48b67609afdfc12b5a7f70f3efbd1b0db02ee4ee"
+      },
+      {
+        "name": "T8-PenguinCanvas-3.0.5-mac-arm64.zip",
+        "size": 461288346,
+        "sha256": "80570dde9f97609c7efc8d851171fc8ed9fc818a15dc8123621e7defcdce1ebc"
+      },
+      {
+        "name": "latest-mac.yml",
+        "size": 536,
+        "sha256": "3490b34b579734ab127698bd8a32181c41560f9749cb0156a9f859a5bbbd8580"
+      }
     ],
     "scope": [
       "修复 Windows 与 macOS 公开包因 electron/i18n.cjs 和 electron/i18n-catalog.json 未进入 app.asar 而在主进程启动阶段崩溃的问题；新增静态依赖闭包与双平台 post-build 启动合同。",
@@ -2105,7 +2365,10 @@
       "3.0.3 Windows/macOS",
       "3.0.4 Windows/macOS"
     ],
-    "platforms": ["Windows x64", "macOS arm64"],
+    "platforms": [
+      "Windows x64",
+      "macOS arm64"
+    ],
     "symptom": "已发布安装包启动时由 electron/main.cjs 加载 ./i18n.cjs，Windows 与 macOS 均在主进程抛出 Cannot find module 并退出。",
     "rootCause": "electron-builder 的 build.files 使用显式白名单，但新增 Electron 国际化模块时只提交了源码引用，没有把 electron/i18n.cjs 及其 electron/i18n-catalog.json 依赖加入 app.asar。既有 post-build 只核验外置资源、原生模块和更新资产，没有核验 app.asar 的主进程启动依赖闭包。",
     "implementation": [
@@ -2136,12 +2399,36 @@
     "latest": true,
     "macWorkflow": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/32902049267",
     "artifacts": [
-      { "name": "T8-PenguinCanvas-Setup-3.0.4.exe", "size": 1354295401, "sha256": "62a00ca1f534f0e83b3a6db8bf2169858ee0d7a63a66815c5f6529f4d3643c26" },
-      { "name": "T8-PenguinCanvas-Setup-3.0.4.exe.blockmap", "size": 1414035, "sha256": "d60adf03a5f002a08503a07c233e4726bf6001234b394855bcb01be72c49c0df" },
-      { "name": "latest.yml", "size": 362, "sha256": "55593e4d9d07e2109876aa9021f5b08226c2c7277f9cf41d65d2404d0c7e414e" },
-      { "name": "T8-PenguinCanvas-3.0.4-mac-arm64.dmg", "size": 468308603, "sha256": "8834401dec5f5969e16687b52527459ddaeb7dc87c0386c867190605054462e5" },
-      { "name": "T8-PenguinCanvas-3.0.4-mac-arm64.zip", "size": 461121544, "sha256": "c32d0134bd59880581b9ea7c120e10e1c2be66682c9e2fb842e1e96a2eabc386" },
-      { "name": "latest-mac.yml", "size": 536, "sha256": "21ddada43a45b9d8479b72b8a7b126e280813988db4e4ab1bfc472036c577afc" }
+      {
+        "name": "T8-PenguinCanvas-Setup-3.0.4.exe",
+        "size": 1354295401,
+        "sha256": "62a00ca1f534f0e83b3a6db8bf2169858ee0d7a63a66815c5f6529f4d3643c26"
+      },
+      {
+        "name": "T8-PenguinCanvas-Setup-3.0.4.exe.blockmap",
+        "size": 1414035,
+        "sha256": "d60adf03a5f002a08503a07c233e4726bf6001234b394855bcb01be72c49c0df"
+      },
+      {
+        "name": "latest.yml",
+        "size": 362,
+        "sha256": "55593e4d9d07e2109876aa9021f5b08226c2c7277f9cf41d65d2404d0c7e414e"
+      },
+      {
+        "name": "T8-PenguinCanvas-3.0.4-mac-arm64.dmg",
+        "size": 468308603,
+        "sha256": "8834401dec5f5969e16687b52527459ddaeb7dc87c0386c867190605054462e5"
+      },
+      {
+        "name": "T8-PenguinCanvas-3.0.4-mac-arm64.zip",
+        "size": 461121544,
+        "sha256": "c32d0134bd59880581b9ea7c120e10e1c2be66682c9e2fb842e1e96a2eabc386"
+      },
+      {
+        "name": "latest-mac.yml",
+        "size": 536,
+        "sha256": "21ddada43a45b9d8479b72b8a7b126e280813988db4e4ab1bfc472036c577afc"
+      }
     ],
     "scope": [
       "新增核心原生独立节点 Volcengine Assets / 火山引擎素材库，完整承接 v3.0.3 及更早能力，不回退默认渠道、默认模型、旧画布、历史节点或工作流。",
@@ -2211,12 +2498,36 @@
     "latest": true,
     "macWorkflow": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/32886208665",
     "artifacts": [
-      { "name": "T8-PenguinCanvas-Setup-3.0.3.exe", "size": 1354259482, "sha256": "2e18d84a284ab548a9071640bda2d91b460559d9df99db4b1d9163cc1de6143a" },
-      { "name": "T8-PenguinCanvas-Setup-3.0.3.exe.blockmap", "size": 1414337, "sha256": "276db9765268405b051431bd6dd4418638e805fafd52782b90e2822e0fc80238" },
-      { "name": "latest.yml", "size": 362, "sha256": "37caeefe7c6c703a83752dee80b4886e269509713c88a18bca093a014443e454" },
-      { "name": "T8-PenguinCanvas-3.0.3-mac-arm64.dmg", "size": 468133250, "sha256": "18ab11a8dfbf4f23a6a66f8167160a6bae1f00c758ddcd9ca796e181b890dfa5" },
-      { "name": "T8-PenguinCanvas-3.0.3-mac-arm64.zip", "size": 461084588, "sha256": "98ca092ffd2d5047276774880cec969dc7c99b9a82ebe3913681ee81a9be5aa0" },
-      { "name": "latest-mac.yml", "size": 536, "sha256": "e8cc436f720968f90a26cafdeef4a7a6c0d08af399da635e20e296ab321471e1" }
+      {
+        "name": "T8-PenguinCanvas-Setup-3.0.3.exe",
+        "size": 1354259482,
+        "sha256": "2e18d84a284ab548a9071640bda2d91b460559d9df99db4b1d9163cc1de6143a"
+      },
+      {
+        "name": "T8-PenguinCanvas-Setup-3.0.3.exe.blockmap",
+        "size": 1414337,
+        "sha256": "276db9765268405b051431bd6dd4418638e805fafd52782b90e2822e0fc80238"
+      },
+      {
+        "name": "latest.yml",
+        "size": 362,
+        "sha256": "37caeefe7c6c703a83752dee80b4886e269509713c88a18bca093a014443e454"
+      },
+      {
+        "name": "T8-PenguinCanvas-3.0.3-mac-arm64.dmg",
+        "size": 468133250,
+        "sha256": "18ab11a8dfbf4f23a6a66f8167160a6bae1f00c758ddcd9ca796e181b890dfa5"
+      },
+      {
+        "name": "T8-PenguinCanvas-3.0.3-mac-arm64.zip",
+        "size": 461084588,
+        "sha256": "98ca092ffd2d5047276774880cec969dc7c99b9a82ebe3913681ee81a9be5aa0"
+      },
+      {
+        "name": "latest-mac.yml",
+        "size": 536,
+        "sha256": "e8cc436f720968f90a26cafdeef4a7a6c0d08af399da635e20e296ab321471e1"
+      }
     ],
     "scope": [
       "完整保留 v3.0.2 Windows 已发布的 Wan 3.0、主题、英文界面、悬浮工具、Output 自适应和大画布性能能力，不回退默认值、旧画布、历史节点或工作流。",
@@ -2540,22 +2851,41 @@
     },
     "seedance25": {
       "model": "seedance2.5",
-      "commands": ["text2video", "image2video", "frames2video", "multimodal2video"],
-      "durationSeconds": [4, 30],
-      "resolutions": ["480p", "720p", "1080p"],
+      "commands": [
+        "text2video",
+        "image2video",
+        "frames2video",
+        "multimodal2video"
+      ],
+      "durationSeconds": [
+        4,
+        30
+      ],
+      "resolutions": [
+        "480p",
+        "720p",
+        "1080p"
+      ],
       "vipOnly": true,
       "multimodal": {
         "images": 30,
         "videos": 10,
         "audios": 10,
         "total": 50,
-        "referenceMediaDurationSeconds": [2, 30],
+        "referenceMediaDurationSeconds": [
+          2,
+          30
+        ],
         "audioOnly": true
       },
       "fixedModelMultiframeSeparate": true
     },
     "seedream50Pro": {
-      "resolutions": ["1.5k", "2k", "4k"],
+      "resolutions": [
+        "1.5k",
+        "2k",
+        "4k"
+      ],
       "removedResolution": "1k",
       "imageToImageReferenceLimit": 10
     },
@@ -2637,7 +2967,9 @@
       "model3d": {
         "type": "model-3d",
         "label": "3D",
-        "tabs": ["Hunyuan 3D"],
+        "tabs": [
+          "Hunyuan 3D"
+        ],
         "tabArchitecture": "MODEL_3D_TABS is an explicit extensible registry; future 3D families add sibling tabs without changing the stable model-3d node identity.",
         "models": [
           "hunyuan3d-v3.1-image-to-3d",
@@ -2648,13 +2980,21 @@
       },
       "grokImageTools": {
         "type": "grok-image-tools",
-        "models": ["zhenzhen-image-gk-v2-segment", "zhenzhen-image-gk-v2-region-edit"],
+        "models": [
+          "zhenzhen-image-gk-v2-segment",
+          "zhenzhen-image-gk-v2-region-edit"
+        ],
         "contract": "独立两阶段 UI：segment 从同画布 GK v2 源任务取得 source_task_id 并持久化 image_id/objects；region_edit 精确选择 object_indices、boxes 或 selection_regions 三者之一。"
       },
       "grokVideo": {
         "tab": "Grok Video",
         "model": "zhenzhen-video-g-omni-flash-lowprice",
-        "modes": ["text", "frame", "reference_images", "reference_video"],
+        "modes": [
+          "text",
+          "frame",
+          "reference_images",
+          "reference_video"
+        ],
         "contract": "4/6/8/10 秒，720p/1080p/4k，16:9/9:16；参考图只允许 1 或 3 张；参考视频只允许 1 个且不发送 seconds。"
       }
     },
@@ -2810,7 +3150,9 @@
     "date": "2026-08-18",
     "releaseIncluded": true,
     "currentModel": "FlashVSR_video_upscale",
-    "legacyAliases": ["FashVSR_video_upscale"],
+    "legacyAliases": [
+      "FashVSR_video_upscale"
+    ],
     "officialDocsObservedModel": "FashVSR_video_upscale",
     "liveApiVerification": {
       "submittedThisRun": true,
@@ -2866,7 +3208,14 @@
         "seedance-2.5-standard-multi",
         "seedance-2.5-standard-t2v"
       ],
-      "resolutions": ["480p", "720p", "1080p", "2k", "4k", "native1080p"],
+      "resolutions": [
+        "480p",
+        "720p",
+        "1080p",
+        "2k",
+        "4k",
+        "native1080p"
+      ],
       "native4kSupported": false,
       "liveTest": "not-run-by-owner-cost-boundary",
       "savedWorkflows": 6
@@ -3106,60 +3455,15 @@
     ]
   },
   "release": {
-    "status": "released-v3.4.5-dual-platform-verified",
-    "version": "3.4.5",
-    "tag": "v3.4.5",
-    "latest": true,
-    "evidence": "docs/release-v3.4.5.md",
-    "postReleaseEvidence": "owner-approved-post-release-v3.4.5",
-    "macBoundary": "same-tag-ad-hoc-preview; no-quota-deferral-used",
-    "date": "2026-10-27",
-    "details": "docs/release-v3.4.5.md",
-    "url": "https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.4.5",
-    "sourceCommit": "751c66be3faa5a66a7bc9cb9baefca8acb841fbe",
-    "publishedAt": "2026-10-27T04:54:49Z",
-    "draft": false,
-    "prerelease": false,
-    "macWorkflow": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/40452372828",
-    "verification": [
-      "Windows/Mac unique builds, encrypted package probe and full downloads passed; both updater manifests match. Details: docs/release-v3.4.5.md.",
-      "Both updater manifests match; Windows assets during Mac append and previous v3.4.4 Tag/assets unchanged.",
-      "Six real API paths and controlled full Canvas validation are separate evidence; installed-user/F8–F10 remain deferred."
-    ],
-    "assets": {
-      "windowsInstaller": {
-        "name": "T8-PenguinCanvas-Setup-3.4.5.exe",
-        "bytes": 1379870673,
-        "sha256": "a7bbd3fbbf2544c1ed7f9e13681b9ecfb569ae7d58ba96653c4f6ac9c2fdf67f"
-      },
-      "windowsBlockmap": {
-        "name": "T8-PenguinCanvas-Setup-3.4.5.exe.blockmap",
-        "bytes": 1439610,
-        "sha256": "19bf2177b1e1b139e564c03659aaf5d58128029491b3fe7ed4ea61ef83c89f52"
-      },
-      "windowsUpdater": {
-        "name": "latest.yml",
-        "bytes": 362,
-        "sha256": "16348961c99ea0bd72c38fbb37971823a86ef5324a9237ef6814d37b8a02d863"
-      },
-      "macDmg": {
-        "name": "T8-PenguinCanvas-3.4.5-mac-arm64.dmg",
-        "bytes": 519583733,
-        "sha256": "462c611ec3deff69dcc184348c6e6422119b0ffab07eabf0f89f5217da806fc2"
-      },
-      "macZip": {
-        "name": "T8-PenguinCanvas-3.4.5-mac-arm64.zip",
-        "bytes": 511371601,
-        "sha256": "3cb0acffd853f6e0d908894ec848b83a00eecf7e3d97582cd9bdfefaf07baf87"
-      },
-      "macUpdater": {
-        "name": "latest-mac.yml",
-        "bytes": 536,
-        "sha256": "c7fa9527f944e4fdcde000e1a2d094e3a96aa35eecb936f4450c7c1449b9b4db"
-      }
-    },
-    "macAttempt": 1,
-    "macWorkflowConclusion": "success"
+    "status": "authorized-v3.4.6-pending-build",
+    "version": "3.4.6",
+    "tag": "v3.4.6",
+    "latest": false,
+    "date": "2026-11-01",
+    "details": "docs/release-v3.4.6.md",
+    "evidence": "docs/release-v3.4.6.md",
+    "postReleaseEvidence": "owner-approved-post-release-v3.4.6",
+    "macBoundary": "same-tag-ad-hoc-preview; defer-only-if-actual-quota-insufficient"
   },
   "minimaxMusic3PromptEnhancer": {
     "status": "released-v2.9.3",
@@ -3658,10 +3962,27 @@
     "referenceProject": "F:/AI-T8-video-onekey/ComfyUI/custom_nodes/ComfyUI_Seedance",
     "contract": {
       "endpoint": "POST /v1/videos",
-      "seconds": [4, 6, 8, 10],
-      "resolutions": ["720p", "1080p", "4k"],
-      "aspectRatios": ["16:9", "9:16"],
-      "modes": ["text", "frame", "reference_images", "reference_video"],
+      "seconds": [
+        4,
+        6,
+        8,
+        10
+      ],
+      "resolutions": [
+        "720p",
+        "1080p",
+        "4k"
+      ],
+      "aspectRatios": [
+        "16:9",
+        "9:16"
+      ],
+      "modes": [
+        "text",
+        "frame",
+        "reference_images",
+        "reference_video"
+      ],
       "images": "0、1 或 3 张；单图按 frame 提交，三图按 reference 提交",
       "video": "最多 1 个参考视频；提交 metadata.video_url 时省略 seconds"
     },
@@ -3726,11 +4047,26 @@
       "auxiliaryFileCount": 11,
       "auxiliaryFingerprint": "bf7c46442d0a1308d4a2fe93401362813af5f9eeea77931b8a97d66f220164f2",
       "asrModel": "Systran/faster-whisper-small@536b0662742c02347bc0e980a01041f333bce120",
-      "supportedDubbingLanguages": ["ZH", "EN", "JA", "ES", "AR"]
+      "supportedDubbingLanguages": [
+        "ZH",
+        "EN",
+        "JA",
+        "ES",
+        "AR"
+      ]
     },
     "ports": {
-      "inputs": ["video|audio:source-media", "text:source-text", "audio|video:voice-references"],
-      "outputs": ["video:localized-video", "audio:dubbed-audio", "text:subtitles", "metadata:manifest"]
+      "inputs": [
+        "video|audio:source-media",
+        "text:source-text",
+        "audio|video:voice-references"
+      ],
+      "outputs": [
+        "video:localized-video",
+        "audio:dubbed-audio",
+        "text:subtitles",
+        "metadata:manifest"
+      ]
     },
     "scope": [
       "独立核心节点完成剧本/SRT/VTT 解析、Whisper 转写、分批上下文 LLM 翻译、术语与保护词、逐句译文/发音/情绪审核、角色音色授权、IndexTTS 2.5 直接配音、字幕落盘、视频换轨和 QC/交付清单。",
@@ -10463,11 +10799,11 @@
       "T8_ENABLE_LOCAL_PRIVATE": "开发环境和普通本机构建可选；0=关闭本机 local-private/extensions 私有扩展。正式 dist:release 固定为 1，不能被父环境降级。GitHub/clean clone 因为没有 local-private 目录，不包含充值实现。",
       "T8_DISABLE_LOCAL_EXTENSIONS": "开发环境可选；1=关闭本地扩展。正式 dist:release 固定为 0，确保本机私有 sidecar 参与加密打包与后置校验。"
     },
-    "version": "3.4.5",
-    "semverVersion": "3.4.5",
+    "version": "3.4.6",
+    "semverVersion": "3.4.6",
     "versionNumberPolicy": "T8 版本号仍采用 x.y.z 三段，但每一段只允许 0-9；任一段到 9 后下一次发布必须向左进位，禁止任一段出现两位数字。例：1.9.9 的下一版必须是 2.0.0。",
-    "versionNote": "v3.4.5 Kling 4双平台已发布，见docs/release-v3.4.5.md。",
-    "installer": "T8-PenguinCanvas-Setup-3.4.5.exe；唯一正式构建与完整回下载通过。",
+    "versionNote": "v3.4.6已获打包发布授权；完成事实见docs/release-v3.4.6.md。",
+    "installer": "T8-PenguinCanvas-Setup-3.4.6.exe；待唯一正式构建与完整回下载。",
     "updaterInstallMode": "自动更新下载完成后不得静默安装：main.cjs 必须设置 autoInstallOnAppQuit=false，显式安装调用 quitAndInstall(false,true)；electron/build-resources/installer.nsh 通过 SetSilent normal 让新版 NSIS 安装器即使收到旧客户端传入的 /S 也尽量切回前台安装向导。",
     "installerShortcutPolicy": "安装完成后必须创建桌面和开始菜单快捷方式：package.json build.nsis.createDesktopShortcut 必须为 \"always\"，createStartMenuShortcut 必须为 true；electron/build-resources/installer.nsh 必须保留 customInstall 兜底 CreateShortCut \"$newStartMenuLink\" 与 \"$DESKTOP\\${SHORTCUT_NAME}.lnk\"，防止更新安装/keepShortcuts 路径遗漏入口。",
     "updaterEntryPolicy": "顶栏桌面更新入口不得只因 window.t8pc.updater 缺失就静默消失；Electron UA 或 t8pc.getInfo/openExternal 可用时必须显示诊断入口，提示重新安装完整桌面包，Web/纯浏览器环境才隐藏。状态为 not-available 时按钮仍保留“更新”字样，避免用户误以为自动更新入口被删除。",
@@ -16637,7 +16973,14 @@
       "toolProposal": "t8-creator-tool-proposal-v1"
     },
     "formalLlmContract": {
-      "requiredFor": ["create", "rewrite", "continue", "review", "direct", "optimize"],
+      "requiredFor": [
+        "create",
+        "rewrite",
+        "continue",
+        "review",
+        "direct",
+        "optimize"
+      ],
       "qualityModeProviderCalls": {
         "quick": 1,
         "standard": 2,
@@ -16646,12 +16989,38 @@
       "offlineFormalWorkAllowed": false,
       "rawProviderStructureVisibleBeforeValidation": false
     },
-    "workFamilies": ["commerce", "image", "video", "story", "audio", "mixed"],
+    "workFamilies": [
+      "commerce",
+      "image",
+      "video",
+      "story",
+      "audio",
+      "mixed"
+    ],
     "artifactKinds": [
-      "ProductionBrief", "TaskProfile", "CreativeDirectionSet", "ProductTruth", "BrandKit",
-      "CommerceContentPlan", "CopySet", "VisualSpec", "LayoutSpec", "EditPlan", "ScriptDoc",
-      "WorldBible", "CharacterBible", "ShotList", "Storyboard", "MotionPlan", "AudioPlan",
-      "AssetNeed", "PromptPack", "CandidateReview", "EDL", "QCReport", "DeliveryManifest"
+      "ProductionBrief",
+      "TaskProfile",
+      "CreativeDirectionSet",
+      "ProductTruth",
+      "BrandKit",
+      "CommerceContentPlan",
+      "CopySet",
+      "VisualSpec",
+      "LayoutSpec",
+      "EditPlan",
+      "ScriptDoc",
+      "WorldBible",
+      "CharacterBible",
+      "ShotList",
+      "Storyboard",
+      "MotionPlan",
+      "AudioPlan",
+      "AssetNeed",
+      "PromptPack",
+      "CandidateReview",
+      "EDL",
+      "QCReport",
+      "DeliveryManifest"
     ],
     "highlights": [
       "正式作品只有在真实 LLM、严格结构、质量与回执绑定全部通过后才原子提交；输入、输出、模型、调用序号和最终 work revision/digest 可审计。",
@@ -16735,7 +17104,12 @@
       "llmDefaultMs": 180000,
       "llmMaximumMs": 180000,
       "futureProvidersMustUseSharedPolicy": true,
-      "excludedShortBoundaries": ["connection-probe", "retry-delay", "ui-debounce", "local-media-tools"]
+      "excludedShortBoundaries": [
+        "connection-probe",
+        "retry-delay",
+        "ui-debounce",
+        "local-media-tools"
+      ]
     },
     "scope": [
       "Built-in Provider proxy headers/body, Seedance NZ request/upload, external adapters, ComfyUI request/poll, Jimeng polling configuration and generated-output materialization.",
@@ -16773,11 +17147,26 @@
     "date": "2026-10-02",
     "releaseIncluded": true,
     "provider": "seedance-nz",
-    "tabs": ["Seedream", "Seedream分层"],
-    "models": ["seedream-v5-flash-t2i", "seedream-v5-flash-i2i", "seedream-v5-flash-layer-decomposition", "dola-seedream-5.0-flash-t2i", "dola-seedream-5.0-flash-i2i", "dola-seedream-5.0-flash-layer-decomposition"],
+    "tabs": [
+      "Seedream",
+      "Seedream分层"
+    ],
+    "models": [
+      "seedream-v5-flash-t2i",
+      "seedream-v5-flash-i2i",
+      "seedream-v5-flash-layer-decomposition",
+      "dola-seedream-5.0-flash-t2i",
+      "dola-seedream-5.0-flash-i2i",
+      "dola-seedream-5.0-flash-layer-decomposition"
+    ],
     "summary": "Flash families in existing tabs; shared exact runtime identity, 5000-character prompts, 1.5k, 30 MiB references and complete ordered layer outputs. Pro defaults/limits retained; trusted COS GET recovery added.",
     "details": "docs/seedream-v5-flash.md",
-    "verification": {"live": "6/6 succeeded, HTTP 200; 13/13 outputs downloaded, fully decoded and visually inspected; read-only official COS alias has identical SHA-256", "offline": "263/263 targeted and adjacent tests; type-check, i18n, capability sync and context checks passed", "report": "local-private/seedream-flash-live-20261002/report.json", "tests": "local-private/seedream-flash-live-20261002/final-tests.log"},
+    "verification": {
+      "live": "6/6 succeeded, HTTP 200; 13/13 outputs downloaded, fully decoded and visually inspected; read-only official COS alias has identical SHA-256",
+      "offline": "263/263 targeted and adjacent tests; type-check, i18n, capability sync and context checks passed",
+      "report": "local-private/seedream-flash-live-20261002/report.json",
+      "tests": "local-private/seedream-flash-live-20261002/final-tests.log"
+    },
     "boundary": "Released in v3.2.4 from fixed source; dual-platform artifacts and update manifests fully download-verified. Installed-user and F8-F10 evidence deferred, not passed. Credentials and live identities remain private."
   },
   "qwen21AnimateMotionTransfer20260922": {
@@ -16791,7 +17180,10 @@
       "https://api.seedance.nz/docs/animate-motion-transfer.md"
     ],
     "referenceImplementation": "F:/AI-T8-video-onekey/ComfyUI/custom_nodes/ComfyUI_Seedance",
-    "models": ["qwen-image-global-2.1", "animate-motion-transfer"],
+    "models": [
+      "qwen-image-global-2.1",
+      "animate-motion-transfer"
+    ],
     "contract": [
       "Qwen Image Global 2.1 is an independent image tab with required prompt, zero to ten ordered images, 1k/2k/4k, eight documented ratios and optional non-negative safe-integer seed; it emits one image and never inherits Qwen 3.0 size/n/negative_prompt/prompt_extend fields.",
       "Animate Motion Transfer is an independent video tab that requires exactly one image and one motion video, emits no prompt/audio/seed, and preserves the documented resolution, ratio, frame, pose, camera, mask, expression and chest-motion controls.",
@@ -16877,10 +17269,90 @@
     "status": "released-v3.4.5-dual-platform-verified",
     "version": "3.4.5",
     "tag": "v3.4.5",
-    "latest": true,
+    "latest": false,
     "evidence": "docs/release-v3.4.5.md",
     "postReleaseEvidence": "owner-approved-post-release-v3.4.5",
     "macBoundary": "same-tag-ad-hoc-preview; no-quota-deferral-used",
-    "sourceCommit": "751c66be3faa5a66a7bc9cb9baefca8acb841fbe"
+    "sourceCommit": "751c66be3faa5a66a7bc9cb9baefca8acb841fbe",
+    "date": "2026-10-27",
+    "details": "docs/release-v3.4.5.md",
+    "url": "https://github.com/T8mars/T8-penguin-canvas/releases/tag/v3.4.5",
+    "publishedAt": "2026-10-27T04:54:49Z",
+    "draft": false,
+    "prerelease": false,
+    "macWorkflow": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/40452372828",
+    "verification": [
+      "Windows/Mac unique builds, encrypted package probe and full downloads passed; both updater manifests match. Details: docs/release-v3.4.5.md.",
+      "Both updater manifests match; Windows assets during Mac append and previous v3.4.4 Tag/assets unchanged.",
+      "Six real API paths and controlled full Canvas validation are separate evidence; installed-user/F8–F10 remain deferred."
+    ],
+    "assets": {
+      "windowsInstaller": {
+        "name": "T8-PenguinCanvas-Setup-3.4.5.exe",
+        "bytes": 1379870673,
+        "sha256": "a7bbd3fbbf2544c1ed7f9e13681b9ecfb569ae7d58ba96653c4f6ac9c2fdf67f"
+      },
+      "windowsBlockmap": {
+        "name": "T8-PenguinCanvas-Setup-3.4.5.exe.blockmap",
+        "bytes": 1439610,
+        "sha256": "19bf2177b1e1b139e564c03659aaf5d58128029491b3fe7ed4ea61ef83c89f52"
+      },
+      "windowsUpdater": {
+        "name": "latest.yml",
+        "bytes": 362,
+        "sha256": "16348961c99ea0bd72c38fbb37971823a86ef5324a9237ef6814d37b8a02d863"
+      },
+      "macDmg": {
+        "name": "T8-PenguinCanvas-3.4.5-mac-arm64.dmg",
+        "bytes": 519583733,
+        "sha256": "462c611ec3deff69dcc184348c6e6422119b0ffab07eabf0f89f5217da806fc2"
+      },
+      "macZip": {
+        "name": "T8-PenguinCanvas-3.4.5-mac-arm64.zip",
+        "bytes": 511371601,
+        "sha256": "3cb0acffd853f6e0d908894ec848b83a00eecf7e3d97582cd9bdfefaf07baf87"
+      },
+      "macUpdater": {
+        "name": "latest-mac.yml",
+        "bytes": 536,
+        "sha256": "c7fa9527f944e4fdcde000e1a2d094e3a96aa35eecb936f4450c7c1449b9b4db"
+      }
+    },
+    "macAttempt": 1,
+    "macWorkflowConclusion": "success"
+  },
+  "previewMuseFlux20261101": {
+    "status": "authorized-v3.4.6-pending-release",
+    "description": "既有图像/视频新增Hunyuan Image、Muse Image/Video及四个Flux变体；原默认保留；Motion按新文档复核并实测。",
+    "documentation": "docs/preview-muse-flux.md",
+    "models": [
+      "zhenzhen-image-hy-v3.5-preview",
+      "zhenzhen-image-muse",
+      "zhenzhen-video-muse",
+      "flux-3-image-t2i",
+      "flux-3-image-i2i",
+      "flux-3-image-klein-t2i",
+      "flux-3-image-klein-i2i"
+    ],
+    "workflowCount": 11,
+    "verification": {
+      "livePaths": 11,
+      "regressionPassed": 130,
+      "canvas": "local-private/models-20261101/canvas-ui.json",
+      "report": "local-private/models-20261101/report.json",
+      "installedClient": false
+    },
+    "releaseAuthorization": true
+  },
+  "electronReleaseV346": {
+    "status": "authorized-v3.4.6-pending-build",
+    "version": "3.4.6",
+    "tag": "v3.4.6",
+    "latest": false,
+    "date": "2026-11-01",
+    "details": "docs/release-v3.4.6.md",
+    "evidence": "docs/release-v3.4.6.md",
+    "postReleaseEvidence": "owner-approved-post-release-v3.4.6",
+    "macBoundary": "same-tag-ad-hoc-preview; defer-only-if-actual-quota-insufficient"
   }
 }

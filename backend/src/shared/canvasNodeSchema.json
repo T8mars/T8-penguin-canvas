@@ -62,29 +62,124 @@
     },
     "code-animation": {
       "resolver": "static",
-      "inputs": [{ "id": "prompt", "kinds": ["text"], "required": false, "minConnections": 0, "maxConnections": null }],
+      "inputs": [
+        {
+          "id": "prompt",
+          "kinds": [
+            "text"
+          ],
+          "required": false,
+          "minConnections": 0,
+          "maxConnections": null
+        }
+      ],
       "outputs": [
-        { "id": "video", "kinds": ["video"], "required": false, "minConnections": 0, "maxConnections": null },
-        { "id": "storyboard", "kinds": ["text"], "required": false, "minConnections": 0, "maxConnections": null }
+        {
+          "id": "video",
+          "kinds": [
+            "video"
+          ],
+          "required": false,
+          "minConnections": 0,
+          "maxConnections": null
+        },
+        {
+          "id": "storyboard",
+          "kinds": [
+            "text"
+          ],
+          "required": false,
+          "minConnections": 0,
+          "maxConnections": null
+        }
       ]
     },
     "world-scene": {
       "resolver": "static",
-      "inputs": [{ "id": "input", "kinds": ["model3d"], "required": false, "minConnections": 0, "maxConnections": null }],
+      "inputs": [
+        {
+          "id": "input",
+          "kinds": [
+            "model3d"
+          ],
+          "required": false,
+          "minConnections": 0,
+          "maxConnections": null
+        }
+      ],
       "outputs": [
-        { "id": "image", "kinds": ["image"], "required": false, "minConnections": 0, "maxConnections": null },
-        { "id": "scene", "kinds": ["model3d"], "required": false, "minConnections": 0, "maxConnections": null }
+        {
+          "id": "image",
+          "kinds": [
+            "image"
+          ],
+          "required": false,
+          "minConnections": 0,
+          "maxConnections": null
+        },
+        {
+          "id": "scene",
+          "kinds": [
+            "model3d"
+          ],
+          "required": false,
+          "minConnections": 0,
+          "maxConnections": null
+        }
       ]
     },
     "model-3d": {
       "resolver": "static",
-      "inputs": [{ "id": null, "kinds": ["text", "image"], "required": false, "minConnections": 0, "maxConnections": null }],
-      "outputs": [{ "id": null, "kinds": ["model3d"], "required": false, "minConnections": 0, "maxConnections": null }]
+      "inputs": [
+        {
+          "id": null,
+          "kinds": [
+            "text",
+            "image"
+          ],
+          "required": false,
+          "minConnections": 0,
+          "maxConnections": null
+        }
+      ],
+      "outputs": [
+        {
+          "id": null,
+          "kinds": [
+            "model3d"
+          ],
+          "required": false,
+          "minConnections": 0,
+          "maxConnections": null
+        }
+      ]
     },
     "grok-image-tools": {
       "resolver": "static",
-      "inputs": [{ "id": null, "kinds": ["image", "metadata"], "required": false, "minConnections": 0, "maxConnections": null }],
-      "outputs": [{ "id": null, "kinds": ["image", "metadata"], "required": false, "minConnections": 0, "maxConnections": null }]
+      "inputs": [
+        {
+          "id": null,
+          "kinds": [
+            "image",
+            "metadata"
+          ],
+          "required": false,
+          "minConnections": 0,
+          "maxConnections": null
+        }
+      ],
+      "outputs": [
+        {
+          "id": null,
+          "kinds": [
+            "image",
+            "metadata"
+          ],
+          "required": false,
+          "minConnections": 0,
+          "maxConnections": null
+        }
+      ]
     },
     "material-set": {
       "resolver": "material-set",
@@ -177,9 +272,33 @@
       "resolver": "static",
       "inputs": [],
       "outputs": [
-        { "id": "image", "kinds": ["image"], "required": false, "minConnections": 0, "maxConnections": null },
-        { "id": "video", "kinds": ["video"], "required": false, "minConnections": 0, "maxConnections": null },
-        { "id": "audio", "kinds": ["audio"], "required": false, "minConnections": 0, "maxConnections": null }
+        {
+          "id": "image",
+          "kinds": [
+            "image"
+          ],
+          "required": false,
+          "minConnections": 0,
+          "maxConnections": null
+        },
+        {
+          "id": "video",
+          "kinds": [
+            "video"
+          ],
+          "required": false,
+          "minConnections": 0,
+          "maxConnections": null
+        },
+        {
+          "id": "audio",
+          "kinds": [
+            "audio"
+          ],
+          "required": false,
+          "minConnections": 0,
+          "maxConnections": null
+        }
       ]
     },
     "feishu-bitable-input": {
@@ -346,7 +465,10 @@
         {
           "id": null,
           "kinds": [
-            "video", "text", "audio", "metadata"
+            "video",
+            "text",
+            "audio",
+            "metadata"
           ],
           "required": false,
           "minConnections": 0,
@@ -413,7 +535,12 @@
       "inputs": [
         {
           "id": null,
-          "kinds": ["text", "image", "video", "audio"],
+          "kinds": [
+            "text",
+            "image",
+            "video",
+            "audio"
+          ],
           "required": false,
           "minConnections": 0,
           "maxConnections": null
@@ -422,7 +549,9 @@
       "outputs": [
         {
           "id": null,
-          "kinds": ["video"],
+          "kinds": [
+            "video"
+          ],
           "required": false,
           "minConnections": 0,
           "maxConnections": null
@@ -434,7 +563,9 @@
       "inputs": [
         {
           "id": null,
-          "kinds": ["video"],
+          "kinds": [
+            "video"
+          ],
           "required": true,
           "minConnections": 1,
           "maxConnections": 1
@@ -443,7 +574,9 @@
       "outputs": [
         {
           "id": null,
-          "kinds": ["video"],
+          "kinds": [
+            "video"
+          ],
           "required": false,
           "minConnections": 0,
           "maxConnections": null
@@ -552,7 +685,15 @@
           "minConnections": 0,
           "maxConnections": null
         },
-        { "id": "speaker", "kinds": ["text"], "required": false, "minConnections": 0, "maxConnections": 1 }
+        {
+          "id": "speaker",
+          "kinds": [
+            "text"
+          ],
+          "required": false,
+          "minConnections": 0,
+          "maxConnections": 1
+        }
       ],
       "outputs": [
         {
@@ -654,14 +795,66 @@
     "minimax-music3-prompt-enhancer": {
       "resolver": "static",
       "inputs": [
-        { "id": "music-idea", "kinds": ["text"], "required": false, "minConnections": 0, "maxConnections": 8 },
-        { "id": "lyrics", "kinds": ["text"], "required": false, "minConnections": 0, "maxConnections": 1 }
+        {
+          "id": "music-idea",
+          "kinds": [
+            "text"
+          ],
+          "required": false,
+          "minConnections": 0,
+          "maxConnections": 8
+        },
+        {
+          "id": "lyrics",
+          "kinds": [
+            "text"
+          ],
+          "required": false,
+          "minConnections": 0,
+          "maxConnections": 1
+        }
       ],
       "outputs": [
-        { "id": "lyrics", "kinds": ["text"], "required": false, "minConnections": 0, "maxConnections": null, "preferred": false },
-        { "id": "music-caption", "kinds": ["text"], "required": false, "minConnections": 0, "maxConnections": null, "preferred": true },
-        { "id": "payload", "kinds": ["text"], "required": false, "minConnections": 0, "maxConnections": null, "preferred": false },
-        { "id": "report", "kinds": ["metadata"], "required": false, "minConnections": 0, "maxConnections": null, "preferred": false }
+        {
+          "id": "lyrics",
+          "kinds": [
+            "text"
+          ],
+          "required": false,
+          "minConnections": 0,
+          "maxConnections": null,
+          "preferred": false
+        },
+        {
+          "id": "music-caption",
+          "kinds": [
+            "text"
+          ],
+          "required": false,
+          "minConnections": 0,
+          "maxConnections": null,
+          "preferred": true
+        },
+        {
+          "id": "payload",
+          "kinds": [
+            "text"
+          ],
+          "required": false,
+          "minConnections": 0,
+          "maxConnections": null,
+          "preferred": false
+        },
+        {
+          "id": "report",
+          "kinds": [
+            "metadata"
+          ],
+          "required": false,
+          "minConnections": 0,
+          "maxConnections": null,
+          "preferred": false
+        }
       ]
     },
     "minimax-h3-official-prompt-enhancer": {
@@ -669,7 +862,12 @@
       "inputs": [
         {
           "id": null,
-          "kinds": ["text", "image", "video", "audio"],
+          "kinds": [
+            "text",
+            "image",
+            "video",
+            "audio"
+          ],
           "required": false,
           "minConnections": 0,
           "maxConnections": null
@@ -678,7 +876,9 @@
       "outputs": [
         {
           "id": null,
-          "kinds": ["text"],
+          "kinds": [
+            "text"
+          ],
           "required": false,
           "minConnections": 0,
           "maxConnections": null
@@ -690,7 +890,11 @@
       "inputs": [
         {
           "id": null,
-          "kinds": ["text", "image", "video"],
+          "kinds": [
+            "text",
+            "image",
+            "video"
+          ],
           "required": false,
           "minConnections": 0,
           "maxConnections": null
@@ -699,7 +903,9 @@
       "outputs": [
         {
           "id": null,
-          "kinds": ["text"],
+          "kinds": [
+            "text"
+          ],
           "required": false,
           "minConnections": 0,
           "maxConnections": null
@@ -709,32 +915,179 @@
     "mv-music-master": {
       "resolver": "static",
       "inputs": [
-        { "id": "master-audio", "kinds": ["audio"], "required": true, "minConnections": 1, "maxConnections": 1 },
-        { "id": "lyrics", "kinds": ["text"], "required": false, "minConnections": 0, "maxConnections": 1 },
-        { "id": "identity-image", "kinds": ["image"], "required": true, "minConnections": 1, "maxConnections": 9 },
-        { "id": "style-image", "kinds": ["image"], "required": false, "minConnections": 0, "maxConnections": 9 },
-        { "id": "motion-reference", "kinds": ["video"], "required": false, "minConnections": 0, "maxConnections": 3 }
+        {
+          "id": "master-audio",
+          "kinds": [
+            "audio"
+          ],
+          "required": true,
+          "minConnections": 1,
+          "maxConnections": 1
+        },
+        {
+          "id": "lyrics",
+          "kinds": [
+            "text"
+          ],
+          "required": false,
+          "minConnections": 0,
+          "maxConnections": 1
+        },
+        {
+          "id": "identity-image",
+          "kinds": [
+            "image"
+          ],
+          "required": true,
+          "minConnections": 1,
+          "maxConnections": 9
+        },
+        {
+          "id": "style-image",
+          "kinds": [
+            "image"
+          ],
+          "required": false,
+          "minConnections": 0,
+          "maxConnections": 9
+        },
+        {
+          "id": "motion-reference",
+          "kinds": [
+            "video"
+          ],
+          "required": false,
+          "minConnections": 0,
+          "maxConnections": 3
+        }
       ],
       "outputs": [
-        { "id": "final-video", "kinds": ["video"], "required": false, "minConnections": 0, "maxConnections": null, "preferred": true },
-        { "id": "master-audio", "kinds": ["audio"], "required": false, "minConnections": 0, "maxConnections": null, "preferred": false },
-        { "id": "storyboards", "kinds": ["image"], "required": false, "minConnections": 0, "maxConnections": null, "preferred": false },
-        { "id": "prompt-pack", "kinds": ["text"], "required": false, "minConnections": 0, "maxConnections": null, "preferred": false },
-        { "id": "manifest", "kinds": ["metadata"], "required": false, "minConnections": 0, "maxConnections": null, "preferred": false }
+        {
+          "id": "final-video",
+          "kinds": [
+            "video"
+          ],
+          "required": false,
+          "minConnections": 0,
+          "maxConnections": null,
+          "preferred": true
+        },
+        {
+          "id": "master-audio",
+          "kinds": [
+            "audio"
+          ],
+          "required": false,
+          "minConnections": 0,
+          "maxConnections": null,
+          "preferred": false
+        },
+        {
+          "id": "storyboards",
+          "kinds": [
+            "image"
+          ],
+          "required": false,
+          "minConnections": 0,
+          "maxConnections": null,
+          "preferred": false
+        },
+        {
+          "id": "prompt-pack",
+          "kinds": [
+            "text"
+          ],
+          "required": false,
+          "minConnections": 0,
+          "maxConnections": null,
+          "preferred": false
+        },
+        {
+          "id": "manifest",
+          "kinds": [
+            "metadata"
+          ],
+          "required": false,
+          "minConnections": 0,
+          "maxConnections": null,
+          "preferred": false
+        }
       ]
     },
     "localization-master": {
       "resolver": "static",
       "inputs": [
-        { "id": "source-media", "kinds": ["video", "audio"], "required": false, "minConnections": 0, "maxConnections": 1 },
-        { "id": "source-text", "kinds": ["text"], "required": false, "minConnections": 0, "maxConnections": 1 },
-        { "id": "voice-references", "kinds": ["audio", "video"], "required": false, "minConnections": 0, "maxConnections": 16 }
+        {
+          "id": "source-media",
+          "kinds": [
+            "video",
+            "audio"
+          ],
+          "required": false,
+          "minConnections": 0,
+          "maxConnections": 1
+        },
+        {
+          "id": "source-text",
+          "kinds": [
+            "text"
+          ],
+          "required": false,
+          "minConnections": 0,
+          "maxConnections": 1
+        },
+        {
+          "id": "voice-references",
+          "kinds": [
+            "audio",
+            "video"
+          ],
+          "required": false,
+          "minConnections": 0,
+          "maxConnections": 16
+        }
       ],
       "outputs": [
-        { "id": "localized-video", "kinds": ["video"], "required": false, "minConnections": 0, "maxConnections": null, "preferred": true },
-        { "id": "dubbed-audio", "kinds": ["audio"], "required": false, "minConnections": 0, "maxConnections": null, "preferred": false },
-        { "id": "subtitles", "kinds": ["text"], "required": false, "minConnections": 0, "maxConnections": null, "preferred": false },
-        { "id": "manifest", "kinds": ["metadata"], "required": false, "minConnections": 0, "maxConnections": null, "preferred": false }
+        {
+          "id": "localized-video",
+          "kinds": [
+            "video"
+          ],
+          "required": false,
+          "minConnections": 0,
+          "maxConnections": null,
+          "preferred": true
+        },
+        {
+          "id": "dubbed-audio",
+          "kinds": [
+            "audio"
+          ],
+          "required": false,
+          "minConnections": 0,
+          "maxConnections": null,
+          "preferred": false
+        },
+        {
+          "id": "subtitles",
+          "kinds": [
+            "text"
+          ],
+          "required": false,
+          "minConnections": 0,
+          "maxConnections": null,
+          "preferred": false
+        },
+        {
+          "id": "manifest",
+          "kinds": [
+            "metadata"
+          ],
+          "required": false,
+          "minConnections": 0,
+          "maxConnections": null,
+          "preferred": false
+        }
       ]
     },
     "runninghub": {
@@ -2335,26 +2688,116 @@
       "description": "用文字生成动效视频，选择历史版本或分镜用自然语言修改，保留新旧成片",
       "icon": "Video",
       "color": "teal",
-      "ports": { "inputs": ["text"], "outputs": ["video", "text"] },
+      "ports": {
+        "inputs": [
+          "text"
+        ],
+        "outputs": [
+          "video",
+          "text"
+        ]
+      },
       "executable": true,
       "generatable": true,
       "generation": {
         "allowedDataFields": {
-          "model": { "type": "string", "enum": ["zhenzhen/motion-video", "zhenzhen/motion-video-pro"] },
-          "prompt": { "type": "string" },
-          "duration": { "type": "number", "enum": [15, 30, 45, 60] },
-          "ratio": { "type": "string", "enum": ["16:9", "9:16", "1:1"] },
-          "resolution": { "type": "string", "enum": ["720p", "1080p"] },
-          "motionOperation": { "type": "string", "enum": ["generate", "revise"] },
-          "motionBaseVersionId": { "type": "string" },
-          "motionRevisionInstruction": { "type": "string" },
-          "motionTemplate": { "type": "string", "enum": ["api_default", "hype-kinetic", "swiss-minimal", "cinematic-trailer", "cyber-glitch", "blueprint-tech", "code-cinema", "data-story", "synthwave", "chalk-hand", "voxel-world"] },
-          "motionTitle": { "type": "string" }, "motionSubtitle": { "type": "string" },
-          "motionSignature": { "type": "string" }, "motionLanguage": { "type": "string" },
-          "motionKeywords": { "type": "string" },
-          "motionMusic": { "type": "string", "enum": ["api_default", "auto"] }
+          "model": {
+            "type": "string",
+            "enum": [
+              "zhenzhen/motion-video",
+              "zhenzhen/motion-video-pro"
+            ]
+          },
+          "prompt": {
+            "type": "string"
+          },
+          "duration": {
+            "type": "number",
+            "enum": [
+              15,
+              30,
+              45,
+              60
+            ]
+          },
+          "ratio": {
+            "type": "string",
+            "enum": [
+              "16:9",
+              "9:16",
+              "1:1"
+            ]
+          },
+          "resolution": {
+            "type": "string",
+            "enum": [
+              "720p",
+              "1080p"
+            ]
+          },
+          "motionOperation": {
+            "type": "string",
+            "enum": [
+              "generate",
+              "revise"
+            ]
+          },
+          "motionBaseVersionId": {
+            "type": "string"
+          },
+          "motionRevisionInstruction": {
+            "type": "string"
+          },
+          "motionTemplate": {
+            "type": "string",
+            "enum": [
+              "api_default",
+              "hype-kinetic",
+              "swiss-minimal",
+              "cinematic-trailer",
+              "cyber-glitch",
+              "blueprint-tech",
+              "code-cinema",
+              "data-story",
+              "synthwave",
+              "chalk-hand",
+              "voxel-world"
+            ]
+          },
+          "motionTitle": {
+            "type": "string"
+          },
+          "motionSubtitle": {
+            "type": "string"
+          },
+          "motionSignature": {
+            "type": "string"
+          },
+          "motionLanguage": {
+            "type": "string"
+          },
+          "motionKeywords": {
+            "type": "string"
+          },
+          "motionMusic": {
+            "type": "string",
+            "enum": [
+              "api_default",
+              "auto"
+            ]
+          }
         },
-        "defaults": { "model": "zhenzhen/motion-video", "prompt": "", "duration": 15, "ratio": "16:9", "resolution": "720p", "motionOperation": "generate", "motionTemplate": "api_default", "motionMusic": "api_default", "status": "idle" }
+        "defaults": {
+          "model": "zhenzhen/motion-video",
+          "prompt": "",
+          "duration": 15,
+          "ratio": "16:9",
+          "resolution": "720p",
+          "motionOperation": "generate",
+          "motionTemplate": "api_default",
+          "motionMusic": "api_default",
+          "status": "idle"
+        }
       }
     },
     {
@@ -2364,12 +2807,29 @@
       "description": "导入Gaussian场景、浏览漫游、保存景位并输出构图参考",
       "icon": "Globe2",
       "color": "teal",
-      "ports": { "inputs": ["model3d"], "outputs": ["image", "model3d"] },
+      "ports": {
+        "inputs": [
+          "model3d"
+        ],
+        "outputs": [
+          "image",
+          "model3d"
+        ]
+      },
       "executable": true,
       "generatable": false,
       "generation": {
         "allowedDataFields": {},
-        "defaults": { "worldSceneProject": { "schema": "t8-world-scene-v1", "sources": [], "activeSourceId": "", "camera": null, "views": [] }, "status": "idle" }
+        "defaults": {
+          "worldSceneProject": {
+            "schema": "t8-world-scene-v1",
+            "sources": [],
+            "activeSourceId": "",
+            "camera": null,
+            "views": []
+          },
+          "status": "idle"
+        }
       }
     },
     {
@@ -2379,19 +2839,61 @@
       "description": "可扩展 3D 生成节点；首个 Hunyuan 3D Tab 支持 v3.1 文生/有序多视图图生 GLB，并自动创建预览下载节点",
       "icon": "Box",
       "color": "violet",
-      "ports": { "inputs": ["text", "image"], "outputs": ["model3d"] },
+      "ports": {
+        "inputs": [
+          "text",
+          "image"
+        ],
+        "outputs": [
+          "model3d"
+        ]
+      },
       "executable": true,
       "generatable": false,
       "generation": {
         "allowedDataFields": {
-          "threeDTab": { "type": "string", "enum": ["hunyuan-3d"] },
-          "model": { "type": "string", "enum": ["hunyuan3d-v3.1-text-to-3d", "hunyuan3d-v3.1-image-to-3d"] },
-          "prompt": { "type": "string", "maxLength": 20000 },
-          "faceCount": { "type": "integer", "minimum": 10000, "maximum": 1500000 },
-          "enablePbr": { "type": "boolean" },
-          "generateType": { "type": "string", "enum": ["Normal", "Geometry", "Sketch"] }
+          "threeDTab": {
+            "type": "string",
+            "enum": [
+              "hunyuan-3d"
+            ]
+          },
+          "model": {
+            "type": "string",
+            "enum": [
+              "hunyuan3d-v3.1-text-to-3d",
+              "hunyuan3d-v3.1-image-to-3d"
+            ]
+          },
+          "prompt": {
+            "type": "string",
+            "maxLength": 20000
+          },
+          "faceCount": {
+            "type": "integer",
+            "minimum": 10000,
+            "maximum": 1500000
+          },
+          "enablePbr": {
+            "type": "boolean"
+          },
+          "generateType": {
+            "type": "string",
+            "enum": [
+              "Normal",
+              "Geometry",
+              "Sketch"
+            ]
+          }
         },
-        "defaults": { "threeDTab": "hunyuan-3d", "model": "hunyuan3d-v3.1-text-to-3d", "prompt": "", "faceCount": 500000, "enablePbr": false, "generateType": "Normal" }
+        "defaults": {
+          "threeDTab": "hunyuan-3d",
+          "model": "hunyuan3d-v3.1-text-to-3d",
+          "prompt": "",
+          "faceCount": 500000,
+          "enablePbr": false,
+          "generateType": "Normal"
+        }
       }
     },
     {
@@ -2401,20 +2903,64 @@
       "description": "Grok Image v2 专用两阶段节点：对单图任务智能分割并持久化 image_id/对象，再按对象、边界框或选区编辑",
       "icon": "ScanSearch",
       "color": "sky",
-      "ports": { "inputs": ["image", "metadata"], "outputs": ["image", "metadata"] },
+      "ports": {
+        "inputs": [
+          "image",
+          "metadata"
+        ],
+        "outputs": [
+          "image",
+          "metadata"
+        ]
+      },
       "executable": true,
       "generatable": false,
       "generation": {
         "allowedDataFields": {
-          "grokToolMode": { "type": "string", "enum": ["segment", "region-edit"] },
-          "sourceTaskId": { "type": "string", "maxLength": 256 },
-          "includeMaskRle": { "type": "boolean" },
-          "grokImageId": { "type": "string", "maxLength": 512 },
-          "prompt": { "type": "string", "maxLength": 20000 },
-          "selectionMode": { "type": "string", "enum": ["object_indices", "boxes", "selection_regions"] },
-          "selectionJson": { "type": "string", "maxLength": 200000 }
+          "grokToolMode": {
+            "type": "string",
+            "enum": [
+              "segment",
+              "region-edit"
+            ]
+          },
+          "sourceTaskId": {
+            "type": "string",
+            "maxLength": 256
+          },
+          "includeMaskRle": {
+            "type": "boolean"
+          },
+          "grokImageId": {
+            "type": "string",
+            "maxLength": 512
+          },
+          "prompt": {
+            "type": "string",
+            "maxLength": 20000
+          },
+          "selectionMode": {
+            "type": "string",
+            "enum": [
+              "object_indices",
+              "boxes",
+              "selection_regions"
+            ]
+          },
+          "selectionJson": {
+            "type": "string",
+            "maxLength": 200000
+          }
         },
-        "defaults": { "grokToolMode": "segment", "sourceTaskId": "", "includeMaskRle": false, "grokImageId": "", "prompt": "", "selectionMode": "object_indices", "selectionJson": "[0]" }
+        "defaults": {
+          "grokToolMode": "segment",
+          "sourceTaskId": "",
+          "includeMaskRle": false,
+          "grokImageId": "",
+          "prompt": "",
+          "selectionMode": "object_indices",
+          "selectionJson": "[0]"
+        }
       }
     },
     {
@@ -2496,10 +3042,31 @@
         "connectionPorts": {
           "dynamic": false,
           "inputs": [
-            { "id": null, "kinds": ["text", "image", "video", "audio", "model3d", "any"], "required": false, "minConnections": 0, "maxConnections": null }
+            {
+              "id": null,
+              "kinds": [
+                "text",
+                "image",
+                "video",
+                "audio",
+                "model3d",
+                "any"
+              ],
+              "required": false,
+              "minConnections": 0,
+              "maxConnections": null
+            }
           ],
           "outputs": [
-            { "id": null, "kinds": ["any"], "required": false, "minConnections": 0, "maxConnections": null }
+            {
+              "id": null,
+              "kinds": [
+                "any"
+              ],
+              "required": false,
+              "minConnections": 0,
+              "maxConnections": null
+            }
           ]
         }
       }
@@ -2535,17 +3102,46 @@
       "description": "浏览、导入、标记并输出火山方舟私域图像、视频和音频素材",
       "icon": "LibraryBig",
       "color": "orange",
-      "ports": { "inputs": [], "outputs": ["image", "video", "audio"] },
+      "ports": {
+        "inputs": [],
+        "outputs": [
+          "image",
+          "video",
+          "audio"
+        ]
+      },
       "executable": true,
       "generatable": false,
       "generation": {
         "allowedDataFields": {
-          "volcengineAssetsProfileId": { "type": "string", "maxLength": 128 },
-          "volcengineAssetsProjectName": { "type": "string", "maxLength": 128 },
-          "volcengineAssetsGroupId": { "type": "string", "maxLength": 256 },
-          "volcengineAssetsPageNumber": { "type": "integer", "minimum": 1, "maximum": 10000 },
-          "volcengineAssetsRelayTargetId": { "type": "string", "maxLength": 128 },
-          "selectedAssets": { "type": "array", "maxItems": 15, "items": { "type": "object" } }
+          "volcengineAssetsProfileId": {
+            "type": "string",
+            "maxLength": 128
+          },
+          "volcengineAssetsProjectName": {
+            "type": "string",
+            "maxLength": 128
+          },
+          "volcengineAssetsGroupId": {
+            "type": "string",
+            "maxLength": 256
+          },
+          "volcengineAssetsPageNumber": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10000
+          },
+          "volcengineAssetsRelayTargetId": {
+            "type": "string",
+            "maxLength": 128
+          },
+          "selectedAssets": {
+            "type": "array",
+            "maxItems": 15,
+            "items": {
+              "type": "object"
+            }
+          }
         },
         "defaults": {
           "volcengineAssetsProfileId": "volcengine",
@@ -2618,10 +3214,29 @@
         "connectionPorts": {
           "dynamic": false,
           "inputs": [
-            { "id": null, "kinds": ["text", "image", "video", "audio"], "required": false, "minConnections": 0, "maxConnections": null }
+            {
+              "id": null,
+              "kinds": [
+                "text",
+                "image",
+                "video",
+                "audio"
+              ],
+              "required": false,
+              "minConnections": 0,
+              "maxConnections": null
+            }
           ],
           "outputs": [
-            { "id": null, "kinds": ["text"], "required": false, "minConnections": 0, "maxConnections": null }
+            {
+              "id": null,
+              "kinds": [
+                "text"
+              ],
+              "required": false,
+              "minConnections": 0,
+              "maxConnections": null
+            }
           ]
         }
       }
@@ -2649,24 +3264,87 @@
           "model": {
             "type": "string",
             "enum": [
-              "gpt-image-2"
+              "gpt-image-2",
+              "zhenzhen-image-hy-v3.5-preview",
+              "zhenzhen-image-muse",
+              "flux-3-image"
             ]
           },
-          "providerSource": { "type": "string", "enum": ["zhenzhen"] },
-          "providerId": { "type": "string", "enum": [""] },
-          "providerModel": { "type": "string", "enum": [""] },
-          "imageBuiltinSource": { "type": "string", "enum": ["zhenzhen", "seedance-nz"] },
-          "apiModel": { "type": "string", "enum": ["gpt-image-2", "zhenzhen-image-g2-t2i", "zhenzhen-image-g2-i2i"] },
+          "providerSource": {
+            "type": "string",
+            "enum": [
+              "zhenzhen"
+            ]
+          },
+          "providerId": {
+            "type": "string",
+            "enum": [
+              ""
+            ]
+          },
+          "providerModel": {
+            "type": "string",
+            "enum": [
+              ""
+            ]
+          },
+          "imageBuiltinSource": {
+            "type": "string",
+            "enum": [
+              "zhenzhen",
+              "seedance-nz"
+            ]
+          },
+          "apiModel": {
+            "type": "string",
+            "enum": [
+              "gpt-image-2",
+              "zhenzhen-image-g2-t2i",
+              "zhenzhen-image-g2-i2i",
+              "zhenzhen-image-hy-v3.5-preview",
+              "zhenzhen-image-muse",
+              "flux-3-image",
+              "flux-3-image-t2i",
+              "flux-3-image-i2i",
+              "flux-3-image-klein-t2i",
+              "flux-3-image-klein-i2i"
+            ]
+          },
           "aspectRatio": {
             "type": "string",
             "enum": [
-              "1:1", "adaptive"
+              "1:1",
+              "adaptive",
+              "auto",
+              "2:3",
+              "3:2",
+              "3:4",
+              "4:3",
+              "4:5",
+              "5:4",
+              "9:16",
+              "16:9",
+              "21:9",
+              "custom",
+              "1:2",
+              "2:1",
+              "5:7",
+              "7:5",
+              "9:21"
             ]
           },
           "sizeLevel": {
             "type": "string",
             "enum": [
-              "1K"
+              "1K",
+              "2K",
+              "4K",
+              "",
+              "768sq",
+              "1k",
+              "1.5k",
+              "2k",
+              "4k"
             ]
           },
           "gptImageQuality": {
@@ -2820,6 +3498,51 @@
           },
           "reuseResult": {
             "type": "boolean"
+          },
+          "hyWidth": {
+            "type": "integer",
+            "minimum": 256,
+            "maximum": 8192
+          },
+          "hyHeight": {
+            "type": "integer",
+            "minimum": 256,
+            "maximum": 8192
+          },
+          "hySeed": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "hyNegativePrompt": {
+            "type": "string",
+            "maxLength": 20000
+          },
+          "fluxImageGrounding": {
+            "type": "boolean"
+          },
+          "fluxImageSafetyTolerance": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4
+          },
+          "fluxImageSeed": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2147483647
+          },
+          "fluxImageSteps": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 16
+          },
+          "fluxImageOutputFormat": {
+            "type": "string",
+            "enum": [
+              "api_default",
+              "png",
+              "jpeg"
+            ]
           }
         },
         "defaults": {
@@ -2851,10 +3574,27 @@
         "connectionPorts": {
           "dynamic": false,
           "inputs": [
-            { "id": null, "kinds": ["text", "image"], "required": false, "minConnections": 0, "maxConnections": null }
+            {
+              "id": null,
+              "kinds": [
+                "text",
+                "image"
+              ],
+              "required": false,
+              "minConnections": 0,
+              "maxConnections": null
+            }
           ],
           "outputs": [
-            { "id": null, "kinds": ["image"], "required": false, "minConnections": 0, "maxConnections": null }
+            {
+              "id": null,
+              "kinds": [
+                "image"
+              ],
+              "required": false,
+              "minConnections": 0,
+              "maxConnections": null
+            }
           ]
         }
       }
@@ -2913,7 +3653,8 @@
             "type": "string",
             "enum": [
               "grok-video-3",
-              "kling-v3.0"
+              "kling-v3.0",
+              "zhenzhen-video-muse"
             ]
           },
           "model": {
@@ -2925,7 +3666,8 @@
               "kling-v4-custom-voice",
               "kling-v4-i2v",
               "kling-v4-omni",
-              "kling-v4-t2v"
+              "kling-v4-t2v",
+              "zhenzhen-video-muse"
             ]
           },
           "ratio": {
@@ -2935,7 +3677,12 @@
               "21:9",
               "1:1",
               "9:16",
-              "adaptive"
+              "adaptive",
+              "auto",
+              "4:3",
+              "3:4",
+              "3:2",
+              "2:3"
             ]
           },
           "duration": {
@@ -3130,8 +3877,15 @@
       "icon": "Film",
       "color": "fuchsia",
       "ports": {
-        "inputs": ["text", "image", "video", "audio"],
-        "outputs": ["video"]
+        "inputs": [
+          "text",
+          "image",
+          "video",
+          "audio"
+        ],
+        "outputs": [
+          "video"
+        ]
       },
       "executable": true,
       "generatable": false,
@@ -3150,14 +3904,74 @@
           },
           "duration": {
             "type": "integer",
-            "enum": [-1, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
+            "enum": [
+              -1,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15,
+              16,
+              17,
+              18,
+              19,
+              20,
+              21,
+              22,
+              23,
+              24,
+              25,
+              26,
+              27,
+              28,
+              29,
+              30
+            ]
           },
-          "ratio": { "type": "string", "enum": ["adaptive", "16:9", "4:3", "1:1", "3:4", "9:16", "21:9"] },
-          "resolution": { "type": "string", "enum": ["480p", "720p", "1080p", "2k", "4k", "native1080p"] },
-          "generateAudio": { "type": "boolean" },
-          "returnLastFrame": { "type": "boolean" },
-          "seed": { "type": "integer", "minimum": -1, "maximum": 2147483647 },
-          "reuseResult": { "type": "boolean" }
+          "ratio": {
+            "type": "string",
+            "enum": [
+              "adaptive",
+              "16:9",
+              "4:3",
+              "1:1",
+              "3:4",
+              "9:16",
+              "21:9"
+            ]
+          },
+          "resolution": {
+            "type": "string",
+            "enum": [
+              "480p",
+              "720p",
+              "1080p",
+              "2k",
+              "4k",
+              "native1080p"
+            ]
+          },
+          "generateAudio": {
+            "type": "boolean"
+          },
+          "returnLastFrame": {
+            "type": "boolean"
+          },
+          "seed": {
+            "type": "integer",
+            "minimum": -1,
+            "maximum": 2147483647
+          },
+          "reuseResult": {
+            "type": "boolean"
+          }
         },
         "defaults": {
           "model": "seedance-2.5-global-standard-i2v",
@@ -3179,15 +3993,27 @@
       "icon": "ScanLine",
       "color": "emerald",
       "ports": {
-        "inputs": ["video"],
-        "outputs": ["video"]
+        "inputs": [
+          "video"
+        ],
+        "outputs": [
+          "video"
+        ]
       },
       "executable": true,
       "generatable": false,
       "generation": {
         "allowedDataFields": {
-          "model": { "type": "string", "enum": ["FlashVSR_video_upscale", "FashVSR_video_upscale"] },
-          "reuseResult": { "type": "boolean" }
+          "model": {
+            "type": "string",
+            "enum": [
+              "FlashVSR_video_upscale",
+              "FashVSR_video_upscale"
+            ]
+          },
+          "reuseResult": {
+            "type": "boolean"
+          }
         },
         "defaults": {
           "model": "FlashVSR_video_upscale",
@@ -3299,50 +4125,183 @@
         "allowedDataFields": {
           "audioProviderMode": {
             "type": "string",
-            "enum": ["suno", "seed-audio", "whisper", "qwen3-tts", "minimax", "mureka"]
+            "enum": [
+              "suno",
+              "seed-audio",
+              "whisper",
+              "qwen3-tts",
+              "minimax",
+              "mureka"
+            ]
           },
-          "seedAudioModel": { "type": "string", "enum": ["doubao-seed-audio-1.0", "doubao-voice-clone", "doubao-seed-icl-2.0"] },
-          "seedAudioSpeaker": { "type": "string" },
-          "doubaoVoiceParams": { "type": "object", "maxProperties": 32 },
+          "seedAudioModel": {
+            "type": "string",
+            "enum": [
+              "doubao-seed-audio-1.0",
+              "doubao-voice-clone",
+              "doubao-seed-icl-2.0"
+            ]
+          },
+          "seedAudioSpeaker": {
+            "type": "string"
+          },
+          "doubaoVoiceParams": {
+            "type": "object",
+            "maxProperties": 32
+          },
           "qwenTtsModel": {
             "type": "string",
-            "enum": ["qwen3-tts-flash", "qwen3-tts-instruct-flash"]
+            "enum": [
+              "qwen3-tts-flash",
+              "qwen3-tts-instruct-flash"
+            ]
           },
-          "qwenTtsVoice": { "type": "string" },
+          "qwenTtsVoice": {
+            "type": "string"
+          },
           "qwenTtsLanguage": {
             "type": "string",
-            "enum": ["Chinese", "English", "Japanese", "Korean", "German", "French", "Russian", "Portuguese", "Spanish", "Italian"]
+            "enum": [
+              "Chinese",
+              "English",
+              "Japanese",
+              "Korean",
+              "German",
+              "French",
+              "Russian",
+              "Portuguese",
+              "Spanish",
+              "Italian"
+            ]
           },
-          "qwenTtsInstructions": { "type": "string" },
-          "qwenTtsOptimizeInstructions": { "type": "boolean" },
+          "qwenTtsInstructions": {
+            "type": "string"
+          },
+          "qwenTtsOptimizeInstructions": {
+            "type": "boolean"
+          },
           "minimaxAudioModel": {
             "type": "string",
-            "enum": ["minimax-music-2.6", "minimax-speech-2.8-hd", "minimax-speech-2.8-turbo", "minimax-voice-clone"]
+            "enum": [
+              "minimax-music-2.6",
+              "minimax-speech-2.8-hd",
+              "minimax-speech-2.8-turbo",
+              "minimax-voice-clone"
+            ]
           },
-          "minimaxLyrics": { "type": "string" },
-          "minimaxInstrumental": { "type": "boolean" },
-          "minimaxLyricsOptimizer": { "type": "boolean" },
-          "minimaxVoiceId": { "type": "string" },
-          "minimaxSpeed": { "type": "number", "minimum": 0.5, "maximum": 2 },
-          "minimaxVolume": { "type": "number", "minimum": 0.1, "maximum": 10 },
-          "minimaxPitch": { "type": "integer", "minimum": -12, "maximum": 12 },
-          "minimaxLanguageBoost": { "type": "string" },
-          "minimaxOutputFormat": { "type": "string", "enum": ["mp3", "wav", "flac"] },
-          "minimaxSampleRate": { "type": "string", "enum": ["16000", "24000", "32000", "44100"] },
-          "minimaxBitrate": { "type": "string", "enum": ["32000", "64000", "128000", "256000"] },
-          "minimaxChannel": { "type": "integer", "enum": [1, 2] },
-          "minimaxCustomVoiceId": { "type": "string" },
-          "minimaxCloneTargetModel": { "type": "string", "enum": ["minimax-speech-2.8-hd", "minimax-speech-2.8-turbo"] },
-          "minimaxNoiseReduction": { "type": "boolean" },
-          "minimaxVolumeNormalization": { "type": "boolean" },
-          "murekaModel": { "type": "string", "enum": ["mureka-v8-bgm", "mureka-v9-bgm"] },
-          "murekaInstrumentalId": { "type": "string" },
-          "murekaCount": { "type": "integer", "minimum": 1, "maximum": 3 },
-          "prompt": { "type": "string" },
-          "referenceAudios": { "type": "array", "items": { "type": "string" }, "maxItems": 1 },
+          "minimaxLyrics": {
+            "type": "string"
+          },
+          "minimaxInstrumental": {
+            "type": "boolean"
+          },
+          "minimaxLyricsOptimizer": {
+            "type": "boolean"
+          },
+          "minimaxVoiceId": {
+            "type": "string"
+          },
+          "minimaxSpeed": {
+            "type": "number",
+            "minimum": 0.5,
+            "maximum": 2
+          },
+          "minimaxVolume": {
+            "type": "number",
+            "minimum": 0.1,
+            "maximum": 10
+          },
+          "minimaxPitch": {
+            "type": "integer",
+            "minimum": -12,
+            "maximum": 12
+          },
+          "minimaxLanguageBoost": {
+            "type": "string"
+          },
+          "minimaxOutputFormat": {
+            "type": "string",
+            "enum": [
+              "mp3",
+              "wav",
+              "flac"
+            ]
+          },
+          "minimaxSampleRate": {
+            "type": "string",
+            "enum": [
+              "16000",
+              "24000",
+              "32000",
+              "44100"
+            ]
+          },
+          "minimaxBitrate": {
+            "type": "string",
+            "enum": [
+              "32000",
+              "64000",
+              "128000",
+              "256000"
+            ]
+          },
+          "minimaxChannel": {
+            "type": "integer",
+            "enum": [
+              1,
+              2
+            ]
+          },
+          "minimaxCustomVoiceId": {
+            "type": "string"
+          },
+          "minimaxCloneTargetModel": {
+            "type": "string",
+            "enum": [
+              "minimax-speech-2.8-hd",
+              "minimax-speech-2.8-turbo"
+            ]
+          },
+          "minimaxNoiseReduction": {
+            "type": "boolean"
+          },
+          "minimaxVolumeNormalization": {
+            "type": "boolean"
+          },
+          "murekaModel": {
+            "type": "string",
+            "enum": [
+              "mureka-v8-bgm",
+              "mureka-v9-bgm"
+            ]
+          },
+          "murekaInstrumentalId": {
+            "type": "string"
+          },
+          "murekaCount": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 3
+          },
+          "prompt": {
+            "type": "string"
+          },
+          "referenceAudios": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 1
+          },
           "whisperResponseFormat": {
             "type": "string",
-            "enum": ["json", "verbose_json", "srt", "text", "vtt"]
+            "enum": [
+              "json",
+              "verbose_json",
+              "srt",
+              "text",
+              "vtt"
+            ]
           },
           "reuseResult": {
             "type": "boolean"
@@ -3368,14 +4327,69 @@
         "connectionPorts": {
           "dynamic": false,
           "inputs": [
-            { "id": null, "kinds": ["text", "image", "audio", "video"], "required": false, "minConnections": 0, "maxConnections": null },
-            { "id": "speaker", "kinds": ["text"], "required": false, "minConnections": 0, "maxConnections": 1 }
+            {
+              "id": null,
+              "kinds": [
+                "text",
+                "image",
+                "audio",
+                "video"
+              ],
+              "required": false,
+              "minConnections": 0,
+              "maxConnections": null
+            },
+            {
+              "id": "speaker",
+              "kinds": [
+                "text"
+              ],
+              "required": false,
+              "minConnections": 0,
+              "maxConnections": 1
+            }
           ],
           "outputs": [
-            { "id": "audio-0", "kinds": ["audio"], "required": false, "minConnections": 0, "maxConnections": null, "preferred": true },
-            { "id": "audio-1", "kinds": ["audio"], "required": false, "minConnections": 0, "maxConnections": null, "preferred": false },
-            { "id": "text", "kinds": ["text"], "required": false, "minConnections": 0, "maxConnections": null, "preferred": false },
-            { "id": "video", "kinds": ["video"], "required": false, "minConnections": 0, "maxConnections": null, "preferred": false }
+            {
+              "id": "audio-0",
+              "kinds": [
+                "audio"
+              ],
+              "required": false,
+              "minConnections": 0,
+              "maxConnections": null,
+              "preferred": true
+            },
+            {
+              "id": "audio-1",
+              "kinds": [
+                "audio"
+              ],
+              "required": false,
+              "minConnections": 0,
+              "maxConnections": null,
+              "preferred": false
+            },
+            {
+              "id": "text",
+              "kinds": [
+                "text"
+              ],
+              "required": false,
+              "minConnections": 0,
+              "maxConnections": null,
+              "preferred": false
+            },
+            {
+              "id": "video",
+              "kinds": [
+                "video"
+              ],
+              "required": false,
+              "minConnections": 0,
+              "maxConnections": null,
+              "preferred": false
+            }
           ]
         }
       }
@@ -3405,10 +4419,28 @@
         "connectionPorts": {
           "dynamic": false,
           "inputs": [
-            { "id": null, "kinds": ["text", "image", "video"], "required": false, "minConnections": 0, "maxConnections": null }
+            {
+              "id": null,
+              "kinds": [
+                "text",
+                "image",
+                "video"
+              ],
+              "required": false,
+              "minConnections": 0,
+              "maxConnections": null
+            }
           ],
           "outputs": [
-            { "id": null, "kinds": ["text"], "required": false, "minConnections": 0, "maxConnections": null }
+            {
+              "id": null,
+              "kinds": [
+                "text"
+              ],
+              "required": false,
+              "minConnections": 0,
+              "maxConnections": null
+            }
           ]
         }
       }
@@ -3440,7 +4472,13 @@
           },
           "taskType": {
             "type": "string",
-            "enum": ["T2VA", "I2VA", "FL2VA", "L2VA", "Ref2VA"]
+            "enum": [
+              "T2VA",
+              "I2VA",
+              "FL2VA",
+              "L2VA",
+              "Ref2VA"
+            ]
           },
           "durationSeconds": {
             "type": "integer",
@@ -3454,7 +4492,11 @@
           },
           "rewriteMode": {
             "type": "string",
-            "enum": ["strict", "balanced", "creative"]
+            "enum": [
+              "strict",
+              "balanced",
+              "creative"
+            ]
           },
           "descriptionTarget": {
             "type": "integer",
@@ -3463,19 +4505,39 @@
           },
           "outputLanguage": {
             "type": "string",
-            "enum": ["中文", "English"]
+            "enum": [
+              "中文",
+              "English"
+            ]
           },
           "promptMode": {
             "type": "string",
-            "enum": ["官方增强", "参考模板融合"]
+            "enum": [
+              "官方增强",
+              "参考模板融合"
+            ]
           },
           "officialSkillProfile": {
             "type": "string",
-            "enum": ["现有兼容（保留中英文）", "官方 Skill 严格（全英文协议）"]
+            "enum": [
+              "现有兼容（保留中英文）",
+              "官方 Skill 严格（全英文协议）"
+            ]
           },
           "creativePreset": {
             "type": "string",
-            "enum": ["无（仅核心规则）", "AUTO（根据意图判断）", "极简产品广告", "3D 动画短片", "品牌宣传短片", "MV / 歌词贴字", "双人合作游戏开场", "纸拼贴讲解", "立体纸艺停格讲解", "手绘实拍融合"]
+            "enum": [
+              "无（仅核心规则）",
+              "AUTO（根据意图判断）",
+              "极简产品广告",
+              "3D 动画短片",
+              "品牌宣传短片",
+              "MV / 歌词贴字",
+              "双人合作游戏开场",
+              "纸拼贴讲解",
+              "立体纸艺停格讲解",
+              "手绘实拍融合"
+            ]
           },
           "referenceTemplate": {
             "type": "string",
@@ -3516,10 +4578,28 @@
         "connectionPorts": {
           "dynamic": false,
           "inputs": [
-            { "id": null, "kinds": ["text", "image", "video"], "required": false, "minConnections": 0, "maxConnections": null }
+            {
+              "id": null,
+              "kinds": [
+                "text",
+                "image",
+                "video"
+              ],
+              "required": false,
+              "minConnections": 0,
+              "maxConnections": null
+            }
           ],
           "outputs": [
-            { "id": null, "kinds": ["text"], "required": false, "minConnections": 0, "maxConnections": null }
+            {
+              "id": null,
+              "kinds": [
+                "text"
+              ],
+              "required": false,
+              "minConnections": 0,
+              "maxConnections": null
+            }
           ]
         }
       }
@@ -3531,47 +4611,256 @@
       "description": "基于 MiniMax Music 3 官方 Skill 的纯文本歌曲策划节点，支持歌词生成、逐字保留、定域润色、渐进披露模板、隐私隔离和全部扩展 LLM 渠道；不生成音频",
       "icon": "Music2",
       "color": "fuchsia",
-      "ports": { "inputs": ["text"], "outputs": ["text", "metadata"] },
+      "ports": {
+        "inputs": [
+          "text"
+        ],
+        "outputs": [
+          "text",
+          "metadata"
+        ]
+      },
       "executable": true,
       "generatable": true,
       "generation": {
         "allowedDataFields": {
-          "musicIdea": { "type": "string", "maxLength": 20000 },
-          "lyrics": { "type": "string", "maxLength": 50000 },
-          "lyricsMode": { "type": "string", "enum": ["auto", "generate", "preserve", "edit", "instrumental"] },
-          "qualityMode": { "type": "string", "enum": ["fast", "official-full"] },
-          "semanticMode": { "type": "string", "enum": ["private", "manual-profile", "llm-profile"] },
-          "manualSemanticProfile": { "type": "string", "maxLength": 500 },
-          "editRequest": { "type": "string", "maxLength": 5000 },
-          "editScope": { "type": "string", "enum": ["auto", "all", "section-all", "section-nth"] },
-          "editSection": { "type": "string", "enum": ["Intro", "Verse", "Pre-Chorus", "Chorus", "Post-Chorus", "Bridge", "Instrumental", "Solo", "Outro"] },
-          "editSectionOccurrence": { "type": "integer", "minimum": 1, "maximum": 99 },
-          "structurePreset": { "type": "string", "enum": ["auto", "verse-chorus", "pop-full", "custom"] },
-          "customStructure": { "type": "string", "maxLength": 500 },
-          "language": { "type": "string", "enum": ["auto", "Chinese", "English", "Japanese", "Korean", "custom"] },
-          "customLanguage": { "type": "string", "maxLength": 100 },
-          "captionLanguage": { "type": "string", "enum": ["English", "Chinese"] },
-          "meter": { "type": "string", "enum": ["auto", "4/4", "3/4", "6/8", "custom"] },
-          "customMeter": { "type": "string", "maxLength": 50 },
-          "durationSeconds": { "type": "integer", "minimum": 0, "maximum": 300 },
-          "bpm": { "type": "integer", "minimum": 0, "maximum": 300 },
-          "keyScale": { "type": "string", "maxLength": 100 },
-          "captionWords": { "type": "integer", "minimum": 0, "maximum": 1000 },
-          "constraints": { "type": "string", "maxLength": 5000 },
-          "seed": { "type": "integer" }
+          "musicIdea": {
+            "type": "string",
+            "maxLength": 20000
+          },
+          "lyrics": {
+            "type": "string",
+            "maxLength": 50000
+          },
+          "lyricsMode": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "generate",
+              "preserve",
+              "edit",
+              "instrumental"
+            ]
+          },
+          "qualityMode": {
+            "type": "string",
+            "enum": [
+              "fast",
+              "official-full"
+            ]
+          },
+          "semanticMode": {
+            "type": "string",
+            "enum": [
+              "private",
+              "manual-profile",
+              "llm-profile"
+            ]
+          },
+          "manualSemanticProfile": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "editRequest": {
+            "type": "string",
+            "maxLength": 5000
+          },
+          "editScope": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "all",
+              "section-all",
+              "section-nth"
+            ]
+          },
+          "editSection": {
+            "type": "string",
+            "enum": [
+              "Intro",
+              "Verse",
+              "Pre-Chorus",
+              "Chorus",
+              "Post-Chorus",
+              "Bridge",
+              "Instrumental",
+              "Solo",
+              "Outro"
+            ]
+          },
+          "editSectionOccurrence": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 99
+          },
+          "structurePreset": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "verse-chorus",
+              "pop-full",
+              "custom"
+            ]
+          },
+          "customStructure": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "language": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "Chinese",
+              "English",
+              "Japanese",
+              "Korean",
+              "custom"
+            ]
+          },
+          "customLanguage": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "captionLanguage": {
+            "type": "string",
+            "enum": [
+              "English",
+              "Chinese"
+            ]
+          },
+          "meter": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "4/4",
+              "3/4",
+              "6/8",
+              "custom"
+            ]
+          },
+          "customMeter": {
+            "type": "string",
+            "maxLength": 50
+          },
+          "durationSeconds": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 300
+          },
+          "bpm": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 300
+          },
+          "keyScale": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "captionWords": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000
+          },
+          "constraints": {
+            "type": "string",
+            "maxLength": 5000
+          },
+          "seed": {
+            "type": "integer"
+          }
         },
-        "defaults": { "musicIdea": "", "lyrics": "", "lyricsMode": "auto", "qualityMode": "official-full", "semanticMode": "private", "manualSemanticProfile": "", "editRequest": "", "editScope": "auto", "editSection": "Verse", "editSectionOccurrence": 1, "structurePreset": "auto", "customStructure": "", "language": "auto", "customLanguage": "", "captionLanguage": "English", "meter": "auto", "customMeter": "", "durationSeconds": 0, "bpm": 0, "keyScale": "", "captionWords": 0, "constraints": "", "seed": 0, "llmApiSource": "seedance-nz", "providerSource": "zhenzhen", "providerId": "", "providerModel": "bytedance/doubao-seed-2.1-pro" },
+        "defaults": {
+          "musicIdea": "",
+          "lyrics": "",
+          "lyricsMode": "auto",
+          "qualityMode": "official-full",
+          "semanticMode": "private",
+          "manualSemanticProfile": "",
+          "editRequest": "",
+          "editScope": "auto",
+          "editSection": "Verse",
+          "editSectionOccurrence": 1,
+          "structurePreset": "auto",
+          "customStructure": "",
+          "language": "auto",
+          "customLanguage": "",
+          "captionLanguage": "English",
+          "meter": "auto",
+          "customMeter": "",
+          "durationSeconds": 0,
+          "bpm": 0,
+          "keyScale": "",
+          "captionWords": 0,
+          "constraints": "",
+          "seed": 0,
+          "llmApiSource": "seedance-nz",
+          "providerSource": "zhenzhen",
+          "providerId": "",
+          "providerModel": "bytedance/doubao-seed-2.1-pro"
+        },
         "connectionPorts": {
           "dynamic": false,
           "inputs": [
-            { "id": "music-idea", "kinds": ["text"], "required": false, "minConnections": 0, "maxConnections": 8 },
-            { "id": "lyrics", "kinds": ["text"], "required": false, "minConnections": 0, "maxConnections": 1 }
+            {
+              "id": "music-idea",
+              "kinds": [
+                "text"
+              ],
+              "required": false,
+              "minConnections": 0,
+              "maxConnections": 8
+            },
+            {
+              "id": "lyrics",
+              "kinds": [
+                "text"
+              ],
+              "required": false,
+              "minConnections": 0,
+              "maxConnections": 1
+            }
           ],
           "outputs": [
-            { "id": "lyrics", "kinds": ["text"], "required": false, "minConnections": 0, "maxConnections": null, "preferred": false },
-            { "id": "music-caption", "kinds": ["text"], "required": false, "minConnections": 0, "maxConnections": null, "preferred": true },
-            { "id": "payload", "kinds": ["text"], "required": false, "minConnections": 0, "maxConnections": null, "preferred": false },
-            { "id": "report", "kinds": ["metadata"], "required": false, "minConnections": 0, "maxConnections": null, "preferred": false }
+            {
+              "id": "lyrics",
+              "kinds": [
+                "text"
+              ],
+              "required": false,
+              "minConnections": 0,
+              "maxConnections": null,
+              "preferred": false
+            },
+            {
+              "id": "music-caption",
+              "kinds": [
+                "text"
+              ],
+              "required": false,
+              "minConnections": 0,
+              "maxConnections": null,
+              "preferred": true
+            },
+            {
+              "id": "payload",
+              "kinds": [
+                "text"
+              ],
+              "required": false,
+              "minConnections": 0,
+              "maxConnections": null,
+              "preferred": false
+            },
+            {
+              "id": "report",
+              "kinds": [
+                "metadata"
+              ],
+              "required": false,
+              "minConnections": 0,
+              "maxConnections": null,
+              "preferred": false
+            }
           ]
         }
       }
@@ -3584,14 +4873,24 @@
       "icon": "Sparkles",
       "color": "emerald",
       "ports": {
-        "inputs": ["text", "image", "video", "audio"],
-        "outputs": ["text"]
+        "inputs": [
+          "text",
+          "image",
+          "video",
+          "audio"
+        ],
+        "outputs": [
+          "text"
+        ]
       },
       "executable": true,
       "generatable": true,
       "generation": {
         "allowedDataFields": {
-          "userPrompt": { "type": "string", "maxLength": 7000 },
+          "userPrompt": {
+            "type": "string",
+            "maxLength": 7000
+          },
           "model": {
             "type": "string",
             "enum": [
@@ -3600,10 +4899,23 @@
               "minmax-h3-context-ir-multimodal"
             ]
           },
-          "duration": { "type": "integer", "minimum": 4, "maximum": 15 },
+          "duration": {
+            "type": "integer",
+            "minimum": 4,
+            "maximum": 15
+          },
           "ratio": {
             "type": "string",
-            "enum": ["api_default", "adaptive", "21:9", "16:9", "4:3", "1:1", "3:4", "9:16"]
+            "enum": [
+              "api_default",
+              "adaptive",
+              "21:9",
+              "16:9",
+              "4:3",
+              "1:1",
+              "3:4",
+              "9:16"
+            ]
           }
         },
         "defaults": {
@@ -3623,10 +4935,29 @@
         "connectionPorts": {
           "dynamic": false,
           "inputs": [
-            { "id": null, "kinds": ["text", "image", "video", "audio"], "required": false, "minConnections": 0, "maxConnections": null }
+            {
+              "id": null,
+              "kinds": [
+                "text",
+                "image",
+                "video",
+                "audio"
+              ],
+              "required": false,
+              "minConnections": 0,
+              "maxConnections": null
+            }
           ],
           "outputs": [
-            { "id": null, "kinds": ["text"], "required": false, "minConnections": 0, "maxConnections": null }
+            {
+              "id": null,
+              "kinds": [
+                "text"
+              ],
+              "required": false,
+              "minConnections": 0,
+              "maxConnections": null
+            }
           ]
         }
       }
@@ -3639,34 +4970,134 @@
       "icon": "Sparkles",
       "color": "cyan",
       "ports": {
-        "inputs": ["text", "image", "video"],
-        "outputs": ["text"]
+        "inputs": [
+          "text",
+          "image",
+          "video"
+        ],
+        "outputs": [
+          "text"
+        ]
       },
       "executable": true,
       "generatable": true,
       "generation": {
         "allowedDataFields": {
-          "userPrompt": { "type": "string", "maxLength": 20000 },
+          "userPrompt": {
+            "type": "string",
+            "maxLength": 20000
+          },
           "taskIntent": {
             "type": "string",
-            "enum": ["AUTO", "T2V", "I2V", "FL-I2V", "MultiRef", "VideoEdit", "VideoExtend", "TrackFill", "Combined"]
+            "enum": [
+              "AUTO",
+              "T2V",
+              "I2V",
+              "FL-I2V",
+              "MultiRef",
+              "VideoEdit",
+              "VideoExtend",
+              "TrackFill",
+              "Combined"
+            ]
           },
-          "complexityMode": { "type": "string", "enum": ["auto", "simple", "complex"] },
-          "durationSeconds": { "type": "integer", "minimum": 0, "maximum": 15 },
-          "shotCount": { "type": "integer", "minimum": 0, "maximum": 20 },
-          "rewriteMode": { "type": "string", "enum": ["strict", "balanced", "creative"] },
-          "outputDetail": { "type": "string", "enum": ["auto", "concise", "standard", "detailed"] },
-          "outputLanguage": { "type": "string", "enum": ["中文", "English"] },
-          "promptMode": { "type": "string", "enum": ["官方优化", "参考模板融合"] },
-          "referenceSyntax": { "type": "string", "enum": ["official-cn", "seedance-nz-en"] },
-          "subtitlePolicy": { "type": "string", "enum": ["auto", "none", "required", "preserve"] },
-          "stabilityConstraints": { "type": "string", "enum": ["auto", "minimal", "strong"] },
-          "customLengthTarget": { "type": "integer", "minimum": 0, "maximum": 4000 },
-          "referenceTemplate": { "type": "string", "maxLength": 40000 },
-          "referenceRoles": { "type": "string", "maxLength": 20000 },
-          "referenceContext": { "type": "string", "maxLength": 20000 },
-          "constraints": { "type": "string", "maxLength": 20000 },
-          "seed": { "type": "integer" }
+          "complexityMode": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "simple",
+              "complex"
+            ]
+          },
+          "durationSeconds": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 15
+          },
+          "shotCount": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 20
+          },
+          "rewriteMode": {
+            "type": "string",
+            "enum": [
+              "strict",
+              "balanced",
+              "creative"
+            ]
+          },
+          "outputDetail": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "concise",
+              "standard",
+              "detailed"
+            ]
+          },
+          "outputLanguage": {
+            "type": "string",
+            "enum": [
+              "中文",
+              "English"
+            ]
+          },
+          "promptMode": {
+            "type": "string",
+            "enum": [
+              "官方优化",
+              "参考模板融合"
+            ]
+          },
+          "referenceSyntax": {
+            "type": "string",
+            "enum": [
+              "official-cn",
+              "seedance-nz-en"
+            ]
+          },
+          "subtitlePolicy": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "none",
+              "required",
+              "preserve"
+            ]
+          },
+          "stabilityConstraints": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "minimal",
+              "strong"
+            ]
+          },
+          "customLengthTarget": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4000
+          },
+          "referenceTemplate": {
+            "type": "string",
+            "maxLength": 40000
+          },
+          "referenceRoles": {
+            "type": "string",
+            "maxLength": 20000
+          },
+          "referenceContext": {
+            "type": "string",
+            "maxLength": 20000
+          },
+          "constraints": {
+            "type": "string",
+            "maxLength": 20000
+          },
+          "seed": {
+            "type": "integer"
+          }
         },
         "defaults": {
           "userPrompt": "",
@@ -3695,10 +5126,28 @@
         "connectionPorts": {
           "dynamic": false,
           "inputs": [
-            { "id": null, "kinds": ["text", "image", "video"], "required": false, "minConnections": 0, "maxConnections": null }
+            {
+              "id": null,
+              "kinds": [
+                "text",
+                "image",
+                "video"
+              ],
+              "required": false,
+              "minConnections": 0,
+              "maxConnections": null
+            }
           ],
           "outputs": [
-            { "id": null, "kinds": ["text"], "required": false, "minConnections": 0, "maxConnections": null }
+            {
+              "id": null,
+              "kinds": [
+                "text"
+              ],
+              "required": false,
+              "minConnections": 0,
+              "maxConnections": null
+            }
           ]
         }
       }
@@ -3711,32 +5160,175 @@
       "icon": "Clapperboard",
       "color": "fuchsia",
       "ports": {
-        "inputs": ["audio", "text", "image", "video"],
-        "outputs": ["video", "audio", "image", "text", "metadata"]
+        "inputs": [
+          "audio",
+          "text",
+          "image",
+          "video"
+        ],
+        "outputs": [
+          "video",
+          "audio",
+          "image",
+          "text",
+          "metadata"
+        ]
       },
       "executable": true,
       "generatable": true,
       "generation": {
         "allowedDataFields": {
-          "lyricsText": { "type": "string", "maxLength": 200000 },
-          "styleDescription": { "type": "string", "maxLength": 20000 },
-          "mvType": { "type": "string", "enum": ["narrative", "performance", "dance", "abstract", "lyric-visual", "hybrid"] },
-          "creativity": { "type": "string", "enum": ["conservative", "balanced", "creative", "custom"] },
-          "shotMode": { "type": "string", "enum": ["bpm-auto", "semantic-auto", "fixed"] },
-          "fixedShotCount": { "type": "integer", "minimum": 1, "maximum": 20 },
-          "aspectRatio": { "type": "string", "enum": ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9"] },
-          "subtitlePolicy": { "type": "string", "enum": ["lyrics", "spatial-lyrics", "none"] },
-          "llmApiSource": { "type": "string", "enum": ["seedance-nz", "zhenzhen"] },
-          "providerSource": { "type": "string", "maxLength": 200 },
-          "providerId": { "type": "string", "maxLength": 200 },
-          "providerModel": { "type": "string", "maxLength": 300 },
-          "mvImageProvider": { "type": "string", "enum": ["seedance-nz", "zhenzhen"] },
-          "mvImageModel": { "type": "string", "enum": ["zhenzhen-image-g2-i2i", "zhenzhen-image-g-v2-lowprice", "gpt-image-2-all", "gpt-image-2", "gpt-image-2-2K", "gpt-image-2-4K"] },
-          "mvVideoFamily": { "type": "string", "enum": ["seedance", "hailuo"] },
-          "mvVideoProvider": { "type": "string", "enum": ["seedance-nz", "zhenzhen"] },
-          "mvVideoModel": { "type": "string", "enum": ["standard", "fast", "mini", "global-standard", "global-fast", "global-mini", "doubao-seedance-2-0-fast-260128", "doubao-seedance-2-0-260128", "doubao-seedance-2.0-mini", "hailuo-h3-multi", "hailuo-h3-i2v", "minimax-h3-ow-r2v", "minimax-h3-ow-i2v"] },
-          "mvVideoResolution": { "type": "string", "enum": ["480p", "720p", "1080p", "2k", "4k", "native1080p", "native4K", "2K"] },
-          "mvComposeResolution": { "type": "string", "enum": ["720p", "1080p", "2k", "4k"] }
+          "lyricsText": {
+            "type": "string",
+            "maxLength": 200000
+          },
+          "styleDescription": {
+            "type": "string",
+            "maxLength": 20000
+          },
+          "mvType": {
+            "type": "string",
+            "enum": [
+              "narrative",
+              "performance",
+              "dance",
+              "abstract",
+              "lyric-visual",
+              "hybrid"
+            ]
+          },
+          "creativity": {
+            "type": "string",
+            "enum": [
+              "conservative",
+              "balanced",
+              "creative",
+              "custom"
+            ]
+          },
+          "shotMode": {
+            "type": "string",
+            "enum": [
+              "bpm-auto",
+              "semantic-auto",
+              "fixed"
+            ]
+          },
+          "fixedShotCount": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 20
+          },
+          "aspectRatio": {
+            "type": "string",
+            "enum": [
+              "16:9",
+              "9:16",
+              "1:1",
+              "4:3",
+              "3:4",
+              "21:9"
+            ]
+          },
+          "subtitlePolicy": {
+            "type": "string",
+            "enum": [
+              "lyrics",
+              "spatial-lyrics",
+              "none"
+            ]
+          },
+          "llmApiSource": {
+            "type": "string",
+            "enum": [
+              "seedance-nz",
+              "zhenzhen"
+            ]
+          },
+          "providerSource": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "providerId": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "providerModel": {
+            "type": "string",
+            "maxLength": 300
+          },
+          "mvImageProvider": {
+            "type": "string",
+            "enum": [
+              "seedance-nz",
+              "zhenzhen"
+            ]
+          },
+          "mvImageModel": {
+            "type": "string",
+            "enum": [
+              "zhenzhen-image-g2-i2i",
+              "zhenzhen-image-g-v2-lowprice",
+              "gpt-image-2-all",
+              "gpt-image-2",
+              "gpt-image-2-2K",
+              "gpt-image-2-4K"
+            ]
+          },
+          "mvVideoFamily": {
+            "type": "string",
+            "enum": [
+              "seedance",
+              "hailuo"
+            ]
+          },
+          "mvVideoProvider": {
+            "type": "string",
+            "enum": [
+              "seedance-nz",
+              "zhenzhen"
+            ]
+          },
+          "mvVideoModel": {
+            "type": "string",
+            "enum": [
+              "standard",
+              "fast",
+              "mini",
+              "global-standard",
+              "global-fast",
+              "global-mini",
+              "doubao-seedance-2-0-fast-260128",
+              "doubao-seedance-2-0-260128",
+              "doubao-seedance-2.0-mini",
+              "hailuo-h3-multi",
+              "hailuo-h3-i2v",
+              "minimax-h3-ow-r2v",
+              "minimax-h3-ow-i2v"
+            ]
+          },
+          "mvVideoResolution": {
+            "type": "string",
+            "enum": [
+              "480p",
+              "720p",
+              "1080p",
+              "2k",
+              "4k",
+              "native1080p",
+              "native4K",
+              "2K"
+            ]
+          },
+          "mvComposeResolution": {
+            "type": "string",
+            "enum": [
+              "720p",
+              "1080p",
+              "2k",
+              "4k"
+            ]
+          }
         },
         "defaults": {
           "lyricsText": "",
@@ -3763,18 +5355,103 @@
         "connectionPorts": {
           "dynamic": false,
           "inputs": [
-            { "id": "master-audio", "kinds": ["audio"], "required": true, "minConnections": 1, "maxConnections": 1 },
-            { "id": "lyrics", "kinds": ["text"], "required": false, "minConnections": 0, "maxConnections": 1 },
-            { "id": "identity-image", "kinds": ["image"], "required": true, "minConnections": 1, "maxConnections": 9 },
-            { "id": "style-image", "kinds": ["image"], "required": false, "minConnections": 0, "maxConnections": 9 },
-            { "id": "motion-reference", "kinds": ["video"], "required": false, "minConnections": 0, "maxConnections": 3 }
+            {
+              "id": "master-audio",
+              "kinds": [
+                "audio"
+              ],
+              "required": true,
+              "minConnections": 1,
+              "maxConnections": 1
+            },
+            {
+              "id": "lyrics",
+              "kinds": [
+                "text"
+              ],
+              "required": false,
+              "minConnections": 0,
+              "maxConnections": 1
+            },
+            {
+              "id": "identity-image",
+              "kinds": [
+                "image"
+              ],
+              "required": true,
+              "minConnections": 1,
+              "maxConnections": 9
+            },
+            {
+              "id": "style-image",
+              "kinds": [
+                "image"
+              ],
+              "required": false,
+              "minConnections": 0,
+              "maxConnections": 9
+            },
+            {
+              "id": "motion-reference",
+              "kinds": [
+                "video"
+              ],
+              "required": false,
+              "minConnections": 0,
+              "maxConnections": 3
+            }
           ],
           "outputs": [
-            { "id": "final-video", "kinds": ["video"], "required": false, "minConnections": 0, "maxConnections": null, "preferred": true },
-            { "id": "master-audio", "kinds": ["audio"], "required": false, "minConnections": 0, "maxConnections": null, "preferred": false },
-            { "id": "storyboards", "kinds": ["image"], "required": false, "minConnections": 0, "maxConnections": null, "preferred": false },
-            { "id": "prompt-pack", "kinds": ["text"], "required": false, "minConnections": 0, "maxConnections": null, "preferred": false },
-            { "id": "manifest", "kinds": ["metadata"], "required": false, "minConnections": 0, "maxConnections": null, "preferred": false }
+            {
+              "id": "final-video",
+              "kinds": [
+                "video"
+              ],
+              "required": false,
+              "minConnections": 0,
+              "maxConnections": null,
+              "preferred": true
+            },
+            {
+              "id": "master-audio",
+              "kinds": [
+                "audio"
+              ],
+              "required": false,
+              "minConnections": 0,
+              "maxConnections": null,
+              "preferred": false
+            },
+            {
+              "id": "storyboards",
+              "kinds": [
+                "image"
+              ],
+              "required": false,
+              "minConnections": 0,
+              "maxConnections": null,
+              "preferred": false
+            },
+            {
+              "id": "prompt-pack",
+              "kinds": [
+                "text"
+              ],
+              "required": false,
+              "minConnections": 0,
+              "maxConnections": null,
+              "preferred": false
+            },
+            {
+              "id": "manifest",
+              "kinds": [
+                "metadata"
+              ],
+              "required": false,
+              "minConnections": 0,
+              "maxConnections": null,
+              "preferred": false
+            }
           ]
         }
       }
@@ -3787,51 +5464,186 @@
       "icon": "Languages",
       "color": "teal",
       "ports": {
-        "inputs": ["video", "audio", "text"],
-        "outputs": ["video", "audio", "text", "metadata"]
+        "inputs": [
+          "video",
+          "audio",
+          "text"
+        ],
+        "outputs": [
+          "video",
+          "audio",
+          "text",
+          "metadata"
+        ]
       },
       "executable": true,
       "generatable": true,
       "generation": {
         "allowedDataFields": {
-          "mode": { "type": "string", "enum": ["subtitle-only", "dubbing-only", "full"] },
-          "sourceLanguage": { "type": "string", "enum": ["AUTO", "ZH", "EN", "JA", "ES", "AR", "KO", "FR", "DE", "IT", "PT", "RU", "TH", "VI", "ID", "TR", "HI"] },
-          "targetLanguage": { "type": "string", "enum": ["ZH", "EN", "JA", "ES", "AR", "KO", "FR", "DE", "IT", "PT", "RU", "TH", "VI", "ID", "TR", "HI"] },
-          "targetLanguages": { "type": "array", "maxItems": 16 },
-          "sourceText": { "type": "string", "maxLength": 500000 },
-          "glossaryText": { "type": "string", "maxLength": 100000 },
-          "protectedTermsText": { "type": "string", "maxLength": 100000 },
-            "llmApiSource": { "type": "string", "enum": ["seedance-nz", "zhenzhen"] },
-            "llmModel": { "type": "string", "maxLength": 300 },
-            "providerSource": { "type": "string", "maxLength": 80 },
-            "providerId": { "type": "string", "maxLength": 200 },
-            "providerModel": { "type": "string", "maxLength": 300 },
-            "providerParams": { "type": "object" },
-          "timelinePolicy": { "type": "string", "enum": ["shift", "overlay"] },
-          "timingMode": { "type": "string", "enum": ["pad", "native", "natural", "exact"] },
-          "asrEnabled": { "type": "boolean" },
-          "asrRetryCount": { "type": "integer", "minimum": 0, "maximum": 3 },
-          "asrThreshold": { "type": "number", "minimum": 0, "maximum": 1 },
-          "subtitleIncludeRole": { "type": "boolean" },
-          "postprocessPreset": { "type": "string", "enum": ["off", "voice_clarity", "warm_narration", "broadcast_clean", "soft_deesser"] },
-          "postprocessStrength": { "type": "number", "minimum": 0, "maximum": 1 },
-          "advancedOpen": { "type": "boolean" },
-          "localizationAgentRequest": { "type": "object", "maxProperties": 10 }
+          "mode": {
+            "type": "string",
+            "enum": [
+              "subtitle-only",
+              "dubbing-only",
+              "full"
+            ]
+          },
+          "sourceLanguage": {
+            "type": "string",
+            "enum": [
+              "AUTO",
+              "ZH",
+              "EN",
+              "JA",
+              "ES",
+              "AR",
+              "KO",
+              "FR",
+              "DE",
+              "IT",
+              "PT",
+              "RU",
+              "TH",
+              "VI",
+              "ID",
+              "TR",
+              "HI"
+            ]
+          },
+          "targetLanguage": {
+            "type": "string",
+            "enum": [
+              "ZH",
+              "EN",
+              "JA",
+              "ES",
+              "AR",
+              "KO",
+              "FR",
+              "DE",
+              "IT",
+              "PT",
+              "RU",
+              "TH",
+              "VI",
+              "ID",
+              "TR",
+              "HI"
+            ]
+          },
+          "targetLanguages": {
+            "type": "array",
+            "maxItems": 16
+          },
+          "sourceText": {
+            "type": "string",
+            "maxLength": 500000
+          },
+          "glossaryText": {
+            "type": "string",
+            "maxLength": 100000
+          },
+          "protectedTermsText": {
+            "type": "string",
+            "maxLength": 100000
+          },
+          "llmApiSource": {
+            "type": "string",
+            "enum": [
+              "seedance-nz",
+              "zhenzhen"
+            ]
+          },
+          "llmModel": {
+            "type": "string",
+            "maxLength": 300
+          },
+          "providerSource": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "providerId": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "providerModel": {
+            "type": "string",
+            "maxLength": 300
+          },
+          "providerParams": {
+            "type": "object"
+          },
+          "timelinePolicy": {
+            "type": "string",
+            "enum": [
+              "shift",
+              "overlay"
+            ]
+          },
+          "timingMode": {
+            "type": "string",
+            "enum": [
+              "pad",
+              "native",
+              "natural",
+              "exact"
+            ]
+          },
+          "asrEnabled": {
+            "type": "boolean"
+          },
+          "asrRetryCount": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 3
+          },
+          "asrThreshold": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "subtitleIncludeRole": {
+            "type": "boolean"
+          },
+          "postprocessPreset": {
+            "type": "string",
+            "enum": [
+              "off",
+              "voice_clarity",
+              "warm_narration",
+              "broadcast_clean",
+              "soft_deesser"
+            ]
+          },
+          "postprocessStrength": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "advancedOpen": {
+            "type": "boolean"
+          },
+          "localizationAgentRequest": {
+            "type": "object",
+            "maxProperties": 10
+          }
         },
         "defaults": {
           "mode": "full",
           "sourceLanguage": "AUTO",
           "targetLanguage": "EN",
-          "targetLanguages": ["EN"],
+          "targetLanguages": [
+            "EN"
+          ],
           "sourceText": "",
           "glossaryText": "",
           "protectedTermsText": "",
-            "llmApiSource": "seedance-nz",
-            "llmModel": "bytedance/doubao-seed-2.1-pro",
-            "providerSource": "zhenzhen",
-            "providerId": "",
-            "providerModel": "bytedance/doubao-seed-2.1-pro",
-            "providerParams": {},
+          "llmApiSource": "seedance-nz",
+          "llmModel": "bytedance/doubao-seed-2.1-pro",
+          "providerSource": "zhenzhen",
+          "providerId": "",
+          "providerModel": "bytedance/doubao-seed-2.1-pro",
+          "providerParams": {},
           "timelinePolicy": "shift",
           "timingMode": "pad",
           "asrEnabled": true,
@@ -3846,15 +5658,77 @@
         "connectionPorts": {
           "dynamic": false,
           "inputs": [
-            { "id": "source-media", "kinds": ["video", "audio"], "required": false, "minConnections": 0, "maxConnections": 1 },
-            { "id": "source-text", "kinds": ["text"], "required": false, "minConnections": 0, "maxConnections": 1 },
-            { "id": "voice-references", "kinds": ["audio", "video"], "required": false, "minConnections": 0, "maxConnections": 16 }
+            {
+              "id": "source-media",
+              "kinds": [
+                "video",
+                "audio"
+              ],
+              "required": false,
+              "minConnections": 0,
+              "maxConnections": 1
+            },
+            {
+              "id": "source-text",
+              "kinds": [
+                "text"
+              ],
+              "required": false,
+              "minConnections": 0,
+              "maxConnections": 1
+            },
+            {
+              "id": "voice-references",
+              "kinds": [
+                "audio",
+                "video"
+              ],
+              "required": false,
+              "minConnections": 0,
+              "maxConnections": 16
+            }
           ],
           "outputs": [
-            { "id": "localized-video", "kinds": ["video"], "required": false, "minConnections": 0, "maxConnections": null, "preferred": true },
-            { "id": "dubbed-audio", "kinds": ["audio"], "required": false, "minConnections": 0, "maxConnections": null, "preferred": false },
-            { "id": "subtitles", "kinds": ["text"], "required": false, "minConnections": 0, "maxConnections": null, "preferred": false },
-            { "id": "manifest", "kinds": ["metadata"], "required": false, "minConnections": 0, "maxConnections": null, "preferred": false }
+            {
+              "id": "localized-video",
+              "kinds": [
+                "video"
+              ],
+              "required": false,
+              "minConnections": 0,
+              "maxConnections": null,
+              "preferred": true
+            },
+            {
+              "id": "dubbed-audio",
+              "kinds": [
+                "audio"
+              ],
+              "required": false,
+              "minConnections": 0,
+              "maxConnections": null,
+              "preferred": false
+            },
+            {
+              "id": "subtitles",
+              "kinds": [
+                "text"
+              ],
+              "required": false,
+              "minConnections": 0,
+              "maxConnections": null,
+              "preferred": false
+            },
+            {
+              "id": "manifest",
+              "kinds": [
+                "metadata"
+              ],
+              "required": false,
+              "minConnections": 0,
+              "maxConnections": null,
+              "preferred": false
+            }
           ]
         }
       }

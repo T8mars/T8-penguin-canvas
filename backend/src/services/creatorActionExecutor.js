@@ -1,3 +1,4 @@
+const pmf = require('../shared/previewMuseFluxContract.json');
 'use strict';
 
 const crypto = require('node:crypto');
@@ -604,7 +605,7 @@ class CreatorActionExecutor {
           taskType: submitted.taskType || action.type,
           recovery: {
             version: 1,
-            kind: action.modelSnapshot.modelId === seedanceNz.TOPAZ_VIDEO_CONTRACT.model ? 'topaz' : action.type === 'image' ? 'image' : 'video',
+            kind: action.modelSnapshot.modelId === pmf.muse.videoModel ? 'muse' : action.modelSnapshot.modelId === seedanceNz.TOPAZ_VIDEO_CONTRACT.model ? 'topaz' : action.type === 'image' ? 'image' : 'video',
             taskId: submitted.taskId,
             model: action.modelSnapshot.modelId,
             taskProvider: 'seedance-nz',
@@ -991,6 +992,15 @@ class CreatorActionExecutor {
     this._guardSkillAction(action);
     const baseUrl = bounded(settings.zhenzhenSd2BaseUrl, 2_000) || undefined;
     const grouped = preflightActionReferences(action, modelEntry, inputPaths);
+    if (action.type === 'image' && [pmf.hy.model, pmf.muse.imageModel, ...pmf.flux.models].includes(action.modelSnapshot.modelId)) {
+      const model = action.modelSnapshot.modelId;
+      return this.provider.submitImageTask({model,prompt:action.prompt,images:grouped.images,
+        ...(pmf.flux.models.includes(model) ? {aspect_ratio:action.parameters.ratio || 'auto',resolution:action.parameters.resolution || '1k'}
+          : model === pmf.hy.model ? {size:action.parameters.ratio || 'auto',resolution:action.parameters.resolution || '1K'} : {size:action.parameters.ratio || 'auto'})}, apiKey, {baseUrl});
+    }
+    if (action.modelSnapshot.modelId === pmf.muse.videoModel) {
+      return this.provider.submitMuseVideoTask({model:pmf.muse.videoModel,prompt:action.prompt,images:grouped.images,size:action.parameters.ratio || 'auto'},apiKey,{baseUrl});
+    }
     if (action.type === 'image') {
       return this.provider.submitImageTask({
         model: action.modelSnapshot.modelId,
@@ -1094,6 +1104,7 @@ class CreatorActionExecutor {
     while (Date.now() < deadline) {
       const result = action.type === 'image'
         ? await this.provider.queryImageTask(taskId, apiKey, { baseUrl })
+        : modelId === pmf.muse.videoModel ? await this.provider.queryMuseVideoTask(taskId,apiKey,{baseUrl})
         : modelId === seedanceNz.TOPAZ_VIDEO_CONTRACT.model
           ? await this.provider.queryTopazVideoTask(taskId, apiKey, { baseUrl })
         : modelId === 'MiniMax-H3'
@@ -1265,7 +1276,7 @@ class CreatorActionExecutor {
           taskType: submitted.taskType || action.type,
           recovery: {
             version: 1,
-            kind: action.modelSnapshot.modelId === seedanceNz.TOPAZ_VIDEO_CONTRACT.model ? 'topaz' : action.type === 'image' ? 'image' : 'video',
+            kind: action.modelSnapshot.modelId === pmf.muse.videoModel ? 'muse' : action.modelSnapshot.modelId === seedanceNz.TOPAZ_VIDEO_CONTRACT.model ? 'topaz' : action.type === 'image' ? 'image' : 'video',
             taskId: submitted.taskId,
             model: snapshot.modelId,
             taskProvider: 'seedance-nz',

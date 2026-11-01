@@ -336,6 +336,8 @@ export interface SeedreamNzSubmitRequest {
     | 'zhenzhen-image-nb-2-lite'
     | 'zhenzhen-image-nb-2'
     | 'zhenzhen-image-nb-2.1'
+    | 'zhenzhen-image-hy-v3.5-preview' | 'zhenzhen-image-muse'
+    | 'flux-3-image-t2i' | 'flux-3-image-i2i' | 'flux-3-image-klein-t2i' | 'flux-3-image-klein-i2i'
     | 'flux-3-image'
     | 'mai-image-2-6'
     | 'mai-image-2-6-flash'
@@ -359,7 +361,7 @@ export interface SeedreamNzSubmitRequest {
     | 'dola-seedream-5.0-flash-layer-decomposition'
     | 'vosr2-image-upscale';
   modelFamily?: 'domestic' | 'overseas' | 'domestic-flash' | 'overseas-flash';
-  resolution?: 'auto' | '0.5k' | '768sq' | '1k' | '1.5k' | '2k' | '4k';
+  resolution?: 'auto' | '0.5k' | '768sq' | '1k' | '1.5k' | '2k' | '4k' | '1K' | '2K' | '4K';
   ratio?: 'adaptive' | '16:9' | '4:3' | '1:1' | '3:4' | '9:16' | '21:9' | '2:3' | '3:2' | '4:5' | '5:4';
   size?: string;
   n?: number;
@@ -381,6 +383,7 @@ export interface SeedreamNzSubmitRequest {
   web_grounding?: boolean;
   auto_aspect_ratio?: boolean;
   safety_tolerance?: number;
+  steps?: number;
   nsfw_check?: boolean;
   operation?: 'segment' | 'region_edit';
   source_task_id?: string;
@@ -1683,6 +1686,22 @@ export async function queryMotionVideo(taskId: string, model: string, connection
   const data = await safeJsonResponse(r, 'Motion query');
   if (!r.ok || !data.success) throw providerResponseError(r, data);
   return withProviderTransportTrace(data.data as MotionQueryResult, r);
+}
+
+export async function submitMuseVideo(req: { model: 'zhenzhen-video-muse'; prompt: string; images: string[]; size: string }, transport: ProviderSubmissionTransport = {}) {
+  const r = await fetch('/api/proxy/video/muse/submit', {
+    method: 'POST', headers: providerSubmissionHeaders(transport), body: JSON.stringify(req), signal: transport.signal,
+  });
+  const data = await safeJsonResponse(r, 'Muse Video提交');
+  if (!r.ok || !data.success) throw providerResponseError(r, data);
+  return withProviderTransportTrace(data.data as { taskId: string; model: string; taskType: string }, r);
+}
+
+export async function queryMuseVideo(taskId: string, transport: ProviderSubmissionTransport = {}): Promise<HappyHorseQueryResult> {
+  const r = await fetch(`/api/proxy/video/muse/status/${encodeURIComponent(taskId)}`, { signal: transport.signal });
+  const data = await safeJsonResponse(r, 'Muse Video查询');
+  if (!r.ok || !data.success) throw providerResponseError(r, data);
+  return withProviderTransportTrace(data.data, r);
 }
 
 export async function submitTopazVideo(req: TopazVideoSubmitRequest, transport: ProviderSubmissionTransport = {}) {

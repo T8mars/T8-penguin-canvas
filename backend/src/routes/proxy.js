@@ -4453,6 +4453,51 @@ router.get('/video/motion/status/:tid', async (req, res) => {
   }
 });
 
+router.post('/video/muse/submit', async (req, res) => {
+  const apiKey = String(loadRawSettings()?.zhenzhenSd2ApiKey || '').trim();
+  if (!apiKey) return res.status(400).json({ success: false, error: '缺少贞贞的平价AI小屋 API Key' });
+  try {
+    const result = await seedanceNz.submitMuseVideoTask(req.body || {}, apiKey, { signal: req.t8AbortSignal });
+    rememberTaskKey(result.taskId, apiKey, { provider: 'muse-nz', model: result.model, taskType: result.taskType });
+    return res.json({ success: true, data: { taskId: result.taskId, model: result.model, taskType: result.taskType, ...seedanceNzTrace(result) } });
+  } catch (error) {
+    proxyRouteError('proxy/video/muse/submit 错误', error, [apiKey]);
+    const status = Number(error?.status || 500);
+    return res.status(status >= 400 && status < 600 ? status : 500).json({ success: false,
+      error: proxyPublicError(error, 'Muse Video提交失败', [apiKey]), ...seedanceNzTrace(error) });
+  }
+});
+
+router.get('/video/muse/status/:tid', async (req, res) => {
+  const remembered = recallTaskMeta(req.params.tid, 'muse-nz');
+  const apiKey = String(remembered?.apiKey || loadRawSettings()?.zhenzhenSd2ApiKey || '').trim();
+  if (!apiKey) return res.status(400).json({ success: false, error: '缺少贞贞的平价AI小屋 API Key' });
+  try {
+    const result = await seedanceNz.queryMuseVideoTask(req.params.tid, apiKey, { signal: req.t8AbortSignal });
+    const videoUrls = [];
+    // An empty successful response must also pass through the shared failure boundary.
+    const sources = result.videoUrls?.length ? result.videoUrls : [result.videoUrl];
+    for (const [index, remoteUrl] of sources.entries()) {
+      const materialized = await materializeRemoteTaskOutput({ status: result.status, remoteUrl, kind: 'video',
+        materializationKey: `muse-nz:${req.params.tid}:${index}`, providerFetchImpl: seedanceNz.fetchRemote, signal: req.t8AbortSignal });
+      if (materialized.failure) return sendCompletedRemoteOutputFailure(res, materialized.failure, {
+        status: result.status, videoUrl: null, videoUrls: [], ...seedanceNzTrace(result),
+      }, { defaultCode: 'muse_output_unusable', defaultMessage: 'Muse Video 结果暂时无法保存，请继续查询原任务。' });
+      if (materialized.url) videoUrls.push(materialized.url);
+    }
+    return res.json({ success: true, data: { status: result.status, progress: safeDiagnosticText(result.progress || '', 80, [apiKey]),
+      videoUrl: videoUrls[0] || null, videoUrls,
+      failReason: result.status === 'failed' ? 'Muse Video任务失败' : '',
+      model: 'zhenzhen-video-muse', taskType: remembered?.taskType || 't2v', ...seedanceNzTrace(result) } });
+  } catch (error) {
+    proxyRouteError('proxy/video/muse/status 错误', error, [apiKey]);
+    if (sendTaskResultQueryRecovery(res, error, { taskId: req.params.tid })) return;
+    const status = Number(error?.status || 500);
+    return res.status(status >= 400 && status < 600 ? status : 500).json({ success: false,
+      error: proxyPublicError(error, 'Muse Video查询失败', [apiKey]), ...seedanceNzTrace(error) });
+  }
+});
+
 router.post('/video/topaz/submit', async (req, res) => {
   const apiKey = String(loadRawSettings()?.zhenzhenSd2ApiKey || '').trim();
   if (!apiKey) return res.status(400).json({ success: false, error: '缺少贞贞的平价AI小屋 API Key' });

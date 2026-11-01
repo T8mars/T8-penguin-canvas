@@ -1,3 +1,4 @@
+import { previewMuseFluxZh, previewMuseFluxEn } from './previewMuseFluxCatalog';
 import electronCatalog from '../../electron/i18n-catalog.json';
 import {
   CREATOR_AGENT_VISIBLE_CATALOG,
@@ -14,6 +15,7 @@ import { motionVideoZh, motionVideoEn } from './motionVideoCatalog';
 import { klingV4Zh, klingV4En } from './klingV4Catalog';
 
 export const zhCN = {
+  previewMuseFlux: previewMuseFluxZh,
   klingV4: klingV4Zh,
   motionVideo: motionVideoZh,
   canvasSave: canvasSaveZh,
@@ -672,6 +674,7 @@ export const zhCN = {
 } as const;
 
 export const enUS = {
+  previewMuseFlux: previewMuseFluxEn,
   klingV4: klingV4En,
   motionVideo: motionVideoEn,
   canvasSave: canvasSaveEn,

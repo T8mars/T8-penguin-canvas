@@ -1,3 +1,4 @@
+const pmf = require('../shared/previewMuseFluxContract.json');
 const canvasNodeSchema = require('../shared/canvasNodeSchema.json');
 const seedanceNzLlmModels = require('../shared/seedanceNzLlmModels.json');
 const seedreamNzContract = require('../shared/seedreamNzContract.json');
@@ -56,6 +57,7 @@ const LOCAL_EXECUTION_NODE_TYPES = new Set([
 ]);
 
 const IMAGE_RUNTIME_MODELS = Object.freeze({
+  ...Object.fromEntries([pmf.hy.model, pmf.muse.imageModel].map(model => [model, {defaultModel:model, models:[model]}])),
   [mossImageContract.model]: { defaultModel: mossImageContract.model, models: [mossImageContract.model] },
   'mai-image-2-6': { defaultModel: maiImageContract.models[0], models: maiImageContract.models },
   'gpt-image-2': {
@@ -87,7 +89,7 @@ const IMAGE_RUNTIME_MODELS = Object.freeze({
   },
   'flux-3-image': {
     defaultModel: nb21FluxViduContract.flux.model,
-    models: [nb21FluxViduContract.flux.model],
+    models: [nb21FluxViduContract.flux.model, ...pmf.flux.models],
   },
   'seedream-v5-pro': {
     defaultModel: 'seedream-v5-pro',
@@ -147,6 +149,7 @@ const VIDEO_RUNTIME_MODELS = Object.freeze({
   'happyhorse-1.1': ['happyhorse-1.1-t2v', 'happyhorse-1.1-i2v', 'happyhorse-1.1-r2v'],
   'seedance-2.0': ['seedance-2.0'],
   'vosr2-video-upscale': ['vosr2-video-upscale'],
+  [pmf.muse.videoModel]: [pmf.muse.videoModel],
   [topazVideoContract.model]: [topazVideoContract.model],
   'animate-motion-transfer': ['animate-motion-transfer'],
   'vidu-q3': [
@@ -159,6 +162,7 @@ const VIDEO_RUNTIME_MODELS = Object.freeze({
 });
 
 const SEEDANCE_NZ_IMAGE_RUNTIME_MODELS = new Set([
+  pmf.hy.model, pmf.muse.imageModel, ...pmf.flux.models,
   mossImageContract.model,
   ...nbDoubaoContract.banana.models,
   ...maiImageContract.models,
@@ -176,6 +180,7 @@ const SEEDANCE_NZ_IMAGE_RUNTIME_MODELS = new Set([
   'qwen-image-global-2.1',
 ]);
 const SEEDANCE_NZ_VIDEO_RUNTIME_MODELS = new Set([
+  pmf.muse.videoModel,
   topazVideoContract.model,
   ...nb21FluxViduContract.viduQ4.models,
   'zhenzhen-video-g-omni-flash',

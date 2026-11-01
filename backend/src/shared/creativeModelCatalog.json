@@ -1,6 +1,6 @@
 {
   "schema": "t8-creative-runtime-catalog-v1",
-  "sourceDigest": "badfa917d9e8ed5c2dd9d7b2b5f2fc4f24aadf9fc8aba7ac13106e84e306d8ed",
+  "sourceDigest": "7ea42f135742c933db1e41d7da5a8348f0e798afe099af17256c5bcff74a7db4",
   "generatedFrom": [
     "src/providers/models.ts",
     "src/config/seedance.ts",
@@ -11,6 +11,7 @@
     "backend/src/shared/nb21FluxViduQ4Contract.json",
     "backend/src/shared/maiImageContract.json",
     "backend/src/shared/mossImageContract.json",
+    "backend/src/shared/previewMuseFluxContract.json",
     "backend/src/shared/nbLowpriceDoubaoContract.json"
   ],
   "platforms": [
@@ -943,6 +944,210 @@
       }
     },
     {
+      "id": "image:seedance-nz:flux-3-image-i2i",
+      "provider": "seedance-nz",
+      "platformLabel": "贞贞的平价AI小屋",
+      "model": "flux-3-image-i2i",
+      "label": "flux-3-image-i2i",
+      "family": "flux-3-image",
+      "available": true,
+      "parameters": {
+        "label": "flux-3-image-i2i",
+        "platformLabel": "贞贞的平价AI小屋",
+        "family": "flux-3-image",
+        "available": true,
+        "tabLabel": "Flux",
+        "capabilities": [
+          "t2i",
+          "i2i",
+          "edit"
+        ],
+        "parameterKind": "flux-image",
+        "aspectRatios": [
+          "auto",
+          "16:9",
+          "1:1",
+          "1:2",
+          "21:9",
+          "2:1",
+          "2:3",
+          "3:2",
+          "3:4",
+          "4:3",
+          "4:5",
+          "5:4",
+          "5:7",
+          "7:5",
+          "9:16",
+          "9:21"
+        ],
+        "defaultAspectRatio": "auto",
+        "sizes": [
+          "768sq",
+          "1k",
+          "1.5k",
+          "2k",
+          "4k"
+        ],
+        "defaultSize": "1k",
+        "supportsReference": true,
+        "maxReferenceImages": 10
+      }
+    },
+    {
+      "id": "image:seedance-nz:flux-3-image-klein-i2i",
+      "provider": "seedance-nz",
+      "platformLabel": "贞贞的平价AI小屋",
+      "model": "flux-3-image-klein-i2i",
+      "label": "flux-3-image-klein-i2i",
+      "family": "flux-3-image",
+      "available": true,
+      "parameters": {
+        "label": "flux-3-image-klein-i2i",
+        "platformLabel": "贞贞的平价AI小屋",
+        "family": "flux-3-image",
+        "available": true,
+        "tabLabel": "Flux",
+        "capabilities": [
+          "t2i",
+          "i2i",
+          "edit"
+        ],
+        "parameterKind": "flux-image",
+        "aspectRatios": [
+          "auto",
+          "16:9",
+          "1:1",
+          "1:2",
+          "21:9",
+          "2:1",
+          "2:3",
+          "3:2",
+          "3:4",
+          "4:3",
+          "4:5",
+          "5:4",
+          "5:7",
+          "7:5",
+          "9:16",
+          "9:21"
+        ],
+        "defaultAspectRatio": "auto",
+        "sizes": [
+          "768sq",
+          "1k",
+          "1.5k",
+          "2k",
+          "4k"
+        ],
+        "defaultSize": "1k",
+        "supportsReference": true,
+        "maxReferenceImages": 10
+      }
+    },
+    {
+      "id": "image:seedance-nz:flux-3-image-klein-t2i",
+      "provider": "seedance-nz",
+      "platformLabel": "贞贞的平价AI小屋",
+      "model": "flux-3-image-klein-t2i",
+      "label": "flux-3-image-klein-t2i",
+      "family": "flux-3-image",
+      "available": true,
+      "parameters": {
+        "label": "flux-3-image-klein-t2i",
+        "platformLabel": "贞贞的平价AI小屋",
+        "family": "flux-3-image",
+        "available": true,
+        "tabLabel": "Flux",
+        "capabilities": [
+          "t2i",
+          "i2i",
+          "edit"
+        ],
+        "parameterKind": "flux-image",
+        "aspectRatios": [
+          "auto",
+          "16:9",
+          "1:1",
+          "1:2",
+          "21:9",
+          "2:1",
+          "2:3",
+          "3:2",
+          "3:4",
+          "4:3",
+          "4:5",
+          "5:4",
+          "5:7",
+          "7:5",
+          "9:16",
+          "9:21"
+        ],
+        "defaultAspectRatio": "auto",
+        "sizes": [
+          "768sq",
+          "1k",
+          "1.5k",
+          "2k",
+          "4k"
+        ],
+        "defaultSize": "1k",
+        "supportsReference": true,
+        "maxReferenceImages": 10
+      }
+    },
+    {
+      "id": "image:seedance-nz:flux-3-image-t2i",
+      "provider": "seedance-nz",
+      "platformLabel": "贞贞的平价AI小屋",
+      "model": "flux-3-image-t2i",
+      "label": "flux-3-image-t2i",
+      "family": "flux-3-image",
+      "available": true,
+      "parameters": {
+        "label": "flux-3-image-t2i",
+        "platformLabel": "贞贞的平价AI小屋",
+        "family": "flux-3-image",
+        "available": true,
+        "tabLabel": "Flux",
+        "capabilities": [
+          "t2i",
+          "i2i",
+          "edit"
+        ],
+        "parameterKind": "flux-image",
+        "aspectRatios": [
+          "auto",
+          "16:9",
+          "1:1",
+          "1:2",
+          "21:9",
+          "2:1",
+          "2:3",
+          "3:2",
+          "3:4",
+          "4:3",
+          "4:5",
+          "5:4",
+          "5:7",
+          "7:5",
+          "9:16",
+          "9:21"
+        ],
+        "defaultAspectRatio": "auto",
+        "sizes": [
+          "768sq",
+          "1k",
+          "1.5k",
+          "2k",
+          "4k"
+        ],
+        "defaultSize": "1k",
+        "supportsReference": true,
+        "maxReferenceImages": 10
+      }
+    },
+    {
       "id": "image:seedance-nz:mai-image-2-6",
       "provider": "seedance-nz",
       "platformLabel": "贞贞的平价AI小屋",
@@ -1831,6 +2036,88 @@
         "parameterKind": "grok-segment",
         "supportsReference": true,
         "description": "贞贞的平价AI小屋图像模型"
+      }
+    },
+    {
+      "id": "image:seedance-nz:zhenzhen-image-hy-v3.5-preview",
+      "provider": "seedance-nz",
+      "platformLabel": "贞贞的平价AI小屋",
+      "model": "zhenzhen-image-hy-v3.5-preview",
+      "label": "zhenzhen-image-hy-v3.5-preview",
+      "family": "zhenzhen-image-hy-v3.5-preview",
+      "available": true,
+      "parameters": {
+        "label": "zhenzhen-image-hy-v3.5-preview",
+        "platformLabel": "贞贞的平价AI小屋",
+        "family": "zhenzhen-image-hy-v3.5-preview",
+        "available": true,
+        "tabLabel": "Hunyuan Image",
+        "capabilities": [
+          "t2i",
+          "i2i",
+          "edit"
+        ],
+        "parameterKind": "preview-image",
+        "aspectRatios": [
+          "auto",
+          "1:1",
+          "2:3",
+          "3:2",
+          "3:4",
+          "4:3",
+          "4:5",
+          "5:4",
+          "9:16",
+          "16:9",
+          "21:9",
+          "custom"
+        ],
+        "defaultAspectRatio": "auto",
+        "sizes": [
+          "1K",
+          "2K",
+          "4K"
+        ],
+        "defaultSize": "1K",
+        "supportsReference": true,
+        "maxReferenceImages": 5
+      }
+    },
+    {
+      "id": "image:seedance-nz:zhenzhen-image-muse",
+      "provider": "seedance-nz",
+      "platformLabel": "贞贞的平价AI小屋",
+      "model": "zhenzhen-image-muse",
+      "label": "zhenzhen-image-muse",
+      "family": "zhenzhen-image-muse",
+      "available": true,
+      "parameters": {
+        "label": "zhenzhen-image-muse",
+        "platformLabel": "贞贞的平价AI小屋",
+        "family": "zhenzhen-image-muse",
+        "available": true,
+        "tabLabel": "Muse Image",
+        "capabilities": [
+          "t2i",
+          "i2i",
+          "edit"
+        ],
+        "parameterKind": "preview-image",
+        "aspectRatios": [
+          "auto",
+          "1:1",
+          "16:9",
+          "9:16",
+          "4:3",
+          "3:4",
+          "3:2",
+          "2:3"
+        ],
+        "defaultAspectRatio": "auto",
+        "sizes": [],
+        "defaultSize": "",
+        "supportsReference": true,
+        "maxReferenceImages": 9
       }
     },
     {
@@ -8054,6 +8341,47 @@
       }
     },
     {
+      "id": "video:seedance-nz:zhenzhen-video-muse",
+      "provider": "seedance-nz",
+      "platformLabel": "贞贞的平价AI小屋",
+      "model": "zhenzhen-video-muse",
+      "label": "zhenzhen-video-muse",
+      "family": "zhenzhen-video-muse",
+      "available": true,
+      "parameters": {
+        "label": "zhenzhen-video-muse",
+        "platformLabel": "贞贞的平价AI小屋",
+        "family": "zhenzhen-video-muse",
+        "available": true,
+        "nodeKind": "muse",
+        "ratios": [
+          "auto",
+          "1:1",
+          "16:9",
+          "9:16",
+          "4:3",
+          "3:4",
+          "3:2",
+          "2:3"
+        ],
+        "defaultRatio": "auto",
+        "durations": [
+          10
+        ],
+        "defaultDuration": 10,
+        "resolutions": [
+          "720p"
+        ],
+        "defaultResolution": "720p",
+        "supportsImages": true,
+        "supportsVideos": false,
+        "supportsAudios": false,
+        "maxReferenceImages": 9,
+        "maxReferenceVideos": 0,
+        "maxReferenceAudios": 0
+      }
+    },
+    {
       "id": "video:seedance-nz:zhenzhen-video-v31-fast",
       "provider": "seedance-nz",
       "platformLabel": "贞贞的平价AI小屋",
@@ -11068,8 +11396,8 @@
   ],
   "counts": {
     "llm": 34,
-    "image": 70,
-    "video": 141,
+    "image": 76,
+    "video": 142,
     "audio": 19,
     "actions": 61
   }

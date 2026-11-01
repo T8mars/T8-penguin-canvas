@@ -1,0 +1,55 @@
+{
+  "schema": "t8-workflow-fragment",
+  "version": 1,
+  "title": "zhenzhen-image-muse-text",
+  "nodes": [
+    {
+      "id": "generation",
+      "type": "image",
+      "position": {
+        "x": 440,
+        "y": 60
+      },
+      "data": {
+        "label": "zhenzhen-image-muse",
+        "providerSource": "zhenzhen",
+        "providerId": "",
+        "providerModel": "",
+        "model": "zhenzhen-image-muse",
+        "apiModel": "zhenzhen-image-muse",
+        "imageBuiltinSource": "seedance-nz",
+        "aspectRatio": "auto",
+        "sizeLevel": "",
+        "referenceImages": [],
+        "imageOnlyOutput": true,
+        "prompt": "A friendly blue toy robot beside a yellow cup, cream studio background, clean illustration, no text.",
+        "reuseResult": false
+      }
+    },
+    {
+      "id": "output",
+      "type": "output",
+      "position": {
+        "x": 900,
+        "y": 60
+      },
+      "data": {
+        "label": "结果 / Result"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "output-edge",
+      "source": "generation",
+      "target": "output"
+    }
+  ],
+  "nodeCount": 2,
+  "edgeCount": 1,
+  "nodeTypes": [
+    "image",
+    "output"
+  ],
+  "savedAt": "2026-11-01T00:00:00.000Z"
+}

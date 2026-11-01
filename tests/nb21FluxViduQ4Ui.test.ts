@@ -1,3 +1,4 @@
+import * as pmf from '../src/utils/previewMuseFlux';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -17,7 +18,7 @@ function execute(source: ts.SourceFile, select: (node: ts.Node) => ts.Expression
   const javascript = ts.transpileModule(`(${matches[0].getText(source)})`, {
     compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS },
   }).outputText;
-  return vm.runInNewContext(javascript, { ...models, isMaiImage: false, isTopaz: false, ...bindings });
+  return vm.runInNewContext(javascript, { ...models, ...pmf, isPreviewImageTab:false,isFluxImage:false,isMuse:false,isNbLowprice:false,isKlingV4:false,isAgnesExternalSelected:false,apiModel:"", isMaiImage: false, isTopaz: false, ...bindings });
 }
 function closure(name: string, declaration: string, bindings: Record<string, unknown>) {
   const source = component(name);

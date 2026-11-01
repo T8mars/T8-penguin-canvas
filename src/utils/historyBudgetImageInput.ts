@@ -1,3 +1,4 @@
+import { isPreviewImage, isFluxVariant, buildPreviewImageRequest } from './previewMuseFlux';
 import { ZHENZHEN_IMAGE_G25_MODELS, ZHENZHEN_IMAGE_G25_LOWPRICE_MODEL, ZHENZHEN_IMAGE_G25_RESOLUTIONS,
   ZHENZHEN_IMAGE_G25_LOWPRICE_SIZES, ZHENZHEN_IMAGE_G25_OFFICIAL_SIZES, ZHENZHEN_IMAGE_G25_QUALITIES,
   ZHENZHEN_IMAGE_G25_OUTPUT_FORMATS, ZHENZHEN_IMAGE_G25_BACKGROUNDS, ZHENZHEN_IMAGE_G25_MODERATION,
@@ -17,6 +18,18 @@ const officialKeys = ['zhenzhenImageG25CustomWidth', 'zhenzhenImageG25CustomHeig
 export function readHistoryBudgetImageInput(data: Record<string, unknown>) {
   const settings = historyImageBasicSettings(data);
   if (!settings) throw new Error('历史未记录完整图像输入，未套用当前默认值');
+  if (isPreviewImage(String(settings.apiModel)) || isFluxVariant(String(settings.apiModel))) {
+    const model = String(settings.apiModel), hy = model === 'zhenzhen-image-hy-v3.5-preview', flux = isFluxVariant(model);
+    const keys = ['model','apiModel','aspectRatio','sizeLevel','imageBuiltinSource','providerSource','providerId','providerModel',
+      ...(hy ? ['hyWidth','hyHeight','hySeed','hyNegativePrompt'] : flux ? ['fluxImageGrounding','fluxImageSafetyTolerance','fluxImageSeed','fluxImageSteps','fluxImageOutputFormat'] : [])];
+    const invalid = () => new Error('历史图像参数不完整或已不兼容，未套用当前默认值');
+    const context = data.historyResolvedInput as {prompt:string;referenceImages:string[]};
+    if (settings.model !== (flux ? 'flux-3-image' : model) || settings.imageBuiltinSource !== 'seedance-nz' || settings.providerSource !== 'zhenzhen'
+      || settings.providerId !== '' || settings.providerModel !== '' || keys.some(key => !Object.hasOwn(settings,key))) throw invalid();
+    try {buildPreviewImageRequest(model,context.prompt,context.referenceImages,String(settings.aspectRatio),String(settings.sizeLevel),settings);} catch {throw invalid();}
+    return {settings:Object.fromEntries(keys.map(key=>[key,settings[key]])),prompt:context.prompt,
+      media:context.referenceImages.map((url,index)=>({kind:'image' as const,url,label:`图片 ${index+1}`}))};
+  }
   if (settings.model === MOSS_IMAGE_CONTRACT.model) {
     const keys = ['model', 'apiModel', 'aspectRatio', 'sizeLevel', 'imageBuiltinSource', 'providerSource', 'providerId', 'providerModel'];
     const context = data.historyResolvedInput as { prompt: string; referenceImages: string[] };

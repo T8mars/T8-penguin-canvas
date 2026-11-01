@@ -19,7 +19,7 @@ const RECOVERY_KINDS = new Set([
   'upscaler',
   'fashvsr',
   'vosr2',
-  'topaz',
+  'muse', 'topaz',
   'motion',
   'animate',
   'vidu',
@@ -151,6 +151,7 @@ function recoveryRequest(baseUrl, descriptor) {
   if (descriptor.kind === 'upscaler') return get(`/api/proxy/video/upscaler/status/${taskId}`);
   if (descriptor.kind === 'fashvsr') return get(`/api/proxy/video/fashvsr/status/${taskId}`);
   if (descriptor.kind === 'vosr2') return get(`/api/proxy/video/vosr2/status/${taskId}`);
+  if (descriptor.kind === 'muse') return get(`/api/proxy/video/muse/status/${taskId}`);
   if (descriptor.kind === 'topaz') return get(`/api/proxy/video/topaz/status/${taskId}`);
   if (descriptor.kind === 'motion') return get(`/api/proxy/video/motion/status/${taskId}?${new URLSearchParams({ model: descriptor.model, connectionRef: descriptor.connectionRef })}`);
   if (descriptor.kind === 'animate') return get(`/api/proxy/video/animate/status/${taskId}`);
@@ -181,7 +182,7 @@ function normalizedState(value) {
 
 function outputKindForDescriptor(descriptor) {
   if (descriptor.kind === 'seed-audio' || descriptor.kind === 'suno') return 'audio';
-  if (['seedance', 'wan', 'happyhorse', 'hailuo', 'flux3', 'kling', 'upscaler', 'fashvsr', 'vosr2', 'topaz', 'motion', 'animate', 'vidu', 'video', 'video-fal'].includes(descriptor.kind)) return 'video';
+  if (['seedance', 'wan', 'happyhorse', 'hailuo', 'flux3', 'kling', 'upscaler', 'fashvsr', 'vosr2', 'muse', 'topaz', 'motion', 'animate', 'vidu', 'video', 'video-fal'].includes(descriptor.kind)) return 'video';
   return 'image';
 }
 
@@ -218,7 +219,7 @@ function normalizeRecoveryPayload(payload, descriptor) {
   if (doubao && state === 'succeeded' && (!orderedAudioUrls.length || (descriptor.model === 'doubao-voice-clone' && !speaker))) state = 'failed';
   return {
     state,
-    outputs: [...(orderedAudioUrls || ((['topaz', 'motion'].includes(descriptor.kind) || descriptor.kind === 'kling' && klingV4.videoModels.includes(descriptor.model)) && Array.isArray(data?.videoUrls) && data.videoUrls.length
+    outputs: [...(orderedAudioUrls || ((['muse', 'topaz', 'motion'].includes(descriptor.kind) || descriptor.kind === 'kling' && klingV4.videoModels.includes(descriptor.model)) && Array.isArray(data?.videoUrls) && data.videoUrls.length
       ? data.videoUrls.map((url) => boundedText(url, 16384)).filter(Boolean) : [...new Set(rawUrls)])).map((sourceUrl, index) => ({
       kind,
       sourceUrl,

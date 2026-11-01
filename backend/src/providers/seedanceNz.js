@@ -27,6 +27,7 @@ const NB_FLUX_VIDU = require('../shared/nb21FluxViduQ4Contract.json');
 const TOPAZ_VIDEO_CONTRACT = require('../shared/topazVideoContract.json');
 const MAI_IMAGE_CONTRACT = require('../shared/maiImageContract.json');
 const MOSS_IMAGE_CONTRACT = require('../shared/mossImageContract.json');
+const previewMuseFlux = require('./previewMuseFlux');
 const { buildMotionVideoPayload, normalizeMotionVideoResponse, motionError } = require('./motionVideoContract');
 const NB_DOUBAO = require('../shared/nbLowpriceDoubaoContract.json');
 const { isDoubaoVoiceModel, buildDoubaoVoicePayload } = require('./doubaoVoiceContract');
@@ -135,6 +136,7 @@ const ZHENZHEN_IMAGE_NB_MODELS = new Set([
   ZHENZHEN_IMAGE_NB_PRO_MODEL,
 ]);
 const ZHENZHEN_APIMART_IMAGE_MODELS = new Set([
+  ...previewMuseFlux.imageModels,
   MOSS_IMAGE_CONTRACT.model,
   ...MAI_IMAGE_MODELS,
   FLUX3_IMAGE_MODEL,
@@ -3304,6 +3306,7 @@ async function buildZhenzhenImageG2Payload(request, apiKey, options = {}) {
 }
 
 async function buildImagePayload(request, apiKey, options = {}) {
+  if (previewMuseFlux.imageModels.includes(request.model)) return buildPreviewMuseFluxPayload(request, apiKey, options);
   const requestedModel = String(request.model || '').trim().toLowerCase();
   if (requestedModel === VOSR2_IMAGE_UPSCALE_MODEL) {
     return buildVosr2ImagePayload(request, apiKey, options);
@@ -6009,6 +6012,60 @@ async function transcribeAudio(request, apiKey, options = {}) {
   };
 }
 
+async function buildPreviewMuseFluxPayload(request, apiKey, options = {}) {
+  const { sources, ...built } = previewMuseFlux.buildPreviewMuseFluxPayload(request);
+  const { contract } = previewMuseFlux;
+  const muse = [contract.muse.imageModel, contract.muse.videoModel].includes(built.model);
+  const maxBytes = contract.flux.models.includes(built.model) ? contract.flux.maxReferenceBytes : muse ? contract.muse.maxReferenceBytes : 50 * 1024 * 1024;
+  const prepared = [];
+  // Validate every encoded reference before the first upload. Ordered duplicate slots remain intact.
+  for (const source of sources) {
+    const file = await mediaBuffer(source, 'image', 50 * 1024 * 1024, options);
+    const buffer = await sharp(file.buffer, { failOn: 'error' }).png().toBuffer();
+    ensureSize(buffer, 'image', maxBytes);
+    prepared.push(buffer);
+  }
+  if (muse && prepared.reduce((sum, buffer) => sum + buffer.length, 0) > contract.muse.maxReferenceBytes) {
+    throw new Error('Muse reference images must total at most 11 MiB');
+  }
+  if (prepared.length) {
+    built.payload.images = [];
+    for (const buffer of prepared) built.payload.images.push(await uploadMedia(`data:image/png;base64,${buffer.toString('base64')}`, 'image', apiKey,
+      { ...options, maxBytes, allowedMimes: ['image/png'], cacheVariant: 'preview-muse-flux-png' }));
+  }
+  return built;
+}
+
+async function submitMuseVideoTask(request, apiKey, options = {}) {
+  if (!String(apiKey || '').trim()) throw new Error('Missing budget-house API Key');
+  if (request.model !== previewMuseFlux.contract.muse.videoModel) throw new Error('Invalid Muse Video model');
+  const built = await buildPreviewMuseFluxPayload(request, apiKey, options);
+  const response = await fetchProviderResponse(getFetchImpl(options), `${cleanBaseUrl(options.baseUrl)}/v1/video/generations`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` }, body: JSON.stringify(built.payload),
+  }, options, 'Muse Video submit');
+  const data = await responseJson(response, 'Muse Video submit');
+  if (!response.ok) throw createUpstreamError(data, response);
+  const taskId = requiredTaskId(data?.task_id || data?.id || data?.data?.task_id || data?.data?.id, 'Muse Video submit', response);
+  return { taskId, model: built.model, taskType: built.taskType, ...safeProviderTrace(response, data, { pollCount: 0 }) };
+}
+
+async function queryMuseVideoTask(taskId, apiKey, options = {}) {
+  if (!String(apiKey || '').trim()) throw new Error('Missing budget-house API Key');
+  const response = await fetchProviderResponse(getFetchImpl(options), `${cleanBaseUrl(options.baseUrl)}/v1/video/generations/${encodeURIComponent(taskId)}`, {
+    method: 'GET', headers: { Authorization: `Bearer ${apiKey}` },
+  }, options, 'Muse Video query');
+  const data = await responseJson(response, 'Muse Video query');
+  if (!response.ok) throw createUpstreamError(data, response);
+  const record = data?.data || data, nested = record?.data || {};
+  if ((record.model || nested.model) && (record.model || nested.model) !== previewMuseFlux.contract.muse.videoModel) throw new Error('Muse Video model mismatch');
+  const statuses = [record.status, nested.status].filter(value => typeof value === 'string' && value.trim()).map(normalizeImageTaskStatus);
+  const status = statuses.includes('failed') ? 'failed' : statuses.length && statuses.every(value => value === 'succeeded') ? 'succeeded'
+    : statuses.includes('running') ? 'running' : 'pending';
+  const videoUrl = nested?.content?.video_url || record.result_url || record.video_url || record.metadata?.url || '';
+  return { taskId, model: previewMuseFlux.contract.muse.videoModel, status, progress: String(record.progress ?? ''), videoUrl,
+    failReason: record.fail_reason || record.error?.message || record.message || '', ...safeProviderTrace(response, data) };
+}
+
 async function submitImageTask(request, apiKey, options = {}) {
   if (!String(apiKey || '').trim()) throw new Error('请先在 API 设置中填写“贞贞的平价AI小屋 API Key”');
   const fetchImpl = getFetchImpl(options);
@@ -6844,6 +6901,7 @@ module.exports = {
   submitAnimateMotionTransferTask,
   submitViduTask,
   submitHappyHorseTask,
+  buildPreviewMuseFluxPayload, submitMuseVideoTask, queryMuseVideoTask,
   submitImageTask,
   submitMinimaxH3ContextIrTask,
   submitMidjourneyAction,

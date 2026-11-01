@@ -10,6 +10,8 @@ export const IMAGE_HISTORY_EXTRA_FIELDS: Record<string, { label: string; type: '
   maiCustomRatio: { label: 'Mai 自定义比例', type: 'string' }, maiWidth: { label: 'Mai 宽度', type: 'number' },
   maiHeight: { label: 'Mai 高度', type: 'number' }, maiAutoAspectRatio: { label: 'Mai 自动画幅', type: 'boolean' },
   maiWebGrounding: { label: 'Mai 联网检索', type: 'boolean' },
+  hyWidth: {label:'HY width',type:'number'}, hyHeight: {label:'HY height',type:'number'}, hySeed: {label:'HY seed',type:'number'}, hyNegativePrompt: {label:'HY negative prompt',type:'string'},
+  fluxImageSeed: {label:'Flux seed',type:'number'}, fluxImageSteps: {label:'Flux steps',type:'number'}, fluxImageOutputFormat: {label:'Flux output format',type:'string'},
   fluxImageGrounding: { label: 'FLUX grounding', type: 'boolean' },
   fluxImageSafetyTolerance: { label: 'FLUX safety_tolerance', type: 'number' },
   mjVersion: { label: 'MJ 版本', type: 'string' }, mjAr: { label: 'MJ 比例', type: 'string' },

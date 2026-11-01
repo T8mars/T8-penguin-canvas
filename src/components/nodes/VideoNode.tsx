@@ -1,3 +1,4 @@
+import { submitMuseVideo, queryMuseVideo } from '../../services/generation';
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import KlingV4Controls from './KlingV4Controls';
@@ -301,6 +302,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
     ? rawModel
     : builtinApiModelOptions[0]?.value || modelDef.apiModelOptions[0].value;
   const activeModelOption = builtinApiModelOptions.find((option) => option.value === apiModel);
+  const isMuse = !isExternalSelected && modelDef.kind === 'muse';
   const isHappyHorse = !isExternalSelected && modelDef.kind === 'happyhorse';
   const isHailuo = !isExternalSelected && modelDef.kind === 'hailuo';
   const isFlux3 = !isExternalSelected && modelDef.kind === 'flux3';
@@ -385,7 +387,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
     ?? activeModelOption?.defaultDuration
     ?? modelDef.defaultDuration
     ?? (activeModelOption?.durations?.[0] || modelDef.durations?.[0] || 0);
-  const duration: number = isAgnesExternalSelected ? Math.max(4, Math.min(12, Math.round(Number(rawDuration) || 5))) : isApimartV31
+  const duration: number = isMuse ? 10 : isAgnesExternalSelected ? Math.max(4, Math.min(12, Math.round(Number(rawDuration) || 5))) : isApimartV31
     ? 8
     : isApimartGrok
       ? Math.max(6, Math.min(30, Number(rawDuration) || 6))
@@ -394,7 +396,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
           : rawDuration;
   const rawResolution: string = d?.resolution
     || (isJimengSeedanceSelected ? '720p' : activeModelOption?.defaultResolution || modelDef.defaultResolution || '');
-  const resolution: string = isAgnesExternalSelected
+  const resolution: string = isMuse ? '720p' : isAgnesExternalSelected
     ? isAgnesFlash ? '720P' : AGNES_VIDEO.sizes.includes(rawResolution.toUpperCase()) ? rawResolution.toUpperCase() : '720P'
     : isApimartOmni
     ? '720p'
@@ -656,7 +658,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
     [localRefImages, localRefVideos, localRefAudios, id],
   );
   const maxMentionRefs =
-    isAgnesExternalSelected ? isAgnesFlash ? AGNES_VIDEO.limits.flashImages : AGNES_VIDEO.limits.images : isUpscaler
+    isMuse ? 9 : isAgnesExternalSelected ? isAgnesFlash ? AGNES_VIDEO.limits.flashImages : AGNES_VIDEO.limits.images : isUpscaler
       ? 0
       : isWan
       ? isWan30 ? wan30Mode === 'i2v' ? 2 : 10 : 1
@@ -801,7 +803,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
     };
     return {
       prompt: prompts.join('\n').trim(),
-      imageUrls: isKlingV4 || isViduQ4 || isAgnesExternalSelected ? [...upImageUrls, ...localRefImages] : dedupe([...upImageUrls, ...localRefImages]),
+      imageUrls: isMuse || isKlingV4 || isViduQ4 || isAgnesExternalSelected ? [...upImageUrls, ...localRefImages] : dedupe([...upImageUrls, ...localRefImages]),
       videoUrls: isKlingV4 || isAgnesExternalSelected ? [...upVideoUrls, ...localRefVideos] : isTopaz ? [...upVideoUrls, ...localRefVideos, ...(topazVideoUrl ? [topazVideoUrl] : [])] : dedupe([...upVideoUrls, ...localRefVideos]),
       audioUrls: isKlingV4 || isViduQ4 || isAgnesExternalSelected ? [...upAudioUrls, ...localRefAudios] : dedupe([...upAudioUrls, ...localRefAudios]),
     };
@@ -967,7 +969,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
               ? await queryHappyHorse(tid)
             : isApimartBudgetVideo
               ? await querySeedance(tid, 'seedance-nz')
-              : await queryVideo(tid, apiModel);
+              : isMuse ? await queryMuseVideo(tid, {signal: reporter?.signal}) : await queryVideo(tid, apiModel);
           const normalizedStatus = String(r.status || '').trim().toUpperCase();
           const currentProgress = String(r.progress ?? '');
           await reporter?.polling({
@@ -975,7 +977,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
             model: apiModel,
             taskId: tid,
             recovery: {
-              kind: isWan ? 'wan' : isAnimate ? 'animate' : isSeedance25 ? 'seedance' : isFlux3 ? 'flux3' : isHailuo ? 'hailuo' : isKling ? 'kling' : isTopaz ? 'topaz' : isVosr2 ? 'vosr2' : isFashVsr ? 'fashvsr' : isUpscaler ? 'upscaler' : isVidu ? 'vidu' : isHappyHorse ? 'happyhorse' : isApimartBudgetVideo ? 'seedance' : 'video',
+              kind: isMuse ? 'muse' : isWan ? 'wan' : isAnimate ? 'animate' : isSeedance25 ? 'seedance' : isFlux3 ? 'flux3' : isHailuo ? 'hailuo' : isKling ? 'kling' : isTopaz ? 'topaz' : isVosr2 ? 'vosr2' : isFashVsr ? 'fashvsr' : isUpscaler ? 'upscaler' : isVidu ? 'vidu' : isHappyHorse ? 'happyhorse' : isApimartBudgetVideo ? 'seedance' : 'video',
               taskId: tid, model: apiModel, pollIntervalMs: POLL_INT, maxPolls: MAX,
             },
             requestId: r.requestId,
@@ -1512,6 +1514,9 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
       setError('Kling 视频编辑必须连接或拖入 1 个输入视频');
       logBus.error('生成中止: Kling 视频编辑缺少输入视频', src);
       return;
+    }
+    if (isMuse && (imageUrls.length > 9 || videoUrls.length || audioUrls.length)) {
+      setError(translate('previewMuseFlux:museReferences')); return;
     }
     if (isUpscaler && videoUrls.length !== 1) {
       setError(isTopaz ? translate('nodes:generation.topaz.inputRequired') : isVosr2
@@ -2176,6 +2181,15 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
         return await startPolling(result.taskId, runId, reporter, isUpscaler ? '' : finalPrompt);
       }
 
+      if (isMuse) {
+        const result = await submitMuseVideo({ model: 'zhenzhen-video-muse', prompt: finalPrompt, images: imageUrls, size: ratio }, {submissionKey: reporter?.providerSubmissionKey, signal: reporter?.signal});
+        if (!isCurrentGenerationRun(runId) || reporter?.signal?.aborted) return;
+        await reporter?.providerSubmitted({provider:traceProvider,model:traceModel,upstreamTaskId:result.taskId,requestId:result.requestId,
+          transportHttpStatus:result.transportHttpStatus,upstreamHttpStatus:result.upstreamHttpStatus,usage:result.usage,httpStatusSource:'local-backend'});
+        if (!isCurrentGenerationRun(runId) || reporter?.signal?.aborted) return;
+        update({status:'polling',taskId:result.taskId,progress:'0%'});
+        return await startPolling(result.taskId,runId,reporter,finalPrompt);
+      }
       if (isUpscaler) {
         if (isTopaz) {
           logBus.info(`提交 Topaz: ${resolution} · ${topazQuality}`, src);
@@ -3465,6 +3479,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
           </div>
         )}
 
+        {isMuse && <div className="nodrag nowheel rounded border p-2 text-xs" style={{background:'var(--t8-bg-panel)',color:'var(--t8-text-main)',borderColor:'var(--t8-border)'}}>{translate('previewMuseFlux:museVideoDescription')}</div>}
         {isTopaz && <TopazVideoControls quality={topazQuality} videoUrl={topazVideoUrl} update={update} />}
 
         {isVidu && (
@@ -4215,7 +4230,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
         )}
 
         {/* Seed(非FAL) */}
-        {showGenericVideoControls && !isHappyHorse && !isFlux3 && !isKling && !isUpscaler && !isWan && !isAnimate && !isApimartBudgetVideo && (
+        {showGenericVideoControls && !isHappyHorse && !isFlux3 && !isKling && !isUpscaler && !isWan && !isAnimate && !isMuse && !isApimartBudgetVideo && (
         <div>
           <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.seedRandom')}</label>
           <input

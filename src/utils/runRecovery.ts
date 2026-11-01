@@ -1,3 +1,4 @@
+import { isPreviewImage, isFluxVariant, PREVIEW_MUSE_FLUX } from './previewMuseFlux';
 import { minimumProviderMediaPollCount } from './providerTimeoutPolicy';
 import nbDoubao from '../../backend/src/shared/nbLowpriceDoubaoContract.json';
 import mossImage from '../../backend/src/shared/mossImageContract.json';
@@ -15,6 +16,7 @@ export type RunRecoveryKind =
   | 'upscaler'
   | 'fashvsr'
   | 'vosr2'
+  | 'muse'
   | 'topaz'
   | 'motion'
   | 'animate'
@@ -46,7 +48,7 @@ export interface RunRecoveryDescriptor {
 }
 const RECOVERY_KINDS = new Set<RunRecoveryKind>([
   'runninghub', 'seedance', 'seedream-nz', 'wan', 'happyhorse', 'hailuo', 'flux3', 'kling', 'upscaler', 'fashvsr', 'vosr2', 'animate', 'vidu', 'seed-audio', 'suno',
-  'topaz', 'motion', 'image', 'mj', 'video', 'image-fal', 'video-fal',
+  'muse', 'topaz', 'motion', 'image', 'mj', 'video', 'image-fal', 'video-fal',
 ]);
 
 function text(value: unknown, maxLength: number): string {
@@ -117,7 +119,7 @@ export function inferRunRecoveryDescriptor(payload: Record<string, unknown>): Ru
         outputFormat: 'pcm', sampleRate: nbDoubao.audio.iclFields.sample_rate.options.includes(String(payload.sampleRate)) ? String(payload.sampleRate) : '24000',
       } : {}),
     };
-    if (lowerModel === mossImage.model || lowerModel.includes('seedream') || nbDoubao.banana.models.includes(lowerModel) || lowerModel === 'mai-image-2-6' || lowerModel === 'mai-image-2-6-flash' || lowerModel === 'vosr2-image-upscale' || lowerModel === 'flux-3-image' || lowerModel === 'zhenzhen-image-nb-2.1') {
+    if (isPreviewImage(lowerModel) || isFluxVariant(lowerModel) || lowerModel === mossImage.model || lowerModel.includes('seedream') || nbDoubao.banana.models.includes(lowerModel) || lowerModel === 'mai-image-2-6' || lowerModel === 'mai-image-2-6-flash' || lowerModel === 'vosr2-image-upscale' || lowerModel === 'flux-3-image' || lowerModel === 'zhenzhen-image-nb-2.1') {
       return { version: 1, kind: 'seedream-nz', taskId, model, pollIntervalMs, maxPolls };
     }
     if (lowerModel.startsWith('wan-')) return { version: 1, kind: 'wan', taskId, model, pollIntervalMs, maxPolls };
@@ -131,6 +133,7 @@ export function inferRunRecoveryDescriptor(payload: Record<string, unknown>): Ru
     if (lowerModel === 'vosr2-video-upscale') {
       return { version: 1, kind: 'vosr2', taskId, model, pollIntervalMs, maxPolls };
     }
+    if (model === PREVIEW_MUSE_FLUX.muse.videoModel) return {version:1,kind:'muse',taskId,model,pollIntervalMs,maxPolls};
     if (model === 'Topaz-Upscale-LowPirce') return { version: 1, kind: 'topaz', taskId, model, pollIntervalMs, maxPolls };
     if (lowerModel === 'animate-motion-transfer') {
       return { version: 1, kind: 'animate', taskId, model, pollIntervalMs, maxPolls };

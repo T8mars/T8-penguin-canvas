@@ -1,0 +1,92 @@
+{
+  "schema": "t8-workflow-fragment",
+  "version": 1,
+  "title": "zhenzhen-video-muse-reference",
+  "nodes": [
+    {
+      "id": "reference-0",
+      "type": "upload",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "data": {
+        "label": "参考图 1 / Reference 1",
+        "uploadType": "image",
+        "lockedUploadType": "image"
+      }
+    },
+    {
+      "id": "reference-1",
+      "type": "upload",
+      "position": {
+        "x": 0,
+        "y": 260
+      },
+      "data": {
+        "label": "参考图 2 / Reference 2",
+        "uploadType": "image",
+        "lockedUploadType": "image"
+      }
+    },
+    {
+      "id": "generation",
+      "type": "video",
+      "position": {
+        "x": 440,
+        "y": 60
+      },
+      "data": {
+        "label": "zhenzhen-video-muse",
+        "providerSource": "zhenzhen",
+        "providerId": "",
+        "providerModel": "",
+        "model": "zhenzhen-video-muse",
+        "mainId": "zhenzhen-video-muse",
+        "videoBuiltinSource": "seedance-nz",
+        "ratio": "16:9",
+        "duration": 10,
+        "resolution": "720p",
+        "prompt": "Animate the reference scene gently with natural sound and a fixed camera.",
+        "reuseResult": false
+      }
+    },
+    {
+      "id": "output",
+      "type": "output",
+      "position": {
+        "x": 900,
+        "y": 60
+      },
+      "data": {
+        "label": "结果 / Result"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "reference-edge-0",
+      "source": "reference-0",
+      "target": "generation"
+    },
+    {
+      "id": "reference-edge-1",
+      "source": "reference-1",
+      "target": "generation"
+    },
+    {
+      "id": "output-edge",
+      "source": "generation",
+      "sourceHandle": "video",
+      "target": "output"
+    }
+  ],
+  "nodeCount": 4,
+  "edgeCount": 3,
+  "nodeTypes": [
+    "upload",
+    "video",
+    "output"
+  ],
+  "savedAt": "2026-11-01T00:00:00.000Z"
+}

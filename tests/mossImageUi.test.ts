@@ -1,3 +1,4 @@
+import * as pmf from '../src/utils/previewMuseFlux';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -15,7 +16,7 @@ function expression(file: ts.SourceFile, find: (node: ts.Node) => ts.Expression 
   function visit(node: ts.Node) { const match = find(node); if (match) matches.push(match); ts.forEachChild(node, visit); }
   visit(file); assert.equal(matches.length, 1, 'exactly one production handler');
   return vm.runInNewContext(ts.transpileModule(`(${matches[0].getText(file)})`, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS } }).outputText,
-    { ...models, MOSS_IMAGE_CONTRACT, buildMossImageRequest, ...bindings });
+    { ...models, ...pmf, isPreviewImageTab:false,isFluxImage:false,isMuse:false,isNbLowprice:false,isKlingV4:false,isAgnesExternalSelected:false,apiModel:"", MOSS_IMAGE_CONTRACT, buildMossImageRequest, ...bindings });
 }
 const plain = (value: unknown) => JSON.parse(JSON.stringify(value));
 

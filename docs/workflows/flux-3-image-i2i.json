@@ -1,0 +1,79 @@
+{
+  "schema": "t8-workflow-fragment",
+  "version": 1,
+  "title": "flux-3-image-i2i",
+  "nodes": [
+    {
+      "id": "reference-0",
+      "type": "upload",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "data": {
+        "label": "参考图 1 / Reference 1",
+        "uploadType": "image",
+        "lockedUploadType": "image"
+      }
+    },
+    {
+      "id": "generation",
+      "type": "image",
+      "position": {
+        "x": 440,
+        "y": 60
+      },
+      "data": {
+        "label": "flux-3-image-i2i",
+        "providerSource": "zhenzhen",
+        "providerId": "",
+        "providerModel": "",
+        "model": "flux-3-image",
+        "apiModel": "flux-3-image-i2i",
+        "imageBuiltinSource": "seedance-nz",
+        "aspectRatio": "auto",
+        "sizeLevel": "768sq",
+        "referenceImages": [],
+        "imageOnlyOutput": true,
+        "fluxImageGrounding": true,
+        "fluxImageSafetyTolerance": 2,
+        "fluxImageSeed": 42,
+        "fluxImageSteps": 0,
+        "fluxImageOutputFormat": "api_default",
+        "prompt": "A friendly blue toy robot beside a yellow cup, cream studio background, clean illustration, no text.",
+        "reuseResult": false
+      }
+    },
+    {
+      "id": "output",
+      "type": "output",
+      "position": {
+        "x": 900,
+        "y": 60
+      },
+      "data": {
+        "label": "结果 / Result"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "reference-edge-0",
+      "source": "reference-0",
+      "target": "generation"
+    },
+    {
+      "id": "output-edge",
+      "source": "generation",
+      "target": "output"
+    }
+  ],
+  "nodeCount": 3,
+  "edgeCount": 2,
+  "nodeTypes": [
+    "upload",
+    "image",
+    "output"
+  ],
+  "savedAt": "2026-11-01T00:00:00.000Z"
+}

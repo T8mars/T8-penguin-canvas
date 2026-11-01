@@ -1,0 +1,55 @@
+{
+  "schema": "t8-workflow-fragment",
+  "version": 1,
+  "title": "zhenzhen-video-muse-text",
+  "nodes": [
+    {
+      "id": "generation",
+      "type": "video",
+      "position": {
+        "x": 440,
+        "y": 60
+      },
+      "data": {
+        "label": "zhenzhen-video-muse",
+        "providerSource": "zhenzhen",
+        "providerId": "",
+        "providerModel": "",
+        "model": "zhenzhen-video-muse",
+        "mainId": "zhenzhen-video-muse",
+        "videoBuiltinSource": "seedance-nz",
+        "ratio": "16:9",
+        "duration": 10,
+        "resolution": "720p",
+        "prompt": "Animate the reference scene gently with natural sound and a fixed camera.",
+        "reuseResult": false
+      }
+    },
+    {
+      "id": "output",
+      "type": "output",
+      "position": {
+        "x": 900,
+        "y": 60
+      },
+      "data": {
+        "label": "结果 / Result"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "output-edge",
+      "source": "generation",
+      "sourceHandle": "video",
+      "target": "output"
+    }
+  ],
+  "nodeCount": 2,
+  "edgeCount": 1,
+  "nodeTypes": [
+    "video",
+    "output"
+  ],
+  "savedAt": "2026-11-01T00:00:00.000Z"
+}

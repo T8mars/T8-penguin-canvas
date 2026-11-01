@@ -1,3 +1,4 @@
+import PREVIEW_MUSE_FLUX from '../../backend/src/shared/previewMuseFluxContract.json';
 /**
  * 模型注册表 - 集中定义可扩展模型清单
  * 后续要新增模型只需在对应数组里追加即可
@@ -38,7 +39,10 @@ export type ProviderType = 'zhenzhen' | 'llm-direct' | 'runninghub';
 //  - 'wan-image'   : Wan 2.7 Global 图像协议,T2I 使用宽高/思考模式,I2I 使用 1-9 张参考图
 //  - 'vosr2-upscale': Vosr2 单图超分协议,只发送 model + images[1]
 //  - 'mj'          : Midjourney 协议,走专属 /api/proxy/mj/* 路由(speed_map + sref/oref)
-export type ImageParamKind = 'gpt-size' | 'gpt-image-2.5' | 'banana-ratio' | 'grok-image' | 'seedream-v5' | 'seedream-layer' | 'qwen-image-3.0' | 'qwen-image-global-2.1' | 'flux-image' | 'mai-image' | 'moss-image' | 'wan-image' | 'vosr2-upscale' | 'mj';
+export const PREVIEW_IMAGE_MODELS = [PREVIEW_MUSE_FLUX.hy.model, PREVIEW_MUSE_FLUX.muse.imageModel];
+export const FLUX_IMAGE_VARIANTS = PREVIEW_MUSE_FLUX.flux.models;
+export const MUSE_VIDEO_MODEL = PREVIEW_MUSE_FLUX.muse.videoModel;
+export type ImageParamKind = 'gpt-size' | 'gpt-image-2.5' | 'banana-ratio' | 'grok-image' | 'seedream-v5' | 'seedream-layer' | 'qwen-image-3.0' | 'qwen-image-global-2.1' | 'flux-image' | 'mai-image' | 'moss-image' | 'preview-image' | 'wan-image' | 'vosr2-upscale' | 'mj';
 
 export interface ImageModelDef {
   id: string;             // 节点内部 id(如 'gpt-image-2')
@@ -196,6 +200,7 @@ export const ZHENZHEN_BUDGET_BANANA_PRO_MODEL_OPTIONS = [
 ] as const;
 export const ZHENZHEN_IMAGE_G2_MODEL_OPTIONS = ZHENZHEN_BUDGET_GPT2_MODEL_OPTIONS.slice(0, 2);
 export const ZHENZHEN_APIMART_IMAGE_MODELS = [
+  ...PREVIEW_IMAGE_MODELS, ...FLUX_IMAGE_VARIANTS,
   MOSS_IMAGE_MODEL,
   ...NB_LOWPRICE_MODELS,
   ...MAI_IMAGE_MODELS,
@@ -402,7 +407,7 @@ export const IMAGE_MODELS: ImageModelDef[] = [
     id: FLUX3_IMAGE_MODEL, apiModel: FLUX3_IMAGE_MODEL,
     label: 'FLUX 3 Image', tabLabel: 'Flux', provider: 'zhenzhen', paramKind: 'flux-image',
     capabilities: ['t2i', 'i2i', 'edit'],
-    apiModelOptions: [{ value: FLUX3_IMAGE_MODEL, label: FLUX3_IMAGE_MODEL }],
+    apiModelOptions: [FLUX3_IMAGE_MODEL, ...FLUX_IMAGE_VARIANTS].map(value => ({ value, label: value })),
     aspectRatios: NB_FLUX_VIDU.flux.ratios, defaultAspectRatio: 'auto',
     sizes: NB_FLUX_VIDU.flux.resolutions, defaultSize: '1k',
     supportsReference: true, maxReferenceImages: NB_FLUX_VIDU.flux.maxImages,
@@ -415,6 +420,15 @@ export const IMAGE_MODELS: ImageModelDef[] = [
     aspectRatios: [], defaultAspectRatio: '', sizes: [], defaultSize: '',
     supportsReference: true, maxReferenceImages: MAI_IMAGE.maxImages,
   },
+  ...PREVIEW_IMAGE_MODELS.map((id): ImageModelDef => ({
+    id, apiModel: id, label: id === PREVIEW_MUSE_FLUX.hy.model ? 'Hunyuan Image' : 'Muse Image',
+    tabLabel: id === PREVIEW_MUSE_FLUX.hy.model ? 'Hunyuan Image' : 'Muse Image', provider: 'zhenzhen', paramKind: 'preview-image',
+    capabilities: ['t2i','i2i','edit'], apiModelOptions: [{ value: id, label: id }],
+    aspectRatios: id === PREVIEW_MUSE_FLUX.hy.model ? PREVIEW_MUSE_FLUX.hy.ratios : PREVIEW_MUSE_FLUX.muse.ratios,
+    defaultAspectRatio: 'auto', sizes: id === PREVIEW_MUSE_FLUX.hy.model ? PREVIEW_MUSE_FLUX.hy.resolutions : [],
+    defaultSize: id === PREVIEW_MUSE_FLUX.hy.model ? '1K' : '', supportsReference: true,
+    maxReferenceImages: id === PREVIEW_MUSE_FLUX.hy.model ? 5 : 9,
+  })),
   {
     id: MOSS_IMAGE_MODEL, apiModel: MOSS_IMAGE_MODEL,
     label: 'Moss Image', tabLabel: 'Moss Image', provider: 'zhenzhen', paramKind: 'moss-image',
@@ -696,7 +710,7 @@ export const NBPRO_FAL_RESOLUTIONS = ['1K', '2K', '4K'];
 
 // ========== 视频 ==========
 // kind 决定上游 payload 协议(后端会根据 model 名自动识别,前端主要用于控制参数 UI 列表)
-export type VideoKind = 'veo' | 'grok' | 'sora' | 'seedance' | 'seedance25' | 'happyhorse' | 'hailuo' | 'flux3' | 'kling' | 'vidu' | 'upscaler' | 'wan' | 'animate';
+export type VideoKind = 'veo' | 'grok' | 'sora' | 'seedance' | 'seedance25' | 'happyhorse' | 'hailuo' | 'flux3' | 'kling' | 'vidu' | 'upscaler' | 'wan' | 'animate' | 'muse';
 
 // ---- Video FAL 渠道注册表 (1:1 对齐 gpt-image-2-web runVeo3Fal / runGrokFal / runSora2Fal) ----
 export interface VideoFalEndpointDef {
@@ -1685,6 +1699,13 @@ export const VIDEO_MODELS: VideoModelDef[] = [
     supportImages: true,
     supportVideos: true,
     maxRefImages: 30,
+  },
+  {
+    id: MUSE_VIDEO_MODEL, label: 'Muse Video', kind: 'muse', provider: 'zhenzhen', builtinSource: 'seedance-nz',
+    apiModelOptions: [{value: MUSE_VIDEO_MODEL, label: MUSE_VIDEO_MODEL}],
+    ratios: PREVIEW_MUSE_FLUX.muse.ratios, defaultRatio: 'auto', durations: [10], defaultDuration: 10,
+    resolutions: ['720p'], defaultResolution: '720p', supportImages: true, maxRefImages: 9,
+    supportVideos: false,
   },
   {
     id: 'seedance-2.0',

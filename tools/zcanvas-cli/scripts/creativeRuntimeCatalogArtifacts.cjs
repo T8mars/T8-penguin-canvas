@@ -1,3 +1,4 @@
+const pmf = require('../../../backend/src/shared/previewMuseFluxContract.json');
 'use strict';
 
 const crypto = require('node:crypto');
@@ -29,6 +30,7 @@ const SOURCE_PATHS = [
   path.join(ROOT, 'backend', 'src', 'shared', 'nb21FluxViduQ4Contract.json'),
   path.join(ROOT, 'backend', 'src', 'shared', 'maiImageContract.json'),
   path.join(ROOT, 'backend', 'src', 'shared', 'mossImageContract.json'),
+  path.join(ROOT, 'backend', 'src', 'shared', 'previewMuseFluxContract.json'),
   path.join(ROOT, 'backend', 'src', 'shared', 'nbLowpriceDoubaoContract.json'),
 ];
 
@@ -168,7 +170,7 @@ function buildRuntimeCatalog() {
   const budgetVideoModels = new Set([
     ...(seedanceNz.ZHENZHEN_APIMART_VIDEO_MODELS || []),
   ].map(String));
-  const seedanceNzVideoKinds = new Set(['wan', 'happyhorse', 'hailuo', 'vidu', 'kling', 'upscaler', 'seedance25']);
+  const seedanceNzVideoKinds = new Set(['wan', 'happyhorse', 'hailuo', 'vidu', 'kling', 'upscaler', 'seedance25', 'muse']);
 
   const llm = [];
   for (const item of models.LLM_MODELS || []) {
@@ -238,6 +240,7 @@ function buildRuntimeCatalog() {
   for (const rawModel of seedanceNz.IMAGE_MODELS || []) {
     const model = String(rawModel || '').trim();
     if (!model) continue;
+    if ([pmf.hy.model, pmf.muse.imageModel, ...pmf.flux.models].includes(model)) continue;
     const family = model === seedanceNz.MOSS_IMAGE_CONTRACT.model ? 'moss-image' : seedanceNz.MAI_IMAGE_MODELS?.has(model) ? 'mai-image-2-6' : model === seedanceNz.FLUX3_IMAGE_MODEL ? 'flux-3-image'
       : seedanceNz.QWEN_IMAGE_30_MODELS?.has(model)
       ? 'qwen-image-3.0'

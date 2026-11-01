@@ -1,0 +1,5 @@
+{
+  "hy": {"model":"zhenzhen-image-hy-v3.5-preview","ratios":["auto","1:1","2:3","3:2","3:4","4:3","4:5","5:4","9:16","16:9","21:9","custom"],"resolutions":["1K","2K","4K"],"maxImages":5,"minEdge":256,"maxEdge":8192,"maxPixels":8294400},
+  "muse": {"imageModel":"zhenzhen-image-muse","videoModel":"zhenzhen-video-muse","ratios":["auto","1:1","16:9","9:16","4:3","3:4","3:2","2:3"],"maxImages":9,"maxReferenceBytes":11534336,"duration":10,"resolution":"720p"},
+  "flux": {"models":["flux-3-image-t2i","flux-3-image-i2i","flux-3-image-klein-t2i","flux-3-image-klein-i2i"],"resolutions":["768sq","1k","1.5k","2k","4k"],"ratios":["auto","16:9","1:1","1:2","21:9","2:1","2:3","3:2","3:4","4:3","4:5","5:4","5:7","7:5","9:16","9:21"],"maxImages":10,"maxReferenceBytes":10485760}
+}

@@ -1,10 +1,10 @@
 # 当前项目上下文
 
-更新：2026-10-27。仅维护当前事实；长期规则见根 `SKILL.md` 和 `AGENTS.md`。预算80行/8 KiB，历史见专题。
+更新：2026-11-01。仅维护当前事实；长期规则见根 `SKILL.md` 和 `AGENTS.md`。预算80行/8 KiB，历史见专题。
 
 - 默认目录 `E:\PenguinPravite\T8-penguin-canvas`；branch `codex/release-v3.0.8-volcengine-assets-ux`，common dir `.git`。开工以git/worktree门为准；正式源码/Tag固定后记录在发布专题，不移动。
-- package `3.4.5` 双平台已发，见[专题](release-v3.4.5.md)；v3.4.4 Tag/六资产冻结。
-- 本版现场/安装升级/F8–F10按 `owner-approved-post-release-v3.4.5` 后补；Mac为ad-hoc未公证预览，仅额度不足可延期。
+- package `3.4.6` 已获同源双平台发布授权，进度见[专题](release-v3.4.6.md)；旧v3.4.5 Tag/六资产冻结。
+- 本版现场/安装升级/F8–F10按 `owner-approved-post-release-v3.4.6` 后补；Mac为ad-hoc未公证预览，仅额度不足可延期。
 
 ## 当前检查点
 
@@ -12,6 +12,7 @@
 
 | 事项 | 当前事实与下一步 |
 | --- | --- |
+| HY/Muse/Flux | 新增七模型、十一工作流；含Motion标准版复验，十一条实网解码及完整临时画布通过，v3.4.6待发，见[专题](preview-muse-flux.md)。 |
 | Kling4 | 既有视频Kling新增五模型，v3.4.5已发；六条实网、133回归及临时完整画布通过，见[专题](kling-v4.md)。 |
 | 代码动画 | P0已开发；标准/Pro、修订版本/分镜/恢复及四工作流见[验收](motion-video-development.md)。已随v3.4.4双平台发布，现场证据后补。 |
 | DSH工具配套 | v3.3.9[工具修复](agent-tools-installed-cli-compat.md)已发布。只读[活动定位](agent-active-context.md)随v3.4.0发布；真人配对/安装现场后补。 |
@@ -20,7 +21,7 @@
 | ArtCraft体验增强 | 已随v3.3.4双平台发布：灵感板/编辑版本/独立世界节点/Story草稿；完整App实链、28主题组合、142项及正式构建通过。排除/搁置项见[专题](artcraft-canvas-ux.md)。 |
 | 节点清晰度 / 平价香蕉低价 / 豆包 | v3.3.4已发布；实网8/8解码、14主题672组样式/控件及相关回归通过。安装版/用户GPU未验，模型与工作流见[专题](nb-lowprice-doubao.md)。 |
 | Moss / Mai / Topaz | Moss随v3.4.2发布；实网文生/编辑解码通过，另有805失败保留；见[Moss](moss-image.md)。已发布[Mai](mai-image.md)/[Topaz](topaz-video-upscale.md)实网解码通过，完整UI/安装版未验。 |
-| 平价香蕉2.1 / Flux / Vidu Q4 | 已随v3.3.1双平台发布；六模型、Flux新Tab，旧默认不变。八条实网成功并完整解码，R2V转MP3；159/159回归、独立后端49/49通过。八份无凭据工作流见[专题](nb21-flux-viduq4.md)；安装升级及端到端UI未验收。 |
+| 平价香蕉2.1 / Flux / Vidu Q4 | v3.3.1已发布；八条实网解码、159回归，见[专题](nb21-flux-viduq4.md)，安装/UI边界保留。 |
 | 自动更新退出 | 停探测/新请求补修随v3.4.1双平台发布；51回归/发布门、两项原生组合与正式包随机端口三场通过。用户现场自动升级后补；旧手动恢复及隔离缺口见[专题](auto-update-close-hold-20261021.md)。 |
 | 启动诊断/修复 | v3.2.8/3.2.9已发布；同次校验、候选线程、旧名补回通过限定回归，现场未验。细项见[修复](startup-history-fix-20261008.md)及[诊断](startup-diagnostics.md)。 |
 | 工坊香蕉2.1 | 已随v3.2.6双平台发布，仅新增模型，旧默认/参数不变；真实文生图与图生图通过。见[专题](nano-banana21-workshop.md)。 |
@@ -28,7 +29,7 @@
 | 画布归档/新建默认来源 | v3.2.5双平台已发布：schema33、大管理窗、归档只读/恢复与权威写入门；默认来源仅初始化空白image/edit/video，不改旧节点。功能/持久化/保真/处理器专项通过；端到端UI未验。见[专题](canvas-archive-media-defaults.md)。 |
 | Seedream Flash | 已随v3.2.4双平台发布；国内/海外六路径、六份工作流，Pro默认不变。六任务成功、13结果完整解码；263项回归及同步门通过，见[专题](seedream-v5-flash.md)。 |
 | GitHub PR / Issues | 10月1日记录与#30/#31限定修复（v3.2.3）见[专题](github-issues-20261001.md)；#29见[前次](github-issues-20260918.md)，现场验收边界保留。 |
-| 文档轻量化 | 原文逐字节归档、features/roadmap按需读；继续遵守预算，历史证据见[记录](../local-private/context-maintenance/verification.json)。 |
+| 文档轻量化 | 原文逐字节归档、按需查询；证据见`local-private/context-maintenance/verification.json`。 |
 | 生成历史 | 当前支持范围已随 v3.1.6 发布；19个完整客户端场景/25项、React UI 13项、限定回归56/56通过，通过进程正常退出/强制0/残留0。完整状态与剩余范围见[验收清单](generation-history-acceptance-status.md)及[证据索引](generation-history-acceptance-20260912.md)。 |
 | Provider 超时策略 | 已随 v3.1.7 发布：移除媒体生成通用代理 90 秒边界，并覆盖扩展适配器、工具箱自定义轮询、导演分镜与崩溃恢复；媒体全链路最低 15 分钟，LLM 默认且最长 3 分钟，连接探测/重试间隔不变。详情用 `feature providerTimeoutPolicy20260913` 查询。 |
 | TUN/代理与日志 | 已随v3.1.8发布：受信Provider域名交给系统网络，不预判Fake-IP；字面量内网/本地域名仍拒绝，普通URL策略不变。日志14天脱敏恢复；34/34及双平台包通过，用户TUN/安装版待验。详见 `feature tunIpv6AndTerminalLogRecovery20260913`。 |

@@ -1,3 +1,4 @@
+import * as pmf from '../src/utils/previewMuseFlux';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -54,7 +55,7 @@ const factory = new Function('scope', `with (scope) { ${compiled} }`);
 const material = (id: string, url: string, kind = 'image') => ({ id, url, kind, sourceNodeId: 'upstream', origin: 'upstream' });
 function render(d: Record<string, unknown>, images: ReturnType<typeof material>[] = [], texts: ReturnType<typeof material>[] = [], maxRefs = 14,
   extra: Record<string, unknown> = {}) {
-  return factory({ id: 'image', d, upstream: { images, texts }, maxRefs,
+  return factory({ isPreviewImageTab:false,isMossImage:false,isNbLowprice:false, ...pmf, id: 'image', d, upstream: { images, texts }, maxRefs,
     getEdges() { throw new Error('collector must not reread live edges'); },
     getNodes() { throw new Error('collector must not reread live nodes'); },
     useMemo: (read: () => unknown) => read(), useOrderedMaterials: orderMaterials,
@@ -305,7 +306,7 @@ test('Budget Image G history preparation and final fixed-asset draft round-trip 
   const request = new Function('scope', `with(scope) { ${requestCode} }`);
   for (const apiModel of models.ZHENZHEN_IMAGE_G25_MODELS) for (const custom of [false, true]) {
     const lowprice = apiModel === models.ZHENZHEN_IMAGE_G25_LOWPRICE_MODEL;
-    const flags = { isZhenzhenBudgetPlatformSelected: true, isZhenzhenBudgetImageSelected: true, isZhenzhenImageG25: true,
+    const flags = { isPreviewImageTab:false,isMossImage:false, ...pmf, isZhenzhenBudgetPlatformSelected: true, isZhenzhenBudgetImageSelected: true, isZhenzhenImageG25: true,
       isZhenzhenImageG25Lowprice: lowprice, isZhenzhenImageG25Official: !lowprice, isZhenzhenGrokImageV2: false,
       isZhenzhenGrokImageV2Edit: false, isZhenzhenNb: false, isVosr2ImageTab: false, isSeedreamLayerTab: false,
       isWanImageTab: false, isQwenImageTab: false, isQwenImage21Tab: false, isZhenzhenImageG2: false,
