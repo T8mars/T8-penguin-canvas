@@ -12,7 +12,7 @@ My favorite girl Go YounJung
 
 > AI 节点画布工作流工具 · Web + Electron 桌面端｜v3.4.6
 >
-> 2026-11-01：v3.4.6已获发布授权：新增Hunyuan Image、Muse Image/Video及四个Flux变体，附十一份工作流；十一条实网解码与完整开发画布验证通过。见[功能说明](docs/preview-muse-flux.md)、[发布进度](docs/release-v3.4.6.md)。
+> 2026-11-01：v3.4.6已发布Windows/macOS版：新增Hunyuan Image、Muse Image/Video及四个Flux变体，附十一份工作流；十一条实网解码与完整开发画布验证通过。见[功能说明](docs/preview-muse-flux.md)、[发布记录](docs/release-v3.4.6.md)。
 
 > 2026-10-27：v3.4.5已发布Windows/macOS版：原有视频节点的Kling中增加五个Kling 4模型，支持主体/音色ID复用及原任务续查；六条实网与完整开发画布已验证，提供八份工作流，见[功能说明](docs/kling-v4.md)、[发布记录](docs/release-v3.4.5.md)。
 >

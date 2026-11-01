@@ -3455,15 +3455,59 @@
     ]
   },
   "release": {
-    "status": "authorized-v3.4.6-pending-build",
+    "status": "released-v3.4.6-dual-platform-verified",
     "version": "3.4.6",
     "tag": "v3.4.6",
-    "latest": false,
+    "latest": true,
     "date": "2026-11-01",
     "details": "docs/release-v3.4.6.md",
     "evidence": "docs/release-v3.4.6.md",
     "postReleaseEvidence": "owner-approved-post-release-v3.4.6",
-    "macBoundary": "same-tag-ad-hoc-preview; defer-only-if-actual-quota-insufficient"
+    "macBoundary": "same-tag-ad-hoc-preview; no-quota-deferral-used",
+    "sourceCommit": "f19cb56b284c3a8021d1038bcb1404723fc8ed3d",
+    "publishedAt": "2026-11-01T09:02:27Z",
+    "draft": false,
+    "prerelease": false,
+    "macWorkflow": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/41287192858",
+    "macAttempt": 1,
+    "macWorkflowConclusion": "success",
+    "verification": [
+      "Windows/Mac unique builds, encrypted new-model probe and full downloads passed; both updater manifests match. Details: docs/release-v3.4.6.md.",
+      "Windows assets during Mac append and previous v3.4.5 Tag/assets unchanged.",
+      "Eleven real API paths and controlled full Canvas are separate evidence; installed-user/F8–F10 remain deferred."
+    ],
+    "assets": {
+      "windowsInstaller": {
+        "name": "T8-PenguinCanvas-Setup-3.4.6.exe",
+        "bytes": 1379895146,
+        "sha256": "54f363da233fd240e0cbcca6e792f69f1932031056d9a5f6ce29ef647aaf03a3"
+      },
+      "windowsBlockmap": {
+        "name": "T8-PenguinCanvas-Setup-3.4.6.exe.blockmap",
+        "bytes": 1439299,
+        "sha256": "271cdbb5eabe697d1155ca677b08058e84f563b142d2d41fc3a936a1168608dc"
+      },
+      "windowsUpdater": {
+        "name": "latest.yml",
+        "bytes": 362,
+        "sha256": "fa7126129ce7f5db70058ac6400121cbdc4f5b51a889b70b1996eb5e94fc4079"
+      },
+      "macDmg": {
+        "name": "T8-PenguinCanvas-3.4.6-mac-arm64.dmg",
+        "bytes": 519633123,
+        "sha256": "6de4b2abbf902f3496b369fc9fb064cda90cd494272da18c1e6baf92db99d7c3"
+      },
+      "macZip": {
+        "name": "T8-PenguinCanvas-3.4.6-mac-arm64.zip",
+        "bytes": 511397307,
+        "sha256": "009a47d49358eb11aefc1d6395467c06a1dc7374c98ebdc3d84806335dc32c8f"
+      },
+      "macUpdater": {
+        "name": "latest-mac.yml",
+        "bytes": 536,
+        "sha256": "0952c75452bada0f15c54ec66d8e6f3d8767fb691f9d9fab008908714ce926fb"
+      }
+    }
   },
   "minimaxMusic3PromptEnhancer": {
     "status": "released-v2.9.3",
@@ -10802,8 +10846,8 @@
     "version": "3.4.6",
     "semverVersion": "3.4.6",
     "versionNumberPolicy": "T8 版本号仍采用 x.y.z 三段，但每一段只允许 0-9；任一段到 9 后下一次发布必须向左进位，禁止任一段出现两位数字。例：1.9.9 的下一版必须是 2.0.0。",
-    "versionNote": "v3.4.6已获打包发布授权；完成事实见docs/release-v3.4.6.md。",
-    "installer": "T8-PenguinCanvas-Setup-3.4.6.exe；待唯一正式构建与完整回下载。",
+    "versionNote": "v3.4.6 HY/Muse/Flux双平台已发布，见docs/release-v3.4.6.md。",
+    "installer": "T8-PenguinCanvas-Setup-3.4.6.exe；唯一正式构建与完整回下载通过。",
     "updaterInstallMode": "自动更新下载完成后不得静默安装：main.cjs 必须设置 autoInstallOnAppQuit=false，显式安装调用 quitAndInstall(false,true)；electron/build-resources/installer.nsh 通过 SetSilent normal 让新版 NSIS 安装器即使收到旧客户端传入的 /S 也尽量切回前台安装向导。",
     "installerShortcutPolicy": "安装完成后必须创建桌面和开始菜单快捷方式：package.json build.nsis.createDesktopShortcut 必须为 \"always\"，createStartMenuShortcut 必须为 true；electron/build-resources/installer.nsh 必须保留 customInstall 兜底 CreateShortCut \"$newStartMenuLink\" 与 \"$DESKTOP\\${SHORTCUT_NAME}.lnk\"，防止更新安装/keepShortcuts 路径遗漏入口。",
     "updaterEntryPolicy": "顶栏桌面更新入口不得只因 window.t8pc.updater 缺失就静默消失；Electron UA 或 t8pc.getInfo/openExternal 可用时必须显示诊断入口，提示重新安装完整桌面包，Web/纯浏览器环境才隐藏。状态为 not-available 时按钮仍保留“更新”字样，避免用户误以为自动更新入口被删除。",
@@ -17322,7 +17366,7 @@
     "macWorkflowConclusion": "success"
   },
   "previewMuseFlux20261101": {
-    "status": "authorized-v3.4.6-pending-release",
+    "status": "released-v3.4.6",
     "description": "既有图像/视频新增Hunyuan Image、Muse Image/Video及四个Flux变体；原默认保留；Motion按新文档复核并实测。",
     "documentation": "docs/preview-muse-flux.md",
     "models": [
@@ -17345,14 +17389,15 @@
     "releaseAuthorization": true
   },
   "electronReleaseV346": {
-    "status": "authorized-v3.4.6-pending-build",
+    "status": "released-v3.4.6-dual-platform-verified",
     "version": "3.4.6",
     "tag": "v3.4.6",
-    "latest": false,
+    "latest": true,
     "date": "2026-11-01",
     "details": "docs/release-v3.4.6.md",
     "evidence": "docs/release-v3.4.6.md",
     "postReleaseEvidence": "owner-approved-post-release-v3.4.6",
-    "macBoundary": "same-tag-ad-hoc-preview; defer-only-if-actual-quota-insufficient"
+    "macBoundary": "same-tag-ad-hoc-preview; no-quota-deferral-used",
+    "sourceCommit": "f19cb56b284c3a8021d1038bcb1404723fc8ed3d"
   }
 }
