@@ -12,7 +12,7 @@ My favorite girl Go YounJung
 
 > AI 节点画布工作流工具 · Web + Electron 桌面端｜v3.4.8
 >
-> 2026-11-06：v3.4.8已获发布授权：既有3D节点的Meshy Tab恢复文生模型，支持写实／雕塑和提示词扩写；真实GLB、完整临时画布与113项回归通过，新增一份无凭据工作流。见[功能说明](docs/meshy-text-3d.md)、[发布进度](docs/release-v3.4.8.md)。
+> 2026-11-06：v3.4.8已发布Windows/macOS版：既有3D节点的Meshy Tab恢复文生模型，支持写实／雕塑和提示词扩写；真实GLB、完整临时画布与113项回归通过，新增一份无凭据工作流。见[功能说明](docs/meshy-text-3d.md)、[发布记录](docs/release-v3.4.8.md)。
 
 > 2026-11-06：v3.4.7已发布Windows/macOS版：既有图像增加gpt-image-2.6、z-image、krea，3D增加hitem3d、meshy；十一款可用模型、十六条实网路径和完整开发画布已验证，GIF保留动画、SVG保留原件，附十六份工作流。Meshy文生渠道暂不可用。见[功能说明](docs/g26-krea-hitem-meshy.md)、[发布记录](docs/release-v3.4.7.md)。
 

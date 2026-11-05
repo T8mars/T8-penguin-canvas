@@ -1,6 +1,6 @@
 # Meshy 6 文生 3D 恢复接入
 
-2026-11-06：最新无缓存[官方文档](https://api.seedance.nz/docs/llms.txt)恢复 `meshy-6-global-text-to-3d`，同一平价小屋 Key 的模型目录与真实任务均已验证。本地代码补到既有 3D 节点的 Meshy Tab；用户已授权v3.4.8同源双平台打包发布，进度见[发布专题](release-v3.4.8.md)；v3.4.7已发布资产不变。
+2026-11-06：最新无缓存[官方文档](https://api.seedance.nz/docs/llms.txt)恢复 `meshy-6-global-text-to-3d`，同一平价小屋 Key 的模型目录与真实任务均已验证。已补到既有 3D 节点的 Meshy Tab；已随v3.4.8同源双平台发布，详见[发布专题](release-v3.4.8.md)；v3.4.7已发布资产不变。
 
 ## 协议与界面
 
