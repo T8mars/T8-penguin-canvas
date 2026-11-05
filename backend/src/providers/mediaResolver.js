@@ -13,6 +13,7 @@ const MIME_BY_EXT = {
   '.jpeg': 'image/jpeg',
   '.webp': 'image/webp',
   '.gif': 'image/gif',
+  '.svg': 'image/svg+xml',
   '.bmp': 'image/bmp',
   '.avif': 'image/avif',
   '.tif': 'image/tiff',

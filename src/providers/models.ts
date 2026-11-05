@@ -1,4 +1,5 @@
 import PREVIEW_MUSE_FLUX from '../../backend/src/shared/previewMuseFluxContract.json';
+import G26_KREA_3D from '../../backend/src/shared/g26Krea3dContract.json';
 /**
  * 模型注册表 - 集中定义可扩展模型清单
  * 后续要新增模型只需在对应数组里追加即可
@@ -42,7 +43,7 @@ export type ProviderType = 'zhenzhen' | 'llm-direct' | 'runninghub';
 export const PREVIEW_IMAGE_MODELS = [PREVIEW_MUSE_FLUX.hy.model, PREVIEW_MUSE_FLUX.muse.imageModel];
 export const FLUX_IMAGE_VARIANTS = PREVIEW_MUSE_FLUX.flux.models;
 export const MUSE_VIDEO_MODEL = PREVIEW_MUSE_FLUX.muse.videoModel;
-export type ImageParamKind = 'gpt-size' | 'gpt-image-2.5' | 'banana-ratio' | 'grok-image' | 'seedream-v5' | 'seedream-layer' | 'qwen-image-3.0' | 'qwen-image-global-2.1' | 'flux-image' | 'mai-image' | 'moss-image' | 'preview-image' | 'wan-image' | 'vosr2-upscale' | 'mj';
+export type ImageParamKind = 'gpt-size' | 'gpt-image-2.5' | 'banana-ratio' | 'grok-image' | 'seedream-v5' | 'seedream-layer' | 'qwen-image-3.0' | 'qwen-image-global-2.1' | 'flux-image' | 'mai-image' | 'moss-image' | 'preview-image' | 'g26-krea' | 'wan-image' | 'vosr2-upscale' | 'mj';
 
 export interface ImageModelDef {
   id: string;             // 节点内部 id(如 'gpt-image-2')
@@ -200,6 +201,7 @@ export const ZHENZHEN_BUDGET_BANANA_PRO_MODEL_OPTIONS = [
 ] as const;
 export const ZHENZHEN_IMAGE_G2_MODEL_OPTIONS = ZHENZHEN_BUDGET_GPT2_MODEL_OPTIONS.slice(0, 2);
 export const ZHENZHEN_APIMART_IMAGE_MODELS = [
+  ...G26_KREA_3D.g26.models, ...G26_KREA_3D.krea.models, G26_KREA_3D.zimage.model,
   ...PREVIEW_IMAGE_MODELS, ...FLUX_IMAGE_VARIANTS,
   MOSS_IMAGE_MODEL,
   ...NB_LOWPRICE_MODELS,
@@ -420,6 +422,12 @@ export const IMAGE_MODELS: ImageModelDef[] = [
     aspectRatios: [], defaultAspectRatio: '', sizes: [], defaultSize: '',
     supportsReference: true, maxReferenceImages: MAI_IMAGE.maxImages,
   },
+  ...[G26_KREA_3D.g26,G26_KREA_3D.zimage,G26_KREA_3D.krea].map((spec): ImageModelDef => {
+    const models = 'models' in spec ? spec.models : [spec.model];
+    return {id:spec.tab,apiModel:models[0],label:spec.tab,tabLabel:spec.tab,provider:'zhenzhen',paramKind:'g26-krea',
+      capabilities:spec.tab==='z-image'?['t2i']:['t2i','i2i','edit'],apiModelOptions:models.map(value=>({value,label:value,maxReferenceImages:value===G26_KREA_3D.g26.models[0]?2:value===G26_KREA_3D.zimage.model||value.endsWith('-t2i')?0:spec.tab==='krea'?8:16})),
+      aspectRatios:[],defaultAspectRatio:'',sizes:[],defaultSize:'',supportsReference:spec.tab!=='z-image',maxReferenceImages:spec.tab==='gpt-image-2.6'?16:spec.tab==='krea'?8:0};
+  }),
   ...PREVIEW_IMAGE_MODELS.map((id): ImageModelDef => ({
     id, apiModel: id, label: id === PREVIEW_MUSE_FLUX.hy.model ? 'Hunyuan Image' : 'Muse Image',
     tabLabel: id === PREVIEW_MUSE_FLUX.hy.model ? 'Hunyuan Image' : 'Muse Image', provider: 'zhenzhen', paramKind: 'preview-image',

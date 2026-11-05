@@ -1,4 +1,5 @@
 const pmf = require('../shared/previewMuseFluxContract.json');
+const newModels=require('../providers/g26Krea3d');
 'use strict';
 
 const crypto = require('node:crypto');
@@ -32,6 +33,8 @@ function bounded(value, maximum = 1_000) {
 function mimeAndExtension(kind, bytes, contentType) {
   const mime = bounded(contentType, 120).split(';')[0].toLowerCase();
   if (kind === 'image') {
+    if (bytes.subarray(0,6).toString('ascii').match(/^GIF8[79]a$/)) return {mimeType:'image/gif',extension:'gif'};
+    if (require('../providers/providerOutputFormats').isSvgBuffer(bytes)) return {mimeType:'image/svg+xml',extension:'svg'};
     if (bytes.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) return { mimeType: 'image/png', extension: 'png' };
     if (bytes[0] === 0xff && bytes[1] === 0xd8) return { mimeType: 'image/jpeg', extension: 'jpg' };
     if (bytes.subarray(0, 4).toString('ascii') === 'RIFF' && bytes.subarray(8, 12).toString('ascii') === 'WEBP') return { mimeType: 'image/webp', extension: 'webp' };
@@ -366,11 +369,12 @@ class CreatorActionExecutor {
           trustedProviderFallbackDeadlineMs: MIN_PROVIDER_MEDIA_TIMEOUT_MS,
         });
         const descriptor = fs.openSync(staging, 'r');
-        const header = Buffer.alloc(16);
+        const header = Buffer.alloc(65536);
         const headerSize = fs.readSync(descriptor, header, 0, header.length, 0);
         fs.closeSync(descriptor);
         if (!downloaded.byteSize) throw new CreatorActionExecutorError('CREATOR_RESULT_INVALID_SIZE', '生成结果为空');
         const format = mimeAndExtension(kind, header.subarray(0, headerSize), downloaded.contentType);
+        if(format.extension==='svg')await require('../providers/providerOutputFormats').validateSvgBuffer(fs.readFileSync(staging));
         const contentHash = await fileSha256(staging);
         const filename = `creator-v2-${actionId.replace(/[^A-Za-z0-9_-]/g, '-').slice(0, 48)}-${contentHash.slice(0, 12)}.${format.extension}`;
         const absolute = path.join(this.config.OUTPUT_DIR, filename);
@@ -992,6 +996,12 @@ class CreatorActionExecutor {
     this._guardSkillAction(action);
     const baseUrl = bounded(settings.zhenzhenSd2BaseUrl, 2_000) || undefined;
     const grouped = preflightActionReferences(action, modelEntry, inputPaths);
+    if (action.type==='image'&&newModels.imageModels.includes(action.modelSnapshot.modelId)) {
+      const model=action.modelSnapshot.modelId,parameters=action.parameters||{},krea=newModels.contract.krea.models.includes(model);
+      const preset=newModels.contract.krea.presets[parameters.ratio]||[1024,1024];
+      return this.provider.submitImageTask({...parameters,model,prompt:action.prompt,images:grouped.images,
+        ...(krea?{size:parameters.size||`${preset[0]}*${preset[1]}`}:{})},apiKey,{baseUrl});
+    }
     if (action.type === 'image' && [pmf.hy.model, pmf.muse.imageModel, ...pmf.flux.models].includes(action.modelSnapshot.modelId)) {
       const model = action.modelSnapshot.modelId;
       return this.provider.submitImageTask({model,prompt:action.prompt,images:grouped.images,

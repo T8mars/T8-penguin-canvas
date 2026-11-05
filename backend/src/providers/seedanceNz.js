@@ -28,6 +28,7 @@ const TOPAZ_VIDEO_CONTRACT = require('../shared/topazVideoContract.json');
 const MAI_IMAGE_CONTRACT = require('../shared/maiImageContract.json');
 const MOSS_IMAGE_CONTRACT = require('../shared/mossImageContract.json');
 const previewMuseFlux = require('./previewMuseFlux');
+const g26Krea3d = require('./g26Krea3d');
 const { buildMotionVideoPayload, normalizeMotionVideoResponse, motionError } = require('./motionVideoContract');
 const NB_DOUBAO = require('../shared/nbLowpriceDoubaoContract.json');
 const { isDoubaoVoiceModel, buildDoubaoVoicePayload } = require('./doubaoVoiceContract');
@@ -136,6 +137,7 @@ const ZHENZHEN_IMAGE_NB_MODELS = new Set([
   ZHENZHEN_IMAGE_NB_PRO_MODEL,
 ]);
 const ZHENZHEN_APIMART_IMAGE_MODELS = new Set([
+  ...g26Krea3d.imageModels,
   ...previewMuseFlux.imageModels,
   MOSS_IMAGE_CONTRACT.model,
   ...MAI_IMAGE_MODELS,
@@ -3306,6 +3308,7 @@ async function buildZhenzhenImageG2Payload(request, apiKey, options = {}) {
 }
 
 async function buildImagePayload(request, apiKey, options = {}) {
+  if (g26Krea3d.imageModels.includes(request.model)) return buildG26Krea3dPayload(g26Krea3d.buildImage(request), apiKey, options);
   if (previewMuseFlux.imageModels.includes(request.model)) return buildPreviewMuseFluxPayload(request, apiKey, options);
   const requestedModel = String(request.model || '').trim().toLowerCase();
   if (requestedModel === VOSR2_IMAGE_UPSCALE_MODEL) {
@@ -6012,6 +6015,23 @@ async function transcribeAudio(request, apiKey, options = {}) {
   };
 }
 
+async function buildG26Krea3dPayload(built, apiKey, options = {}) {
+  const { sources, maxReferenceBytes, ...result } = built;
+  const prepared = [];
+  for (const source of sources) {
+    const file = await mediaBuffer(source, 'image', 50 * 1024 * 1024, options);
+    const buffer = await sharp(file.buffer, { failOn: 'error' }).png().toBuffer();
+    ensureSize(buffer, 'image', maxReferenceBytes);
+    prepared.push(buffer);
+  }
+  if (prepared.length) {
+    result.payload.images = [];
+    for (const buffer of prepared) result.payload.images.push(await uploadMedia(`data:image/png;base64,${buffer.toString('base64')}`, 'image', apiKey,
+      { ...options, maxBytes: maxReferenceBytes, allowedMimes: ['image/png'], cacheVariant: 'g26-krea-3d-png' }));
+  }
+  return result;
+}
+
 async function buildPreviewMuseFluxPayload(request, apiKey, options = {}) {
   const { sources, ...built } = previewMuseFlux.buildPreviewMuseFluxPayload(request);
   const { contract } = previewMuseFlux;
@@ -6175,6 +6195,7 @@ async function queryImageTask(taskId, apiKey, options = {}) {
 }
 
 async function buildHunyuan3dPayload(request, apiKey, options = {}) {
+  if (g26Krea3d.models3d.includes(request.model) || request.model === g26Krea3d.contract.meshy.unavailableModel) return buildG26Krea3dPayload(g26Krea3d.build3d(request), apiKey, options);
   const model = String(request.model || '').trim().toLowerCase();
   if (!HUNYUAN3D_MODELS.has(model)) throw new Error(`未知 Hunyuan 3D 模型：${model || '(空)'}`);
   const prompt = String(request.prompt || '').trim();
@@ -6257,6 +6278,7 @@ async function queryHunyuan3dTask(taskId, apiKey, options = {}) {
     progress: safeProgress(record?.progress ?? data?.progress),
     modelUrl: modelUrls[0] || null,
     modelUrls,
+    model: String(record.model || record.data?.model || ''),
     failReason: status === 'failed' ? String(record?.fail_reason || record?.failReason || record?.message || data?.message || '3D 任务失败') : null,
     ...safeProviderTrace(response, data),
   };

@@ -1,0 +1,25 @@
+{
+  "g26": {
+    "models": ["zhenzhen-image-g-v2.6-lowprice", "zhenzhen-image-g-v2.6-flare", "zhenzhen-image-g-v2.6-sunburst"],
+    "tab": "gpt-image-2.6", "sizes": ["auto", "1:1", "3:2", "2:3", "4:3", "3:4", "16:9", "9:16", "2:1", "1:2", "21:9", "9:21", "custom"],
+    "resolutions": ["1k", "2k", "4k"], "qualities": ["auto", "low", "medium", "high", "xhigh", "max"],
+    "formats": ["png", "jpeg", "webp"], "complexities": ["api_default", "low", "medium", "high"],
+    "gifSizes": ["512x512", "768x512", "512x768", "auto", "custom"],
+    "maxStaticPixels": 8294400, "minStaticPixels": 655360, "maxEdge": 3840, "maxOfficialPrompt": 32000
+  },
+  "krea": {
+    "tab": "krea", "models": ["krea-v3-t2i", "krea-v3-i2i"], "variants": ["berry", "jam"], "reasoning": ["low", "medium"], "formats": ["png", "jpeg"],
+    "minEdge": 256, "maxEdge": 4096, "maxPixels": 4220000, "maxImages": 8, "maxReferenceBytes": 31457280,
+    "presets": {"1:1": [1024, 1024], "16:9": [1536, 864], "9:16": [864, 1536], "4:3": [1152, 864], "3:4": [864, 1152], "3:2": [1536, 1024], "2:3": [1024, 1536]}
+  },
+  "zimage": {"tab": "z-image", "model": "z-image-t2i", "ratios": ["1:1", "2:3", "3:2", "3:4", "4:3", "9:16", "16:9", "21:9"]},
+  "hitem": {
+    "tab": "hitem3d", "models": ["hitem3d-v2-image-to-3d", "hitem3d-v2-multi-image-to-3d", "hitem3d-portrait-v2.1-image-to-3d", "hitem3d-portrait-v2.1-multi-image-to-3d"],
+    "views": ["front", "back", "left", "right"], "resolutions": ["1536", "1536pro"], "requestTypes": ["mesh", "both"], "minFaces": 100000, "maxFaces": 2000000
+  },
+  "meshy": {
+    "tab": "meshy", "models": ["meshy-6-global-image-to-3d"], "unavailableModel": "meshy-6-global-text-to-3d",
+    "topologies": ["api_default", "triangle", "quad"], "symmetries": ["api_default", "off", "auto", "on"],
+    "booleans": ["should_remesh", "enable_pbr", "ta_pose", "should_texture"], "booleanChoices": ["api_default", "true", "false"]
+  }
+}

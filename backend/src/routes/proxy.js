@@ -17,6 +17,7 @@ const { getWhitePng } = require('../utils/whitePng');
 const { tryDecodeDuckPayload } = require('../utils/duckPayload');
 const { normalizeLlmMessageMedia } = require('../providers/llmMedia');
 const seedanceNz = require('../providers/seedanceNz');
+const {isSvgBuffer,validateSvgBuffer,prepareGlbBuffer}=require('../providers/providerOutputFormats');
 const { contract: motionVideoContract, motionConnectionRef, motionError } = require('../providers/motionVideoContract');
 const { writeMotionVideoMetadata } = require('../services/motionVideoMetadata');
 const nbDoubao = require('../shared/nbLowpriceDoubaoContract.json');
@@ -603,6 +604,7 @@ function inspectIsoBmffHandlerTypes(buffer) {
 
 function detectProxyMediaMime(buffer) {
   if (!Buffer.isBuffer(buffer) || buffer.length < 4) return '';
+  if (isSvgBuffer(buffer)) return 'image/svg+xml';
   if (buffer.length >= 8 && buffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) return 'image/png';
   if (buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) return 'image/jpeg';
   if (buffer.subarray(0, 6).toString('ascii') === 'GIF87a' || buffer.subarray(0, 6).toString('ascii') === 'GIF89a') return 'image/gif';
@@ -999,6 +1001,7 @@ function extFromContentType(contentType) {
     'image/jpeg': 'jpg',
     'image/webp': 'webp',
     'image/gif': 'gif',
+    'image/svg+xml': 'svg',
     'image/bmp': 'bmp',
     'image/avif': 'avif',
     'image/tiff': 'tif',
@@ -1042,6 +1045,7 @@ function mimeTypeForProxyFilename(filename) {
     '.jpeg': 'image/jpeg',
     '.webp': 'image/webp',
     '.gif': 'image/gif',
+    '.svg': 'image/svg+xml',
     '.bmp': 'image/bmp',
     '.avif': 'image/avif',
     '.tif': 'image/tiff',
@@ -2195,6 +2199,7 @@ async function saveRemoteImageDetailed(url, _providerFetchImpl, materializationK
       throwIfProxyRequestAborted(signal);
       const buf = remote.buffer;
       const ext = verifiedProxyMediaExtension(remote);
+      if (ext === 'svg') await validateSvgBuffer(buf);
       return { url: storeMaterializedOutputBuffer(buf, 'img', ext, materializationKey), error: null };
     } catch (error) {
       lastError = error;
@@ -3532,7 +3537,7 @@ router.get('/3d/seedance-nz/status/:tid', async (req, res) => {
       const modelUrls = [];
       const failures = [];
       for (const [index, remoteUrl] of remoteUrls.entries()) {
-        const saved = await saveRemoteFalToolboxFile(remoteUrl, 'model3d', `seedance-nz-3d:${req.params.tid}:${index}`);
+        const saved = await saveRemoteFalToolboxFile(remoteUrl, 'model3d', `seedance-nz-3d:${req.params.tid}:${index}`, {extractGlb: require('../providers/g26Krea3d').models3d.includes(result.model)});
         if (saved.url) modelUrls.push(saved.url);
         else if (saved.error) failures.push(saved.error);
       }
@@ -7173,7 +7178,7 @@ function collectFalToolboxText(value, out = []) {
   return out;
 }
 
-async function saveRemoteFalToolboxFile(url, kind, materializationKey = '') {
+async function saveRemoteFalToolboxFile(url, kind, materializationKey = '', options = {}) {
   if (/^\/(files|output|input)\//i.test(String(url || ''))) {
     return { url: String(url), error: null };
   }
@@ -7200,6 +7205,11 @@ async function saveRemoteFalToolboxFile(url, kind, materializationKey = '') {
     if (!buf.length) throw new Error('FAL 模型文件为空');
     const contentType = normalizedContentType(remote.contentType);
     if (contentType === 'text/html' || contentType === 'application/xhtml+xml') throw new Error('FAL 模型响应类型无效');
+    if (options.extractGlb) {
+      const prepared=await prepareGlbBuffer(buf);
+      const archiveUrl=prepared.archive?storeMaterializedOutputBuffer(prepared.archive,'model3d','zip',materializationKey+':archive'):'';
+      return {url:storeMaterializedOutputBuffer(prepared.buffer,'model3d','glb',materializationKey),archiveUrl,error:null};
+    }
     if (ext === 'glb' && buf.subarray(0, 4).toString('ascii') !== 'glTF') throw new Error('FAL GLB 魔数无效');
     if ((ext === 'zip' || ext === 'usdz') && !buf.subarray(0, 4).equals(Buffer.from([0x50, 0x4b, 0x03, 0x04]))) {
       throw new Error('FAL ZIP/USDZ 魔数无效');

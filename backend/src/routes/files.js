@@ -23,6 +23,25 @@ const { resolveBundledFfmpeg } = require('../providers/llmMedia');
 const { withFfmpegProcessSlot } = require('../utils/ffmpegProcessQueue');
 
 const router = express.Router();
+// Generated vectors are displayed through an isolated response. The generic
+// user-media static mounts continue to reject SVG and other active documents.
+router.get('/vector/:filename',async(req,res)=>{
+  const name=String(req.params.filename||'');
+  if(!/^img_(?:task_[a-f0-9]+_[a-f0-9]+|\d+_[a-f0-9]+)\.svg$/.test(name))return res.status(404).end();
+  const url='/files/output/'+name;
+  if(!require('../services/materializedOutputStore').isCommittedMaterializedOutputUrl(config.OUTPUT_DIR,url))return res.status(404).end();
+  let source;
+  try{
+    source=await openMountedLocalSource(url,DEFAULT_FILE_SAVE_MAX_BYTES);
+    if(!source)return res.status(404).end();
+    const prefix=await readFilePrefix(source.handle,source.stat.size);
+    if(!require('../providers/providerOutputFormats').isSvgBuffer(prefix))throw Error('Not SVG');
+    res.type('image/svg+xml');res.setHeader('X-Content-Type-Options','nosniff');
+    res.setHeader('Content-Security-Policy',"sandbox; default-src 'none'; style-src 'unsafe-inline'");
+    res.setHeader('Content-Disposition',`${req.query.download==='1'?'attachment':'inline'}; filename="${name}"`);
+    const stream=source.handle.createReadStream();stream.on('error',()=>res.destroy());stream.on('close',()=>source.handle.close().catch(()=>{}));res.on('close',()=>stream.destroy());stream.pipe(res);
+  }catch{if(source)await source.handle.close().catch(()=>{});if(!res.headersSent)res.status(404).end();else res.destroy();}
+});
 let projectDatabase = null;
 let previewPipeline = null;
 let assetIndexer = null;
@@ -1024,6 +1043,7 @@ function bufferHas(buffer, signature, offset = 0) {
 }
 
 function detectSavedMediaType(buffer) {
+  if(require('../providers/providerOutputFormats').isSvgBuffer(buffer))return mediaType('image','image/svg+xml','svg');
   if (!Buffer.isBuffer(buffer) || buffer.length < 2) return null;
   if (bufferHas(buffer, Buffer.from('89504e470d0a1a0a', 'hex'))) return mediaType('image', 'image/png', 'png');
   if (bufferHas(buffer, Buffer.from('ffd8ff', 'hex'))) return mediaType('image', 'image/jpeg', 'jpg', ['jpeg']);

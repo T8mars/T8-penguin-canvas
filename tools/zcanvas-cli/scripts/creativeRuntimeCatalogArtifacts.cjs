@@ -1,4 +1,5 @@
 const pmf = require('../../../backend/src/shared/previewMuseFluxContract.json');
+const newModels=require('../../../backend/src/providers/g26Krea3d');
 'use strict';
 
 const crypto = require('node:crypto');
@@ -31,6 +32,7 @@ const SOURCE_PATHS = [
   path.join(ROOT, 'backend', 'src', 'shared', 'maiImageContract.json'),
   path.join(ROOT, 'backend', 'src', 'shared', 'mossImageContract.json'),
   path.join(ROOT, 'backend', 'src', 'shared', 'previewMuseFluxContract.json'),
+  path.join(ROOT,'backend','src','shared','g26Krea3dContract.json'),
   path.join(ROOT, 'backend', 'src', 'shared', 'nbLowpriceDoubaoContract.json'),
 ];
 
@@ -215,6 +217,7 @@ function buildRuntimeCatalog() {
   for (const family of models.IMAGE_MODELS || []) {
     for (const option of family.apiModelOptions || [{ value: family.apiModel, label: family.label }]) {
       const provider = optionProvider(option, 'zhenzhen', budgetImageModels);
+      const newTextOnly=newModels.imageModels.includes(option.value)&&option.maxReferenceImages===0;
       image.push(modelEntry(
         'image',
         provider,
@@ -223,13 +226,13 @@ function buildRuntimeCatalog() {
         family.id,
         {
           tabLabel: family.tabLabel,
-          capabilities: family.capabilities,
+          capabilities: newTextOnly?['t2i']:family.capabilities,
           parameterKind: option.paramKind || family.paramKind,
           aspectRatios: family.aspectRatios,
           defaultAspectRatio: family.defaultAspectRatio,
           sizes: option.sizes || family.sizes,
           defaultSize: option.sizes?.[0] || family.defaultSize,
-          supportsReference: family.supportsReference === true,
+          supportsReference: !newTextOnly&&family.supportsReference === true,
           maxReferenceImages: option.maxReferenceImages ?? family.maxReferenceImages,
           description: family.description,
         },
@@ -240,7 +243,7 @@ function buildRuntimeCatalog() {
   for (const rawModel of seedanceNz.IMAGE_MODELS || []) {
     const model = String(rawModel || '').trim();
     if (!model) continue;
-    if ([pmf.hy.model, pmf.muse.imageModel, ...pmf.flux.models].includes(model)) continue;
+    if ([...newModels.imageModels,pmf.hy.model, pmf.muse.imageModel, ...pmf.flux.models].includes(model)) continue;
     const family = model === seedanceNz.MOSS_IMAGE_CONTRACT.model ? 'moss-image' : seedanceNz.MAI_IMAGE_MODELS?.has(model) ? 'mai-image-2-6' : model === seedanceNz.FLUX3_IMAGE_MODEL ? 'flux-3-image'
       : seedanceNz.QWEN_IMAGE_30_MODELS?.has(model)
       ? 'qwen-image-3.0'
@@ -456,6 +459,11 @@ function buildRuntimeCatalog() {
   }));
 
   const actions = [];
+  for(const model of newModels.models3d)actions.push(actionEntry('model3d','seedance-nz',model,model,model.startsWith('hitem')?'hitem3d':'meshy','model3d',{
+    tab:model.startsWith('hitem')?'hitem3d':'meshy',endpoint:'/v1/3d/generations',orderedImageViews:model.includes('multi')?4:1,
+    minimumReferenceImages:model.includes('multi')?2:1,viewOrder:model.includes('multi')?newModels.contract.hitem.views:['front'],
+    ...(model.startsWith('hitem')?{requestTypes:newModels.contract.hitem.requestTypes,resolutions:model.includes('portrait')?['1536pro']:newModels.contract.hitem.resolutions,face:{minimum:100000,maximum:2000000}}:{optionalControls:['topology','target_polycount','symmetry_mode',...newModels.contract.meshy.booleans]})
+  }));
   for (const model of seedanceNz.HUNYUAN3D_MODELS || []) {
     actions.push(actionEntry('model3d', 'seedance-nz', model, model, 'hunyuan-3d', 'model3d', {
       tab: 'Hunyuan 3D',

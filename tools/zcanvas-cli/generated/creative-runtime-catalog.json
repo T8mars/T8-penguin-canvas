@@ -1,6 +1,6 @@
 {
   "schema": "t8-creative-runtime-catalog-v1",
-  "sourceDigest": "7ea42f135742c933db1e41d7da5a8348f0e798afe099af17256c5bcff74a7db4",
+  "sourceDigest": "8b632b2884257601f4c3d501e704d149765169c4f14faae60c6568e670e4405f",
   "generatedFrom": [
     "src/providers/models.ts",
     "src/config/seedance.ts",
@@ -12,6 +12,7 @@
     "backend/src/shared/maiImageContract.json",
     "backend/src/shared/mossImageContract.json",
     "backend/src/shared/previewMuseFluxContract.json",
+    "backend/src/shared/g26Krea3dContract.json",
     "backend/src/shared/nbLowpriceDoubaoContract.json"
   ],
   "platforms": [
@@ -1148,6 +1149,60 @@
       }
     },
     {
+      "id": "image:seedance-nz:krea-v3-i2i",
+      "provider": "seedance-nz",
+      "platformLabel": "贞贞的平价AI小屋",
+      "model": "krea-v3-i2i",
+      "label": "krea-v3-i2i",
+      "family": "krea",
+      "available": true,
+      "parameters": {
+        "label": "krea-v3-i2i",
+        "platformLabel": "贞贞的平价AI小屋",
+        "family": "krea",
+        "available": true,
+        "tabLabel": "krea",
+        "capabilities": [
+          "t2i",
+          "i2i",
+          "edit"
+        ],
+        "parameterKind": "g26-krea",
+        "aspectRatios": [],
+        "defaultAspectRatio": "",
+        "sizes": [],
+        "defaultSize": "",
+        "supportsReference": true,
+        "maxReferenceImages": 8
+      }
+    },
+    {
+      "id": "image:seedance-nz:krea-v3-t2i",
+      "provider": "seedance-nz",
+      "platformLabel": "贞贞的平价AI小屋",
+      "model": "krea-v3-t2i",
+      "label": "krea-v3-t2i",
+      "family": "krea",
+      "available": true,
+      "parameters": {
+        "label": "krea-v3-t2i",
+        "platformLabel": "贞贞的平价AI小屋",
+        "family": "krea",
+        "available": true,
+        "tabLabel": "krea",
+        "capabilities": [
+          "t2i"
+        ],
+        "parameterKind": "g26-krea",
+        "aspectRatios": [],
+        "defaultAspectRatio": "",
+        "sizes": [],
+        "defaultSize": "",
+        "supportsReference": false,
+        "maxReferenceImages": 0
+      }
+    },
+    {
       "id": "image:seedance-nz:mai-image-2-6",
       "provider": "seedance-nz",
       "platformLabel": "贞贞的平价AI小屋",
@@ -1750,6 +1805,32 @@
       }
     },
     {
+      "id": "image:seedance-nz:z-image-t2i",
+      "provider": "seedance-nz",
+      "platformLabel": "贞贞的平价AI小屋",
+      "model": "z-image-t2i",
+      "label": "z-image-t2i",
+      "family": "z-image",
+      "available": true,
+      "parameters": {
+        "label": "z-image-t2i",
+        "platformLabel": "贞贞的平价AI小屋",
+        "family": "z-image",
+        "available": true,
+        "tabLabel": "z-image",
+        "capabilities": [
+          "t2i"
+        ],
+        "parameterKind": "g26-krea",
+        "aspectRatios": [],
+        "defaultAspectRatio": "",
+        "sizes": [],
+        "defaultSize": "",
+        "supportsReference": false,
+        "maxReferenceImages": 0
+      }
+    },
+    {
       "id": "image:seedance-nz:zhenzhen-image-g-v2-lowprice",
       "provider": "seedance-nz",
       "platformLabel": "贞贞的平价AI小屋",
@@ -1846,6 +1927,90 @@
         "supportsReference": true,
         "maxReferenceImages": 16,
         "description": "贞贞的平价AI小屋图像模型"
+      }
+    },
+    {
+      "id": "image:seedance-nz:zhenzhen-image-g-v2.6-flare",
+      "provider": "seedance-nz",
+      "platformLabel": "贞贞的平价AI小屋",
+      "model": "zhenzhen-image-g-v2.6-flare",
+      "label": "zhenzhen-image-g-v2.6-flare",
+      "family": "gpt-image-2.6",
+      "available": true,
+      "parameters": {
+        "label": "zhenzhen-image-g-v2.6-flare",
+        "platformLabel": "贞贞的平价AI小屋",
+        "family": "gpt-image-2.6",
+        "available": true,
+        "tabLabel": "gpt-image-2.6",
+        "capabilities": [
+          "t2i",
+          "i2i",
+          "edit"
+        ],
+        "parameterKind": "g26-krea",
+        "aspectRatios": [],
+        "defaultAspectRatio": "",
+        "sizes": [],
+        "defaultSize": "",
+        "supportsReference": true,
+        "maxReferenceImages": 16
+      }
+    },
+    {
+      "id": "image:seedance-nz:zhenzhen-image-g-v2.6-lowprice",
+      "provider": "seedance-nz",
+      "platformLabel": "贞贞的平价AI小屋",
+      "model": "zhenzhen-image-g-v2.6-lowprice",
+      "label": "zhenzhen-image-g-v2.6-lowprice",
+      "family": "gpt-image-2.6",
+      "available": true,
+      "parameters": {
+        "label": "zhenzhen-image-g-v2.6-lowprice",
+        "platformLabel": "贞贞的平价AI小屋",
+        "family": "gpt-image-2.6",
+        "available": true,
+        "tabLabel": "gpt-image-2.6",
+        "capabilities": [
+          "t2i",
+          "i2i",
+          "edit"
+        ],
+        "parameterKind": "g26-krea",
+        "aspectRatios": [],
+        "defaultAspectRatio": "",
+        "sizes": [],
+        "defaultSize": "",
+        "supportsReference": true,
+        "maxReferenceImages": 2
+      }
+    },
+    {
+      "id": "image:seedance-nz:zhenzhen-image-g-v2.6-sunburst",
+      "provider": "seedance-nz",
+      "platformLabel": "贞贞的平价AI小屋",
+      "model": "zhenzhen-image-g-v2.6-sunburst",
+      "label": "zhenzhen-image-g-v2.6-sunburst",
+      "family": "gpt-image-2.6",
+      "available": true,
+      "parameters": {
+        "label": "zhenzhen-image-g-v2.6-sunburst",
+        "platformLabel": "贞贞的平价AI小屋",
+        "family": "gpt-image-2.6",
+        "available": true,
+        "tabLabel": "gpt-image-2.6",
+        "capabilities": [
+          "t2i",
+          "i2i",
+          "edit"
+        ],
+        "parameterKind": "g26-krea",
+        "aspectRatios": [],
+        "defaultAspectRatio": "",
+        "sizes": [],
+        "defaultSize": "",
+        "supportsReference": true,
+        "maxReferenceImages": 16
       }
     },
     {
@@ -11272,6 +11437,134 @@
       }
     },
     {
+      "id": "model3d:seedance-nz:hitem3d-portrait-v2.1-image-to-3d",
+      "kind": "model3d",
+      "provider": "seedance-nz",
+      "platformLabel": "贞贞的平价AI小屋",
+      "action": "hitem3d-portrait-v2.1-image-to-3d",
+      "label": "hitem3d-portrait-v2.1-image-to-3d",
+      "family": "hitem3d",
+      "resultKind": "model3d",
+      "parameters": {
+        "tab": "hitem3d",
+        "endpoint": "/v1/3d/generations",
+        "orderedImageViews": 1,
+        "minimumReferenceImages": 1,
+        "viewOrder": [
+          "front"
+        ],
+        "requestTypes": [
+          "mesh",
+          "both"
+        ],
+        "resolutions": [
+          "1536pro"
+        ],
+        "face": {
+          "minimum": 100000,
+          "maximum": 2000000
+        }
+      }
+    },
+    {
+      "id": "model3d:seedance-nz:hitem3d-portrait-v2.1-multi-image-to-3d",
+      "kind": "model3d",
+      "provider": "seedance-nz",
+      "platformLabel": "贞贞的平价AI小屋",
+      "action": "hitem3d-portrait-v2.1-multi-image-to-3d",
+      "label": "hitem3d-portrait-v2.1-multi-image-to-3d",
+      "family": "hitem3d",
+      "resultKind": "model3d",
+      "parameters": {
+        "tab": "hitem3d",
+        "endpoint": "/v1/3d/generations",
+        "orderedImageViews": 4,
+        "minimumReferenceImages": 2,
+        "viewOrder": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "requestTypes": [
+          "mesh",
+          "both"
+        ],
+        "resolutions": [
+          "1536pro"
+        ],
+        "face": {
+          "minimum": 100000,
+          "maximum": 2000000
+        }
+      }
+    },
+    {
+      "id": "model3d:seedance-nz:hitem3d-v2-image-to-3d",
+      "kind": "model3d",
+      "provider": "seedance-nz",
+      "platformLabel": "贞贞的平价AI小屋",
+      "action": "hitem3d-v2-image-to-3d",
+      "label": "hitem3d-v2-image-to-3d",
+      "family": "hitem3d",
+      "resultKind": "model3d",
+      "parameters": {
+        "tab": "hitem3d",
+        "endpoint": "/v1/3d/generations",
+        "orderedImageViews": 1,
+        "minimumReferenceImages": 1,
+        "viewOrder": [
+          "front"
+        ],
+        "requestTypes": [
+          "mesh",
+          "both"
+        ],
+        "resolutions": [
+          "1536",
+          "1536pro"
+        ],
+        "face": {
+          "minimum": 100000,
+          "maximum": 2000000
+        }
+      }
+    },
+    {
+      "id": "model3d:seedance-nz:hitem3d-v2-multi-image-to-3d",
+      "kind": "model3d",
+      "provider": "seedance-nz",
+      "platformLabel": "贞贞的平价AI小屋",
+      "action": "hitem3d-v2-multi-image-to-3d",
+      "label": "hitem3d-v2-multi-image-to-3d",
+      "family": "hitem3d",
+      "resultKind": "model3d",
+      "parameters": {
+        "tab": "hitem3d",
+        "endpoint": "/v1/3d/generations",
+        "orderedImageViews": 4,
+        "minimumReferenceImages": 2,
+        "viewOrder": [
+          "front",
+          "back",
+          "left",
+          "right"
+        ],
+        "requestTypes": [
+          "mesh",
+          "both"
+        ],
+        "resolutions": [
+          "1536",
+          "1536pro"
+        ],
+        "face": {
+          "minimum": 100000,
+          "maximum": 2000000
+        }
+      }
+    },
+    {
       "id": "model3d:seedance-nz:hunyuan3d-v3.1-image-to-3d",
       "kind": "model3d",
       "provider": "seedance-nz",
@@ -11321,6 +11614,34 @@
           "Sketch"
         ],
         "enablePbrDefault": false
+      }
+    },
+    {
+      "id": "model3d:seedance-nz:meshy-6-global-image-to-3d",
+      "kind": "model3d",
+      "provider": "seedance-nz",
+      "platformLabel": "贞贞的平价AI小屋",
+      "action": "meshy-6-global-image-to-3d",
+      "label": "meshy-6-global-image-to-3d",
+      "family": "meshy",
+      "resultKind": "model3d",
+      "parameters": {
+        "tab": "meshy",
+        "endpoint": "/v1/3d/generations",
+        "orderedImageViews": 1,
+        "minimumReferenceImages": 1,
+        "viewOrder": [
+          "front"
+        ],
+        "optionalControls": [
+          "topology",
+          "target_polycount",
+          "symmetry_mode",
+          "should_remesh",
+          "enable_pbr",
+          "ta_pose",
+          "should_texture"
+        ]
       }
     },
     {
@@ -11396,9 +11717,9 @@
   ],
   "counts": {
     "llm": 34,
-    "image": 76,
+    "image": 82,
     "video": 142,
     "audio": 19,
-    "actions": 61
+    "actions": 66
   }
 }

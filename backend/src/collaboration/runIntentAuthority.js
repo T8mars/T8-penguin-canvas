@@ -1,4 +1,5 @@
 const pmf = require('../shared/previewMuseFluxContract.json');
+const newModels=require('../providers/g26Krea3d');
 const canvasNodeSchema = require('../shared/canvasNodeSchema.json');
 const seedanceNzLlmModels = require('../shared/seedanceNzLlmModels.json');
 const seedreamNzContract = require('../shared/seedreamNzContract.json');
@@ -57,6 +58,9 @@ const LOCAL_EXECUTION_NODE_TYPES = new Set([
 ]);
 
 const IMAGE_RUNTIME_MODELS = Object.freeze({
+  [newModels.contract.g26.tab]:{defaultModel:newModels.contract.g26.models[0],models:newModels.contract.g26.models},
+  [newModels.contract.krea.tab]:{defaultModel:newModels.contract.krea.models[0],models:newModels.contract.krea.models},
+  [newModels.contract.zimage.tab]:{defaultModel:newModels.contract.zimage.model,models:[newModels.contract.zimage.model]},
   ...Object.fromEntries([pmf.hy.model, pmf.muse.imageModel].map(model => [model, {defaultModel:model, models:[model]}])),
   [mossImageContract.model]: { defaultModel: mossImageContract.model, models: [mossImageContract.model] },
   'mai-image-2-6': { defaultModel: maiImageContract.models[0], models: maiImageContract.models },
@@ -162,6 +166,7 @@ const VIDEO_RUNTIME_MODELS = Object.freeze({
 });
 
 const SEEDANCE_NZ_IMAGE_RUNTIME_MODELS = new Set([
+  ...newModels.imageModels,
   pmf.hy.model, pmf.muse.imageModel, ...pmf.flux.models,
   mossImageContract.model,
   ...nbDoubaoContract.banana.models,
@@ -424,6 +429,13 @@ function providerDeclarationForNode(node, context = {}) {
         : resolved.model.endsWith('-fal') ? 'fal' : 'zhenzhen',
       model: resolved.model,
     };
+  }
+
+  if (type === 'model-3d') {
+    const requested = boundedString(data.model);
+    const model = newModels.models3d.includes(requested) || requested === 'hunyuan3d-v3.1-image-to-3d'
+      ? requested : 'hunyuan3d-v3.1-text-to-3d';
+    return { provider: 'seedance-nz-3d', model };
   }
 
   if (type === 'video') {

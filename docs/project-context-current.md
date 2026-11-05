@@ -1,18 +1,19 @@
 # 当前项目上下文
 
-更新：2026-11-01。仅维护当前事实；长期规则见根 `SKILL.md` 和 `AGENTS.md`。预算80行/8 KiB，历史见专题。
+更新：2026-11-06。仅维护当前事实；长期规则见根 `SKILL.md` 和 `AGENTS.md`。预算80行/8 KiB，历史见专题。
 
 - 默认目录 `E:\PenguinPravite\T8-penguin-canvas`；branch `codex/release-v3.0.8-volcengine-assets-ux`，common dir `.git`。开工以git/worktree门为准；正式源码/Tag固定后记录在发布专题，不移动。
-- package `3.4.6` 双平台已发，详见[专题](release-v3.4.6.md)；旧v3.4.5 Tag/六资产冻结。
-- 本版现场/安装升级/F8–F10按 `owner-approved-post-release-v3.4.6` 后补；Mac为ad-hoc未公证预览，仅额度不足可延期。
+- package `3.4.7` 已授权发布，进度见[专题](release-v3.4.7.md)；旧v3.4.6 Tag/六资产冻结。
+- 本版现场/安装升级/F8–F10按 `owner-approved-post-release-v3.4.7` 后补；Mac为ad-hoc未公证预览，仅额度不足可延期。
 
 ## 当前检查点
 
-数据路径迁移已随 v3.2.2 双平台发布：容量提示显示盘符和所需/剩余 GiB，错误页及设置页可迁移至其他盘；保留原目录，详情及测试边界见[专题](desktop-data-storage.md)。
+数据路径迁移v3.2.2已发；实际GiB容量门、离线迁移及原目录保护见[专题](desktop-data-storage.md)。
 
 | 事项 | 当前事实与下一步 |
 | --- | --- |
-| HY/Muse/Flux | 新增七模型、十一工作流；含Motion标准版复验，十一条实网解码及完整临时画布通过，v3.4.6已发，见[专题](preview-muse-flux.md)。 |
+| G2.6/Krea/Z-image/3D | 十一模型、十六实网路径与画布组合通过，v3.4.7待发；Meshy文生复验503无渠道。范围见[专题](g26-krea-hitem-meshy.md)。 |
+| HY/Muse/Flux | 七模型、十一工作流及Motion复验，v3.4.6已发；验证见[专题](preview-muse-flux.md)。 |
 | Kling4 | 既有视频Kling新增五模型，v3.4.5已发；六条实网、133回归及临时完整画布通过，见[专题](kling-v4.md)。 |
 | 代码动画 | P0已开发；标准/Pro、修订版本/分镜/恢复及四工作流见[验收](motion-video-development.md)。已随v3.4.4双平台发布，现场证据后补。 |
 | DSH工具配套 | v3.3.9[工具修复](agent-tools-installed-cli-compat.md)已发布。只读[活动定位](agent-active-context.md)随v3.4.0发布；真人配对/安装现场后补。 |

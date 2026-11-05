@@ -327,6 +327,8 @@ export interface SeedreamNzSubmitRequest {
     | 'zhenzhen-image-g-v2.5-lowprice'
     | 'zhenzhen-image-g-v2.5-flare'
     | 'zhenzhen-image-g-v2.5-sunburst'
+    | 'zhenzhen-image-g-v2.6-lowprice' | 'zhenzhen-image-g-v2.6-flare' | 'zhenzhen-image-g-v2.6-sunburst'
+    | 'krea-v3-t2i' | 'krea-v3-i2i' | 'z-image-t2i'
     | 'zhenzhen-image-gk-v2'
     | 'zhenzhen-image-gk-v2-edit'
     | 'zhenzhen-image-gk-v2-segment'
@@ -366,6 +368,14 @@ export interface SeedreamNzSubmitRequest {
   size?: string;
   n?: number;
   output_format?: 'png' | 'jpeg' | 'webp';
+  output_mode?: 'image' | 'gif' | 'svg';
+  frame_count?: number;
+  frame_duration_ms?: number;
+  complexity?: string;
+  mask_url?: string;
+  markup_url?: string;
+  model_variant?: string;
+  reasoning_level?: string;
   quality?: 'auto' | 'low' | 'medium' | 'high' | 'xhigh' | 'max';
   output_compression?: number;
   background?: 'auto' | 'transparent' | 'opaque';
@@ -1793,13 +1803,24 @@ export async function queryAnimateMotionTransfer(
   return withProviderTransportTrace(data.data, r);
 }
 
-export type Hunyuan3DModel = 'hunyuan3d-v3.1-text-to-3d' | 'hunyuan3d-v3.1-image-to-3d';
+export type Hunyuan3DModel = 'hunyuan3d-v3.1-text-to-3d' | 'hunyuan3d-v3.1-image-to-3d'
+  | 'hitem3d-v2-image-to-3d' | 'hitem3d-v2-multi-image-to-3d' | 'hitem3d-portrait-v2.1-image-to-3d' | 'hitem3d-portrait-v2.1-multi-image-to-3d'
+  | 'meshy-6-global-image-to-3d';
 export interface Hunyuan3DSubmitRequest {
   model: Hunyuan3DModel;
-  prompt: string;
-  face_count: number;
-  enable_pbr: boolean;
-  generate_type: 'Normal' | 'Geometry' | 'Sketch';
+  prompt?: string;
+  face_count?: number;
+  enable_pbr?: boolean;
+  generate_type?: 'Normal' | 'Geometry' | 'Sketch';
+  request_type?: 'mesh' | 'both';
+  resolution?: '1536' | '1536pro';
+  face?: number;
+  topology?: 'triangle' | 'quad';
+  target_polycount?: number;
+  symmetry_mode?: 'off' | 'auto' | 'on';
+  should_remesh?: boolean;
+  ta_pose?: boolean;
+  should_texture?: boolean;
   images?: string[];
 }
 

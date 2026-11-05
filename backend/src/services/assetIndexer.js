@@ -153,6 +153,7 @@ function scanUtf8LinesSync(filename, options, visitor) {
 }
 
 const EXTENSION_INFO = Object.freeze({
+  svg: ['image','image/svg+xml'],
   png: ['image', 'image/png'], jpg: ['image', 'image/jpeg'], jpeg: ['image', 'image/jpeg'], webp: ['image', 'image/webp'], gif: ['image', 'image/gif'], bmp: ['image', 'image/bmp'], avif: ['image', 'image/avif'], tif: ['image', 'image/tiff'], tiff: ['image', 'image/tiff'],
   mp4: ['video', 'video/mp4'], webm: ['video', 'video/webm'], mov: ['video', 'video/quicktime'], m4v: ['video', 'video/x-m4v'], mkv: ['video', 'video/x-matroska'], avi: ['video', 'video/x-msvideo'],
   mp3: ['audio', 'audio/mpeg'], wav: ['audio', 'audio/wav'], ogg: ['audio', 'audio/ogg'], m4a: ['audio', 'audio/mp4'], flac: ['audio', 'audio/flac'], aac: ['audio', 'audio/aac'],
@@ -166,6 +167,7 @@ const MIME_EXTENSION = Object.freeze({
   'image/jpeg': 'jpg',
   'image/webp': 'webp',
   'image/gif': 'gif',
+  'image/svg+xml':'svg',
   'image/bmp': 'bmp',
   'image/avif': 'avif',
   'image/tiff': 'tiff',
@@ -264,6 +266,7 @@ function detectHostArtifactType(filename, declaredContentType = '', sourceType =
   const declared = normalizedContentType(declaredContentType);
   const sourceExtension = path.extname(filename).slice(1).toLowerCase();
   const known = (() => {
+    if (require('../providers/providerOutputFormats').isSvgBuffer(prefix)) return artifactType('image','image/svg+xml','svg');
     if (bufferStartsWith(prefix, Buffer.from('89504e470d0a1a0a', 'hex'))) return artifactType('image', 'image/png', 'png');
     if (bufferStartsWith(prefix, Buffer.from('ffd8ff', 'hex'))) return artifactType('image', 'image/jpeg', 'jpg');
     if (bufferStartsWith(prefix, Buffer.from('GIF87a')) || bufferStartsWith(prefix, Buffer.from('GIF89a'))) return artifactType('image', 'image/gif', 'gif');

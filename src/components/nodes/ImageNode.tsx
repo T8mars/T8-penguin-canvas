@@ -1,5 +1,8 @@
 import PreviewImageControls from './PreviewImageControls';
 import { PREVIEW_MUSE_FLUX, isPreviewImage, isFluxVariant, buildPreviewImageRequest, previewImageSettings, fluxVariantSettings } from '../../utils/previewMuseFlux';
+import { NEW_IMAGE_CONTRACT,NEW_IMAGE_TABS,isNewImageModel,newImageSettings,buildNewImageRequest } from '../../utils/g26Krea';
+import G26KreaControls from './G26KreaControls';
+import {originalImageDisplayUrl,downloadOriginalImage} from '../../utils/mediaPreview';
 import { memo, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Handle, Position, useReactFlow, type NodeProps } from '@xyflow/react';
@@ -476,9 +479,10 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
     || modelDef.id === 'grok-image'
     || modelDef.id === FLUX3_IMAGE_MODEL
     || modelDef.id === MAI_IMAGE_TAB
-    || modelDef.id === MOSS_IMAGE_MODEL || isPreviewImage(modelDef.id);
+    || modelDef.id === MOSS_IMAGE_MODEL || isPreviewImage(modelDef.id) || NEW_IMAGE_TABS.includes(modelDef.id);
   const isFluxImage = !isExternalSelected && modelDef.id === FLUX3_IMAGE_MODEL;
   const isPreviewImageTab = !isExternalSelected && isPreviewImage(modelDef.id);
+  const isNewImageTab = !isExternalSelected && NEW_IMAGE_TABS.includes(modelDef.id);
   const isMaiImage = !isExternalSelected && modelDef.id === MAI_IMAGE_TAB;
   const isMossImage = !isExternalSelected && modelDef.id === MOSS_IMAGE_MODEL;
   const maiSettings = maiImageSettings(d || {});
@@ -489,7 +493,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
   const isVosr2ImageTab = modelDef.paramKind === 'vosr2-upscale';
   const isZhenzhenBudgetImageSelected = !isExternalSelected
     && isBudgetImageTab
-    && (isPreviewImageTab || isFluxImage || isMaiImage || isMossImage || d?.imageBuiltinSource === 'seedance-nz' || isZhenzhenBudgetImageModel(savedApiModel));
+    && (isNewImageTab || isPreviewImageTab || isFluxImage || isMaiImage || isMossImage || d?.imageBuiltinSource === 'seedance-nz' || isZhenzhenBudgetImageModel(savedApiModel));
   const isZhenzhenBudgetMjSelected = !isExternalSelected
     && modelDef.paramKind === 'mj'
     && d?.imageBuiltinSource === 'seedance-nz';
@@ -500,7 +504,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
     || isSeedreamLayerTab
     || isWanImageTab
     || isVosr2ImageTab;
-  const budgetDefaultApiModel = isPreviewImageTab ? modelDef.apiModel : isMossImage ? MOSS_IMAGE_MODEL : isMaiImage ? MAI_IMAGE_TAB : isFluxImage ? FLUX3_IMAGE_MODEL : modelDef.id === 'grok-image'
+  const budgetDefaultApiModel = isNewImageTab || isPreviewImageTab ? modelDef.apiModel : isMossImage ? MOSS_IMAGE_MODEL : isMaiImage ? MAI_IMAGE_TAB : isFluxImage ? FLUX3_IMAGE_MODEL : modelDef.id === 'grok-image'
     ? ZHENZHEN_IMAGE_GK_V15_MODEL
     : modelDef.id === 'nano-banana-2'
       ? ZHENZHEN_IMAGE_NB_2_MODEL
@@ -508,7 +512,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
         ? ZHENZHEN_IMAGE_NB_PRO_MODEL
         : ZHENZHEN_IMAGE_G2_T2I_MODEL;
   const builtinApiModelOptions = isZhenzhenBudgetImageSelected
-    ? isPreviewImageTab || isFluxImage || isMaiImage || isMossImage ? modelDef.apiModelOptions : modelDef.id === 'grok-image'
+    ? isNewImageTab || isPreviewImageTab || isFluxImage || isMaiImage || isMossImage ? modelDef.apiModelOptions : modelDef.id === 'grok-image'
       ? ZHENZHEN_BUDGET_GROK_MODEL_OPTIONS
       : modelDef.id === 'nano-banana-2'
         ? ZHENZHEN_BUDGET_BANANA_2_MODEL_OPTIONS
@@ -746,6 +750,10 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
     ? isJimengCliImageSelected
       ? 10
       : Math.max(8, modelDef.maxReferenceImages || 0)
+    : isNewImageTab
+      ? apiModel === NEW_IMAGE_CONTRACT.g26.models[0] ? 2
+        : NEW_IMAGE_CONTRACT.g26.models.includes(apiModel) ? (newImageSettings(apiModel,d || {}).g26Mode === 'image' ? 16 : 0)
+        : apiModel === 'krea-v3-i2i' ? 8 : 0
     : isSeedreamLayerTab || isVosr2ImageTab
       ? 1
     : isQwenImageTab
@@ -847,6 +855,9 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
   // 切换模型时,如果当前比例/尺寸不在新模型选项里则重置
   const switchModel = (mId: string) => {
     const newDef = IMAGE_MODELS.find((m) => m.id === mId) || IMAGE_MODELS[0];
+    if (NEW_IMAGE_TABS.includes(newDef.id)) {
+      update({model:newDef.id,apiModel:newDef.apiModel,imageBuiltinSource:'seedance-nz',aspectRatio:'',sizeLevel:'',...newImageSettings(newDef.apiModel,d || {})});return;
+    }
     if (newDef.id === MOSS_IMAGE_MODEL) {
       update({ model: newDef.id, apiModel: MOSS_IMAGE_MODEL, imageBuiltinSource: 'seedance-nz',
         aspectRatio: MOSS_IMAGE_CONTRACT.defaultRatio, sizeLevel: '' });
@@ -982,6 +993,11 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
   };
 
   const switchApiModel = (nextApiModel: string) => {
+    if (isNewImageModel(nextApiModel)) {
+      const def=IMAGE_MODELS.find(m=>m.apiModelOptions.some(o=>o.value===nextApiModel))!;
+      update({model:def.id,apiModel:nextApiModel,imageBuiltinSource:'seedance-nz',aspectRatio:'',sizeLevel:'',
+        ...(nextApiModel===NEW_IMAGE_CONTRACT.g26.models[0]&&d?.g26Mode==='svg'?{g26Mode:'image'}:{})});return;
+    }
     if (isPreviewImage(nextApiModel) || isFluxVariant(nextApiModel)) {
       const def = IMAGE_MODELS.find(m => m.apiModelOptions.some(o => o.value === nextApiModel))!;
       update({ model: def.id, apiModel: nextApiModel, imageBuiltinSource: 'seedance-nz',
@@ -1122,7 +1138,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
     void getNodes;
     return {
       prompt: prompts.join('\n').trim(),
-      images: isPreviewImageTab || isFluxImage || isZhenzhenNb21 || isMaiImage || isMossImage || isNbLowprice ? images : images.slice(0, maxRefs),
+      images: isNewImageTab || isPreviewImageTab || isFluxImage || isZhenzhenNb21 || isMaiImage || isMossImage || isNbLowprice ? images : images.slice(0, maxRefs),
     };
   };
 
@@ -1219,7 +1235,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
     setDownloadNotice(null);
     const { upstreamImages, basePrompt, compiledPrompt, finalPrompt } = resolveGenerationInput();
     const src = `image:${id.slice(0, 6)}`;
-    if ((isPreviewImageTab || isFluxImage || isZhenzhenNb21 || isMaiImage || isMossImage || isNbLowprice) && upstreamImages.length > maxRefs) {
+    if ((isNewImageTab || isPreviewImageTab || isFluxImage || isZhenzhenNb21 || isMaiImage || isMossImage || isNbLowprice) && upstreamImages.length > maxRefs) {
       setError(translate('nodes:generation.newBudgetModels.tooManyImages', { count: maxRefs }));
       return;
     }
@@ -1235,6 +1251,9 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
       !isZhenzhenBudgetMjSelected
       || midjourneyNzRequiresPrompt(mjNzOperation, mjNzVideoSource)
     );
+    if (isNewImageTab) {
+      try {buildNewImageRequest(apiModel,finalPrompt,upstreamImages,d || {});} catch(error:any){setError(translate(error.message));return;}
+    }
     if (isPreviewImageTab || isFluxImage && isFluxVariant(apiModel)) {
       try { buildPreviewImageRequest(apiModel, finalPrompt, upstreamImages, effectiveAspectRatio, effectiveSizeLevel, d || {}); }
       catch (error: any) { setError(translate(error.message)); return; }
@@ -2147,7 +2166,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
           `${seedanceNzProviderLabel} ${imageFamilyLabel} 提交: model=${expectedModel} 参考图=${providerRefs.length} 尺寸=${sizeLabel}`,
           src,
         );
-        const submit = await submitSeedreamNz(isPreviewImageTab || isFluxImage && isFluxVariant(apiModel) ? buildPreviewImageRequest(apiModel, finalPrompt, providerRefs, effectiveAspectRatio, effectiveSizeLevel, d || {}) : isMaiImage ? buildMaiImageRequest(apiModel, finalPrompt, providerRefs, maiSettings) : isMossImage ? buildMossImageRequest(finalPrompt, providerRefs, effectiveAspectRatio) : isVosr2ImageTab ? {
+        const submit = await submitSeedreamNz(isNewImageTab ? buildNewImageRequest(apiModel,finalPrompt,providerRefs,d || {}) : isPreviewImageTab || isFluxImage && isFluxVariant(apiModel) ? buildPreviewImageRequest(apiModel, finalPrompt, providerRefs, effectiveAspectRatio, effectiveSizeLevel, d || {}) : isMaiImage ? buildMaiImageRequest(apiModel, finalPrompt, providerRefs, maiSettings) : isMossImage ? buildMossImageRequest(finalPrompt, providerRefs, effectiveAspectRatio) : isVosr2ImageTab ? {
           model: VOSR2_IMAGE_UPSCALE_MODEL,
           images: providerRefs,
         } : {
@@ -2588,6 +2607,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
             ...(isZhenzhenNb ? { apimartImageCount: zhenzhenNbImageCount } : {}),
             ...(isFluxImage ? fluxVariantSettings(d || {}) : {}),
             ...(isPreviewImageTab ? previewImageSettings(d || {}) : {}),
+            ...(isNewImageTab ? newImageSettings(apiModel,d || {}) : {}),
             ...(isMaiImage ? maiSettings : {}),
           } : {}),
           ...(!isExternalSelected && isQwenImageTab ? { qwenSizingMode, qwenResolution, qwenCustomSize,
@@ -2719,7 +2739,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
                           || isSeedreamLayerTab
                           || isWanImageTab
                           || isVosr2ImageTab;
-                        const leavingDedicatedBudgetTab = isPreviewImageTab || isFluxImage || isQwenImageTab || isQwenImage21Tab || isSeedreamLayerTab || isWanImageTab || isVosr2ImageTab;
+                        const leavingDedicatedBudgetTab = isNewImageTab || isPreviewImageTab || isFluxImage || isQwenImageTab || isQwenImage21Tab || isSeedreamLayerTab || isWanImageTab || isVosr2ImageTab;
                         const fallbackModel = IMAGE_MODELS[0];
                         update({
                           providerSource: 'zhenzhen',
@@ -3230,14 +3250,14 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
             {IMAGE_MODELS
               .filter((m) => m.id !== FLUX3_IMAGE_MODEL || isZhenzhenBudgetPlatformSelected)
               .filter((m) => m.id !== MAI_IMAGE_TAB || isZhenzhenBudgetPlatformSelected)
-              .filter((m) => (!isPreviewImage(m.id) && m.id !== MOSS_IMAGE_MODEL) || isZhenzhenBudgetPlatformSelected)
+              .filter((m) => (!NEW_IMAGE_TABS.includes(m.id) && !isPreviewImage(m.id) && m.id !== MOSS_IMAGE_MODEL) || isZhenzhenBudgetPlatformSelected)
               .filter((m) => !isZhenzhenBudgetPlatformSelected
                 || m.id === 'gpt-image-2'
                 || m.id === 'nano-banana-2'
                 || m.id === 'nano-banana-pro'
                 || m.id === FLUX3_IMAGE_MODEL
                 || m.id === MAI_IMAGE_TAB
-                || isPreviewImage(m.id) || m.id === MOSS_IMAGE_MODEL
+                || NEW_IMAGE_TABS.includes(m.id) || isPreviewImage(m.id) || m.id === MOSS_IMAGE_MODEL
                 || m.id === 'grok-image'
                 || m.id === 'qwen-image-3.0'
                 || m.id === QWEN_IMAGE_GLOBAL_21_MODEL
@@ -3331,7 +3351,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
           <div className="rounded border border-cyan-400/25 bg-cyan-500/5 px-2 py-1.5 text-[10px] leading-4 text-cyan-100/80">
             <div>{`贞贞的平价AI小屋 · ${apiModel}`}</div>
             <div>
-              {isPreviewImageTab ? translate(apiModel === PREVIEW_MUSE_FLUX.hy.model ? 'previewMuseFlux:hyDescription' : 'previewMuseFlux:museImageDescription') : isMossImage ? translate('nodes:generation.moss.description')
+              {isNewImageTab ? translate('g26Krea3d:newImageDescription') : isPreviewImageTab ? translate(apiModel === PREVIEW_MUSE_FLUX.hy.model ? 'previewMuseFlux:hyDescription' : 'previewMuseFlux:museImageDescription') : isMossImage ? translate('nodes:generation.moss.description')
                 : isMaiImage ? translate('nodes:generation.mai.description')
                 : isFluxImage ? translate(isFluxVariant(apiModel) ? 'previewMuseFlux:fluxDescription' : 'nodes:generation.newBudgetModels.fluxDescription')
                 : isNbLowprice ? translate('nodes:generation.newBudgetModels.nbLowpriceDescription')
@@ -3364,6 +3384,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
           </div>
         )}
 
+        {isNewImageTab && <G26KreaControls model={apiModel} data={d || {}} update={update} />}
         {(isPreviewImageTab || isFluxImage && isFluxVariant(apiModel)) && <PreviewImageControls model={apiModel} ratio={effectiveAspectRatio} data={d || {}} update={update} />}
         {isMaiImage && <MaiImageControls data={maiSettings} referenceCount={orderedImages.length} update={update} />}
         {isMossImage && <MossImageControls ratio={effectiveAspectRatio} update={update} />}
@@ -3784,7 +3805,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
         )}
 
         {/* 比例 + 尺寸;Seedream 使用像素尺寸 + 输出格式,Grok Image 只需要比例 */}
-        {(!isFal && !isMj && !isComfyExternal && !isMaiImage && !isMossImage && !isQwenImageTab && !isQwenImage21Tab && !isSeedreamLayerTab && !isWanImageTab && !isGptImage25 && !isZhenzhenImageG25) && (
+        {(!isFal && !isMj && !isComfyExternal && !isNewImageTab && !isMaiImage && !isMossImage && !isQwenImageTab && !isQwenImage21Tab && !isSeedreamLayerTab && !isWanImageTab && !isGptImage25 && !isZhenzhenImageG25) && (
           <div className={`grid gap-2 ${isSeedream || (!isGrokImage && effectiveSizes.length) ? 'grid-cols-2' : 'grid-cols-1'}`}>
             {effectiveAspectRatios.length > 0 && <div>
               <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.aspectRatio')}</label>
@@ -4685,7 +4706,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
           </button>
         ) : (
           <button
-            onClick={() => requestCanvasNodeRun(id)}
+            onClick={(event) => { event.stopPropagation(); requestCanvasNodeRun(id); }}
             className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-xs font-medium transition-colors"
           >
             <Sparkles size={12} /> {translate('nodes:generation.generate')}
@@ -4708,6 +4729,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
       </div>
 
       {/* 结果展示：仅在未外挂 OutputNode 时在节点内预览，避免与下游 OutputNode 重复 */}
+      {isNewImageTab && imageUrl && <a className="nodrag mx-2 mb-2 block rounded border border-white/15 p-2 text-center text-xs" href={originalImageDisplayUrl(imageUrl)} download={imageUrl.split('/').pop()} onClick={event=>{event.preventDefault();event.stopPropagation();void downloadOriginalImage(imageUrl).catch(error=>setError(translate('g26Krea3d:downloadFailed',{error:String(error?.message||error)})));}}>{translate('g26Krea3d:downloadOriginal')}</a>}
       {imageUrl && !hasAutoOutput && (
         <div className="border-t border-white/10 p-2">
           <SmartImage

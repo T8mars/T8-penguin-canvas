@@ -1619,6 +1619,10 @@ async function serveProjectAssetMedia(req, res) {
     const range = parseRange(rangeHeader, stat.size);
     res.setHeader('Accept-Ranges', 'bytes');
     res.setHeader('Content-Type', asset.mimeType || 'application/octet-stream');
+    if (asset.mimeType==='image/svg+xml') {
+      res.setHeader('Content-Security-Policy',"sandbox; default-src 'none'; style-src 'unsafe-inline'");
+      res.setHeader('X-Content-Type-Options','nosniff');
+    }
     res.setHeader('Cache-Control', 'private, no-store');
     if (rangeHeader && !range) {
       res.setHeader('Content-Range', `bytes */${stat.size}`);

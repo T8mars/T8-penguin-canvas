@@ -2855,14 +2855,21 @@
           "threeDTab": {
             "type": "string",
             "enum": [
-              "hunyuan-3d"
+              "hunyuan-3d",
+              "hitem3d",
+              "meshy"
             ]
           },
           "model": {
             "type": "string",
             "enum": [
               "hunyuan3d-v3.1-text-to-3d",
-              "hunyuan3d-v3.1-image-to-3d"
+              "hunyuan3d-v3.1-image-to-3d",
+              "hitem3d-v2-image-to-3d",
+              "hitem3d-v2-multi-image-to-3d",
+              "hitem3d-portrait-v2.1-image-to-3d",
+              "hitem3d-portrait-v2.1-multi-image-to-3d",
+              "meshy-6-global-image-to-3d"
             ]
           },
           "prompt": {
@@ -2883,6 +2890,79 @@
               "Normal",
               "Geometry",
               "Sketch"
+            ]
+          },
+          "hitemRequestType": {
+            "type": "string",
+            "enum": [
+              "mesh",
+              "both"
+            ]
+          },
+          "hitemResolution": {
+            "type": "string",
+            "enum": [
+              "1536",
+              "1536pro"
+            ]
+          },
+          "hitemFace": {
+            "type": "integer",
+            "minimum": 100000,
+            "maximum": 2000000
+          },
+          "meshyTopology": {
+            "type": "string",
+            "enum": [
+              "api_default",
+              "triangle",
+              "quad"
+            ]
+          },
+          "meshySymmetry": {
+            "type": "string",
+            "enum": [
+              "api_default",
+              "off",
+              "auto",
+              "on"
+            ]
+          },
+          "meshyPolycount": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 300000
+          },
+          "meshy_should_remesh": {
+            "type": "string",
+            "enum": [
+              "api_default",
+              "true",
+              "false"
+            ]
+          },
+          "meshy_enable_pbr": {
+            "type": "string",
+            "enum": [
+              "api_default",
+              "true",
+              "false"
+            ]
+          },
+          "meshy_ta_pose": {
+            "type": "string",
+            "enum": [
+              "api_default",
+              "true",
+              "false"
+            ]
+          },
+          "meshy_should_texture": {
+            "type": "string",
+            "enum": [
+              "api_default",
+              "true",
+              "false"
             ]
           }
         },
@@ -3267,7 +3347,10 @@
               "gpt-image-2",
               "zhenzhen-image-hy-v3.5-preview",
               "zhenzhen-image-muse",
-              "flux-3-image"
+              "flux-3-image",
+              "gpt-image-2.6",
+              "krea",
+              "z-image"
             ]
           },
           "providerSource": {
@@ -3307,7 +3390,13 @@
               "flux-3-image-t2i",
               "flux-3-image-i2i",
               "flux-3-image-klein-t2i",
-              "flux-3-image-klein-i2i"
+              "flux-3-image-klein-i2i",
+              "zhenzhen-image-g-v2.6-lowprice",
+              "zhenzhen-image-g-v2.6-flare",
+              "zhenzhen-image-g-v2.6-sunburst",
+              "krea-v3-t2i",
+              "krea-v3-i2i",
+              "z-image-t2i"
             ]
           },
           "aspectRatio": {
@@ -3543,6 +3632,197 @@
               "png",
               "jpeg"
             ]
+          },
+          "g26Mode": {
+            "type": "string",
+            "enum": [
+              "image",
+              "gif",
+              "svg"
+            ]
+          },
+          "g26Size": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "1:1",
+              "3:2",
+              "2:3",
+              "4:3",
+              "3:4",
+              "16:9",
+              "9:16",
+              "2:1",
+              "1:2",
+              "21:9",
+              "9:21",
+              "custom"
+            ]
+          },
+          "g26Width": {
+            "type": "integer",
+            "minimum": 16,
+            "maximum": 3840
+          },
+          "g26Height": {
+            "type": "integer",
+            "minimum": 16,
+            "maximum": 3840
+          },
+          "g26Resolution": {
+            "type": "string",
+            "enum": [
+              "1k",
+              "2k",
+              "4k"
+            ]
+          },
+          "g26Count": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 4
+          },
+          "g26Quality": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "low",
+              "medium",
+              "high",
+              "xhigh",
+              "max"
+            ]
+          },
+          "g26Format": {
+            "type": "string",
+            "enum": [
+              "png",
+              "jpeg",
+              "webp"
+            ]
+          },
+          "g26Complexity": {
+            "type": "string",
+            "enum": [
+              "api_default",
+              "low",
+              "medium",
+              "high"
+            ]
+          },
+          "g26Compression": {
+            "type": "integer",
+            "minimum": -1,
+            "maximum": 100
+          },
+          "g26GifSize": {
+            "type": "string",
+            "enum": [
+              "512x512",
+              "768x512",
+              "512x768",
+              "auto",
+              "custom"
+            ]
+          },
+          "g26GifWidth": {
+            "type": "integer",
+            "minimum": 16,
+            "maximum": 3840
+          },
+          "g26GifHeight": {
+            "type": "integer",
+            "minimum": 16,
+            "maximum": 3840
+          },
+          "g26FrameCount": {
+            "type": "integer",
+            "minimum": 2,
+            "maximum": 16
+          },
+          "g26FrameDuration": {
+            "type": "integer",
+            "minimum": 20,
+            "maximum": 9007199254740991
+          },
+          "g26MaskUrl": {
+            "type": "string",
+            "maxLength": 32000
+          },
+          "g26MarkupUrl": {
+            "type": "string",
+            "maxLength": 32000
+          },
+          "kreaSize": {
+            "type": "string",
+            "enum": [
+              "1:1",
+              "16:9",
+              "9:16",
+              "4:3",
+              "3:4",
+              "3:2",
+              "2:3",
+              "custom"
+            ]
+          },
+          "kreaWidth": {
+            "type": "integer",
+            "minimum": 256,
+            "maximum": 4096
+          },
+          "kreaHeight": {
+            "type": "integer",
+            "minimum": 256,
+            "maximum": 4096
+          },
+          "kreaVariant": {
+            "type": "string",
+            "enum": [
+              "berry",
+              "jam"
+            ]
+          },
+          "kreaReasoning": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium"
+            ]
+          },
+          "kreaFormat": {
+            "type": "string",
+            "enum": [
+              "png",
+              "jpeg"
+            ]
+          },
+          "kreaSeed": {
+            "type": "integer",
+            "minimum": -1,
+            "maximum": 2147483647
+          },
+          "kreaNegative": {
+            "type": "string",
+            "maxLength": 32000
+          },
+          "zImageRatio": {
+            "type": "string",
+            "enum": [
+              "1:1",
+              "2:3",
+              "3:2",
+              "3:4",
+              "4:3",
+              "9:16",
+              "16:9",
+              "21:9"
+            ]
+          },
+          "zImageSeed": {
+            "type": "integer",
+            "minimum": -1,
+            "maximum": 9007199254740991
           }
         },
         "defaults": {

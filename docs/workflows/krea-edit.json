@@ -1,0 +1,81 @@
+{
+  "schema": "t8-workflow-fragment",
+  "version": 1,
+  "title": "krea-edit",
+  "nodes": [
+    {
+      "id": "reference-0",
+      "type": "upload",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "data": {
+        "label": "参考图 1 / Reference 1",
+        "uploadType": "image",
+        "lockedUploadType": "image"
+      }
+    },
+    {
+      "id": "generation",
+      "type": "image",
+      "position": {
+        "x": 440,
+        "y": 50
+      },
+      "data": {
+        "label": "krea-v3-i2i",
+        "model": "krea",
+        "apiModel": "krea-v3-i2i",
+        "imageBuiltinSource": "seedance-nz",
+        "providerSource": "zhenzhen",
+        "providerId": "",
+        "providerModel": "",
+        "aspectRatio": "",
+        "sizeLevel": "",
+        "referenceImages": [],
+        "imageOnlyOutput": true,
+        "prompt": "A friendly blue toy robot on a plain cream studio background.",
+        "kreaSize": "custom",
+        "kreaWidth": 256,
+        "kreaHeight": 256,
+        "kreaSeed": 42,
+        "kreaVariant": "jam",
+        "kreaReasoning": "low",
+        "kreaFormat": "jpeg",
+        "reuseResult": false
+      }
+    },
+    {
+      "id": "output",
+      "type": "output",
+      "position": {
+        "x": 960,
+        "y": 50
+      },
+      "data": {
+        "label": "结果 / Result"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "reference-edge-0",
+      "source": "reference-0",
+      "target": "generation"
+    },
+    {
+      "id": "result-edge",
+      "source": "generation",
+      "target": "output"
+    }
+  ],
+  "nodeCount": 3,
+  "edgeCount": 2,
+  "nodeTypes": [
+    "upload",
+    "image",
+    "output"
+  ],
+  "savedAt": "2026-11-05T00:00:00.000Z"
+}

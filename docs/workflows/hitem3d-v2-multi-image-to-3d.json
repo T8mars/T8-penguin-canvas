@@ -1,0 +1,90 @@
+{
+  "schema": "t8-workflow-fragment",
+  "version": 1,
+  "title": "hitem3d-v2-multi-image-to-3d",
+  "nodes": [
+    {
+      "id": "reference-0",
+      "type": "upload",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "data": {
+        "label": "正面 / Front",
+        "uploadType": "image",
+        "lockedUploadType": "image"
+      }
+    },
+    {
+      "id": "reference-1",
+      "type": "upload",
+      "position": {
+        "x": 0,
+        "y": 260
+      },
+      "data": {
+        "label": "背面 / Back",
+        "uploadType": "image",
+        "lockedUploadType": "image"
+      }
+    },
+    {
+      "id": "generation",
+      "type": "model-3d",
+      "position": {
+        "x": 440,
+        "y": 50
+      },
+      "data": {
+        "label": "hitem3d-v2-multi-image-to-3d",
+        "model": "hitem3d-v2-multi-image-to-3d",
+        "threeDTab": "hitem3d",
+        "hitemRequestType": "both",
+        "hitemResolution": "1536",
+        "hitemFace": 100000,
+        "meshyPolycount": 100,
+        "meshy_should_remesh": "true",
+        "meshy_should_texture": "false",
+        "meshy_enable_pbr": "false",
+        "reuseResult": false
+      }
+    },
+    {
+      "id": "output",
+      "type": "model-3d-preview",
+      "position": {
+        "x": 960,
+        "y": 50
+      },
+      "data": {
+        "label": "结果 / Result"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "reference-edge-0",
+      "source": "reference-0",
+      "target": "generation"
+    },
+    {
+      "id": "reference-edge-1",
+      "source": "reference-1",
+      "target": "generation"
+    },
+    {
+      "id": "result-edge",
+      "source": "generation",
+      "target": "output"
+    }
+  ],
+  "nodeCount": 4,
+  "edgeCount": 3,
+  "nodeTypes": [
+    "upload",
+    "model-3d",
+    "model-3d-preview"
+  ],
+  "savedAt": "2026-11-05T00:00:00.000Z"
+}

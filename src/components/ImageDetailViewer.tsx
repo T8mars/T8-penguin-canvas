@@ -7,6 +7,7 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from 'react';
 import { createPortal } from 'react-dom';
+import {originalImageDisplayUrl} from '../utils/mediaPreview';
 import { useTranslation } from 'react-i18next';
 import {
   ChevronLeft,
@@ -203,7 +204,7 @@ export default function ImageDetailViewer({
         <button type="button" onClick={resetFit} title={t('nodes:output.viewer.reset')} aria-label={t('nodes:output.viewer.reset')}>
           <RotateCcw size={16} />
         </button>
-        <a href={src} target="_blank" rel="noopener noreferrer" download title={t('nodes:output.viewer.download')} aria-label={t('nodes:output.viewer.download')}>
+        <a href={originalImageDisplayUrl(src)} target="_blank" rel="noopener noreferrer" download title={t('nodes:output.viewer.download')} aria-label={t('nodes:output.viewer.download')}>
           <Download size={16} />
         </a>
         <button type="button" onClick={onClose} title={t('common:actions.close')} aria-label={t('common:actions.close')}>
@@ -227,7 +228,7 @@ export default function ImageDetailViewer({
       >
         <img
           key={src}
-          src={src}
+          src={originalImageDisplayUrl(src)}
           alt={`${title} ${safeIndex + 1}`}
           draggable={false}
           decoding="async"

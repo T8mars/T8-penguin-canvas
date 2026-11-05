@@ -1,4 +1,5 @@
 import { isPreviewImage, isFluxVariant, buildPreviewImageRequest } from './previewMuseFlux';
+import {NEW_IMAGE_CONTRACT as nc,isNewImageModel,newImageSettings,buildNewImageRequest} from './g26Krea';
 import { ZHENZHEN_IMAGE_G25_MODELS, ZHENZHEN_IMAGE_G25_LOWPRICE_MODEL, ZHENZHEN_IMAGE_G25_RESOLUTIONS,
   ZHENZHEN_IMAGE_G25_LOWPRICE_SIZES, ZHENZHEN_IMAGE_G25_OFFICIAL_SIZES, ZHENZHEN_IMAGE_G25_QUALITIES,
   ZHENZHEN_IMAGE_G25_OUTPUT_FORMATS, ZHENZHEN_IMAGE_G25_BACKGROUNDS, ZHENZHEN_IMAGE_G25_MODERATION,
@@ -18,6 +19,14 @@ const officialKeys = ['zhenzhenImageG25CustomWidth', 'zhenzhenImageG25CustomHeig
 export function readHistoryBudgetImageInput(data: Record<string, unknown>) {
   const settings = historyImageBasicSettings(data);
   if (!settings) throw new Error('历史未记录完整图像输入，未套用当前默认值');
+  if(isNewImageModel(String(settings.apiModel))){
+    const model=String(settings.apiModel),family=nc.g26.models.includes(model)?nc.g26.tab:nc.krea.models.includes(model)?nc.krea.tab:nc.zimage.tab;
+    const keys=['model','apiModel','aspectRatio','sizeLevel','imageBuiltinSource','providerSource','providerId','providerModel',...Object.keys(newImageSettings(model,{}))];
+    const context=data.historyResolvedInput as {prompt:string;referenceImages:string[]},invalid=()=>new Error('历史图像输入不完整或已不兼容，未套用当前默认值');
+    if(settings.model!==family||settings.imageBuiltinSource!=='seedance-nz'||settings.providerSource!=='zhenzhen'||settings.providerId!==''||settings.providerModel!==''||keys.some(k=>!Object.hasOwn(settings,k)))throw invalid();
+    try{buildNewImageRequest(model,context.prompt,context.referenceImages,settings);}catch{throw invalid();}
+    return {settings:Object.fromEntries(keys.map(k=>[k,settings[k]])),prompt:context.prompt,media:context.referenceImages.map((url,index)=>({kind:'image' as const,url,label:`图片 ${index+1}`}))};
+  }
   if (isPreviewImage(String(settings.apiModel)) || isFluxVariant(String(settings.apiModel))) {
     const model = String(settings.apiModel), hy = model === 'zhenzhen-image-hy-v3.5-preview', flux = isFluxVariant(model);
     const keys = ['model','apiModel','aspectRatio','sizeLevel','imageBuiltinSource','providerSource','providerId','providerModel',

@@ -1,0 +1,62 @@
+{
+  "schema": "t8-workflow-fragment",
+  "version": 1,
+  "title": "krea-text",
+  "nodes": [
+    {
+      "id": "generation",
+      "type": "image",
+      "position": {
+        "x": 440,
+        "y": 50
+      },
+      "data": {
+        "label": "krea-v3-t2i",
+        "model": "krea",
+        "apiModel": "krea-v3-t2i",
+        "imageBuiltinSource": "seedance-nz",
+        "providerSource": "zhenzhen",
+        "providerId": "",
+        "providerModel": "",
+        "aspectRatio": "",
+        "sizeLevel": "",
+        "referenceImages": [],
+        "imageOnlyOutput": true,
+        "prompt": "A friendly blue toy robot on a plain cream studio background.",
+        "kreaSize": "custom",
+        "kreaWidth": 256,
+        "kreaHeight": 256,
+        "kreaSeed": 42,
+        "kreaVariant": "berry",
+        "kreaReasoning": "low",
+        "kreaFormat": "png",
+        "reuseResult": false
+      }
+    },
+    {
+      "id": "output",
+      "type": "output",
+      "position": {
+        "x": 960,
+        "y": 50
+      },
+      "data": {
+        "label": "结果 / Result"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "result-edge",
+      "source": "generation",
+      "target": "output"
+    }
+  ],
+  "nodeCount": 2,
+  "edgeCount": 1,
+  "nodeTypes": [
+    "image",
+    "output"
+  ],
+  "savedAt": "2026-11-05T00:00:00.000Z"
+}
