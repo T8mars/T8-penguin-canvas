@@ -6195,7 +6195,7 @@ async function queryImageTask(taskId, apiKey, options = {}) {
 }
 
 async function buildHunyuan3dPayload(request, apiKey, options = {}) {
-  if (g26Krea3d.models3d.includes(request.model) || request.model === g26Krea3d.contract.meshy.unavailableModel) return buildG26Krea3dPayload(g26Krea3d.build3d(request), apiKey, options);
+  if (g26Krea3d.models3d.includes(request.model)) return buildG26Krea3dPayload(g26Krea3d.build3d(request), apiKey, options);
   const model = String(request.model || '').trim().toLowerCase();
   if (!HUNYUAN3D_MODELS.has(model)) throw new Error(`未知 Hunyuan 3D 模型：${model || '(空)'}`);
   const prompt = String(request.prompt || '').trim();

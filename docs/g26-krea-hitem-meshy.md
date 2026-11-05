@@ -14,9 +14,9 @@
 | hitem3d | `hitem3d-v2-image-to-3d`、`hitem3d-v2-multi-image-to-3d`、`hitem3d-portrait-v2.1-image-to-3d`、`hitem3d-portrait-v2.1-multi-image-to-3d` |
 | meshy | `meshy-6-global-image-to-3d` |
 
-初查官方明确暂时下架 `meshy-6-global-text-to-3d`，原因是上游任务异常；未展示为可运行模型，待渠道实际恢复后接入。
+v3.4.7发布时官方暂时下架 `meshy-6-global-text-to-3d`，该包只提供图生。11月6日后续文档和真实API已恢复，新增文生接入在本地开发，见[恢复专题](meshy-text-3d.md)；不改已发布Tag或资产。
 
-用户提示恢复后，于北京时间11月6日再次拉取无缓存文档并直接核验API。文档仍标注下架；该Key的 `/v1/models` 未列出文生模型，最小 `model+prompt` 请求返回HTTP503、`model_not_found`，说明 `default` 分组无可用渠道，未取得任务身份。未反复提交或加入可运行菜单；待该分组实际恢复后再接入。私有回执见 `local-private/models-g26-3d-20261105/meshy-text-report.json`。
+此前一次北京时间11月6日复验仍为旧文档、目录缺失及HTTP503 `model_not_found`，未取得任务身份；私有失败回执 `local-private/models-g26-3d-20261105/meshy-text-report.json` 保留。后续恢复实测另存新目录，不覆盖该次失败，不把发布时尚未支持的文生算进下方十一模型/十六路径历史结果。
 
 - G2.6 LowPrice：0–2张有序参考图，固定 `resolution=1k`、`n=1`。静态图或由提示词触发 GIF；GIF 请求明确补充循环动画描述，不发送 `output_format`、帧数或时长字段。1K为请求档位，不保证实际输出恰为1024像素。
 - G2.6 Flare／Sunburst 静态图：0–16张参考图、`n=1–4`、1k/2k/4k、PNG/JPEG/WebP、六种质量及可选复杂度。自定义宽高均为16倍数、最长边3840、总像素655360–8294400、长宽比不超过3。蒙版与标注URL互斥，依赖第一张参考图；尺寸对齐由服务端校验。

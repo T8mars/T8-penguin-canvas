@@ -12,7 +12,7 @@
 
 | 事项 | 当前事实与下一步 |
 | --- | --- |
-| G2.6/Krea/Z-image/3D | 十一模型、十六实网路径与画布组合通过，v3.4.7已发；Meshy文生复验503无渠道。范围见[专题](g26-krea-hitem-meshy.md)。 |
+| G2.6/Krea/Z-image/3D | v3.4.7已发；Meshy文生恢复开发与实网/画布验证通过，尚未发布，见[专题](meshy-text-3d.md)。 |
 | HY/Muse/Flux | 七模型、十一工作流及Motion复验，v3.4.6已发；验证见[专题](preview-muse-flux.md)。 |
 | Kling4 | 既有视频Kling新增五模型，v3.4.5已发；六条实网、133回归及临时完整画布通过，见[专题](kling-v4.md)。 |
 | 代码动画 | P0已开发；标准/Pro、修订版本/分镜/恢复及四工作流见[验收](motion-video-development.md)。已随v3.4.4双平台发布，现场证据后补。 |

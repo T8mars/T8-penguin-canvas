@@ -1805,7 +1805,7 @@ export async function queryAnimateMotionTransfer(
 
 export type Hunyuan3DModel = 'hunyuan3d-v3.1-text-to-3d' | 'hunyuan3d-v3.1-image-to-3d'
   | 'hitem3d-v2-image-to-3d' | 'hitem3d-v2-multi-image-to-3d' | 'hitem3d-portrait-v2.1-image-to-3d' | 'hitem3d-portrait-v2.1-multi-image-to-3d'
-  | 'meshy-6-global-image-to-3d';
+  | 'meshy-6-global-image-to-3d' | 'meshy-6-global-text-to-3d';
 export interface Hunyuan3DSubmitRequest {
   model: Hunyuan3DModel;
   prompt?: string;
@@ -1821,6 +1821,8 @@ export interface Hunyuan3DSubmitRequest {
   should_remesh?: boolean;
   ta_pose?: boolean;
   should_texture?: boolean;
+  art_style?: 'realistic' | 'sculpture';
+  enable_prompt_expansion?: boolean;
   images?: string[];
 }
 

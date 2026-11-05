@@ -18,7 +18,8 @@
     "views": ["front", "back", "left", "right"], "resolutions": ["1536", "1536pro"], "requestTypes": ["mesh", "both"], "minFaces": 100000, "maxFaces": 2000000
   },
   "meshy": {
-    "tab": "meshy", "models": ["meshy-6-global-image-to-3d"], "unavailableModel": "meshy-6-global-text-to-3d",
+    "tab": "meshy", "models": ["meshy-6-global-image-to-3d", "meshy-6-global-text-to-3d"],
+    "textModel": "meshy-6-global-text-to-3d", "artStyles": ["api_default", "realistic", "sculpture"], "maxPromptCharacters": 600,
     "topologies": ["api_default", "triangle", "quad"], "symmetries": ["api_default", "off", "auto", "on"],
     "booleans": ["should_remesh", "enable_pbr", "ta_pose", "should_texture"], "booleanChoices": ["api_default", "true", "false"]
   }

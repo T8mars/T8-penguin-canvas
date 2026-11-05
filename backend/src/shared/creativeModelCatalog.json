@@ -1,6 +1,6 @@
 {
   "schema": "t8-creative-runtime-catalog-v1",
-  "sourceDigest": "8b632b2884257601f4c3d501e704d149765169c4f14faae60c6568e670e4405f",
+  "sourceDigest": "2e989da80f335525418538d60b4ba74ac214117122b4e3577c5c1d62af4f8f5e",
   "generatedFrom": [
     "src/providers/models.ts",
     "src/config/seedance.ts",
@@ -11645,6 +11645,41 @@
       }
     },
     {
+      "id": "model3d:seedance-nz:meshy-6-global-text-to-3d",
+      "kind": "model3d",
+      "provider": "seedance-nz",
+      "platformLabel": "贞贞的平价AI小屋",
+      "action": "meshy-6-global-text-to-3d",
+      "label": "meshy-6-global-text-to-3d",
+      "family": "meshy",
+      "resultKind": "model3d",
+      "parameters": {
+        "tab": "meshy",
+        "endpoint": "/v1/3d/generations",
+        "orderedImageViews": 0,
+        "minimumReferenceImages": 0,
+        "viewOrder": [],
+        "optionalControls": [
+          "topology",
+          "target_polycount",
+          "symmetry_mode",
+          "should_remesh",
+          "enable_pbr",
+          "ta_pose",
+          "art_style",
+          "enable_prompt_expansion"
+        ],
+        "prompt": {
+          "minLength": 1,
+          "maxLength": 600
+        },
+        "artStyles": [
+          "realistic",
+          "sculpture"
+        ]
+      }
+    },
+    {
       "id": "text:seedance-nz:flowmusic-lyrics",
       "kind": "text",
       "provider": "seedance-nz",
@@ -11720,6 +11755,6 @@
     "image": 82,
     "video": 142,
     "audio": 19,
-    "actions": 66
+    "actions": 67
   }
 }

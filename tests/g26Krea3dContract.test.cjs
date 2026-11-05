@@ -34,5 +34,16 @@ test('Hitem and Meshy use their own fields and explicit optional booleans',()=>{
  assert.throws(()=>api.build3d({model:api.contract.hitem.models[1],images:['front']}),/2–4/);
  const m=api.build3d({model:api.contract.meshy.models[0],images:['a'],should_texture:false,should_remesh:true,target_polycount:100}).payload;
  assert.equal(m.should_texture,false);assert.equal(m.should_remesh,true);assert.equal('enable_pbr' in m,false);
- assert.throws(()=>api.build3d({model:api.contract.meshy.unavailableModel,images:[]}),/withdrawn/);
+});
+test('Restored Meshy text validates prompt and rejects references before any request',()=>{
+ const model=api.contract.meshy.textModel;
+ const minimal=api.build3d({model,prompt:'  A ceramic teapot  '});
+ assert.deepEqual(minimal.payload,{model,prompt:'A ceramic teapot'});assert.deepEqual(minimal.sources,[]);assert.equal(minimal.taskType,'t3d');
+ const full=api.build3d({model,prompt:'A robot',art_style:'sculpture',enable_prompt_expansion:false,should_texture:false,enable_pbr:false,should_remesh:true,target_polycount:100,topology:'quad',symmetry_mode:'off'}).payload;
+ assert.equal(full.art_style,'sculpture');assert.equal(full.enable_prompt_expansion,false);assert.equal(full.enable_pbr,false);assert.equal('should_texture' in full,false);assert.equal('images' in full,false);
+ for(const prompt of ['', '   ', 'a'.repeat(601)])assert.throws(()=>api.build3d({model,prompt}),/1–600/);
+ assert.equal([...api.build3d({model,prompt:'🤖'.repeat(600)}).payload.prompt].length,600);
+ assert.throws(()=>api.build3d({model,prompt:'teapot',images:['image']}),/does not accept/);
+ assert.throws(()=>api.build3d({model,prompt:'teapot',art_style:'anime'}),/art_style/);
+ assert.throws(()=>api.build3d({model,prompt:'teapot',enable_prompt_expansion:'false'}),/boolean/);
 });

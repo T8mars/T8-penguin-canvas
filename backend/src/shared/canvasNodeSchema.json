@@ -2869,7 +2869,8 @@
               "hitem3d-v2-multi-image-to-3d",
               "hitem3d-portrait-v2.1-image-to-3d",
               "hitem3d-portrait-v2.1-multi-image-to-3d",
-              "meshy-6-global-image-to-3d"
+              "meshy-6-global-image-to-3d",
+              "meshy-6-global-text-to-3d"
             ]
           },
           "prompt": {
@@ -2958,6 +2959,22 @@
             ]
           },
           "meshy_should_texture": {
+            "type": "string",
+            "enum": [
+              "api_default",
+              "true",
+              "false"
+            ]
+          },
+          "meshyArtStyle": {
+            "type": "string",
+            "enum": [
+              "api_default",
+              "realistic",
+              "sculpture"
+            ]
+          },
+          "meshyPromptExpansion": {
             "type": "string",
             "enum": [
               "api_default",

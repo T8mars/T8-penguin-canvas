@@ -20,7 +20,7 @@ import {minimumProviderMediaPollCount} from '../src/utils/providerTimeoutPolicy'
 import i18n from '../src/i18n';
 import historyContract from '../backend/src/shared/generationHistoryInputContract.json';
 const require=createRequire(import.meta.url),provider=require('../backend/src/providers/seedanceNz'),pure=require('../backend/src/providers/g26Krea3d'),recovery=require('../backend/src/services/runRecovery'),sharp=require('sharp');
-test('New image tabs and all eleven available models retain budget-house identity and GET recovery',()=>{
+test('New image tabs and all available models retain budget-house identity and GET recovery',()=>{
  assert.equal(IMAGE_MODELS[0].id,'gpt-image-2');
  for(const family of [c.g26,c.krea,c.zimage])assert.equal(IMAGE_MODELS.find(m=>m.id===family.tab)?.tabLabel,family.tab);
  for(const model of NEW_IMAGE_MODELS){assert.ok(isZhenzhenBudgetImageModel(model));assert.ok(provider.IMAGE_MODELS.has(model));const d=inferRunRecoveryDescriptor({provider:'seedance-nz',model,taskId:'fixture-task'})!;assert.equal(d.kind,'seedream-nz');assert.equal(recovery.recoveryRequest('http://local',d).options.method,'GET');}
@@ -76,8 +76,18 @@ test('Actual Generate handlers stop selection bubbling before starting the share
   handler({stopPropagation(){order.push('stop');}});assert.deepEqual(order,['stop','request']);
  }
 });
-test('Sixteen saved workflows import with exact model identities and no runtime credentials',()=>{
- const {CASES,workflow}=require('../scripts/generate-g26-krea-3d-workflows.cjs'),authority=require('../backend/src/collaboration/runIntentAuthority');assert.equal(CASES.length,16);
+test('Restored Meshy text request, controls, catalog and original-task recovery agree',async()=>{
+ const model=c.meshy.textModel,data={prompt:'  A robot  ',meshyArtStyle:'sculpture',meshyPromptExpansion:'false',meshy_should_texture:'true',meshy_enable_pbr:'false'};
+ const input=buildNew3dRequest(model,[],data);assert.deepEqual(input,{model,prompt:'A robot',art_style:'sculpture',enable_prompt_expansion:false,enable_pbr:false});
+ let calls=0;const built=await provider.buildHunyuan3dPayload(input,'fixture-key',{fetchImpl:async()=>{calls++;throw Error('Unexpected network');}});assert.equal(calls,0);assert.deepEqual(built.payload,input);assert.equal(built.taskType,'t3d');
+ assert.throws(()=>buildNew3dRequest(model,['image'],data));assert.throws(()=>buildNew3dRequest(model,[],{prompt:'x'.repeat(601)}));
+ const image=buildNew3dRequest(c.meshy.models[0],['image'],data);assert.equal(image.prompt,undefined);assert.equal(image.art_style,undefined);assert.equal(image.enable_prompt_expansion,undefined);assert.equal(image.should_texture,true);
+ const runtime=require('../tools/zcanvas-cli/scripts/generateCreativeRuntimeCatalog.cjs').buildRuntimeCatalog();const row=runtime.actions.find((v:any)=>v.model===model||v.action===model);assert.ok(row);assert.equal(row.parameters.minimumReferenceImages,0);assert.equal(row.parameters.orderedImageViews,0);assert.equal(row.parameters.optionalControls.includes('should_texture'),false);
+ for(const locale of ['zh-CN','en-US']){await i18n.changeLanguage(locale);const text=renderToStaticMarkup(React.createElement(New3dControls,{model,data,update(){}}));assert.match(text,/A robot/);assert.doesNotMatch(text,/temporarily withdrawn|临时下架|g26Krea3d:/);assert.doesNotMatch(text,/aria-label="(?:生成纹理|Generate textures)"/);const imageUi=renderToStaticMarkup(React.createElement(New3dControls,{model:c.meshy.models[0],data,update(){}}));assert.doesNotMatch(imageUi,/<textarea/);}
+ await i18n.changeLanguage('zh-CN');
+});
+test('Seventeen saved workflows import with exact model identities and no runtime credentials',()=>{
+ const {CASES,workflow}=require('../scripts/generate-g26-krea-3d-workflows.cjs'),authority=require('../backend/src/collaboration/runIntentAuthority');assert.equal(CASES.length,17);
  for(const item of CASES){const draft=workflow(item),fragment=workflowManifestToFragment(draft),node=fragment.nodes.find((n:any)=>n.id==='generation')!;assert.equal(authority.providerDeclarationForNode(node,fragment).model,item.model);assert.doesNotMatch(JSON.stringify(draft),/sk-[a-z0-9]|taskId|apiKey|imageUrl|modelUrl/i);assert.deepEqual(JSON.parse(fs.readFileSync(new URL('../docs/workflows/'+item.id+'.json',import.meta.url),'utf8')),draft);}
 });
 test('Original-file export uses unchanged GIF/SVG bytes and the real file extension',async()=>{
@@ -94,12 +104,12 @@ test('Original-file export uses unchanged GIF/SVG bytes and the real file extens
   }
  }finally{URL.createObjectURL=create;URL.revokeObjectURL=revoke;for(const [key,descriptor]of descriptors)if(descriptor)Object.defineProperty(globalThis,key,descriptor);else Reflect.deleteProperty(globalThis,key);}
 });
-test('Production 3D callback sends all five outputs through the asset transaction',async()=>{
+test('Production 3D callback sends all six model outputs through the asset transaction',async()=>{
  const source=ts.createSourceFile('Model3DNode',fs.readFileSync(new URL('../src/components/nodes/Model3DNode.tsx',import.meta.url),'utf8'),ts.ScriptTarget.Latest,true,ts.ScriptKind.TSX);let expression:ts.Expression|undefined;
  const visit=(n:ts.Node)=>{if(ts.isVariableDeclaration(n)&&n.name.getText(source)==='run')expression=n.initializer;ts.forEachChild(n,visit);};visit(source);assert.ok(expression);
  for(const model of [...c.hitem.models,...c.meshy.models]){
-  let submissions=0,queries=0;const outputs:any[]=[],images=model.includes('multi')?['front','back']:['front'];
-  const run=vm.runInNewContext(ts.transpileModule('('+expression.getText(source)+')',{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}}).outputText,{isNewModel:true,model,images,d:{},prompt:'',setLocalError(){},update(){},t:(key:string)=>key,buildNew3dRequest,minimumProviderMediaPollCount,collectRunOutputAssets,submitHunyuan3D:async(request:any)=>{submissions++;assert.equal(request.model,model);return {taskId:'fixture'};},queryHunyuan3D:async()=>{queries++;return {status:'completed',modelUrls:['/files/output/fixture.glb']};}});
+  let submissions=0,queries=0;const outputs:any[]=[],images=model===c.meshy.textModel?[]:model.includes('multi')?['front','back']:['front'];
+  const run=vm.runInNewContext(ts.transpileModule('('+expression.getText(source)+')',{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}}).outputText,{isNewModel:true,model,images,d:{prompt:'A robot'},prompt:'A robot',setLocalError(){},update(){},t:(key:string)=>key,buildNew3dRequest,minimumProviderMediaPollCount,collectRunOutputAssets,submitHunyuan3D:async(request:any)=>{submissions++;assert.equal(request.model,model);return {taskId:'fixture'};},queryHunyuan3D:async()=>{queries++;return {status:'completed',modelUrls:['/files/output/fixture.glb']};}});
   await run({providerRequest:async()=>{},providerSubmitted:async()=>{},providerPolling:async()=>{},providerResponse:async()=>{},output:async(value:any)=>outputs.push(value)});
   assert.equal(submissions,1);assert.equal(queries,1);assert.equal(outputs.length,1);assert.equal(outputs[0].outputCount,1);assert.equal(outputs[0].assets[0].kind,'model3d');assert.equal(outputs[0].assets[0].sourceUrl,'/files/output/fixture.glb');
  }

@@ -3,7 +3,7 @@
 > Machine-generated from the real Canvas Node Schema, creative capability manifest,
 > runtime model/action catalog, and handler bindings. Do not edit by hand.
 
-- Aggregate SHA-256: `05ed88a3db22557dc38bcc89754a7f4201a5803311f1d0d71eac9818ea58a684`
+- Aggregate SHA-256: `8ca42b38673414f6e738a3b961e239aa2860e981a0152a75a3ac8371561a4cb1`
 - Capabilities / handlers: **39 / 39**
 - Canvas nodes: **85**
 - Referenced / unreferenced nodes: **76 / 9**
@@ -13,12 +13,12 @@
 - Semantically superseded nodes: **8**
 - Public capability gaps: **0**
 - Fully operable nodes: **21**
-- Runtime model/action entries: **343**
+- Runtime model/action entries: **344**
 - Dynamic node inventory (total / executable / generatable): **85 / 66 / 14**
-- Dynamic runtime inventory (LLM / image / video / audio / actions): **34 / 82 / 142 / 19 / 66**
+- Dynamic runtime inventory (LLM / image / video / audio / actions): **34 / 82 / 142 / 19 / 67**
 - Operation risk contracts: **196** (L0 115, L1 53, L2 28, L3 0)
 - Unknown node references: **0**
-- Coverage receipt: `t8-creative-capability-coverage-receipt-v1` / `f6f4738d7708f62ca5ba0f3e9a7a29538ab9ef2e3d81cec97330e4ae6a626134`
+- Coverage receipt: `t8-creative-capability-coverage-receipt-v1` / `44f5f29f6f4060f0d4c702eab921ea67eda105b00ae7265953bad9561c4374b3`
 
 “Understand” means the node exists in the authoritative schema. Other columns are true only
 when at least one registered high-level capability explicitly advertises that operation.
@@ -120,7 +120,7 @@ receive installed / credential / region readiness at request time before it is e
 - image: **82**
 - video: **142**
 - audio: **19**
-- actions: **66**
+- actions: **67**
 
 ## Coverage audit
 

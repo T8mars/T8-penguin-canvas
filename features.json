@@ -17456,7 +17456,7 @@
     ],
     "releaseAuthorization": true,
     "canvasValidation": "full-app-combined-and-isolated-passed",
-    "meshyTextAvailability": "2026-11-06: catalog absent; HTTP503 model_not_found in default group"
+    "meshyTextAvailability": "v3.4.7发布时不可用；同日后续已恢复，开发接入见meshyText3d20261106。"
   },
   "electronReleaseV347": {
     "status": "released-v3.4.7-dual-platform-verified",
@@ -17469,5 +17469,19 @@
     "postReleaseEvidence": "owner-approved-post-release-v3.4.7",
     "macBoundary": "same-tag-ad-hoc-preview; no-quota-deferral-used",
     "sourceCommit": "12352cb7be9d8827723df9ef0b547a7100998b3c"
+  },
+  "meshyText3d20261106": {
+    "status": "development-verified-unreleased",
+    "description": "既有3D的Meshy Tab恢复文生；真实GLB、完整临时画布及113项回归通过，未发布。",
+    "documentation": "docs/meshy-text-3d.md",
+    "model": "meshy-6-global-text-to-3d",
+    "workflow": "docs/workflows/meshy-6-global-text-to-3d.json",
+    "releaseAuthorization": false,
+    "verification": {
+      "live": true,
+      "regressionPassed": 113,
+      "canvas": "full-app-temporary-db-passed",
+      "installedClient": false
+    }
   }
 }

@@ -460,9 +460,9 @@ function buildRuntimeCatalog() {
 
   const actions = [];
   for(const model of newModels.models3d)actions.push(actionEntry('model3d','seedance-nz',model,model,model.startsWith('hitem')?'hitem3d':'meshy','model3d',{
-    tab:model.startsWith('hitem')?'hitem3d':'meshy',endpoint:'/v1/3d/generations',orderedImageViews:model.includes('multi')?4:1,
-    minimumReferenceImages:model.includes('multi')?2:1,viewOrder:model.includes('multi')?newModels.contract.hitem.views:['front'],
-    ...(model.startsWith('hitem')?{requestTypes:newModels.contract.hitem.requestTypes,resolutions:model.includes('portrait')?['1536pro']:newModels.contract.hitem.resolutions,face:{minimum:100000,maximum:2000000}}:{optionalControls:['topology','target_polycount','symmetry_mode',...newModels.contract.meshy.booleans]})
+    tab:model.startsWith('hitem')?'hitem3d':'meshy',endpoint:'/v1/3d/generations',orderedImageViews:model===newModels.contract.meshy.textModel?0:model.includes('multi')?4:1,
+    minimumReferenceImages:model===newModels.contract.meshy.textModel?0:model.includes('multi')?2:1,viewOrder:model===newModels.contract.meshy.textModel?[]:model.includes('multi')?newModels.contract.hitem.views:['front'],
+    ...(model.startsWith('hitem')?{requestTypes:newModels.contract.hitem.requestTypes,resolutions:model.includes('portrait')?['1536pro']:newModels.contract.hitem.resolutions,face:{minimum:100000,maximum:2000000}}:{optionalControls:['topology','target_polycount','symmetry_mode',...newModels.contract.meshy.booleans.filter(field=>model!==newModels.contract.meshy.textModel||field!=='should_texture'),...(model===newModels.contract.meshy.textModel?['art_style','enable_prompt_expansion']:[])],...(model===newModels.contract.meshy.textModel?{prompt:{minLength:1,maxLength:newModels.contract.meshy.maxPromptCharacters},artStyles:newModels.contract.meshy.artStyles.filter(v=>v!=='api_default')}:{})})
   }));
   for (const model of seedanceNz.HUNYUAN3D_MODELS || []) {
     actions.push(actionEntry('model3d', 'seedance-nz', model, model, 'hunyuan-3d', 'model3d', {

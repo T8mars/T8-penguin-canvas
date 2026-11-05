@@ -1,0 +1,52 @@
+{
+  "schema": "t8-workflow-fragment",
+  "version": 1,
+  "title": "meshy-6-global-text-to-3d",
+  "nodes": [
+    {
+      "id": "generation",
+      "type": "model-3d",
+      "position": {
+        "x": 440,
+        "y": 50
+      },
+      "data": {
+        "label": "meshy-6-global-text-to-3d",
+        "model": "meshy-6-global-text-to-3d",
+        "threeDTab": "meshy",
+        "meshyPolycount": 100,
+        "meshy_should_remesh": "true",
+        "meshy_enable_pbr": "false",
+        "prompt": "A friendly blue toy robot on a plain cream studio background.",
+        "meshyArtStyle": "api_default",
+        "meshyPromptExpansion": "false",
+        "reuseResult": false
+      }
+    },
+    {
+      "id": "output",
+      "type": "model-3d-preview",
+      "position": {
+        "x": 960,
+        "y": 50
+      },
+      "data": {
+        "label": "结果 / Result"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "result-edge",
+      "source": "generation",
+      "target": "output"
+    }
+  ],
+  "nodeCount": 2,
+  "edgeCount": 1,
+  "nodeTypes": [
+    "model-3d",
+    "model-3d-preview"
+  ],
+  "savedAt": "2026-11-05T00:00:00.000Z"
+}

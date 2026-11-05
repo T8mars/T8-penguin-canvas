@@ -102,21 +102,31 @@ function buildImage(request) {
 }
 function build3d(request) {
   const model = request.model;
-  if (!models3d.includes(model)) fail(model === contract.meshy.unavailableModel ? 'Meshy text-to-3D is temporarily withdrawn by the provider' : 'Unsupported 3D model');
-  const refs = sources(request), multi = model.includes('multi-image');
-  if (multi ? refs.length < 2 || refs.length > 4 : refs.length !== 1) fail('3D requires exactly one image, or 2–4 front/back/left/right images for multi-view models');
+  if (!models3d.includes(model)) fail('Unsupported 3D model');
+  const refs = sources(request), multi = model.includes('multi-image'), text = model === contract.meshy.textModel;
+  if (text ? refs.length !== 0 : multi ? refs.length < 2 || refs.length > 4 : refs.length !== 1) fail(text ? 'Meshy text-to-3D does not accept reference images' : '3D requires exactly one image, or 2–4 front/back/left/right images for multi-view models');
   const payload = { model };
   if (contract.hitem.models.includes(model)) {
     payload.request_type = choice(request.request_type ?? 'both',contract.hitem.requestTypes,'request_type');
     payload.resolution = choice(request.resolution ?? (model.includes('portrait') ? '1536pro' : '1536'),model.includes('portrait') ? ['1536pro'] : contract.hitem.resolutions,'resolution');
     payload.face = integer(request.face ?? 1000000,100000,2000000,'face');
   } else {
+    if (text) {
+      if (typeof request.prompt !== 'string' || !request.prompt.trim() || [...request.prompt.trim()].length > contract.meshy.maxPromptCharacters) fail('Meshy prompt requires 1–600 characters');
+      payload.prompt = request.prompt.trim();
+      if (request.art_style !== undefined && request.art_style !== 'api_default') payload.art_style = choice(request.art_style,contract.meshy.artStyles,'art_style');
+      if (request.enable_prompt_expansion !== undefined && request.enable_prompt_expansion !== 'api_default') {
+        if (typeof request.enable_prompt_expansion !== 'boolean') fail('enable_prompt_expansion must be boolean');
+        payload.enable_prompt_expansion = request.enable_prompt_expansion;
+      }
+    }
     for (const [field,choices] of [['topology',contract.meshy.topologies],['symmetry_mode',contract.meshy.symmetries]]) if (request[field] !== undefined && request[field] !== 'api_default') payload[field] = choice(request[field],choices,field);
     if (request.target_polycount !== undefined && request.target_polycount !== 0) payload.target_polycount = integer(request.target_polycount,100,300000,'target_polycount');
     for (const field of contract.meshy.booleans) if (request[field] !== undefined && request[field] !== 'api_default') {
+      if (text && field === 'should_texture') continue;
       if (typeof request[field] !== 'boolean') fail(`${field} must be boolean`); payload[field] = request[field];
     }
   }
-  return { payload, sources: refs, maxReferenceBytes: 50*1024*1024, model, taskType: 'i3d' };
+  return { payload, sources: refs, maxReferenceBytes: 50*1024*1024, model, taskType: text ? 't3d' : 'i3d' };
 }
 module.exports = { contract, imageModels, models3d, buildImage, build3d, staticSize, gifSize };
