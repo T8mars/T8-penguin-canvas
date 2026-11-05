@@ -12,7 +12,7 @@ My favorite girl Go YounJung
 
 > AI 节点画布工作流工具 · Web + Electron 桌面端｜v3.4.7
 >
-> 2026-11-06：v3.4.7已获发布授权：既有图像增加gpt-image-2.6、z-image、krea，3D增加hitem3d、meshy；十一款可用模型、十六条实网路径和完整开发画布已验证，GIF保留动画、SVG保留原件，附十六份工作流。Meshy文生渠道暂不可用。见[功能说明](docs/g26-krea-hitem-meshy.md)、[发布进度](docs/release-v3.4.7.md)。
+> 2026-11-06：v3.4.7已发布Windows/macOS版：既有图像增加gpt-image-2.6、z-image、krea，3D增加hitem3d、meshy；十一款可用模型、十六条实网路径和完整开发画布已验证，GIF保留动画、SVG保留原件，附十六份工作流。Meshy文生渠道暂不可用。见[功能说明](docs/g26-krea-hitem-meshy.md)、[发布记录](docs/release-v3.4.7.md)。
 
 > 2026-11-01：v3.4.6已发布Windows/macOS版：新增Hunyuan Image、Muse Image/Video及四个Flux变体，附十一份工作流；十一条实网解码与完整开发画布验证通过。见[功能说明](docs/preview-muse-flux.md)、[发布记录](docs/release-v3.4.6.md)。
 

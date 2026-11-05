@@ -3455,15 +3455,59 @@
     ]
   },
   "release": {
-    "status": "authorized-v3.4.7-pending-build",
+    "status": "released-v3.4.7-dual-platform-verified",
     "version": "3.4.7",
     "tag": "v3.4.7",
-    "latest": false,
+    "latest": true,
     "date": "2026-11-06",
     "details": "docs/release-v3.4.7.md",
     "evidence": "docs/release-v3.4.7.md",
     "postReleaseEvidence": "owner-approved-post-release-v3.4.7",
-    "macBoundary": "same-tag-ad-hoc-preview; defer-only-if-actual-quota-insufficient"
+    "macBoundary": "same-tag-ad-hoc-preview; no-quota-deferral-used",
+    "sourceCommit": "12352cb7be9d8827723df9ef0b547a7100998b3c",
+    "publishedAt": "2026-11-05T16:44:59Z",
+    "draft": false,
+    "prerelease": false,
+    "macWorkflow": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/42067997263",
+    "macAttempt": 1,
+    "macWorkflowConclusion": "success",
+    "verification": [
+      "Windows/Mac installers, encrypted model probe, complete downloads and both updater manifests verified; details: docs/release-v3.4.7.md.",
+      "Windows assets unchanged during Mac append; previous v3.4.6 Tag and six assets unchanged.",
+      "Sixteen real API paths and controlled Canvas are separate evidence; Meshy text is unavailable. Installed-user/F8–F10 remain deferred."
+    ],
+    "assets": {
+      "windowsInstaller": {
+        "name": "T8-PenguinCanvas-Setup-3.4.7.exe",
+        "bytes": 1379940303,
+        "sha256": "241bb23e193988609c5e76266771550e1829ca966dda6f8857b3dd94b81930b3"
+      },
+      "windowsBlockmap": {
+        "name": "T8-PenguinCanvas-Setup-3.4.7.exe.blockmap",
+        "bytes": 1439166,
+        "sha256": "0a3469de6e2fc67a7c89d23eb65372ef58d88fc72cdd128139cf63dab53c9913"
+      },
+      "windowsUpdater": {
+        "name": "latest.yml",
+        "bytes": 362,
+        "sha256": "5aaa8fa95a5b8fd34bbd41053ce6756e6fbe6ef71d017680667a263d020454e7"
+      },
+      "macDmg": {
+        "name": "T8-PenguinCanvas-3.4.7-mac-arm64.dmg",
+        "bytes": 519691215,
+        "sha256": "0d9732f5565a29a26c140b93be9dc598d51925b72f04ae3c710779e23ba749af"
+      },
+      "macZip": {
+        "name": "T8-PenguinCanvas-3.4.7-mac-arm64.zip",
+        "bytes": 511443044,
+        "sha256": "1ac1dbb86dc96572dd1de5dc1cde35bc419de3a52bdae05e626b5018988ccff3"
+      },
+      "macUpdater": {
+        "name": "latest-mac.yml",
+        "bytes": 536,
+        "sha256": "f418efd3f6b23e85e98e663fd53e132c96eb54882d54d6ee7ebe82e328b8e79a"
+      }
+    }
   },
   "minimaxMusic3PromptEnhancer": {
     "status": "released-v2.9.3",
@@ -10802,8 +10846,8 @@
     "version": "3.4.7",
     "semverVersion": "3.4.7",
     "versionNumberPolicy": "T8 版本号仍采用 x.y.z 三段，但每一段只允许 0-9；任一段到 9 后下一次发布必须向左进位，禁止任一段出现两位数字。例：1.9.9 的下一版必须是 2.0.0。",
-    "versionNote": "v3.4.7已获打包发布授权；完成事实见docs/release-v3.4.7.md。",
-    "installer": "T8-PenguinCanvas-Setup-3.4.7.exe；待唯一正式构建与完整回下载。",
+    "versionNote": "v3.4.7 G2.6/GIF/SVG、Krea、Z-image、Hitem/Meshy双平台已发布，见docs/release-v3.4.7.md。",
+    "installer": "T8-PenguinCanvas-Setup-3.4.7.exe；唯一正式安装包与完整回下载通过。",
     "updaterInstallMode": "自动更新下载完成后不得静默安装：main.cjs 必须设置 autoInstallOnAppQuit=false，显式安装调用 quitAndInstall(false,true)；electron/build-resources/installer.nsh 通过 SetSilent normal 让新版 NSIS 安装器即使收到旧客户端传入的 /S 也尽量切回前台安装向导。",
     "installerShortcutPolicy": "安装完成后必须创建桌面和开始菜单快捷方式：package.json build.nsis.createDesktopShortcut 必须为 \"always\"，createStartMenuShortcut 必须为 true；electron/build-resources/installer.nsh 必须保留 customInstall 兜底 CreateShortCut \"$newStartMenuLink\" 与 \"$DESKTOP\\${SHORTCUT_NAME}.lnk\"，防止更新安装/keepShortcuts 路径遗漏入口。",
     "updaterEntryPolicy": "顶栏桌面更新入口不得只因 window.t8pc.updater 缺失就静默消失；Electron UA 或 t8pc.getInfo/openExternal 可用时必须显示诊断入口，提示重新安装完整桌面包，Web/纯浏览器环境才隐藏。状态为 not-available 时按钮仍保留“更新”字样，避免用户误以为自动更新入口被删除。",
@@ -17400,7 +17444,7 @@
     }
   },
   "g26KreaHitemMeshy20261105": {
-    "status": "authorized-v3.4.7-pending-release",
+    "status": "released-v3.4.7",
     "description": "既有图像增加G2.6/GIF/SVG、Z-image、Krea；3D增加Hitem与Meshy图生，十一模型十六路径实网通过。",
     "documentation": "docs/g26-krea-hitem-meshy.md",
     "contract": "backend/src/shared/g26Krea3dContract.json",
@@ -17415,14 +17459,15 @@
     "meshyTextAvailability": "2026-11-06: catalog absent; HTTP503 model_not_found in default group"
   },
   "electronReleaseV347": {
-    "status": "authorized-v3.4.7-pending-build",
+    "status": "released-v3.4.7-dual-platform-verified",
     "version": "3.4.7",
     "tag": "v3.4.7",
-    "latest": false,
+    "latest": true,
     "date": "2026-11-06",
     "details": "docs/release-v3.4.7.md",
     "evidence": "docs/release-v3.4.7.md",
     "postReleaseEvidence": "owner-approved-post-release-v3.4.7",
-    "macBoundary": "same-tag-ad-hoc-preview; defer-only-if-actual-quota-insufficient"
+    "macBoundary": "same-tag-ad-hoc-preview; no-quota-deferral-used",
+    "sourceCommit": "12352cb7be9d8827723df9ef0b547a7100998b3c"
   }
 }

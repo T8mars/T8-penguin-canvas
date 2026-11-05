@@ -1,6 +1,6 @@
 # GPT Image 2.6、Z-image、Krea、Hitem3D 与 Meshy
 
-2026-11-06：十一款可用模型已开发，十六条实网路径、图像／3D画布分场与最终组合验证通过，用户已授权v3.4.7同源双平台打包发布，进度见[发布专题](release-v3.4.7.md)。依据[当前官方文档](https://api.seedance.nz/docs/llms.txt)与只读参考项目 `F:\AI-T8-video-onekey\ComfyUI\custom_nodes\ComfyUI_Seedance`；以更新后的官方合同为准。共享参数见 [g26Krea3dContract.json](../backend/src/shared/g26Krea3dContract.json)。
+2026-11-06：十一款可用模型已开发，十六条实网路径、图像／3D画布分场与最终组合验证通过，已随v3.4.7同源双平台发布，详见[发布专题](release-v3.4.7.md)。依据[当前官方文档](https://api.seedance.nz/docs/llms.txt)与只读参考项目 `F:\AI-T8-video-onekey\ComfyUI\custom_nodes\ComfyUI_Seedance`；以更新后的官方合同为准。共享参数见 [g26Krea3dContract.json](../backend/src/shared/g26Krea3dContract.json)。
 
 ## 节点与参数
 
