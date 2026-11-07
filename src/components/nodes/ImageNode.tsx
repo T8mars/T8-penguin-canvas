@@ -751,7 +751,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
       ? 10
       : Math.max(8, modelDef.maxReferenceImages || 0)
     : isNewImageTab
-      ? apiModel === NEW_IMAGE_CONTRACT.g26.models[0] ? 2
+      ? apiModel === NEW_IMAGE_CONTRACT.g26.models[0] ? NEW_IMAGE_CONTRACT.g26.lowpriceMaxReferences
         : NEW_IMAGE_CONTRACT.g26.models.includes(apiModel) ? (newImageSettings(apiModel,d || {}).g26Mode === 'image' ? 16 : 0)
         : apiModel === 'krea-v3-i2i' ? 8 : 0
     : isSeedreamLayerTab || isVosr2ImageTab

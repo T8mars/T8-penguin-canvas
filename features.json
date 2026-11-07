@@ -17537,5 +17537,15 @@
     "postReleaseEvidence": "owner-approved-post-release-v3.4.8",
     "macBoundary": "same-tag-ad-hoc-preview; no-quota-deferral-used",
     "sourceCommit": "2a9f550037eb8e543e89694736e366c130e5650f"
+  },
+  "g26LowpriceTenReferences20261107": {
+    "status": "development-verified-unreleased",
+    "description": "G2.6 LowPrice参考图上限同步为10；实网十图完整出图，前后端/界面/Agent目录共用上限。",
+    "documentation": "docs/g26-krea-hitem-meshy.md",
+    "model": "zhenzhen-image-g-v2.6-lowprice",
+    "maxReferenceImages": 10,
+    "liveReferences": 10,
+    "regressionPassed": 17,
+    "releaseAuthorization": false
   }
 }

@@ -5,7 +5,7 @@
     "resolutions": ["1k", "2k", "4k"], "qualities": ["auto", "low", "medium", "high", "xhigh", "max"],
     "formats": ["png", "jpeg", "webp"], "complexities": ["api_default", "low", "medium", "high"],
     "gifSizes": ["512x512", "768x512", "512x768", "auto", "custom"],
-    "maxStaticPixels": 8294400, "minStaticPixels": 655360, "maxEdge": 3840, "maxOfficialPrompt": 32000
+    "maxStaticPixels": 8294400, "minStaticPixels": 655360, "maxEdge": 3840, "maxOfficialPrompt": 32000, "lowpriceMaxReferences": 10
   },
   "krea": {
     "tab": "krea", "models": ["krea-v3-t2i", "krea-v3-i2i"], "variants": ["berry", "jam"], "reasoning": ["low", "medium"], "formats": ["png", "jpeg"],

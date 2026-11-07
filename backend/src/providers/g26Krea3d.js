@@ -41,7 +41,7 @@ function buildImage(request) {
   if (contract.g26.models.includes(model)) {
     const lowprice = model === contract.g26.models[0], mode = choice(request.output_mode ?? 'image', lowprice ? ['image','gif'] : ['image','gif','svg'], 'output mode');
     if (!lowprice && payload.prompt.length > contract.g26.maxOfficialPrompt) fail('Official G2.6 prompt exceeds 32000 characters');
-    if (refs.length > (lowprice ? 2 : 16) || !lowprice && mode !== 'image' && refs.length) fail('Incorrect G2.6 reference count; official GIF/SVG are text-only');
+    if (refs.length > (lowprice ? contract.g26.lowpriceMaxReferences : 16) || !lowprice && mode !== 'image' && refs.length) fail('Incorrect G2.6 reference count; official GIF/SVG are text-only');
     if (lowprice) {
       payload.n = 1; payload.resolution = '1k';
       payload.size = choice(request.size ?? '1:1', contract.g26.sizes.filter(v => v !== 'custom'), 'size');

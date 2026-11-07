@@ -4,7 +4,11 @@ test('G2.6 LowPrice GIF remains prompt-driven and preserves ordered references',
  const p=api.buildImage({model:api.contract.g26.models[0],prompt:'ball',output_mode:'gif',images:['front','back']});
  assert.equal(p.payload.n,1);assert.equal(p.payload.resolution,'1k');assert.match(p.payload.prompt,/looping GIF/);assert.deepEqual(p.sources,['front','back']);
  for(const key of ['output_format','frame_count','frame_duration_ms'])assert.equal(key in p.payload,false);
- assert.throws(()=>api.buildImage({model:p.model,prompt:'ball',images:['a','b','c']}),/reference/);
+ const refs=['first','second','first',...Array.from({length:7},(_,i)=>'view-'+i)];
+ for(const output_mode of ['image','gif']){
+  const built=api.buildImage({model:p.model,prompt:'ball',images:refs,output_mode});assert.deepEqual(built.sources,refs);assert.equal(built.payload.n,1);assert.equal(built.payload.resolution,'1k');
+  assert.throws(()=>api.buildImage({model:p.model,prompt:'ball',images:[...refs,'eleventh'],output_mode}),/reference/);
+ }
 });
 test('Official GIF sheet bounds and SVG contract are distinct from static editing',()=>{
  for(const model of api.contract.g26.models.slice(1)){

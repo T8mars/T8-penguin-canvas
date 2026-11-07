@@ -38,6 +38,24 @@ test('Frontend models agree with production payload builder; history restores ex
   const missing={...settings};delete (missing as any)[Object.keys(values)[0]];assert.throws(()=>readHistoryBudgetImageInput({historyResolvedInput:{...input,basicSettings:missing}}));
  }
 });
+test('LowPrice ten-reference limit agrees across the real UI, requests, uploads and Agent catalog',async()=>{
+ const model=c.g26.models[0],refs=Array.from({length:10},(_,i)=>'view-'+i);
+ for(const g26Mode of ['image','gif']){
+  const request=buildNewImageRequest(model,'Ten tokens',refs,{g26Mode}),built=pure.buildImage(request);assert.deepEqual(request.images,refs);assert.deepEqual(built.sources,refs);
+  assert.throws(()=>buildNewImageRequest(model,'Ten tokens',[...refs,'eleventh'],{g26Mode}),/g26References/);
+ }
+ const source=ts.createSourceFile('ImageNode',fs.readFileSync(new URL('../src/components/nodes/ImageNode.tsx',import.meta.url),'utf8'),ts.ScriptTarget.Latest,true,ts.ScriptKind.TSX);let expression:ts.Expression|undefined;
+ const visit=(n:ts.Node)=>{if(ts.isVariableDeclaration(n)&&n.name.getText(source)==='maxRefs')expression=n.initializer;ts.forEachChild(n,visit);};visit(source);assert.ok(expression);
+ const evaluate=(apiModel:string,g26Mode:string)=>vm.runInNewContext(ts.transpileModule('('+expression.getText(source)+')',{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}}).outputText,{isExternalSelected:false,isNewImageTab:true,apiModel,NEW_IMAGE_CONTRACT:c,newImageSettings,d:{g26Mode}});
+ assert.equal(evaluate(model,'image'),10);assert.equal(evaluate(model,'gif'),10);assert.equal(evaluate(c.g26.models[1],'image'),16);assert.equal(evaluate(c.g26.models[1],'gif'),0);
+ const option=IMAGE_MODELS.find(m=>m.id===c.g26.tab)!.apiModelOptions!.find(m=>m.value===model)!;assert.equal(option.maxReferenceImages,10);
+ const entry=require('../backend/src/shared/creativeModelCatalog.json').image.find((m:any)=>m.model===model);assert.equal(entry.parameters.maxReferenceImages,10);
+ const refsData=await Promise.all(Array.from({length:10},(_,i)=>sharp({create:{width:16,height:16,channels:3,background:{r:i*20,g:100,b:200}}}).png().toBuffer().then((b:Buffer)=>'data:image/png;base64,'+b.toString('base64'))));let uploads=0;
+ const options={uploadIntervalMs:0,uploadCacheTtlMs:0,fetchImpl:async()=>new Response(JSON.stringify({url:'https://provider.example/ten-'+(++uploads)+'.png'}),{headers:{'content-type':'application/json'}})};
+ await assert.rejects(provider.buildImagePayload({model,prompt:'tokens',images:[...refsData,refsData[0]]},'fixture-key',options),/reference/);assert.equal(uploads,0);
+ const built=await provider.buildImagePayload({model,prompt:'tokens',images:refsData},'fixture-key',options);assert.equal(uploads,10);assert.deepEqual(built.payload.images,Array.from({length:10},(_,i)=>'https://provider.example/ten-'+(i+1)+'.png'));
+ for(const locale of ['zh-CN','en-US']){await i18n.changeLanguage(locale);const ui=renderToStaticMarkup(React.createElement(G26KreaControls,{model,data:{},update(){}}));assert.match(ui,/10/);assert.doesNotMatch(ui,/最多两张|up to two/);}await i18n.changeLanguage('zh-CN');
+});
 test('All reference images validate before first upload, and duplicate slots remain ordered',async()=>{
  const image=async(color:string)=>'data:image/png;base64,'+(await sharp({create:{width:32,height:32,channels:3,background:color}}).png().toBuffer()).toString('base64'),a=await image('red'),b=await image('blue');let uploads=0;
  const options={uploadIntervalMs:0,uploadCacheTtlMs:0,fetchImpl:async()=>new Response(JSON.stringify({url:'https://provider.example/ref-'+(++uploads)+'.png'}),{headers:{'content-type':'application/json'}})};

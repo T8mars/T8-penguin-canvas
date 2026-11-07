@@ -19,7 +19,7 @@ export function buildNewImageRequest(model: string,prompt: string,images: string
   if (contract.g26.models.includes(model)) {
     const low = model === contract.g26.models[0], mode = s.g26Mode;
     if (!(low?['image','gif']:['image','gif','svg']).includes(String(mode))) fail('invalidMode');
-    if (images.length > (low?2:16) || !low && mode !== 'image' && images.length) fail('g26References');
+    if (images.length > (low?contract.g26.lowpriceMaxReferences:16) || !low && mode !== 'image' && images.length) fail('g26References');
     Object.assign(request,{output_mode:mode,n:low || mode !== 'image'?1:s.g26Count});
     if (low) Object.assign(request,{size:s.g26Size,resolution:'1k'});
     else if (mode === 'gif') Object.assign(request,{size:s.g26GifSize === 'custom'?`${s.g26GifWidth}x${s.g26GifHeight}`:s.g26GifSize,frame_count:s.g26FrameCount,frame_duration_ms:s.g26FrameDuration});

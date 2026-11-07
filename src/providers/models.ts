@@ -425,7 +425,7 @@ export const IMAGE_MODELS: ImageModelDef[] = [
   ...[G26_KREA_3D.g26,G26_KREA_3D.zimage,G26_KREA_3D.krea].map((spec): ImageModelDef => {
     const models = 'models' in spec ? spec.models : [spec.model];
     return {id:spec.tab,apiModel:models[0],label:spec.tab,tabLabel:spec.tab,provider:'zhenzhen',paramKind:'g26-krea',
-      capabilities:spec.tab==='z-image'?['t2i']:['t2i','i2i','edit'],apiModelOptions:models.map(value=>({value,label:value,maxReferenceImages:value===G26_KREA_3D.g26.models[0]?2:value===G26_KREA_3D.zimage.model||value.endsWith('-t2i')?0:spec.tab==='krea'?8:16})),
+      capabilities:spec.tab==='z-image'?['t2i']:['t2i','i2i','edit'],apiModelOptions:models.map(value=>({value,label:value,maxReferenceImages:value===G26_KREA_3D.g26.models[0]?G26_KREA_3D.g26.lowpriceMaxReferences:value===G26_KREA_3D.zimage.model||value.endsWith('-t2i')?0:spec.tab==='krea'?8:16})),
       aspectRatios:[],defaultAspectRatio:'',sizes:[],defaultSize:'',supportsReference:spec.tab!=='z-image',maxReferenceImages:spec.tab==='gpt-image-2.6'?16:spec.tab==='krea'?8:0};
   }),
   ...PREVIEW_IMAGE_MODELS.map((id): ImageModelDef => ({

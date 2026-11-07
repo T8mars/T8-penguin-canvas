@@ -1,6 +1,6 @@
 {
   "schema": "t8-creative-runtime-catalog-v1",
-  "sourceDigest": "2e989da80f335525418538d60b4ba74ac214117122b4e3577c5c1d62af4f8f5e",
+  "sourceDigest": "623d84a47699afeb06641b2f15ced2f021f43e99eb5164f038fb47a92a56dee1",
   "generatedFrom": [
     "src/providers/models.ts",
     "src/config/seedance.ts",
@@ -1982,7 +1982,7 @@
         "sizes": [],
         "defaultSize": "",
         "supportsReference": true,
-        "maxReferenceImages": 2
+        "maxReferenceImages": 10
       }
     },
     {
