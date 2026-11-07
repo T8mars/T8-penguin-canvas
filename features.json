@@ -17601,5 +17601,13 @@
     "postReleaseEvidence": "owner-approved-post-release-v3.4.9",
     "macBoundary": "same-tag-ad-hoc-preview; no-quota-deferral-used",
     "sourceCommit": "709012e987da4cf992feec6bd83c9d3fe836591b"
+  },
+  "canvasUserFeedback20261108": {
+    "status": "development-verified",
+    "date": "2026-11-08",
+    "published": false,
+    "description": "视频剪辑真实排序、素材集来源同步、文本/输出@素材、独立输出拖动及导演脚本/图片批量导入已开发并验证。",
+    "documentation": "docs/user-feedback-20261108.md",
+    "regressionPassed": 213
   }
 }

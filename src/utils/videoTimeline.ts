@@ -1307,6 +1307,47 @@ export function syncVideoEditTimelineWithClips(
   return next;
 }
 
+// Explicit playlist ordering must move timeline items; ordinary metadata sync
+// deliberately preserves their positions. Keep custom items in their existing
+// slots, preserve gaps, and move linked audio by the same delta as its video.
+export function reorderVideoEditTimelineWithClips(
+  input: unknown,
+  clips: VideoEditTimelineClipLike[],
+): VideoEditTimelineV2 {
+  const timeline = normalizeVideoEditTimeline(input, clips);
+  const mainItems = timeline.items
+    .filter((item) => item.kind === 'video' && item.trackId === MAIN_VIDEO_TRACK_ID)
+    .sort((a, b) => a.timelineStart - b.timelineStart);
+  const byId = new Map(mainItems.map((item) => [item.id, item]));
+  const ordered = clips.flatMap((clip) => {
+    const item = clip.id ? byId.get(`item-${clip.id}-video`) : undefined;
+    return item ? [item] : [];
+  });
+  const managedIds = new Set(ordered.map((item) => item.id));
+  let orderIndex = 0;
+  let cursor = 0;
+  const starts = new Map<string, number>();
+  mainItems.forEach((slot, index) => {
+    const previousEnd = index ? timelineItemEnd(mainItems[index - 1]) : 0;
+    const gap = Math.max(0, slot.timelineStart - previousEnd);
+    const item = managedIds.has(slot.id) ? ordered[orderIndex++] : slot;
+    cursor = roundTimelineSecond(cursor + gap);
+    starts.set(item.id, cursor);
+    cursor = roundTimelineSecond(cursor + timelineItemDuration(item));
+  });
+  const deltas = new Map(mainItems.map((item) => [item.id, (starts.get(item.id) ?? item.timelineStart) - item.timelineStart]));
+  timeline.items = timeline.items.map((item) => {
+    const start = starts.get(item.id);
+    if (start !== undefined) return { ...item, timelineStart: start };
+    if (item.kind !== 'audio') return item;
+    const linkedVideo = item.linkedItemId && byId.get(item.linkedItemId)
+      || mainItems.find((video) => video.linkedItemId === item.id);
+    const delta = linkedVideo ? deltas.get(linkedVideo.id) ?? 0 : 0;
+    return delta ? { ...item, timelineStart: roundTimelineSecond(item.timelineStart + delta) } : item;
+  });
+  return timeline;
+}
+
 export function snapVideoEditTimelineTime(time: number, snapPoints: number[], threshold = 0.08): number {
   const current = finiteNumber(time, 0);
   const safeThreshold = Math.max(0, finiteNumber(threshold, 0));

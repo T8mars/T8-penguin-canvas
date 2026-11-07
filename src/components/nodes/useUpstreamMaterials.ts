@@ -306,21 +306,23 @@ export function collectUpstreamMaterials(
         const collectNodeTextOutput = shouldCollectNodeTextOutput(n.type, n.data, ud);
         const textMeta = textMetaFromData(ud);
 
-      // 显式素材集: 保留素材集内部顺序，并用序号 key 避免相同 URL 被全局去重误删。
+      // Preserve ordered repeated slots by their persisted item identity. Only
+      // malformed legacy slots without a unique stored ID use the old index key.
       // 同时跳过下面的旧字段读取，避免 imageUrls/textSegments 双写后重复出现。
       if (n.type === 'material-set' && Array.isArray(ud.materialSetItems)) {
         const buckets = collectMaterialSetBucketsFromData(ud);
+        const slotKey = (item: {id:string}, index:number) => ud.materialSetItems.filter((raw:any)=>raw?.id===item.id).length === 1 ? item.id : index;
         buckets.text.forEach((item, index) => {
-          pushText(sid, valueOfMaterialSetItem(item), `material-set:${sid}:text:${index}`, item.name, textMeta);
+          pushText(sid, valueOfMaterialSetItem(item), `material-set:${sid}:text:${slotKey(item,index)}`, item.name, textMeta);
         });
         buckets.image.forEach((item, index) => {
-          pushUrl(sid, 'image', item.url, images, `material-set:${sid}:image:${index}`, item.name);
+          pushUrl(sid, 'image', item.url, images, `material-set:${sid}:image:${slotKey(item,index)}`, item.name);
         });
         buckets.video.forEach((item, index) => {
-          pushUrl(sid, 'video', item.url, videos, `material-set:${sid}:video:${index}`, item.name);
+          pushUrl(sid, 'video', item.url, videos, `material-set:${sid}:video:${slotKey(item,index)}`, item.name);
         });
         buckets.audio.forEach((item, index) => {
-          pushUrl(sid, 'audio', item.url, audios, `material-set:${sid}:audio:${index}`, item.name);
+          pushUrl(sid, 'audio', item.url, audios, `material-set:${sid}:audio:${slotKey(item,index)}`, item.name);
         });
         continue;
       }
@@ -370,13 +372,13 @@ export function collectUpstreamMaterials(
       }
 
       // 图像: 单 + 多
-      pushUrl(sid, 'image', ud.imageUrl, images);
+      pushUrl(sid, 'image', ud.imageUrl, images, undefined, typeof ud.fileName === 'string' ? ud.fileName : ud.fileNames?.[0]);
       pushUrl(sid, 'image', ud.resultUrl, images, undefined, '目标框图像');
       const arrFields = ['imageUrls', 'urls', 'generatedImages', 'resultUrls'];
       for (const f of arrFields) {
         const v = ud[f];
         if (Array.isArray(v)) {
-          for (const u of v) pushUrl(sid, 'image', u, images);
+          v.forEach((u:any,index:number)=>pushUrl(sid,'image',u,images,undefined,ud.fileNames?.[index]));
         }
       }
 

@@ -59,6 +59,7 @@ import {
   normalizeVideoEditTimeline,
   normalizeVideoEditOutputVersions,
   overwriteVideoEditTimelineRange,
+  reorderVideoEditTimelineWithClips,
   pushVideoEditOutputVersion,
   replaceVideoEditClipAsset,
   resolveVideoEditTimelineSnap,
@@ -1045,12 +1046,20 @@ function VideoEditNode({ id, data, selected }: NodeProps) {
     ? previewOverride.timelineItemId
     : selectedTimelineItemId;
   const previewClipKey = makePreviewClipKey(selectedClip);
-  const compactTimelineClips = useMemo(() => {
-    if (clips.length <= VIDEO_EDIT_COMPACT_TIMELINE_LIMIT) return clips;
-    const first = clips.slice(0, VIDEO_EDIT_COMPACT_TIMELINE_LIMIT);
-    if (!selectedClip || first.some((clip) => clip.id === selectedClip.id)) return first;
-    return [...clips.slice(0, VIDEO_EDIT_COMPACT_TIMELINE_LIMIT - 1), selectedClip];
-  }, [clips, selectedClip?.id]);
+  const [compactClipWindowStart, setCompactClipWindowStart] = useState(0);
+  const selectedPlaylistIndex = clips.findIndex((clip) => clip.id === d.selectedClipId);
+  useEffect(() => {
+    setCompactClipWindowStart((start) => {
+      if (selectedPlaylistIndex >= 0 && (selectedPlaylistIndex < start || selectedPlaylistIndex >= start + VIDEO_EDIT_COMPACT_TIMELINE_LIMIT)) {
+        return Math.floor(selectedPlaylistIndex / VIDEO_EDIT_COMPACT_TIMELINE_LIMIT) * VIDEO_EDIT_COMPACT_TIMELINE_LIMIT;
+      }
+      return Math.min(start, Math.max(0, Math.ceil(clips.length / VIDEO_EDIT_COMPACT_TIMELINE_LIMIT) - 1) * VIDEO_EDIT_COMPACT_TIMELINE_LIMIT);
+    });
+  }, [selectedPlaylistIndex, clips.length]);
+  const compactTimelineClips = useMemo(
+    () => clips.slice(compactClipWindowStart, compactClipWindowStart + VIDEO_EDIT_COMPACT_TIMELINE_LIMIT),
+    [clips, compactClipWindowStart],
+  );
   const workbenchFilteredClips = useMemo(() => {
     const query = workbenchClipSearch.trim().toLowerCase();
     return clips.filter((clip) => {
@@ -5020,12 +5029,27 @@ function VideoEditNode({ id, data, selected }: NodeProps) {
     patchClip(clipId, { storyboardTags });
   };
 
+  const commitClipOrder = (change: (current: VideoEditClip[]) => VideoEditClip[], selectedClipId?: string) => {
+    if (running || busy) return;
+    const snapshot = getWorkbenchSnapshot();
+    const next = change(snapshot.clips);
+    if (next.every((clip, index) => clip.id === snapshot.clips[index]?.id)) return;
+    const nextTimeline = reorderVideoEditTimelineWithClips(snapshot.timelineV2, next);
+    const movedIds = nextTimeline.items.filter((item) => (
+      item.timelineStart !== snapshot.timelineV2.items.find((before) => before.id === item.id)?.timelineStart
+    )).map((item) => item.id);
+    if (guardLockedTimelineItems(snapshot.timelineV2, movedIds, '排序')) return;
+    rememberWorkbenchChange();
+    setLocalError('');
+    commitClips(next, { timelineV2: nextTimeline, ...(selectedClipId ? { selectedClipId } : {}) });
+  };
+
   const moveStoryboardClip = (clipId: string, direction: -1 | 1) => {
-    const index = clips.findIndex((clip) => clip.id === clipId);
-    if (index < 0) return;
-    const nextIndex = Math.max(0, Math.min(clips.length - 1, index + direction));
-    if (nextIndex === index) return;
-    commitClips(reorder(clips, index, nextIndex), { selectedClipId: clipId });
+    commitClipOrder((current) => {
+      const index = current.findIndex((clip) => clip.id === clipId);
+      const nextIndex = Math.max(0, Math.min(current.length - 1, index + direction));
+      return index < 0 || nextIndex === index ? current : reorder(current, index, nextIndex);
+    }, clipId);
   };
 
   const isClipOnLockedTimelineTrack = (clipId: string) => {
@@ -5492,10 +5516,11 @@ function VideoEditNode({ id, data, selected }: NodeProps) {
   const handleTimelineDrop = (event: DragEvent<HTMLElement>, overId: string) => {
     event.preventDefault();
     if (!dragClipId || dragClipId === overId) return;
-    const from = clips.findIndex((clip) => clip.id === dragClipId);
-    const to = clips.findIndex((clip) => clip.id === overId);
-    if (from < 0 || to < 0) return;
-    commitClips(reorder(clips, from, to));
+    commitClipOrder((current) => {
+      const from = current.findIndex((clip) => clip.id === dragClipId);
+      const to = current.findIndex((clip) => clip.id === overId);
+      return from < 0 || to < 0 ? current : reorder(current, from, to);
+    });
     setDragClipId(null);
   };
 
@@ -5521,8 +5546,7 @@ function VideoEditNode({ id, data, selected }: NodeProps) {
 
   const sortClipsByName = () => {
     if (!clips.length) return;
-    setLocalError('');
-    commitClips(sortVideoEditClipsByName(clips));
+    commitClipOrder((current) => sortVideoEditClipsByName(current));
   };
 
   const trimClipsToDefaultDuration = () => {
@@ -6685,6 +6709,12 @@ function VideoEditNode({ id, data, selected }: NodeProps) {
             <span>Playlist 时间线</span>
             <div className="flex items-center gap-1">
               <span>{clips.length > compactTimelineClips.length ? `显示 ${compactTimelineClips.length}/${clips.length}` : clips.length ? `${clips.length} 段` : '暂无片段'}</span>
+              {clips.length > VIDEO_EDIT_COMPACT_TIMELINE_LIMIT && (
+                <>
+                  <button type="button" data-video-edit-clip-page="previous" className="t8-mini-button nodrag h-5 px-1.5 py-0 text-[10px]" disabled={compactClipWindowStart === 0} onClick={() => setCompactClipWindowStart((start) => Math.max(0, start - VIDEO_EDIT_COMPACT_TIMELINE_LIMIT))}>上一组</button>
+                  <button type="button" data-video-edit-clip-page="next" className="t8-mini-button nodrag h-5 px-1.5 py-0 text-[10px]" disabled={compactClipWindowStart + VIDEO_EDIT_COMPACT_TIMELINE_LIMIT >= clips.length} onClick={() => setCompactClipWindowStart((start) => start + VIDEO_EDIT_COMPACT_TIMELINE_LIMIT)}>下一组</button>
+                </>
+              )}
               {[1, 2, 4].map((zoom) => (
                 <button
                   key={zoom}
@@ -6793,7 +6823,24 @@ function VideoEditNode({ id, data, selected }: NodeProps) {
                             <Trash2 size={11} />
                           </button>
                         </span>
-                        <span className={`absolute left-1 bottom-1 h-2 w-2 rounded-full ${healthDotClass(health.level)}`} />
+                        <span className="absolute bottom-1 left-1 flex items-center gap-0.5">
+                          <span className={`h-2 w-2 rounded-full ${healthDotClass(health.level)}`} />
+                          {([-1, 1] as const).map((direction) => (
+                            <button
+                              key={direction}
+                              type="button"
+                              data-video-edit-clip-action={direction === -1 ? 'earlier' : 'later'}
+                              className="nodrag nopan grid h-4 w-4 place-items-center rounded border bg-black/75 text-white disabled:opacity-30"
+                              title={direction === -1 ? '向前移动镜头' : '向后移动镜头'}
+                              aria-label={direction === -1 ? '向前移动镜头' : '向后移动镜头'}
+                              disabled={running || !!busy || (direction === -1 ? realIndex <= 0 : realIndex >= clips.length - 1)}
+                              onPointerDown={(event) => event.stopPropagation()}
+                              onClick={(event) => { event.stopPropagation(); moveStoryboardClip(clip.id, direction); }}
+                            >
+                              {direction === -1 ? '←' : '→'}
+                            </button>
+                          ))}
+                        </span>
                         <span data-video-edit-clip-duration-placement="bottom-right" className="absolute bottom-1 right-1 rounded bg-black/70 px-1 font-semibold text-white">{formatSeconds(duration)}</span>
                       </span>
                       <span
@@ -7567,8 +7614,8 @@ function VideoEditNode({ id, data, selected }: NodeProps) {
                   </div>
                   {workbenchView === 'storyboard' ? (
                     <div className="grid max-h-[170px] gap-3 overflow-y-auto pr-1 md:grid-cols-2">
-                      {workbenchVisibleClips.map((clip, visibleIndex) => {
-                        const index = workbenchClipWindowStart + visibleIndex;
+                      {workbenchVisibleClips.map((clip) => {
+                        const index = clips.findIndex((entry) => entry.id === clip.id);
                         const health = videoEditClipHealth(clip, settings);
                         return (
                           <article

@@ -41,6 +41,8 @@ import { taskCompletionSound } from '../../stores/taskCompletionSound';
 import { useDragMaterialStore, type MaterialPayload } from '../../stores/dragMaterial';
 import { useHasAutoOutput } from './useHasAutoOutput';
 import { useUpdateNodeData } from './useUpdateNodeData';
+import { useTranslation } from 'react-i18next';
+import { assignDirectorShotImages, importDirectorUpstreamScripts } from '../../utils/directorStoryboardImport';
 import { useUpstreamMaterials, type Material } from './useUpstreamMaterials';
 import MentionPromptInput from './MentionPromptInput';
 import SmartImage from '../SmartImage';
@@ -323,6 +325,8 @@ function sleep(ms: number, signal?: AbortSignal): Promise<void> {
 }
 
 const DirectorStoryboardNode = ({ id, data, selected }: NodeProps) => {
+  const {t} = useTranslation('creativeUx');
+  const [scriptImportNotice, setScriptImportNotice] = useState('');
   const rf = useReactFlow();
   const update = useUpdateNodeData(id);
   const hasAutoOutput = useHasAutoOutput(id);
@@ -599,6 +603,30 @@ const DirectorStoryboardNode = ({ id, data, selected }: NodeProps) => {
     if (!activeShot || !inputReuseSourceShot) return;
     patchShot(activeShot.id, buildDirectorStoryboardShotInputPatch(inputReuseSourceShot));
     logBus.info(`已将 ${inputReuseSourceShot.title} 的输入应用到 ${activeShot.title}`, src);
+  };
+
+  const importUpstreamScripts = () => {
+    if (isBusy || !upstream.texts.length) return;
+    const plan = importDirectorUpstreamScripts(shots, upstream.texts, upstream.images);
+    if (plan.invalidDurations.length) {
+      setScriptImportNotice(t('directorImport.invalidDuration', {items:plan.invalidDurations.map(item=>`${item.title}: ${item.duration}s`).join('；'),min:MIN_DURATION,max:MAX_DURATION}));
+      return;
+    }
+    if (plan.added.length) {
+      writeShots(plan.shots);
+      setActiveShotId(plan.added[0].id);
+    }
+    setScriptImportNotice(t('directorImport.result',{count:plan.added.length,images:plan.added.reduce((count,shot)=>count+shot.localRefImages.length,0)})
+      +(plan.issues.length ? ` ${t('directorImport.review',{items:plan.issues.join('、')})}` : ''));
+  };
+
+  const assignShotImages = () => {
+    if (isBusy) return;
+    const assigned = shots.map(shot=>assignDirectorShotImages(shot,upstream.images));
+    writeShots(assigned.map(result=>result.shot));
+    const issues=[...new Set(assigned.flatMap(result=>result.issues))];
+    setScriptImportNotice(t('directorImport.assigned',{count:assigned.reduce((count,result)=>count+result.shot.localRefImages.length,0)})
+      +(issues.length ? ` ${t('directorImport.review',{items:issues.join('、')})}` : ''));
   };
 
   const addShot = () => {
@@ -2664,6 +2692,12 @@ const DirectorStoryboardNode = ({ id, data, selected }: NodeProps) => {
         >
           <div className="mb-1 flex items-center justify-between text-[11px]">
             <span className="font-semibold">秒级时间线</span>
+            <button type="button" className="nodrag rounded border px-2 py-1 text-[10px] disabled:opacity-50" disabled={isBusy || !upstream.texts.length} onClick={importUpstreamScripts} title={t('directorImport.hint')}>
+              {t('directorImport.import')}
+            </button>
+            <button type="button" className="nodrag rounded border px-2 py-1 text-[10px] disabled:opacity-50" disabled={isBusy || !upstream.images.length} onClick={assignShotImages} title={t('directorImport.hint')}>
+              {t('directorImport.assign')}
+            </button>
             <button
               type="button"
               onClick={addShot}
@@ -2673,6 +2707,7 @@ const DirectorStoryboardNode = ({ id, data, selected }: NodeProps) => {
               <Plus size={11} /> 加分镜
             </button>
           </div>
+          {scriptImportNotice && <div role="status" className="nodrag nopan nowheel mb-1 max-h-16 overflow-auto whitespace-pre-wrap text-[10px]" data-director-import-notice="true">{scriptImportNotice}</div>}
           <div ref={timelineRef} className="nodrag nopan flex h-14 min-w-0 overflow-hidden rounded border" style={{ borderColor: 'var(--t8-border-strong, rgba(255,255,255,.18))' }}>
             {shots.map((shot, index) => {
               const result = results[`shot-${shot.id}`];

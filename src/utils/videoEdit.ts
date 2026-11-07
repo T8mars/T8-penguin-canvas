@@ -1075,6 +1075,7 @@ export {
   normalizeVideoEditTimeline,
       normalizeVideoEditTimelineControllerState,
   overwriteVideoEditTimelineRange,
+  reorderVideoEditTimelineWithClips,
   resolveVideoEditTimelineSnap,
       resolveVideoEditTimelinePlayback,
       resizeVideoEditTimelineItem,

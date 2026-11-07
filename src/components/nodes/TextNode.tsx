@@ -1,18 +1,19 @@
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Handle, Position, useUpdateNodeInternals, type NodeProps, type ResizeParams } from '@xyflow/react';
+import { Handle, Position, useEdges, useReactFlow, useUpdateNodeInternals, type NodeProps, type ResizeParams } from '@xyflow/react';
 import { Hash, Type } from 'lucide-react';
 import { useUpdateNodeData } from './useUpdateNodeData';
 import ResizableCorners from './ResizableCorners';
 import { getCornerResizeBehavior } from '../../utils/nodeResizeBehavior';
 import { normalizeRhNodeId } from '../../utils/rhTextBinding';
 import MentionPromptInput from './MentionPromptInput';
-import { rebaseMediaMentions, resolveMediaMentions, type MediaMention } from './mediaMentions';
+import { rebaseMediaMentions, resolveMediaMentions } from './mediaMentions';
 import { useDownstreamMediaMaterials, useUpstreamMaterials, type Material } from './useUpstreamMaterials';
 import { useThemeStore } from '../../stores/theme';
 import SmartTranslateButton from '../SmartTranslateButton';
 import type { SmartTranslationRecord } from '../../utils/smartTranslation';
 import { useCanvasNodeRenderMode } from '../CanvasNodeRenderMode';
+import { resolveTextNodeInput, textInputHasCycle } from '../../utils/textNodeInput';
 
 /**
  * 文本节点 - 提示词输入
@@ -43,9 +44,13 @@ const TextNode = ({ id, data, selected }: NodeProps) => {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const syncRafRef = useRef<{ first?: number; second?: number }>({});
   const d = data as any;
-  const text = (d?.prompt as string) || '';
-  const promptMentions: MediaMention[] = Array.isArray(d?.promptMentions) ? d.promptMentions : [];
   const upstream = useUpstreamMaterials(id);
+  const rf = useReactFlow();
+  const inputEdges = useEdges();
+  const inputFeedback = textInputHasCycle(id, inputEdges, rf.getNodes());
+  const input = useMemo(() => resolveTextNodeInput(d || {}, upstream.texts, !inputFeedback), [d, upstream.texts, inputFeedback]);
+  const text = input.text;
+  const promptMentions = input.mentions;
   const downstreamMedia = useDownstreamMediaMaterials(id);
   const mentionMaterials = useMemo(
     () => uniqueMentionMaterials([
@@ -109,6 +114,10 @@ const TextNode = ({ id, data, selected }: NodeProps) => {
   useLayoutEffect(() => syncNodeInternals(), [selected, size.w, size.h, syncNodeInternals]);
 
   useEffect(() => {
+    if (Object.keys(input.patch).length) update(input.patch);
+  }, [input, update]);
+
+  useEffect(() => {
     if (!promptMentions.length) {
       if (d?.promptResolved) update({ promptResolved: '' });
       return;
@@ -140,6 +149,9 @@ const TextNode = ({ id, data, selected }: NodeProps) => {
       update({
         prompt: translatedText,
         text: translatedText,
+        textLocalPrompt: translatedText,
+        textLocalMentions: translatedMentions,
+        textUseUpstream: false,
         promptMentions: translatedMentions,
         promptResolved: resolveMediaMentions(translatedText, translatedMentions, mentionMaterials),
         smartTranslation: record,
@@ -238,6 +250,13 @@ const TextNode = ({ id, data, selected }: NodeProps) => {
       </div>
 
       <div className={`p-2.5 flex flex-col ${size.h ? 'flex-1 min-h-0 overflow-hidden' : ''}`}>
+        {upstream.texts.length > 0 && (
+          <label className="nodrag nopan mb-1 flex items-center gap-1 text-[10px] text-sky-200">
+            <input type="checkbox" checked={d?.textUseUpstream !== false && !inputFeedback} disabled={inputFeedback} onChange={(event) => update({textUseUpstream:event.currentTarget.checked})} />
+            {t('text.useUpstream')}
+          </label>
+        )}
+        {inputFeedback && <div role="status" className="mb-1 text-[10px] text-amber-300">{t('text.inputCycle')}</div>}
         <MentionPromptInput
           title={t('text.promptTitle')}
           value={text}
@@ -246,6 +265,9 @@ const TextNode = ({ id, data, selected }: NodeProps) => {
           onChange={(value, mentions) => update({
             prompt: value,
             text: value,
+              textLocalPrompt: value,
+              textLocalMentions: mentions,
+              textUseUpstream: false,
             promptMentions: mentions,
             promptResolved: resolveMediaMentions(value, mentions, mentionMaterials),
           })}

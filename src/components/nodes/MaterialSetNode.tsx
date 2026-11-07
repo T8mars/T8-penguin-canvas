@@ -1,4 +1,4 @@
-import { lazy, memo, Suspense, useMemo, useRef, useState, type ChangeEvent, type DragEvent, type PointerEvent } from 'react';
+import { lazy, memo, Suspense, useEffect, useMemo, useRef, useState, type ChangeEvent, type DragEvent, type PointerEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Handle, Position, useReactFlow, type Node, type NodeProps } from '@xyflow/react';
 import {
@@ -47,6 +47,8 @@ import { defaultSizeOf, placeBatchNodes, type Rect as PlacementRect } from '../.
 import NodeVisible from '../../i18n/NodeVisible';
 import { useCanvasStore } from '../../stores/canvas';
 import { normalizeMoodboard } from '../../utils/materialMoodboard';
+import { materialSetUpstreamKey, syncMaterialSetUpstream } from '../../utils/materialSetUpstream';
+import { hasUpstreamFeedbackCycle } from '../../utils/upstreamFeedback';
 import { approveCanvasDialogNodes } from '../../utils/canvasDialogChanges';
 
 const MaterialMoodboard = lazy(() => import('../MaterialMoodboard'));
@@ -83,15 +85,6 @@ function materialFromSetItem(item: MaterialSetItem, nodeId: string): Material {
   };
 }
 
-function materialSetItemFromUpstream(m: Material): MaterialSetItem {
-  return {
-    id: `ms-${m.kind}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    kind: m.kind,
-    ...(m.kind === 'text' ? { text: m.url } : { url: m.url }),
-    name: m.label || (m.kind === 'text' ? m.url.slice(0, 24) : fileNameFromUrl(m.url)),
-  };
-}
-
 function arrayMoveLocal<T>(list: T[], from: number, to: number): T[] {
   const next = list.slice();
   const [item] = next.splice(from, 1);
@@ -119,6 +112,7 @@ const MaterialSetNode = ({ id, data, selected }: NodeProps) => {
   const sortDragRef = useRef<{ activeId: string; overId: string | null; moved: boolean } | null>(null);
   const sortStartRef = useRef<{ x: number; y: number; itemId: string; pointerId: number } | null>(null);
   const sortWindowCleanupRef = useRef<(() => void) | null>(null);
+  const upstreamGraphSeenRef = useRef(false);
 
   const d = (data as any) || {};
   const kind: MaterialSetKind | null = isMaterialSetKind(d.materialSetKind) ? d.materialSetKind : null;
@@ -145,16 +139,36 @@ const MaterialSetNode = ({ id, data, selected }: NodeProps) => {
     update(materialSetItemsToData(nextKind, nextItems));
   };
 
+  useEffect(() => {
+    if (!kind || !d.materialSetSyncUpstream || readOnly) return;
+    // Wait until the current graph snapshot is present, including its sources.
+    // Cancel the pending reconciliation if hydration/connection data changes.
+    const frame = window.requestAnimationFrame(() => {
+      const incoming = rf.getEdges().filter((edge) => edge.target === id);
+      if (hasUpstreamFeedbackCycle(id, rf.getEdges(), rf.getNodes())) return;
+      if (incoming.some((edge) => !rf.getNode(edge.source))) return;
+      if (incoming.length) upstreamGraphSeenRef.current = true;
+      if (!incoming.length && !upstreamGraphSeenRef.current) return;
+      const next = syncMaterialSetUpstream(items, upstreamCandidate?.list || [], {
+        excluded: Array.isArray(d.materialSetExcludedUpstream) ? d.materialSetExcludedUpstream : [],
+      });
+      if (JSON.stringify(next) !== JSON.stringify(items)) commitItems(kind, next);
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [kind, items, upstreamCandidate, d.materialSetSyncUpstream, d.materialSetExcludedUpstream, readOnly, rf, id, update]);
+
   const switchKind = (nextKind: MaterialSetKind) => {
     if (nextKind === kind) return;
     if (items.length > 0 && !window.confirm('切换素材集类型会清空当前素材，确定继续？')) return;
     commitItems(nextKind, []);
+    update({ materialSetSyncUpstream: false, materialSetExcludedUpstream: [] });
   };
 
   const clearAll = () => {
     if (items.length > 0 && !window.confirm('清空当前素材集？')) return;
     if (kind) commitItems(kind, []);
     else update({ materialSetKind: null, materialSetItems: [] });
+    update({ materialSetSyncUpstream: false, materialSetExcludedUpstream: [] });
   };
 
   const setSortDragState = (next: typeof sortDrag) => {
@@ -255,6 +269,8 @@ const MaterialSetNode = ({ id, data, selected }: NodeProps) => {
 
   const removeItem = (itemId: string) => {
     if (!kind) return;
+    const source = items.find((item) => item.id === itemId)?.upstreamSource;
+    if (source) update({ materialSetExcludedUpstream: [...new Set([...(Array.isArray(d.materialSetExcludedUpstream) ? d.materialSetExcludedUpstream : []), materialSetUpstreamKey(source)])] });
     commitItems(kind, items.filter((item) => item.id !== itemId));
   };
 
@@ -301,7 +317,7 @@ const MaterialSetNode = ({ id, data, selected }: NodeProps) => {
         if (!backup) throw new Error('不是有效的素材集 JSON');
         if (items.length > 0 && !window.confirm('导入素材集会覆盖当前内容，确定继续？')) return;
         commitItems(backup.materialSetKind, backup.materialSetItems);
-        update({ materialMoodboard: backup.materialMoodboard || null });
+        update({ materialMoodboard: backup.materialMoodboard || null, materialSetSyncUpstream: false, materialSetExcludedUpstream: [] });
         setError(null);
       } catch (err: any) {
         setError(err?.message || '素材集 JSON 导入失败');
@@ -381,26 +397,25 @@ const MaterialSetNode = ({ id, data, selected }: NodeProps) => {
   };
 
   const collectUpstream = () => {
-    if (!upstreamCandidate || upstreamCandidate.list.length === 0) {
+    if (readOnly) return;
+    if (hasUpstreamFeedbackCycle(id, rf.getEdges(), rf.getNodes())) { setError(t('materialSet.cycle')); return; }
+    if (!upstreamCandidate) {
       setError('没有可收集的同类型上游素材');
       return;
     }
     const nextKind = upstreamCandidate.kind;
     const existing = kind === nextKind ? items : [];
-    const seen = new Set(existing.map((item) => `${item.kind}:${valueOfMaterialSetItem(item)}`));
-    const appended = upstreamCandidate.list
-      .filter((m) => {
-        const key = `${m.kind}:${m.url}`;
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
-      })
-      .map(materialSetItemFromUpstream);
-    if (appended.length === 0) {
-      setError('上游素材已在素材集中');
-      return;
-    }
-    commitItems(nextKind, [...existing, ...appended]);
+    commitItems(nextKind, syncMaterialSetUpstream(existing, upstreamCandidate.list, { adoptLegacy: true }));
+    update({ materialSetSyncUpstream: true, materialSetExcludedUpstream: [] });
+    setError(null);
+  };
+
+  const rebuildFromUpstream = () => {
+    if (!upstreamCandidate || readOnly) return;
+    if (hasUpstreamFeedbackCycle(id, rf.getEdges(), rf.getNodes())) { setError(t('materialSet.cycle')); return; }
+    if (items.length && !window.confirm(t('materialSet.rebuildConfirm'))) return;
+    commitItems(upstreamCandidate.kind, syncMaterialSetUpstream([], upstreamCandidate.list));
+    update({ materialSetSyncUpstream: true, materialSetExcludedUpstream: [] });
     setError(null);
   };
 
@@ -597,16 +612,22 @@ const MaterialSetNode = ({ id, data, selected }: NodeProps) => {
           </div>
         )}
 
-        {upstreamCandidate && upstreamCandidate.list.length > 0 && (
+        {upstreamCandidate && (
+          <div className="flex gap-1">
           <button
             type="button"
-            className="t8-btn h-8 w-full gap-1.5 text-[12px]"
+            className="t8-btn h-8 flex-1 gap-1.5 text-[12px]"
             onClick={collectUpstream}
+            disabled={readOnly}
             title="把连入素材按当前上游顺序收集到素材集"
           >
             <ListPlus size={13} />
             收集上游 {KIND_LABEL[upstreamCandidate.kind]} ({upstreamCandidate.list.length})
           </button>
+          <button type="button" className="t8-btn nodrag h-8 px-2 text-[11px]" onClick={rebuildFromUpstream} disabled={readOnly} title={t('materialSet.rebuildConfirm')}>
+            {t('materialSet.rebuild')}
+          </button>
+          </div>
         )}
 
         <div className="space-y-1">

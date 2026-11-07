@@ -1,4 +1,6 @@
 export const creativeUxZh = {
+  directorImport: { import:'导入上游脚本', assign:'自动分配图片', hint:'按上游文本及分镜标题生成草稿；按素材名或 @imageN 分配图片，已有脚本和结果保留，不提交视频任务。', result:'新增 {{count}} 个分镜，已分配 {{images}} 张参考图。', assigned:'已分配 {{count}} 张参考图。', review:'重名或未找到的引用需手动确认：{{items}}', invalidDuration:'以下脚本时长不符合当前分镜 {{min}}–{{max}} 秒范围（必须整秒），请调整后重试：{{items}}' },
+  materialSet: { rebuild: '按上游重建', rebuildConfirm: '用当前上游素材替换全部内容（包含旧版无来源记录和手动加入的素材），确定继续？', cycle: '素材集与上游存在反馈回路。请将素材集移出其上游组，或断开回接连线后再收集。' },
   story: { linkedDraftHint: '关联编辑器是独立草稿，不会被后续 Story 运行覆盖。当前结果有变化时，可新建草稿；不重新生成视频。', openLinkedDirector: '打开分镜草稿', openLinkedVideo: '打开剪辑草稿', newLinkedDraft: '从当前结果新建草稿' },
   world: { title: '3D世界', loading: '正在载入Gaussian场景…', notReady: '请先打开并载入场景', localOnly: '请先将场景文件导入本地画布，再打开浏览。',
     httpError: '场景读取失败（HTTP {{status}}）', navigate: '3D世界：拖动环绕，右键平移，WASD移动，Q/E升降，Shift加速',
@@ -27,6 +29,8 @@ export const creativeUxZh = {
   },
 };
 export const creativeUxEn = {
+  directorImport: { import:'Import upstream scripts', assign:'Assign images', hint:'Create drafts from upstream text and shot headings; assign images by name or @imageN. Existing scripts/results are preserved. No video task is submitted.', result:'Added {{count}} shots with {{images}} reference images.', assigned:'Assigned {{count}} reference images.', review:'Review ambiguous or missing references: {{items}}', invalidDuration:'These scripts do not fit the current {{min}}–{{max}} second shot range (whole seconds required). Adjust them and retry: {{items}}' },
+  materialSet: { rebuild: 'Rebuild from inputs', rebuildConfirm: 'Replace all contents with current upstream materials, including legacy items without source records and manually added items. Continue?', cycle: 'The collection has an upstream feedback loop. Move it outside its upstream group or remove the feedback connection before collecting.' },
   story: { linkedDraftHint: 'Linked editors are independent drafts, preserved across later Story runs. Create a new draft to use the latest results without regenerating videos.', openLinkedDirector: 'Open Director draft', openLinkedVideo: 'Open editing draft', newLinkedDraft: 'New draft from current results' },
   world: { title: '3D World', loading: 'Loading Gaussian scene…', notReady: 'Open and load a scene first', localOnly: 'Import the scene into the local canvas before opening it.',
     httpError: 'Could not read scene (HTTP {{status}})', navigate: '3D world: drag to orbit, right-drag to pan, WASD to move, Q/E for height, Shift for speed',

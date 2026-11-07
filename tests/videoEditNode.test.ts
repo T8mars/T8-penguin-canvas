@@ -453,7 +453,7 @@ test('video edit import cleanup can sort clips and trim every clip to the first 
   assert.match(videoEdit, /trimVideoEditClipsToFirstSeconds/);
   assert.match(node, /排序/);
   assert.match(node, /trimClipsToDefaultDuration/);
-  assert.match(node, /sortVideoEditClipsByName\(clips\)/);
+  assert.match(node, /onClick=\{sortClipsByName\}/);
   assert.match(node, /trimVideoEditClipsToFirstSeconds\(clips, settings\.defaultClipDuration/);
 });
 

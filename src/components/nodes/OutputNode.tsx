@@ -13,6 +13,9 @@ import { Box, Camera, MonitorPlay, Type as TypeIcon, Image as ImageIcon, Video a
 import { useCanvasNodeRenderMode } from '../CanvasNodeRenderMode';
 import { approveCanvasDialogNodes } from '../../utils/canvasDialogChanges';
 import { useUpdateNodeData } from './useUpdateNodeData';
+import MentionPromptInput from './MentionPromptInput';
+import { materialMentionKey, rebaseMediaMentions, resolveMediaMentions, type MediaMention } from './mediaMentions';
+import { useDownstreamMediaMaterials, useUpstreamMaterials, type Material } from './useUpstreamMaterials';
 import { motionAssetRefs, motionSlotVideos } from '../../utils/motionVideo';
 import { useThemeStore } from '../../stores/theme';
 import { logBus } from '../../stores/logs';
@@ -585,7 +588,20 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
   // 文本编辑
   const overrideText: string = typeof d.outputText === 'string' ? d.outputText : '';
   const liveText = collected.texts.join('\n\n──────\n\n');
-  const displayText = overrideText !== '' ? overrideText : liveText;
+  const mentionUpstream = useUpstreamMaterials(id);
+  const mentionDownstream = useDownstreamMediaMaterials(id);
+  const outputMentions: MediaMention[] = Array.isArray(d.outputPromptMentions) ? d.outputPromptMentions : [];
+  const mentionMaterials = useMemo(() => {
+    const own: Material[] = (['image', 'video', 'audio'] as const).flatMap((kind) => (
+      collected[`${kind}s` as 'images' | 'videos' | 'audios'].map((url) => ({id:`${id}:${kind}:${url}`,kind,url,sourceNodeId:id,origin:'local' as const,label:fileNameFromUrl(url)}))
+    ));
+    const unique = new Map<string, Material>();
+    [...mentionUpstream.images,...mentionUpstream.videos,...mentionUpstream.audios,...mentionDownstream,...own].forEach((material) => {
+      const key=materialMentionKey(material);if(!unique.has(key))unique.set(key,material);
+    });
+    return [...unique.values()];
+  }, [id, collected, mentionUpstream, mentionDownstream]);
+  const displayText = overrideText !== '' ? resolveMediaMentions(overrideText, outputMentions, mentionMaterials) : liveText;
   const mediaPromptByUrl = useMemo(() => {
     const map = new Map<string, { prompt: string; negative: string }>();
     const clean = (value: any) => (typeof value === 'string' ? value.trim() : '');
@@ -646,22 +662,24 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
 
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState('');
-  const taRef = useRef<HTMLTextAreaElement>(null);
+  const [draftMentions, setDraftMentions] = useState<MediaMention[]>([]);
+  const taRef = useRef<HTMLDivElement>(null);
 
   const enterEdit = () => {
-    setDraft(displayText);
+    setDraft(overrideText || liveText);
+    setDraftMentions(overrideText ? outputMentions : []);
     setEditing(true);
     setTimeout(() => taRef.current?.focus(), 30);
   };
   const saveEdit = () => {
-    update({ outputText: draft });
+    update({ outputText: draft, outputPromptMentions: draftMentions });
     setEditing(false);
   };
   const cancelEdit = () => {
     setEditing(false);
   };
   const restoreLive = () => {
-    update({ outputText: '' });
+    update({ outputText: '', outputPromptMentions: [] });
     setEditing(false);
   };
   const handleTranslationRecord = useCallback(
@@ -670,10 +688,10 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
   );
   const handleTranslated = useCallback(
     (translatedText: string, record: SmartTranslationRecord) => {
-      update({ outputText: translatedText, smartTranslation: record });
+      update({ outputText: translatedText, outputPromptMentions: rebaseMediaMentions(translatedText, outputMentions), smartTranslation: record });
       setEditing(false);
     },
-    [update],
+    [update, outputMentions],
   );
 
   const isEdited = overrideText !== '' && overrideText !== liveText;
@@ -1215,6 +1233,7 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
       prompt: passText,
       text: passText,
       reply: passText,
+      promptResolved: passText,
       imageUrl: publishedImageUrls[0] || '',
       imageUrls: publishedImageUrls.slice(),
       urls: publishedImageUrls.slice(),
@@ -1224,13 +1243,14 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
       audioUrl_1: collected.audios[1] || '', // 透传 Suno 双轨副轨避免串联丢失
       modelUrl: collected.models[0] || '',
       modelUrls: collected.models.slice(),
-      textSegments: hasNonText ? [] : collected.texts.slice(),
-      segments: hasNonText ? [] : collected.texts.slice(),
+      textSegments: hasNonText ? [] : overrideText !== '' ? [displayText] : collected.texts.slice(),
+      segments: hasNonText ? [] : overrideText !== '' ? [displayText] : collected.texts.slice(),
     };
     const cur: any = {
       prompt: d.prompt || '',
       text: d.text || '',
       reply: d.reply || '',
+      promptResolved: d.promptResolved || '',
       imageUrl: d.imageUrl || '',
       imageUrls: Array.isArray(d.imageUrls) ? d.imageUrls : [],
       urls: Array.isArray(d.urls) ? d.urls : [],
@@ -1246,6 +1266,7 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
       cur.prompt !== next.prompt ||
       cur.text !== next.text ||
       cur.reply !== next.reply ||
+      cur.promptResolved !== next.promptResolved ||
       cur.imageUrl !== next.imageUrl ||
       cur.videoUrl !== next.videoUrl ||
       cur.audioUrl !== next.audioUrl ||
@@ -1258,7 +1279,7 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
       JSON.stringify(cur.segments) !== JSON.stringify(next.segments);
     if (changed || JSON.stringify(d.motionAssetRefs || []) !== JSON.stringify(motionRefs)) update(next);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [displayText, collected, publishedImageUrls, upstreamNodes, handleMap]);
+   }, [displayText, overrideText, collected, publishedImageUrls, upstreamNodes, handleMap]);
 
   // === v1.2.10.2: 自动保存到本地路径 ===
   // 设计要点:
@@ -1613,22 +1634,24 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
                 {displayText || <span className="opacity-50">{t('common:empty')}</span>}
               </div>
             ) : (
-              <div className="space-y-1">
-                <textarea
-                  ref={taRef}
+              <div className="space-y-1" onKeyDown={(event) => {
+                if (event.key === 'Escape' && !event.nativeEvent.isComposing) { event.stopPropagation(); cancelEdit(); }
+              }}>
+                <MentionPromptInput
+                  editorRef={taRef}
                   value={draft}
-                  onChange={(e) => setDraft(e.target.value)}
-                  spellCheck={false}
-                  rows={6}
+                  mentions={draftMentions}
+                  materials={mentionMaterials}
+                  onChange={(value, mentions) => { setDraft(value); setDraftMentions(mentions); }}
+                  isDark={isDark}
+                  isPixel={activeTemplate.visuals?.style === 'pixel'}
+                  promptTemplateKind={false}
+                  onSubmit={(value, mentions) => { update({outputText:value,outputPromptMentions:mentions});setEditing(false); }}
                   className={`w-full rounded px-2 py-1.5 text-[12px] outline-none nodrag nowheel ${
                     isDark
                       ? 'bg-black/40 text-white border border-teal-400/40'
                       : 'bg-white text-zinc-900 border border-teal-500/50'
                   }`}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Escape') cancelEdit();
-                    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) saveEdit();
-                  }}
                 />
                 <div className="flex gap-1.5 justify-end">
                   <button

@@ -1,6 +1,6 @@
 # 当前项目上下文
 
-更新：2026-11-07。仅维护当前事实；长期规则见根 `SKILL.md` 和 `AGENTS.md`。预算80行/8 KiB，历史见专题。
+更新：2026-11-08。仅维护当前事实；长期规则见根 `SKILL.md` 和 `AGENTS.md`。预算80行/8 KiB，历史见专题。
 
 - 默认目录 `E:\PenguinPravite\T8-penguin-canvas`；branch `codex/release-v3.0.8-volcengine-assets-ux`，common dir `.git`。开工以git/worktree门为准；正式源码/Tag固定后记录在发布专题，不移动。
 - package `3.4.9` 双平台已发，详见[专题](release-v3.4.9.md)；旧v3.4.8 Tag/六资产冻结。
@@ -12,14 +12,15 @@
 
 | 事项 | 当前事实与下一步 |
 | --- | --- |
+| 本轮用户反馈 | 五项开发修复已验证、待发布；213回归及真实组件画布交互/本地成片通过，边界见[专题](user-feedback-20261108.md)。 |
 | G2.6/Krea/Z-image/3D | Meshy文生v3.4.8已发；LowPrice十图实测通过、v3.4.9已发，见[专题](g26-krea-hitem-meshy.md)。 |
 | HY/Muse/Flux | 七模型、十一工作流及Motion复验，v3.4.6已发；验证见[专题](preview-muse-flux.md)。 |
 | Kling4 | 既有视频Kling新增五模型，v3.4.5已发；六条实网、133回归及临时完整画布通过，见[专题](kling-v4.md)。 |
 | 代码动画 | P0已开发；标准/Pro、修订版本/分镜/恢复及四工作流见[验收](motion-video-development.md)。已随v3.4.4双平台发布，现场证据后补。 |
 | DSH工具配套 | v3.3.9[工具修复](agent-tools-installed-cli-compat.md)已发布。只读[活动定位](agent-active-context.md)随v3.4.0发布；真人配对/安装现场后补。 |
 | 画布保存冲突 | 已随v3.3.6双平台发布：有界合并与冲突确认，两次20主题复查；215回归、隔离画布25项通过。旧确认/加载不回退、目录不复活、医生移动协议修正。CAS不放宽，现场/安装版后补，见[专题](canvas-save-conflict-20261019.md)。 |
-| Strata本地LLM | 已随v3.3.5双平台发布：两轮20轮审查修8项，315回归及最新隔离画布16项通过。前轮真实识图通过，本轮冷启动上游503未通过；用户要求服务先不动。范围/未验收见[专题](strata-llm.md)。 |
-| ArtCraft体验增强 | 已随v3.3.4双平台发布：灵感板/编辑版本/独立世界节点/Story草稿；完整App实链、28主题组合、142项及正式构建通过。排除/搁置项见[专题](artcraft-canvas-ux.md)。 |
+| Strata本地LLM | v3.3.5已发；315回归及隔离画布16项通过，冷启503未通过，用户要求服务先不动。其余证据/边界见[专题](strata-llm.md)。 |
+| ArtCraft体验增强 | v3.3.4双平台已发；完整App实链、28主题和142项验证通过，功能与搁置项见[专题](artcraft-canvas-ux.md)。 |
 | 节点清晰度 / 平价香蕉低价 / 豆包 | v3.3.4已发布；实网8/8解码、14主题672组样式/控件及相关回归通过。安装版/用户GPU未验，模型与工作流见[专题](nb-lowprice-doubao.md)。 |
 | Moss / Mai / Topaz | Moss随v3.4.2发布；实网文生/编辑解码通过，另有805失败保留；见[Moss](moss-image.md)。已发布[Mai](mai-image.md)/[Topaz](topaz-video-upscale.md)实网解码通过，完整UI/安装版未验。 |
 | 平价香蕉2.1 / Flux / Vidu Q4 | v3.3.1已发布；八条实网解码、159回归，见[专题](nb21-flux-viduq4.md)，安装/UI边界保留。 |

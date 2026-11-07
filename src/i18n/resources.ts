@@ -352,7 +352,7 @@ export const zhCN = {
       },
     },
     text: {
-      title: '文本', promptTitle: '文本节点 Prompt', placeholder: '输入提示词...', downstream: '输出到下游节点',
+      title: '文本', promptTitle: '文本节点 Prompt', placeholder: '输入提示词...', downstream: '输出到下游节点', useUpstream: '使用上游文本（编辑后切换为本地）', inputCycle:'上游存在反馈回路，当前保留本地文本；请移出上游组或断开回接连线。',
       characters: '{{count}} 字符', offscreen: '{{count}} 字符 · 高性能离屏预览', rhSequence: 'RH 节点序号',
       rhHint: '可选：填 RH 应用 nodeInfoList 里的节点序号，下游 RH 节点会按这个 RH# 自动绑定文本参数',
     },
@@ -1012,7 +1012,7 @@ export const enUS = {
       },
     },
     text: {
-      title: 'Text', promptTitle: 'Text node prompt', placeholder: 'Enter a prompt...', downstream: 'Output to downstream nodes',
+      title: 'Text', promptTitle: 'Text node prompt', placeholder: 'Enter a prompt...', downstream: 'Output to downstream nodes', useUpstream: 'Use upstream text (editing switches to local)', inputCycle:'An upstream feedback loop was detected. Local text is preserved; move outside the upstream group or remove its feedback connection.',
       characters: '{{count}} characters', offscreen: '{{count}} characters · offscreen performance preview', rhSequence: 'RH node sequence',
       rhHint: 'Optional: enter the node sequence from the RH app nodeInfoList so downstream RH nodes can bind this text by RH#.',
     },

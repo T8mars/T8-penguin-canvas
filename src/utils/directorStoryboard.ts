@@ -34,6 +34,8 @@ export interface DirectorStoryboardShot {
   title: string;
   durationSec: number;
   prompt: string;
+  useUpstreamPrompt?: boolean;
+  automaticImageBindings?: Array<{url:string;label:string}>;
   negativePrompt?: string;
   promptMentions?: MediaMention[];
   frameMode: DirectorStoryboardFrameMode;
@@ -57,6 +59,8 @@ export interface DirectorStoryboardInputShot {
   title?: string;
   durationSec?: number;
   prompt?: string;
+  useUpstreamPrompt?: boolean;
+  automaticImageBindings?: Array<{url:string;label:string}>;
   negativePrompt?: string;
   promptMentions?: MediaMention[];
   frameMode?: DirectorStoryboardFrameMode;
@@ -77,7 +81,7 @@ export interface DirectorStoryboardInputShot {
 
 export type DirectorStoryboardShotInputPatch = Pick<
   DirectorStoryboardShot,
-  'prompt' | 'negativePrompt' | 'promptMentions' | 'frameMode' | 'localRefImages' | 'localRefVideos' | 'localRefAudios' | 'localRefOrder'
+  'prompt' | 'negativePrompt' | 'promptMentions' | 'frameMode' | 'localRefImages' | 'localRefVideos' | 'localRefAudios' | 'localRefOrder' | 'useUpstreamPrompt' | 'automaticImageBindings'
 >;
 
 export interface DirectorStoryboardBridge {
@@ -533,6 +537,8 @@ export function sanitizeDirectorStoryboardShots(input: DirectorStoryboardInputSh
       title,
       durationSec: sanitizeDurationSec(shot.durationSec),
       prompt: normalizeString(shot.prompt),
+      ...(shot.useUpstreamPrompt === false ? {useUpstreamPrompt:false} : {}),
+      ...(Array.isArray(shot.automaticImageBindings) && shot.automaticImageBindings.length ? {automaticImageBindings:shot.automaticImageBindings.filter(binding=>binding&&typeof binding.url==='string'&&refs.images.includes(binding.url)&&typeof binding.label==='string'&&binding.label.trim()).map(binding=>({url:binding.url,label:binding.label.trim().slice(0,80)}))} : {}),
       negativePrompt: normalizeString(shot.negativePrompt),
       promptMentions: Array.isArray(shot.promptMentions) ? shot.promptMentions : [],
       frameMode: sanitizeFrameMode(shot.frameMode),
@@ -575,6 +581,8 @@ export function buildDirectorStoryboardReferenceOrder(shot: Pick<DirectorStorybo
 export function buildDirectorStoryboardShotInputPatch(source: DirectorStoryboardShot): DirectorStoryboardShotInputPatch {
   return {
     prompt: normalizeString(source.prompt),
+    ...(source.useUpstreamPrompt === false ? {useUpstreamPrompt:false} : {}),
+    ...(source.automaticImageBindings?.length ? {automaticImageBindings:source.automaticImageBindings.map(binding=>({...binding}))} : {}),
     negativePrompt: normalizeString(source.negativePrompt),
     promptMentions: Array.isArray(source.promptMentions)
       ? source.promptMentions.map((mention) => ({ ...mention }))
@@ -777,8 +785,16 @@ export function buildDirectorShotSeedancePayload(
   const mentionMaterials = context.mentionMaterials || [];
   const { images, videos, audios } = collectDirectorShotSeedanceMedia(shot, context);
 
-  const localPrompt = resolveShotPrompt(shot.prompt, shot.promptMentions, mentionMaterials).trim();
-  const prompt = [context.upstreamPrompt, localPrompt].map((item) => normalizeString(item)).filter(Boolean).join('\n\n');
+  const payloadMentionMaterials = mentionMaterials.map(material => {
+    const urls = material.kind === 'image' ? images : material.kind === 'video' ? videos : material.kind === 'audio' ? audios : [];
+    const index = urls.indexOf(material.url);
+    return index >= 0 ? {...material,mentionToken:`@${TOKEN_PREFIX[material.kind]}${index+1}`} : material;
+  });
+  const localPrompt = resolveShotPrompt(shot.prompt, shot.promptMentions, payloadMentionMaterials).trim();
+  const bindingNote = (shot.automaticImageBindings || []).flatMap(binding=>{
+    const index=images.indexOf(binding.url);return index>=0?[`${binding.label}=@image${index+1}`]:[];
+  }).join('；');
+  const prompt = [shot.useUpstreamPrompt === false ? '' : context.upstreamPrompt, localPrompt, bindingNote ? `参考素材：${bindingNote}` : ''].map((item) => normalizeString(item)).filter(Boolean).join('\n\n');
   const payload: SeedanceSubmitRequest = {
     model: shot.modelOverride || settings.model,
     taskProvider: settings.taskProvider,
