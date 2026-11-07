@@ -12,7 +12,7 @@ My favorite girl Go YounJung
 
 > AI 节点画布工作流工具 · Web + Electron 桌面端｜v3.4.9
 >
-> 2026-11-07：v3.4.9已获发布授权：G2.6 LowPrice参考图上限同步为10张，界面、前后端和Agent目录共用合同；真实十图完整出图及17项限定回归通过。见[功能说明](docs/g26-krea-hitem-meshy.md)、[发布进度](docs/release-v3.4.9.md)。
+> 2026-11-07：v3.4.9已发布Windows/macOS版：G2.6 LowPrice参考图上限同步为10张，界面、前后端和Agent目录共用合同；真实十图完整出图及17项限定回归通过。见[功能说明](docs/g26-krea-hitem-meshy.md)、[发布记录](docs/release-v3.4.9.md)。
 
 > 2026-11-06：v3.4.8已发布Windows/macOS版：既有3D节点的Meshy Tab恢复文生模型，支持写实／雕塑和提示词扩写；真实GLB、完整临时画布与113项回归通过，新增一份无凭据工作流。见[功能说明](docs/meshy-text-3d.md)、[发布记录](docs/release-v3.4.8.md)。
 

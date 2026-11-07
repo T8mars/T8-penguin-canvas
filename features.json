@@ -3455,15 +3455,58 @@
     ]
   },
   "release": {
-    "status": "authorized-v3.4.9-pending-build",
+    "status": "released-v3.4.9-dual-platform-verified",
     "version": "3.4.9",
     "tag": "v3.4.9",
-    "latest": false,
+    "latest": true,
     "date": "2026-11-07",
     "details": "docs/release-v3.4.9.md",
     "evidence": "docs/release-v3.4.9.md",
     "postReleaseEvidence": "owner-approved-post-release-v3.4.9",
-    "macBoundary": "same-tag-ad-hoc-preview; defer-only-if-actual-quota-insufficient"
+    "macBoundary": "same-tag-ad-hoc-preview; no-quota-deferral-used",
+    "sourceCommit": "709012e987da4cf992feec6bd83c9d3fe836591b",
+    "publishedAt": "2026-11-07T07:12:42Z",
+    "draft": false,
+    "prerelease": false,
+    "macWorkflow": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/42350381819",
+    "macAttempt": 1,
+    "macWorkflowConclusion": "success",
+    "verification": [
+      "Windows/Mac packages, encrypted ten-reference contract/upload probe and both updater manifests verified; complete downloads passed. Details: docs/release-v3.4.9.md.",
+      "Previous v3.4.8 Tag/six assets and Windows assets during Mac append unchanged. Installed-user/F8–F10 remain deferred."
+    ],
+    "assets": {
+      "windowsInstaller": {
+        "name": "T8-PenguinCanvas-Setup-3.4.9.exe",
+        "bytes": 1379942051,
+        "sha256": "be3f64af0eb4cacac638a5da54f512af42c61d7fa92114cfafbd67ae862fad8e"
+      },
+      "windowsBlockmap": {
+        "name": "T8-PenguinCanvas-Setup-3.4.9.exe.blockmap",
+        "bytes": 1439395,
+        "sha256": "43f9b76cca07752bdc7bad949fb8796a51065cbdd0b4c76c8c227870b9035c6b"
+      },
+      "windowsUpdater": {
+        "name": "latest.yml",
+        "bytes": 362,
+        "sha256": "0bb7b06ae82bb3d991c8d6b745596973a0e6f32521bd229ec915aa3d6de71120"
+      },
+      "macDmg": {
+        "name": "T8-PenguinCanvas-3.4.9-mac-arm64.dmg",
+        "bytes": 519623303,
+        "sha256": "7e85ad3e74d8aa3157b026e19c4657cd9a9398af4cbb50a4eebef2efc0e08860"
+      },
+      "macZip": {
+        "name": "T8-PenguinCanvas-3.4.9-mac-arm64.zip",
+        "bytes": 511444564,
+        "sha256": "42cb046ec60f5551fe41a421e90cb457d5e8f5ceeaf81b9b8e4022e8289bf7ee"
+      },
+      "macUpdater": {
+        "name": "latest-mac.yml",
+        "bytes": 536,
+        "sha256": "336b2f7a8253be6851816bfdf6eb0a9b4f748cf26cf02d194e06e38c3b317d10"
+      }
+    }
   },
   "minimaxMusic3PromptEnhancer": {
     "status": "released-v2.9.3",
@@ -10802,8 +10845,8 @@
     "version": "3.4.9",
     "semverVersion": "3.4.9",
     "versionNumberPolicy": "T8 版本号仍采用 x.y.z 三段，但每一段只允许 0-9；任一段到 9 后下一次发布必须向左进位，禁止任一段出现两位数字。例：1.9.9 的下一版必须是 2.0.0。",
-    "versionNote": "v3.4.9 LowPrice十图已获打包发布授权，见docs/release-v3.4.9.md。",
-    "installer": "T8-PenguinCanvas-Setup-3.4.9.exe；待唯一正式构建与完整回下载。",
+    "versionNote": "v3.4.9 LowPrice十图双平台已发布，见docs/release-v3.4.9.md。",
+    "installer": "T8-PenguinCanvas-Setup-3.4.9.exe；唯一正式安装包与完整回下载通过。",
     "updaterInstallMode": "自动更新下载完成后不得静默安装：main.cjs 必须设置 autoInstallOnAppQuit=false，显式安装调用 quitAndInstall(false,true)；electron/build-resources/installer.nsh 通过 SetSilent normal 让新版 NSIS 安装器即使收到旧客户端传入的 /S 也尽量切回前台安装向导。",
     "installerShortcutPolicy": "安装完成后必须创建桌面和开始菜单快捷方式：package.json build.nsis.createDesktopShortcut 必须为 \"always\"，createStartMenuShortcut 必须为 true；electron/build-resources/installer.nsh 必须保留 customInstall 兜底 CreateShortCut \"$newStartMenuLink\" 与 \"$DESKTOP\\${SHORTCUT_NAME}.lnk\"，防止更新安装/keepShortcuts 路径遗漏入口。",
     "updaterEntryPolicy": "顶栏桌面更新入口不得只因 window.t8pc.updater 缺失就静默消失；Electron UA 或 t8pc.getInfo/openExternal 可用时必须显示诊断入口，提示重新安装完整桌面包，Web/纯浏览器环境才隐藏。状态为 not-available 时按钮仍保留“更新”字样，避免用户误以为自动更新入口被删除。",
@@ -17538,7 +17581,7 @@
     }
   },
   "g26LowpriceTenReferences20261107": {
-    "status": "authorized-v3.4.9-pending-release",
+    "status": "released-v3.4.9",
     "description": "G2.6 LowPrice参考图上限同步为10；实网十图完整出图，前后端/界面/Agent目录共用上限。",
     "documentation": "docs/g26-krea-hitem-meshy.md",
     "model": "zhenzhen-image-g-v2.6-lowprice",
@@ -17548,14 +17591,15 @@
     "releaseAuthorization": true
   },
   "electronReleaseV349": {
-    "status": "authorized-v3.4.9-pending-build",
+    "status": "released-v3.4.9-dual-platform-verified",
     "version": "3.4.9",
     "tag": "v3.4.9",
-    "latest": false,
+    "latest": true,
     "date": "2026-11-07",
     "details": "docs/release-v3.4.9.md",
     "evidence": "docs/release-v3.4.9.md",
     "postReleaseEvidence": "owner-approved-post-release-v3.4.9",
-    "macBoundary": "same-tag-ad-hoc-preview; defer-only-if-actual-quota-insufficient"
+    "macBoundary": "same-tag-ad-hoc-preview; no-quota-deferral-used",
+    "sourceCommit": "709012e987da4cf992feec6bd83c9d3fe836591b"
   }
 }

@@ -3,7 +3,7 @@
 更新：2026-11-07。仅维护当前事实；长期规则见根 `SKILL.md` 和 `AGENTS.md`。预算80行/8 KiB，历史见专题。
 
 - 默认目录 `E:\PenguinPravite\T8-penguin-canvas`；branch `codex/release-v3.0.8-volcengine-assets-ux`，common dir `.git`。开工以git/worktree门为准；正式源码/Tag固定后记录在发布专题，不移动。
-- package `3.4.9` 已授权发布，进度见[专题](release-v3.4.9.md)；旧v3.4.8 Tag/六资产冻结。
+- package `3.4.9` 双平台已发，详见[专题](release-v3.4.9.md)；旧v3.4.8 Tag/六资产冻结。
 - 本版现场/安装升级/F8–F10按 `owner-approved-post-release-v3.4.9` 后补；Mac为ad-hoc未公证预览，仅额度不足可延期。
 
 ## 当前检查点
@@ -12,7 +12,7 @@
 
 | 事项 | 当前事实与下一步 |
 | --- | --- |
-| G2.6/Krea/Z-image/3D | Meshy文生v3.4.8已发；LowPrice十图实测通过、v3.4.9待发，见[专题](g26-krea-hitem-meshy.md)。 |
+| G2.6/Krea/Z-image/3D | Meshy文生v3.4.8已发；LowPrice十图实测通过、v3.4.9已发，见[专题](g26-krea-hitem-meshy.md)。 |
 | HY/Muse/Flux | 七模型、十一工作流及Motion复验，v3.4.6已发；验证见[专题](preview-muse-flux.md)。 |
 | Kling4 | 既有视频Kling新增五模型，v3.4.5已发；六条实网、133回归及临时完整画布通过，见[专题](kling-v4.md)。 |
 | 代码动画 | P0已开发；标准/Pro、修订版本/分镜/恢复及四工作流见[验收](motion-video-development.md)。已随v3.4.4双平台发布，现场证据后补。 |
