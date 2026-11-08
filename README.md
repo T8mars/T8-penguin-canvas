@@ -12,7 +12,7 @@ My favorite girl Go YounJung
 
 > AI 节点画布工作流工具 · Web + Electron 桌面端｜v3.5.0
 >
-> 2026-11-08：v3.5.0已获发布授权：修复视频排序、素材集同步、文本素材引用和独立输出拖动，增加分镜脚本/图片批量导入；图像模型分类改下拉、Kling4分组、新建七核心节点默认平价且保留旧配置；G2.6新增高清，接入Kling4 Flash及Omni1.2。见[发布进度](docs/release-v3.5.0.md)。
+> 2026-11-08：v3.5.0已发布Windows/macOS版：修复视频排序、素材集同步、文本素材引用和独立输出拖动，增加分镜脚本/图片批量导入；图像模型分类改下拉、Kling4分组、新建七核心节点默认平价且保留旧配置；G2.6新增高清，接入Kling4 Flash及Omni1.2。见[发布记录](docs/release-v3.5.0.md)。
 
 > 2026-11-07：v3.4.9已发布Windows/macOS版：G2.6 LowPrice参考图上限同步为10张，界面、前后端和Agent目录共用合同；真实十图完整出图及17项限定回归通过。见[功能说明](docs/g26-krea-hitem-meshy.md)、[发布记录](docs/release-v3.4.9.md)。
 

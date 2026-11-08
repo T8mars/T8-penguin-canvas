@@ -3455,15 +3455,58 @@
     ]
   },
   "release": {
-    "status": "authorized-v3.5.0-pending-build",
+    "status": "released-v3.5.0-dual-platform-verified",
     "version": "3.5.0",
     "tag": "v3.5.0",
-    "latest": false,
+    "latest": true,
     "date": "2026-11-08",
     "details": "docs/release-v3.5.0.md",
     "evidence": "docs/release-v3.5.0.md",
     "postReleaseEvidence": "owner-approved-post-release-v3.5.0",
-    "macBoundary": "same-tag-ad-hoc-preview; defer-only-if-actual-quota-insufficient"
+    "macBoundary": "same-tag-ad-hoc-preview; no-quota-deferral-used",
+    "sourceCommit": "e6aa414f6f9264cc7261cdbe8ac03ccdabe24725",
+    "publishedAt": "2026-11-08T03:58:47Z",
+    "draft": false,
+    "prerelease": false,
+    "macWorkflow": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/42444923201",
+    "macAttempt": 1,
+    "macWorkflowConclusion": "success",
+    "verification": [
+      "Windows/Mac packages, encrypted core defaults/LowPrice/Flash/Kling authority and fresh database lifecycle verified. Full downloads and both updater manifests passed; docs/release-v3.5.0.md.",
+      "Previous v3.4.9 Tag/six assets and Windows assets during Mac append unchanged. Installed-user/F8–F10 evidence remains deferred."
+    ],
+    "assets": {
+      "windowsInstaller": {
+        "name": "T8-PenguinCanvas-Setup-3.5.0.exe",
+        "bytes": 1379954122,
+        "sha256": "79506a5db9b796fa462dcbd92e053aaaba051f1e5890d1664b593d7b700d3cc1"
+      },
+      "windowsBlockmap": {
+        "name": "T8-PenguinCanvas-Setup-3.5.0.exe.blockmap",
+        "bytes": 1438983,
+        "sha256": "a871d5b65ff72e0f6ab6d51d8e3caa9aeeac30103fa0f0bea8e6cb2df9818ace"
+      },
+      "windowsUpdater": {
+        "name": "latest.yml",
+        "bytes": 362,
+        "sha256": "adc8e6e3f4938d8acad649b27786834161a668abbbfff90377298f02f94e7aa8"
+      },
+      "macDmg": {
+        "name": "T8-PenguinCanvas-3.5.0-mac-arm64.dmg",
+        "bytes": 519692526,
+        "sha256": "5b4a4c9e6997b475019dd1d871e20e00d74321599727d4276bfd95cb0bcb802e"
+      },
+      "macZip": {
+        "name": "T8-PenguinCanvas-3.5.0-mac-arm64.zip",
+        "bytes": 511458607,
+        "sha256": "8be707a69af823bdbe380f5e8da44860ee8c6be18c3e62bc5dc89e4bf1dead51"
+      },
+      "macUpdater": {
+        "name": "latest-mac.yml",
+        "bytes": 536,
+        "sha256": "6ccf607e25e0d6f2e2cdb6fb5edc7effb08a2bfa1240dec52858142e4ddf54a2"
+      }
+    }
   },
   "minimaxMusic3PromptEnhancer": {
     "status": "released-v2.9.3",
@@ -10802,8 +10845,8 @@
     "version": "3.5.0",
     "semverVersion": "3.5.0",
     "versionNumberPolicy": "T8 版本号仍采用 x.y.z 三段，但每一段只允许 0-9；任一段到 9 后下一次发布必须向左进位，禁止任一段出现两位数字。例：1.9.9 的下一版必须是 2.0.0。",
-    "versionNote": "v3.5.0画布反馈与模型/默认来源更新已获发布授权，见docs/release-v3.5.0.md。",
-    "installer": "T8-PenguinCanvas-Setup-3.5.0.exe；待唯一正式构建与完整回下载。",
+    "versionNote": "v3.5.0画布与模型/默认来源更新双平台已发布，见docs/release-v3.5.0.md。",
+    "installer": "T8-PenguinCanvas-Setup-3.5.0.exe；唯一正式安装包与完整回下载通过。",
     "updaterInstallMode": "自动更新下载完成后不得静默安装：main.cjs 必须设置 autoInstallOnAppQuit=false，显式安装调用 quitAndInstall(false,true)；electron/build-resources/installer.nsh 通过 SetSilent normal 让新版 NSIS 安装器即使收到旧客户端传入的 /S 也尽量切回前台安装向导。",
     "installerShortcutPolicy": "安装完成后必须创建桌面和开始菜单快捷方式：package.json build.nsis.createDesktopShortcut 必须为 \"always\"，createStartMenuShortcut 必须为 true；electron/build-resources/installer.nsh 必须保留 customInstall 兜底 CreateShortCut \"$newStartMenuLink\" 与 \"$DESKTOP\\${SHORTCUT_NAME}.lnk\"，防止更新安装/keepShortcuts 路径遗漏入口。",
     "updaterEntryPolicy": "顶栏桌面更新入口不得只因 window.t8pc.updater 缺失就静默消失；Electron UA 或 t8pc.getInfo/openExternal 可用时必须显示诊断入口，提示重新安装完整桌面包，Web/纯浏览器环境才隐藏。状态为 not-available 时按钮仍保留“更新”字样，避免用户误以为自动更新入口被删除。",
@@ -17602,18 +17645,18 @@
     }
   },
   "canvasUserFeedback20261108": {
-    "status": "authorized-v3.5.0-pending-release",
+    "status": "released-v3.5.0",
     "date": "2026-11-08",
-    "published": false,
+    "published": true,
     "description": "视频剪辑真实排序、素材集来源同步、文本/输出@素材、独立输出拖动及导演脚本/图片批量导入已开发并验证。",
     "documentation": "docs/user-feedback-20261108.md",
     "regressionPassed": 213,
     "releaseVersion": "3.5.0"
   },
   "coreModelRefresh20261108": {
-    "status": "authorized-v3.5.0-pending-release",
+    "status": "released-v3.5.0",
     "date": "2026-11-08",
-    "published": false,
+    "published": true,
     "description": "图像分类下拉、Kling4分组与运行身份、新建七核心节点默认平价；G2.6高清与两个Flash视频模型已实网验证。",
     "documentation": "docs/core-model-refresh-20261108.md",
     "livePassed": 9,
@@ -17622,14 +17665,15 @@
     "releaseVersion": "3.5.0"
   },
   "electronReleaseV350": {
-    "status": "authorized-v3.5.0-pending-build",
+    "status": "released-v3.5.0-dual-platform-verified",
     "version": "3.5.0",
     "tag": "v3.5.0",
-    "latest": false,
+    "latest": true,
     "date": "2026-11-08",
     "details": "docs/release-v3.5.0.md",
     "evidence": "docs/release-v3.5.0.md",
     "postReleaseEvidence": "owner-approved-post-release-v3.5.0",
-    "macBoundary": "same-tag-ad-hoc-preview; defer-only-if-actual-quota-insufficient"
+    "macBoundary": "same-tag-ad-hoc-preview; no-quota-deferral-used",
+    "sourceCommit": "e6aa414f6f9264cc7261cdbe8ac03ccdabe24725"
   }
 }
