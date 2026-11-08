@@ -129,6 +129,7 @@ const VIDEO_RUNTIME_MODELS = Object.freeze({
   ],
   'veo3.1': [
     'veo-omni-10s',
+    'zhenzhen-video-g-omni-1.2-flash-lowprice',
     'zhenzhen-video-g-omni-flash',
     'zhenzhen-video-v31-fast',
     'zhenzhen-video-v31-quality',
@@ -149,6 +150,9 @@ const VIDEO_RUNTIME_MODELS = Object.freeze({
     'veo3.1-fal',
   ],
   'sora-2': ['sora-2', 'sora-2-zhenzhen'],
+  'kling-v3.0': require('../shared/creativeModelCatalog.json').video
+    .filter(entry => entry.family === 'kling-v3.0' && entry.provider === 'seedance-nz')
+    .map(entry => entry.model),
   'wan-2.7-spicy': ['wan-2.7-spicy-i2v'],
   'happyhorse-1.1': ['happyhorse-1.1-t2v', 'happyhorse-1.1-i2v', 'happyhorse-1.1-r2v'],
   'seedance-2.0': ['seedance-2.0'],
@@ -185,6 +189,7 @@ const SEEDANCE_NZ_IMAGE_RUNTIME_MODELS = new Set([
   'qwen-image-global-2.1',
 ]);
 const SEEDANCE_NZ_VIDEO_RUNTIME_MODELS = new Set([
+  ...Object.keys(require('../shared/flashVideoContract.json').models),
   pmf.muse.videoModel,
   topazVideoContract.model,
   ...nb21FluxViduContract.viduQ4.models,
@@ -446,7 +451,7 @@ function providerDeclarationForNode(node, context = {}) {
         : boundedString(data.videoBuiltinSource) === 'seedance-nz'
           || SEEDANCE_NZ_VIDEO_RUNTIME_MODELS.has(resolved.model)
           ? 'seedance-nz'
-        : (resolved.familyId === 'wan-2.7-spicy' || resolved.familyId === 'happyhorse-1.1')
+        : (resolved.familyId === 'wan-2.7-spicy' || resolved.familyId === 'happyhorse-1.1' || resolved.familyId === 'kling-v3.0')
           ? 'seedance-nz'
           : 'zhenzhen',
       model: resolved.model,

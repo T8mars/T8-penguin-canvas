@@ -5,7 +5,7 @@ const {submitOnce,safeError}=require('./verify-seedream-flash-live.cjs');
 const c=require('../backend/src/shared/g26Krea3dContract.json');
 const CASES=[
  {id:'g26-low-static',model:c.g26.models[0],refs:2},
- {id:'g26-low-gif-reference',model:c.g26.models[0],refs:1,mode:'gif'},
+ {id:'g26-low-gif-reference',model:c.g26.models[0],refs:0,mode:'gif'},
  ...c.g26.models.slice(1).flatMap((model,index)=>[
   {id:`g26-${index}-static`,model,refs:2,n:index?1:2},
   {id:`g26-${index}-gif`,model,mode:'gif'},

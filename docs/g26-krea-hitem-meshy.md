@@ -1,5 +1,7 @@
 # GPT Image 2.6、Z-image、Krea、Hitem3D 与 Meshy
 
+2026-11-08 开发更新：LowPrice静态1k/2k/4k、16参考图；GIF仅文生并明确发送格式/自动画幅。[最新合同与实测](core-model-refresh-20261108.md)取代下述旧版参数，不更改旧发布证据。
+
 2026-11-07：LowPrice的最新官方参考图上限已由2张改为10张。已同步界面、前后端及Agent目录；十张不同参考图真实提交、结果完整下载和解码通过，已随v3.4.9同源双平台发布，详见[发布专题](release-v3.4.9.md)；v3.4.8安装包仍是原2张限制。其他模型与参数不变，见下方本次复验。
 
 2026-11-06：十一款可用模型已开发，十六条实网路径、图像／3D画布分场与最终组合验证通过，已随v3.4.7同源双平台发布，详见[发布专题](release-v3.4.7.md)。依据[当前官方文档](https://api.seedance.nz/docs/llms.txt)与只读参考项目 `F:\AI-T8-video-onekey\ComfyUI\custom_nodes\ComfyUI_Seedance`；以更新后的官方合同为准。共享参数见 [g26Krea3dContract.json](../backend/src/shared/g26Krea3dContract.json)。

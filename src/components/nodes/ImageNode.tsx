@@ -751,7 +751,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
       ? 10
       : Math.max(8, modelDef.maxReferenceImages || 0)
     : isNewImageTab
-      ? apiModel === NEW_IMAGE_CONTRACT.g26.models[0] ? NEW_IMAGE_CONTRACT.g26.lowpriceMaxReferences
+      ? apiModel === NEW_IMAGE_CONTRACT.g26.models[0] ? (newImageSettings(apiModel,d || {}).g26Mode === 'image' ? NEW_IMAGE_CONTRACT.g26.lowpriceMaxReferences : 0)
         : NEW_IMAGE_CONTRACT.g26.models.includes(apiModel) ? (newImageSettings(apiModel,d || {}).g26Mode === 'image' ? 16 : 0)
         : apiModel === 'krea-v3-i2i' ? 8 : 0
     : isSeedreamLayerTab || isVosr2ImageTab
@@ -3240,12 +3240,15 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
             )}
         </div>
 
-        {/* 模型 TAB 切换(对应主项目 gpt-image-2-web Tab 0/1/2) */}
+        {/* 模型分类与视频节点保持一致，沿用既有来源过滤和切换逻辑。 */}
         {!isExternalSelected && <div>
-          <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.model')}</label>
-          <div
-            className={`flex flex-wrap gap-0.5 p-0.5 rounded ${isPixel ? '' : 'bg-white/5'}`}
-            style={isPixel ? { background: 'var(--px-muted)', border: '1.5px solid var(--px-ink)' } : undefined}
+          <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.modelType')}</label>
+          <select
+            aria-label={translate('nodes:generation.modelType')}
+            data-image-model-family
+            value={modelDef.id}
+            onChange={(event) => switchModel(event.currentTarget.value)}
+            className="nodrag nopan nowheel w-full rounded bg-white/5 border border-white/10 px-2 py-1 text-xs text-white outline-none focus:border-white/30"
           >
             {IMAGE_MODELS
               .filter((m) => m.id !== FLUX3_IMAGE_MODEL || isZhenzhenBudgetPlatformSelected)
@@ -3265,27 +3268,8 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
                 || m.id === 'seedream-layer-decomposition'
                 || m.id === VOSR2_IMAGE_UPSCALE_MODEL
                 || m.id === 'midjourney')
-              .map((m) => {
-              const isActive = m.id === model;
-              return (
-                <button
-                  key={m.id}
-                  onClick={() => switchModel(m.id)}
-                  title={m.description}
-                  className={`min-w-[64px] flex-1 py-1 text-[10px] font-semibold rounded transition-all ${
-                    isActive ? 'bg-amber-500/30 text-amber-200' : 'text-zinc-400 hover:text-zinc-200'
-                  }`}
-                  style={
-                    isPixel && isActive
-                      ? { background: 'var(--px-yellow)', color: 'var(--px-ink)', border: '1.5px solid var(--px-ink)', boxShadow: '1px 1px 0 var(--px-ink)' }
-                      : isPixel ? { color: 'var(--px-ink-soft)' } : undefined
-                  }
-                >
-                  {m.tabLabel}
-                </button>
-              );
-            })}
-          </div>
+              .map((m) => <option key={m.id} value={m.id} className="bg-zinc-900">{m.tabLabel}</option>)}
+          </select>
         </div>}
 
         {isSeedream && !isExternalSelected && (

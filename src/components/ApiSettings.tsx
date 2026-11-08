@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import DesktopDataStorage from './DesktopDataStorage';
 import StartupDiagnosticsSettings from './StartupDiagnosticsSettings';
 import AgentToolsSettings from './AgentToolsSettings';
-import { normalizeMediaNodeDefaults, resolveNewMediaNodeData, type MediaNodeDefaults, type MediaNodeDefaultSource } from '../utils/mediaNodeDefaults';
+import { normalizeMediaNodeDefaults, resolveNewMediaNodeData, effectiveMediaNodeDefaultSource, MEDIA_NODE_DEFAULT_FIELDS, type MediaNodeDefaults, type MediaNodeDefaultSource } from '../utils/mediaNodeDefaults';
 import { localizeApiError } from '../i18n/apiErrors';
 import { ChevronDown, ChevronRight, CloudUpload, Download, ExternalLink, Eye, EyeOff, FileUp, Info, KeyRound, Loader2, Lock, Plus, Save, Settings2, TestTube2, Trash2, X, FolderOpen, ServerCog, Volume2 } from 'lucide-react';
 import { useApiKeysStore, FIXED_ZHENZHEN_BASE, FIXED_ZHENZHEN_SD2_BASE, RH_BASE, RH_INTL_BASE } from '../stores/apiKeys';
@@ -2732,10 +2732,10 @@ export default function ApiSettingsModal({ open, onClose, mode = 'full', returnF
             <h3 className={labelCls}>{t('mediaDefaults.title')}</h3>
             <p className={`${hintCls} text-xs mt-1 mb-3`}>{t('mediaDefaults.hint')}</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {(['imageSource', 'videoSource'] as const).map((field) => (
+              {MEDIA_NODE_DEFAULT_FIELDS.map(([field, type]) => (
                 <label key={field} className="flex flex-col gap-1 text-sm">
                   <span className={labelCls}>{t(`mediaDefaults.${field}`)}</span>
-                  <select className={inputCls} value={mediaDefaultsDraft[field]} disabled={!loaded || loading}
+                  <select className={inputCls} value={mediaDefaultsDraft[field] || 'product-default'} disabled={!loaded || loading}
                     data-media-default-field={field}
                     onChange={(event) => {
                       const source = event.currentTarget.value as MediaNodeDefaultSource;
@@ -2746,17 +2746,20 @@ export default function ApiSettingsModal({ open, onClose, mode = 'full', returnF
                       <option key={source} value={source}>{t(`mediaDefaults.${source}`)}</option>
                     ))}
                   </select>
-                  <span className={`${hintCls} text-xs`}>{String(resolveNewMediaNodeData(field === 'videoSource' ? 'video' : 'image', {}, {}, mediaDefaultsDraft)[field === 'videoSource' ? 'model' : 'apiModel'])}</span>
+                  <span className={`${hintCls} text-xs`}>{(() => {
+                    const preview = resolveNewMediaNodeData(type, {}, {}, mediaDefaultsDraft);
+                    return String(preview.apiModel || preview.providerModel || preview.seedanceNzModel || preview.model || 'Suno');
+                  })()}</span>
                 </label>
               ))}
             </div>
             <button type="button" className={`${eyeBtnCls} text-xs mt-2`} disabled={!loaded || loading}
               onClick={() => {
                 mediaDefaultsDirty.current = true;
-                setMediaDefaultsDraft({ version: 1, imageSource: 'seedance-nz', videoSource: 'seedance-nz' });
+                setMediaDefaultsDraft({ version: 1, imageSource: 'seedance-nz', videoSource: 'seedance-nz', llmSource: 'seedance-nz', audioSource: 'seedance-nz', seedanceSource: 'seedance-nz', directorSource: 'seedance-nz' });
               }}>{t('mediaDefaults.bothBudget')}</button>
             <p className={`${hintCls} text-xs mt-2`}>{t('mediaDefaults.scope')}</p>
-            {(mediaDefaultsDraft.imageSource === 'seedance-nz' || mediaDefaultsDraft.videoSource === 'seedance-nz')
+            {MEDIA_NODE_DEFAULT_FIELDS.some(([, type]) => effectiveMediaNodeDefaultSource(type, mediaDefaultsDraft) === 'seedance-nz')
               && !settings.zhenzhenSd2ApiKey && !inputs.zhenzhenSd2ApiKey.trim()
               && <p className={`${hintCls} text-xs mt-2`}>{t('mediaDefaults.keyHint')}</p>}
             {!loaded && <button type="button" className={`${eyeBtnCls} text-xs`} disabled={loading} onClick={() => void load()}>{t('mediaDefaults.retry')}</button>}

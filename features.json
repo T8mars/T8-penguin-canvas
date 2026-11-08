@@ -17609,5 +17609,15 @@
     "description": "视频剪辑真实排序、素材集来源同步、文本/输出@素材、独立输出拖动及导演脚本/图片批量导入已开发并验证。",
     "documentation": "docs/user-feedback-20261108.md",
     "regressionPassed": 213
+  },
+  "coreModelRefresh20261108": {
+    "status": "development-verified",
+    "date": "2026-11-08",
+    "published": false,
+    "description": "图像分类下拉、Kling4分组与运行身份、新建七核心节点默认平价；G2.6高清与两个Flash视频模型已实网验证。",
+    "documentation": "docs/core-model-refresh-20261108.md",
+    "livePassed": 9,
+    "componentUiPassed": 18,
+    "regressionPassed": 120
   }
 }

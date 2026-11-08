@@ -12,7 +12,7 @@
 
 | 事项 | 当前事实与下一步 |
 | --- | --- |
-| 本轮用户反馈 | 五项开发修复已验证、待发布；213回归及真实组件画布交互/本地成片通过，边界见[专题](user-feedback-20261108.md)。 |
+| 本轮开发 | [五项反馈](user-feedback-20261108.md)与[模型/默认来源](core-model-refresh-20261108.md)已验证、待发布。 |
 | G2.6/Krea/Z-image/3D | Meshy文生v3.4.8已发；LowPrice十图实测通过、v3.4.9已发，见[专题](g26-krea-hitem-meshy.md)。 |
 | HY/Muse/Flux | 七模型、十一工作流及Motion复验，v3.4.6已发；验证见[专题](preview-muse-flux.md)。 |
 | Kling4 | 既有视频Kling新增五模型，v3.4.5已发；六条实网、133回归及临时完整画布通过，见[专题](kling-v4.md)。 |

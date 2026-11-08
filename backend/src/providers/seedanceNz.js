@@ -219,6 +219,7 @@ const ZHENZHEN_VIDEO_V31_FAST_MODEL = 'zhenzhen-video-v31-fast';
 const ZHENZHEN_VIDEO_V31_QUALITY_MODEL = 'zhenzhen-video-v31-quality';
 const ZHENZHEN_VIDEO_V31_LITE_MODEL = 'zhenzhen-video-v31-lite';
 const ZHENZHEN_APIMART_VIDEO_MODELS = new Set([
+  ...Object.keys(require('../shared/flashVideoContract.json').models),
   ZHENZHEN_VIDEO_G_OMNI_FLASH_MODEL,
   ZHENZHEN_VIDEO_G_OMNI_FLASH_LOWPRICE_MODEL,
   ZHENZHEN_VIDEO_G_OMNI_11_FLASH_LOWPRICE_MODEL,
@@ -3143,6 +3144,25 @@ async function buildApimartVideoPayload(request, apiKey, options = {}) {
   const prompt = String(request.prompt || '').trim();
   const payload = { model, metadata: {} };
   if (prompt) payload.prompt = prompt;
+
+  const flashProfile = require('../shared/flashVideoContract.json').models[model];
+  if (flashProfile) {
+    if (!prompt) throw new Error('Flash video requires a prompt');
+    if (refs.length > flashProfile.maxImages || videoSources.length > flashProfile.maxVideos || refs.length && videoSources.length || normalizeList(request.audios).length) throw new Error('Flash video requires images OR videos within the model limit; raw audio is not supported');
+    if (['imageElementIds','videoElementIds','voiceIds'].some(key => normalizeList(request[key]).length)) throw new Error('Flash video does not support element or voice IDs');
+    const seconds = request.duration ?? request.seconds ?? 3;
+    if (!Number.isInteger(Number(seconds)) || Number(seconds) < 3 || Number(seconds) > flashProfile.maxSeconds || typeof seconds === 'boolean') throw new Error('Invalid Flash video duration');
+    const resolution = request.resolution || '720p', aspect = request.aspect_ratio || request.ratio || '16:9';
+    if (!flashProfile.resolutions.includes(resolution) || !flashProfile.ratios.includes(aspect)) throw new Error('Invalid Flash video resolution or aspect ratio');
+    const flashPayload = {model,prompt,seconds:String(seconds),resolution,aspect_ratio:aspect};
+    if (refs.length) flashPayload.images = await uploadApimartImages(refs, apiKey, options);
+    if (videoSources.length) {
+      const urls = [];
+      for (const source of videoSources) urls.push(await uploadMedia(source, 'video', apiKey, options));
+      flashPayload.metadata = {video_url: urls};
+    }
+    return {payload:flashPayload,model,taskType:videoSources.length?'v2v':refs.length?'i2v':'t2v'};
+  }
 
   if (model === ZHENZHEN_VIDEO_G_OMNI_FLASH_MODEL) {
     if (refs.length > 16) throw new Error(`${model} 最多支持 16 张参考图`);

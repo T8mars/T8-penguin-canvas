@@ -173,7 +173,7 @@ export const zhCN = {
   },
   nodes: {
     generation: {
-      advancedSource: '高级来源', platform: '平台', workshop: '贞贞的AI工坊', defaultWorkshop: '默认贞贞工坊', workshopDefault: '贞贞的AI工坊（默认）', budgetHouse: '贞贞的平价AI小屋', externalModel: '外部模型', model: '模型', apiSource: 'API 来源', modelRegion: '模型地区', specificModel: '具体模型', unselectedModel: '未选模型',
+      advancedSource: '高级来源', platform: '平台', workshop: '贞贞的AI工坊', defaultWorkshop: '贞贞工坊', workshopDefault: '贞贞的AI工坊', budgetHouse: '贞贞的平价AI小屋', externalModel: '外部模型', model: '模型', modelType: '模型类型', flashVideoHint: '3–{{max}}秒；最多{{images}}张图片或{{videos}}个视频，不能混传。参考视频模式仍发送所选时长；不支持主体/音色ID或原始音频。', flashVideoReferences: '请选择最多{{images}}张图片或{{videos}}个视频，不能混传，也不支持主体/音色ID和原始音频。', apiSource: 'API 来源', modelRegion: '模型地区', specificModel: '具体模型', unselectedModel: '未选模型',
       seedreamNz: {
         domestic: '国内模型', overseas: '海外模型', actualModel: '实际模型：{{model}}',
         limits: '提示词 5–{{count}} 字符；参考图最多 10 张，每张不超过 {{mb}} MB。',
@@ -367,7 +367,7 @@ export const zhCN = {
     },
     llm: {
       title: 'LLM / Vision', sessions: '{{count}} 条会话', offscreen: '{{model}} · {{count}} 条会话 · 高性能离屏预览', newSession: '新会话', clearSession: '清空会话 / 新建',
-      advancedSource: '高级来源', platform: '平台', defaultSource: '贞贞的AI工坊-独立LLM Key（默认）', budgetSource: '贞贞的平价AI小屋', externalModel: '外部模型', budgetModel: '平价小屋模型',
+      advancedSource: '高级来源', platform: '平台', defaultSource: '贞贞的AI工坊-独立LLM Key', budgetSource: '贞贞的平价AI小屋', externalModel: '外部模型', budgetModel: '平价小屋模型',
       budgetHelp: '使用“贞贞的平价AI小屋 API Key”，接口为 api.seedance.nz。', missingProvider: '保存的扩展来源或模型不可用；运行已阻断，不会切换默认来源。',
       model: '模型', customModel: 'Custom / 自定义', customPlaceholder: '填写贞贞工坊支持的模型名称', stream: '流式', systemPrompt: '系统提示词', systemPromptTitle: 'LLM 系统提示词', systemPlaceholder: '设定 AI 角色和行为...',
       loadPreset: '加载预设', presetPlaceholder: '— 预设 —', savePreset: '保存当前为预设', deletePreset: '删除预设', deletePresetPrompt: '删除预设（输入名字）：',
@@ -582,7 +582,7 @@ export const zhCN = {
     strata: strataZh,
     agentTools: agentToolsZh,
     startupDiagnostics: { title: '启动诊断', save: '保存启动日志', saving: '正在保存…', hint: '复现启动卡顿后保存日志并发给作者。包含本次和上次启动的阶段、耗时与异常阶段，不包含 API Key、提示词或画布内容。', browserHint: '浏览器版只能保存本次前端启动阶段；不包含桌面主进程或数据库日志。', saved: '日志已保存，请把 .log 文件发给作者。', canceled: '已取消保存。', failed: '日志保存失败，请重试并确认保存位置可写。' },
-    mediaDefaults: { title: '新建媒体节点默认来源', hint: '仅在新建空白节点时应用，保存设置不会改动任何现有节点。', imageSource: '图像 / 图像编辑', videoSource: '视频', 'product-default': '跟随产品默认', zhenzhen: '贞贞的 AI 工坊', 'seedance-nz': '贞贞的平价 AI 小屋', bothBudget: '两项都设为平价小屋', scope: '支持通用图像、图像编辑与视频节点。复制、导入、模板、历史恢复及专用 Seedance / RH / ComfyUI / 故事节点保留自身设置。明确选择的模型或来源优先。', keyHint: '可先保存和新建；生成前请填写平价小屋 API Key，不会自动改用工坊或其他来源。', retry: '重新加载设置', notReady: '默认来源设置尚未加载成功，请在 API 设置中重试后再新建媒体节点。', saveFailed: '保存失败或回读未确认，请重试；默认来源尚未确认生效。' },
+    mediaDefaults: { title: '新建核心节点默认来源', hint: '仅在新建空白节点时应用，保存设置不会改动任何现有节点。', imageSource: '图像 / 图像编辑', videoSource: '视频', llmSource: 'LLM', audioSource: '音频', seedanceSource: 'Seedance 2.0', directorSource: '导演分镜台', 'product-default': '跟随产品默认（平价小屋）', zhenzhen: '贞贞的 AI 工坊', 'seedance-nz': '贞贞的平价 AI 小屋', bothBudget: '全部设为平价小屋', scope: '支持图像、图像编辑、视频、LLM、音频、Seedance 2.0 和导演分镜台。仅新建时应用；旧节点、复制、导入、模板及历史恢复保留原设置。明确选择的模型或来源优先。', keyHint: '可先保存和新建；生成前请填写平价小屋 API Key，不会自动改用工坊或其他来源。', retry: '重新加载设置', notReady: '默认来源设置尚未加载成功，请在 API 设置中重试后再新建媒体节点。', saveFailed: '保存失败或回读未确认，请重试；默认来源尚未确认生效。' },
     title: 'API Key 设置（通用 + 分类独立）', subtitle: '留空表示保持后端已存的 Key 不变 · 输入新值即覆盖 · 点眼睛可预览明文。',
     creatorSetup: { title: '设置创作助手', subtitle: '保存后即可回到对话；首次发送时会验证 API Key。', providerTitle: '设置贞贞的平价AI小屋', providerHint: '输入一个 API Key，用于对话、图像和视频；当前输入和素材不会丢失。', endpointReady: '服务器地址已自动设置', connect: '保存并返回', keyRequired: '请先输入 API Key，当前输入和素材会继续保留。' },
     state: { configured: '已配置 {{configured}}/{{total}}', enabled: '已启用', disabled: '未启用', enabledCount: '已启用 {{enabled}}/{{total}}', configuredCount: '已配置 {{count}}', keysCount: '密钥 {{count}}', default: '默认', expand: '展开', collapse: '收起' },
@@ -833,7 +833,7 @@ export const enUS = {
   },
   nodes: {
     generation: {
-      advancedSource: 'Advanced source', platform: 'Platform', workshop: 'Zhenzhen AI Workshop', defaultWorkshop: 'Default Zhenzhen Workshop', workshopDefault: 'Zhenzhen AI Workshop (default)', budgetHouse: 'Zhenzhen Budget AI House', externalModel: 'External model', model: 'Model', apiSource: 'API source', modelRegion: 'Model region', specificModel: 'Specific model', unselectedModel: 'No model selected',
+      advancedSource: 'Advanced source', platform: 'Platform', workshop: 'Zhenzhen AI Workshop', defaultWorkshop: 'Zhenzhen Workshop', workshopDefault: 'Zhenzhen AI Workshop', budgetHouse: 'Zhenzhen Budget AI House', externalModel: 'External model', model: 'Model', modelType: 'Model type', flashVideoHint: '3–{{max}} seconds; up to {{images}} images OR {{videos}} videos. Video references retain the selected duration. No element/voice IDs or raw audio.', flashVideoReferences: 'Use up to {{images}} images OR {{videos}} videos, without mixing. Element/voice IDs and raw audio are unsupported.', apiSource: 'API source', modelRegion: 'Model region', specificModel: 'Specific model', unselectedModel: 'No model selected',
       seedreamNz: {
         domestic: 'Domestic model', overseas: 'Overseas model', actualModel: 'Actual model: {{model}}',
         limits: 'Prompt: 5–{{count}} characters. Up to 10 reference images, at most {{mb}} MB each.',
@@ -1027,7 +1027,7 @@ export const enUS = {
     },
     llm: {
       title: 'LLM / Vision', sessions: '{{count}} messages', offscreen: '{{model}} · {{count}} messages · offscreen performance preview', newSession: 'New chat', clearSession: 'Clear chat / start new',
-      advancedSource: 'Advanced source', platform: 'Platform', defaultSource: 'Zhenzhen AI Workshop · standalone LLM key (default)', budgetSource: 'Zhenzhen Budget AI House', externalModel: 'External model', budgetModel: 'Budget-house model',
+      advancedSource: 'Advanced source', platform: 'Platform', defaultSource: 'Zhenzhen AI Workshop · standalone LLM key', budgetSource: 'Zhenzhen Budget AI House', externalModel: 'External model', budgetModel: 'Budget-house model',
       budgetHelp: 'Uses the Zhenzhen Budget AI House API key through api.seedance.nz.', missingProvider: 'The saved external source or model is unavailable. Execution is blocked; the default source is not used.',
       model: 'Model', customModel: 'Custom', customPlaceholder: 'Enter a model supported by Zhenzhen AI Workshop', stream: 'Streaming', systemPrompt: 'System prompt', systemPromptTitle: 'LLM system prompt', systemPlaceholder: 'Define the AI role and behavior...',
       loadPreset: 'Load preset', presetPlaceholder: '— Preset —', savePreset: 'Save current preset', deletePreset: 'Delete preset', deletePresetPrompt: 'Delete preset (enter its name):',
@@ -1238,7 +1238,7 @@ export const enUS = {
     strata: strataEn,
     agentTools: agentToolsEn,
     startupDiagnostics: { title: 'Startup diagnostics', save: 'Save startup log', saving: 'Saving…', hint: 'Save the log after reproducing a slow launch and send it to the author. It includes current/previous startup stages, timings and failure stages, but no API keys, prompts or canvas content.', browserHint: 'Browser mode exports only the current renderer startup stages, without desktop main-process or database logs.', saved: 'Log saved. Send the .log file to the author.', canceled: 'Save canceled.', failed: 'Could not save the log. Retry and check that the destination is writable.' },
-    mediaDefaults: { title: 'Default source for new media nodes', hint: 'Applied only when creating blank nodes. Saving does not change existing nodes.', imageSource: 'Image / image edit', videoSource: 'Video', 'product-default': 'Product default', zhenzhen: 'Zhenzhen AI Workshop', 'seedance-nz': 'Zhenzhen Budget AI House', bothBudget: 'Use Budget AI House for both', scope: 'Supports generic image, image-edit and video nodes. Copies, imports, templates, history recovery and dedicated Seedance / RH / ComfyUI / story nodes keep their own settings. Explicit model or source choices take priority.', keyHint: 'You can save and create nodes now. Add the Budget AI House API key before generation; no automatic fallback to another source.', retry: 'Reload settings', notReady: 'Default-source settings have not loaded successfully. Retry in API settings before creating media nodes.', saveFailed: 'Save failed or read-back was not confirmed. Retry; the default source has not been verified.' },
+    mediaDefaults: { title: 'Default source for new core nodes', hint: 'Applied only when creating blank nodes. Saving does not change existing nodes.', imageSource: 'Image / image edit', videoSource: 'Video', llmSource: 'LLM', audioSource: 'Audio', seedanceSource: 'Seedance 2.0', directorSource: 'Director storyboard', 'product-default': 'Product default (Budget AI House)', zhenzhen: 'Zhenzhen AI Workshop', 'seedance-nz': 'Zhenzhen Budget AI House', bothBudget: 'Use Budget AI House for all', scope: 'Supports image, image edit, video, LLM, audio, Seedance 2.0 and Director storyboard. Applies only to blank new nodes; existing nodes, copies, imports, templates and history recovery retain their settings. Explicit model or source choices take priority.', keyHint: 'You can save and create nodes now. Add the Budget AI House API key before generation; no automatic fallback to another source.', retry: 'Reload settings', notReady: 'Default-source settings have not loaded successfully. Retry in API settings before creating media nodes.', saveFailed: 'Save failed or read-back was not confirmed. Retry; the default source has not been verified.' },
     title: 'API key settings (shared + per category)', subtitle: 'Leave a field empty to keep the saved backend key · Enter a new value to replace it · Use the eye button to reveal it.',
     creatorSetup: { title: 'Set up Creator Agent', subtitle: 'Save and return to your conversation. The API key is verified on first send.', providerTitle: 'Set up Zhenzhen Budget AI House', providerHint: 'Enter one API key for chat, image, and video. Your current text and media will stay in place.', endpointReady: 'Server address is already set', connect: 'Save and return', keyRequired: 'Enter an API key first. Your text and media will stay in place.' },
     state: { configured: '{{configured}}/{{total}} configured', enabled: 'Enabled', disabled: 'Disabled', enabledCount: '{{enabled}}/{{total}} enabled', configuredCount: '{{count}} configured', keysCount: '{{count}} keys', default: 'Default', expand: 'Expand', collapse: 'Collapse' },

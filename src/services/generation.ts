@@ -367,7 +367,7 @@ export interface SeedreamNzSubmitRequest {
   ratio?: 'adaptive' | '16:9' | '4:3' | '1:1' | '3:4' | '9:16' | '21:9' | '2:3' | '3:2' | '4:5' | '5:4';
   size?: string;
   n?: number;
-  output_format?: 'png' | 'jpeg' | 'webp';
+  output_format?: 'png' | 'jpeg' | 'webp' | 'gif' | 'svg';
   output_mode?: 'image' | 'gif' | 'svg';
   frame_count?: number;
   frame_duration_ms?: number;

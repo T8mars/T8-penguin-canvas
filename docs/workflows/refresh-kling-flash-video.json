@@ -1,0 +1,72 @@
+{
+  "schema": "t8-workflow-fragment",
+  "version": 1,
+  "title": "kling-flash-video",
+  "nodes": [
+    {
+      "id": "reference",
+      "type": "upload",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "data": {
+        "uploadType": "video",
+        "lockedUploadType": "video",
+        "label": "参考素材 / Reference"
+      }
+    },
+    {
+      "id": "generation",
+      "type": "video",
+      "position": {
+        "x": 450,
+        "y": 0
+      },
+      "data": {
+        "mainId": "kling-v3.0",
+        "model": "zhenzhen-video-kling-v4-flash",
+        "videoBuiltinSource": "seedance-nz",
+        "providerSource": "zhenzhen",
+        "providerId": "",
+        "providerModel": "",
+        "duration": 3,
+        "resolution": "720p",
+        "ratio": "16:9",
+        "reuseResult": false,
+        "prompt": "The penguin gently waves beside a yellow cup."
+      }
+    },
+    {
+      "id": "output",
+      "type": "output",
+      "position": {
+        "x": 900,
+        "y": 0
+      },
+      "data": {
+        "label": "结果 / Result"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "reference-input",
+      "source": "reference",
+      "target": "generation"
+    },
+    {
+      "id": "generated-result",
+      "source": "generation",
+      "target": "output"
+    }
+  ],
+  "nodeCount": 3,
+  "edgeCount": 2,
+  "nodeTypes": [
+    "upload",
+    "video",
+    "output"
+  ],
+  "savedAt": "2026-11-08T00:00:00.000Z"
+}

@@ -4,19 +4,6 @@
   "title": "g26-low-gif-reference",
   "nodes": [
     {
-      "id": "reference-0",
-      "type": "upload",
-      "position": {
-        "x": 0,
-        "y": 0
-      },
-      "data": {
-        "label": "参考图 1 / Reference 1",
-        "uploadType": "image",
-        "lockedUploadType": "image"
-      }
-    },
-    {
       "id": "generation",
       "type": "image",
       "position": {
@@ -61,20 +48,14 @@
   ],
   "edges": [
     {
-      "id": "reference-edge-0",
-      "source": "reference-0",
-      "target": "generation"
-    },
-    {
       "id": "result-edge",
       "source": "generation",
       "target": "output"
     }
   ],
-  "nodeCount": 3,
-  "edgeCount": 2,
+  "nodeCount": 2,
+  "edgeCount": 1,
   "nodeTypes": [
-    "upload",
     "image",
     "output"
   ],

@@ -1,5 +1,6 @@
 import PREVIEW_MUSE_FLUX from '../../backend/src/shared/previewMuseFluxContract.json';
 import G26_KREA_3D from '../../backend/src/shared/g26Krea3dContract.json';
+import FLASH_VIDEO from '../../backend/src/shared/flashVideoContract.json';
 /**
  * 模型注册表 - 集中定义可扩展模型清单
  * 后续要新增模型只需在对应数组里追加即可
@@ -882,6 +883,7 @@ export const ZHENZHEN_VIDEO_V31_FAST_MODEL = 'zhenzhen-video-v31-fast';
 export const ZHENZHEN_VIDEO_V31_QUALITY_MODEL = 'zhenzhen-video-v31-quality';
 export const ZHENZHEN_VIDEO_V31_LITE_MODEL = 'zhenzhen-video-v31-lite';
 export const ZHENZHEN_APIMART_VIDEO_MODELS = [
+  'zhenzhen-video-kling-v4-flash', 'zhenzhen-video-g-omni-1.2-flash-lowprice',
   ZHENZHEN_VIDEO_G_OMNI_FLASH_MODEL,
   ZHENZHEN_VIDEO_G_OMNI_FLASH_LOWPRICE_MODEL,
   ZHENZHEN_VIDEO_G_OMNI_11_FLASH_LOWPRICE_MODEL,
@@ -994,6 +996,7 @@ export function isZhenzhenApimartVideoModel(apiModel: string | undefined | null)
 const VEO_MODELS = [
   { value: 'veo-omni-10s', label: 'veo-omni-10s' },
   { value: ZHENZHEN_VIDEO_G_OMNI_FLASH_MODEL, label: ZHENZHEN_VIDEO_G_OMNI_FLASH_MODEL, builtinSource: 'seedance-nz' as const },
+  { value: 'zhenzhen-video-g-omni-1.2-flash-lowprice', label: 'zhenzhen-video-g-omni-1.2-flash-lowprice', builtinSource: 'seedance-nz' as const, durations: Array.from({length:13},(_,i)=>i+3), resolutions: FLASH_VIDEO.models['zhenzhen-video-g-omni-1.2-flash-lowprice'].resolutions, ratios: FLASH_VIDEO.models['zhenzhen-video-g-omni-1.2-flash-lowprice'].ratios, defaultDuration: 3, defaultResolution: '720p', defaultRatio: '16:9', supportImages: true, supportVideos: true, maxRefImages: 10, maxRefVideos: 1 },
   {
     value: ZHENZHEN_VIDEO_G_OMNI_11_FLASH_LOWPRICE_MODEL,
     label: `${ZHENZHEN_VIDEO_G_OMNI_11_FLASH_LOWPRICE_MODEL}（平价 Omni 1.1）`,
@@ -1554,6 +1557,7 @@ export const VIDEO_MODELS: VideoModelDef[] = [
       { value: 'kling-v4-omni', label: 'kling-v4-omni' },
       { value: 'kling-v4-custom-element', label: 'kling-v4-custom-element' },
       { value: 'kling-v4-custom-voice', label: 'kling-v4-custom-voice' },
+      { value: 'zhenzhen-video-kling-v4-flash', label: 'zhenzhen-video-kling-v4-flash', durations: Array.from({length:18},(_,i)=>i+3), resolutions: FLASH_VIDEO.models['zhenzhen-video-kling-v4-flash'].resolutions, ratios: FLASH_VIDEO.models['zhenzhen-video-kling-v4-flash'].ratios, defaultDuration: 3, defaultResolution: '720p', defaultRatio: '16:9', supportImages: true, supportVideos: true, maxRefImages: 10, maxRefVideos: 5 },
     ],
     ratios: ['adaptive', '16:9', '4:3', '1:1', '3:4', '9:16', '21:9'],
     defaultRatio: '16:9',

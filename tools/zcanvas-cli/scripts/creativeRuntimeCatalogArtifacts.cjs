@@ -33,6 +33,7 @@ const SOURCE_PATHS = [
   path.join(ROOT, 'backend', 'src', 'shared', 'mossImageContract.json'),
   path.join(ROOT, 'backend', 'src', 'shared', 'previewMuseFluxContract.json'),
   path.join(ROOT,'backend','src','shared','g26Krea3dContract.json'),
+  path.join(ROOT,'backend','src','shared','flashVideoContract.json'),
   path.join(ROOT, 'backend', 'src', 'shared', 'nbLowpriceDoubaoContract.json'),
 ];
 

@@ -46,6 +46,7 @@ test('video built-in sources keep workshop and budget-house catalogs independent
       'Topaz-Upscale-LowPirce',
       'animate-motion-transfer',
       'seedance-2.5',
+      'zhenzhen-video-muse',
     ],
   );
 
@@ -120,7 +121,7 @@ test('video node exposes both sources and filters tabs and submodels before exec
   assert.match(node, /translate\('nodes:generation\.workshopDefault'\)/);
   assert.match(node, /translate\('nodes:generation\.budgetHouse'\)/);
   assert.match(node, /\{builtinVideoModels\.map/);
-  assert.match(node, /\{builtinApiModelOptions\.map/);
+  assert.match(node, /\{builtinApiModelOptions\.filter/);
   assert.match(node, /taskProvider: 'seedance-nz'/);
   assert.match(node, /Veo 3\.1 Lite：纯文生视频/);
   assert.match(node, /isApimartV31Lite \? \['text'\]/);

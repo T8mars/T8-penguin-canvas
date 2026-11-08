@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
-import { normalizeMediaNodeDefaults, resolveNewMediaNodeData, type MediaNodeDefaultSource } from '../src/utils/mediaNodeDefaults.ts';
+import { normalizeMediaNodeDefaults, resolveNewMediaNodeData, MEDIA_NODE_DEFAULT_FIELDS, type MediaNodeDefaultSource } from '../src/utils/mediaNodeDefaults.ts';
 import { videoModelsForSource, videoModelOptionsForSource } from '../src/providers/models.ts';
 const require = createRequire(import.meta.url);
 const backend = require('../backend/src/utils/mediaNodeDefaults.js');
@@ -17,7 +17,7 @@ for (const imageSource of sources) for (const videoSource of sources) {
       assert.deepEqual(data, backend.resolveNewMediaNodeData(type, base, {}, prefs));
       assert.equal(data.prompt, 'keep');
       assert.deepEqual(data.referenceImages, ['asset']);
-      const source = (type === 'video' ? videoSource : imageSource) === 'seedance-nz' ? 'seedance-nz' : 'zhenzhen';
+      const source = (type === 'video' ? videoSource : imageSource) === 'zhenzhen' ? 'zhenzhen' : 'seedance-nz';
       assert.equal(data[type === 'video' ? 'videoBuiltinSource' : 'imageBuiltinSource'], source);
       if (type === 'video') {
         const family = videoModelsForSource(source).find((item) => item.id === data.mainId);
@@ -47,8 +47,53 @@ test('explicit identities and nonblank intents preserve all original fields', ()
   for (const intent of ['clone', 'import', 'history', 'template'] as const) {
     assert.deepEqual(resolveNewMediaNodeData('video', base, {}, prefs, intent), base);
   }
-  for (const type of ['seedance', 'rh', 'llm', 'audio', 'story']) assert.deepEqual(resolveNewMediaNodeData(type, base, {}, prefs), base);
+  for (const type of ['rh', 'story', 'seedance25']) assert.deepEqual(resolveNewMediaNodeData(type, base, {}, prefs), base);
   assert.equal(resolveNewMediaNodeData('edit', {}, {}, prefs).apiModel, 'zhenzhen-image-g2-i2i');
+});
+
+test('all seven blank core types use Budget AI House while explicit workshop preferences remain exact', () => {
+  for (const [field, type] of MEDIA_NODE_DEFAULT_FIELDS) {
+    for (const choice of sources) {
+      const prefs = { version: 1, imageSource: 'product-default', videoSource: 'product-default', [field]: choice };
+      const data = resolveNewMediaNodeData(type, { prompt: 'keep' }, {}, prefs);
+      assert.deepEqual(data, backend.resolveNewMediaNodeData(type, { prompt: 'keep' }, {}, prefs));
+      const source = choice === 'zhenzhen' ? 'zhenzhen' : 'seedance-nz';
+      assert.equal(backend.effectiveMediaNodeDefaultSource(type, prefs), source);
+      if (type === 'llm') assert.equal(data.llmApiSource, source);
+      else if (type === 'audio') assert.equal(data.sunoPlatform, source);
+      else if (type === 'seedance' || type === 'director-storyboard') assert.equal(data.seedanceApiSource, source === 'zhenzhen' ? 'zhenzhen-legacy' : source);
+      else assert.equal(data[type === 'video' ? 'videoBuiltinSource' : 'imageBuiltinSource'], source);
+      assert.equal(data.prompt, 'keep');
+    }
+  }
+  assert.equal(resolveNewMediaNodeData('edit', {}, {}, undefined).imageBuiltinSource, 'seedance-nz');
+});
+
+test('legacy preference shapes round-trip and expanded preference fields reject invalid values', () => {
+  const old = {version:1,imageSource:'zhenzhen',videoSource:'zhenzhen'};
+  assert.deepEqual(normalizeMediaNodeDefaults(old), old);
+  for (const [field] of MEDIA_NODE_DEFAULT_FIELDS.slice(2)) {
+    const expanded = {...old,[field]:'seedance-nz'};
+    assert.deepEqual(normalizeMediaNodeDefaults(expanded), backend.normalizeMediaNodeDefaults(expanded));
+    for (const value of [null, false, 'unknown', undefined]) {
+      assert.throws(() => normalizeMediaNodeDefaults({...old,[field]:value}));
+      assert.throws(() => backend.normalizeMediaNodeDefaults({...old,[field]:value}));
+    }
+  }
+});
+
+test('existing core data is preserved across clone/import/history/template and explicit source creation', () => {
+  for (const type of ['image','edit','video','llm','audio','seedance','director-storyboard']) {
+    const old = {model:'old',providerSource:'custom',prompt:'untouched',localRefImages:['own'],status:'success'};
+    for (const intent of ['clone','import','history','template'] as const) {
+      assert.deepEqual(resolveNewMediaNodeData(type, old, {}, undefined, intent), old);
+      assert.deepEqual(backend.resolveNewMediaNodeData(type, old, {}, undefined, intent), old);
+    }
+    for (const field of ['model','llmApiSource','sunoPlatform','seedanceApiSource','seedanceNzModel','version']) {
+      const explicit = {[field]:'chosen'};
+      assert.deepEqual(resolveNewMediaNodeData(type, old, explicit, undefined), {...old,...explicit});
+    }
+  }
 });
 test('Creator defaults apply before synthetic providers and respect models/templates', () => {
   const prefs = { version: 1, imageSource: 'seedance-nz', videoSource: 'seedance-nz' };

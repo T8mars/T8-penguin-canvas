@@ -21,7 +21,7 @@ test('real settings select captures values before React event cleanup and replay
   }
   visit(tree);
   assert.ok(handler);
-  for (const field of ['imageSource', 'videoSource']) {
+  for (const field of ['imageSource', 'videoSource', 'llmSource', 'audioSource', 'seedanceSource', 'directorSource']) {
     const pending = [], dirty = { current: false };
     const onChange = compile(`(${handler})`, { field, mediaDefaultsDirty: dirty, setMediaDefaultsDraft: (updater) => pending.push(updater) });
     const event = { currentTarget: { value: 'seedance-nz' } };
@@ -30,7 +30,7 @@ test('real settings select captures values before React event cleanup and replay
     assert.equal(pending[0](old)[field], 'seedance-nz');
     assert.equal(pending[0](old)[field], 'seedance-nz');
     assert.equal(dirty.current, true);
-    assert.equal(old[field], 'zhenzhen');
+    assert.equal(old[field], ['imageSource', 'videoSource'].includes(field) ? 'zhenzhen' : undefined);
   }
 });
 test('actual settings store preserves last verified preferences on read-back or refresh failure', async () => {
@@ -66,6 +66,10 @@ test('actual blank-creation factory blocks unverified defaults but not explicit 
     require: (name) => name === '../stores/apiKeys' ? { useApiKeysStore: { getState: () => state } } : require('../backend/src/utils/mediaNodeDefaults.js'),
   });
   assert.throws(() => exports.createBlankNodeData('image', {}), /media_node_defaults_not_ready/);
+  for (const type of ['llm','audio','seedance','director-storyboard']) {
+    assert.throws(() => exports.createBlankNodeData(type, {}), /media_node_defaults_not_ready/);
+    assert.equal(exports.createBlankNodeData(type, {}, {model:'chosen'}).model, 'chosen');
+  }
   assert.equal(exports.createBlankNodeData('image', {}, { apiModel: 'chosen' }).apiModel, 'chosen');
   assert.equal(exports.createBlankNodeData('text', { text: 'keep' }).text, 'keep');
   state.loaded = true;

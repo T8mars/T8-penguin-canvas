@@ -1,6 +1,6 @@
 {
   "schema": "t8-creative-runtime-catalog-v1",
-  "sourceDigest": "623d84a47699afeb06641b2f15ced2f021f43e99eb5164f038fb47a92a56dee1",
+  "sourceDigest": "b87dc9ec4effb2a161cb03c53050ebea87ea922f5c293bbb8882abbc1d5ac63e",
   "generatedFrom": [
     "src/providers/models.ts",
     "src/config/seedance.ts",
@@ -13,6 +13,7 @@
     "backend/src/shared/mossImageContract.json",
     "backend/src/shared/previewMuseFluxContract.json",
     "backend/src/shared/g26Krea3dContract.json",
+    "backend/src/shared/flashVideoContract.json",
     "backend/src/shared/nbLowpriceDoubaoContract.json"
   ],
   "platforms": [
@@ -1982,7 +1983,7 @@
         "sizes": [],
         "defaultSize": "",
         "supportsReference": true,
-        "maxReferenceImages": 10
+        "maxReferenceImages": 16
       }
     },
     {
@@ -8393,6 +8394,57 @@
       }
     },
     {
+      "id": "video:seedance-nz:zhenzhen-video-g-omni-1.2-flash-lowprice",
+      "provider": "seedance-nz",
+      "platformLabel": "贞贞的平价AI小屋",
+      "model": "zhenzhen-video-g-omni-1.2-flash-lowprice",
+      "label": "zhenzhen-video-g-omni-1.2-flash-lowprice",
+      "family": "veo3.1",
+      "available": true,
+      "parameters": {
+        "label": "zhenzhen-video-g-omni-1.2-flash-lowprice",
+        "platformLabel": "贞贞的平价AI小屋",
+        "family": "veo3.1",
+        "available": true,
+        "nodeKind": "veo",
+        "ratios": [
+          "16:9",
+          "9:16"
+        ],
+        "defaultRatio": "16:9",
+        "durations": [
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "defaultDuration": 3,
+        "resolutions": [
+          "360p",
+          "720p",
+          "1080p",
+          "4k"
+        ],
+        "defaultResolution": "720p",
+        "supportsImages": true,
+        "supportsVideos": true,
+        "supportsAudios": false,
+        "maxReferenceImages": 10,
+        "maxReferenceVideos": 1,
+        "maxReferenceAudios": 0,
+        "description": "Google Veo 系列 (默认 veo-omni-10s)"
+      }
+    },
+    {
       "id": "video:seedance-nz:zhenzhen-video-g-omni-flash",
       "provider": "seedance-nz",
       "platformLabel": "贞贞的平价AI小屋",
@@ -8503,6 +8555,61 @@
         "maxReferenceVideos": 0,
         "maxReferenceAudios": 0,
         "description": "xAI Grok Video (最多 7 张参考图)"
+      }
+    },
+    {
+      "id": "video:seedance-nz:zhenzhen-video-kling-v4-flash",
+      "provider": "seedance-nz",
+      "platformLabel": "贞贞的平价AI小屋",
+      "model": "zhenzhen-video-kling-v4-flash",
+      "label": "zhenzhen-video-kling-v4-flash",
+      "family": "kling-v3.0",
+      "available": true,
+      "parameters": {
+        "label": "zhenzhen-video-kling-v4-flash",
+        "platformLabel": "贞贞的平价AI小屋",
+        "family": "kling-v3.0",
+        "available": true,
+        "nodeKind": "kling",
+        "ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "21:9"
+        ],
+        "defaultRatio": "16:9",
+        "durations": [
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20
+        ],
+        "defaultDuration": 3,
+        "resolutions": [
+          "720p"
+        ],
+        "defaultResolution": "720p",
+        "supportsImages": true,
+        "supportsVideos": true,
+        "supportsAudios": false,
+        "maxReferenceImages": 10,
+        "maxReferenceVideos": 5,
+        "maxReferenceAudios": 0,
+        "description": "Kling · 文生/图生/首尾帧/O3 参考生视频与视频编辑"
       }
     },
     {
@@ -11753,7 +11860,7 @@
   "counts": {
     "llm": 34,
     "image": 82,
-    "video": 142,
+    "video": 144,
     "audio": 19,
     "actions": 67
   }

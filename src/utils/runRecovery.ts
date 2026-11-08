@@ -4,6 +4,7 @@ import nbDoubao from '../../backend/src/shared/nbLowpriceDoubaoContract.json';
 import mossImage from '../../backend/src/shared/mossImageContract.json';
 import motionVideo from '../../backend/src/shared/motionVideoContract.json';
 import {isNewImageModel,NEW_IMAGE_CONTRACT} from './g26Krea';
+import {flashVideoProfile} from './flashVideo';
 
 export type RunRecoveryKind =
   | 'runninghub'
@@ -116,6 +117,7 @@ export function inferRunRecoveryDescriptor(payload: Record<string, unknown>): Ru
   }
   if (provider === 'seedance-nz') {
     const lowerModel = model.toLowerCase();
+    if (flashVideoProfile(model)) return {version:1,kind:'seedance',taskId,model,taskProvider:'seedance-nz',pollIntervalMs,maxPolls};
     if (motionVideo.models.includes(model)) return normalizeExplicitRecovery({ kind: 'motion', taskId, model, connectionRef: payload.connectionRef, pollIntervalMs, maxPolls });
     if (lowerModel.includes('seed-audio') || [nbDoubao.audio.cloneModel, nbDoubao.audio.iclModel].includes(lowerModel)) return { version: 1, kind: 'seed-audio', taskId, model, pollIntervalMs, maxPolls,
       ...(lowerModel === nbDoubao.audio.iclModel && payload.outputFormat === 'pcm' ? {

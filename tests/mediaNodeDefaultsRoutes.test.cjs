@@ -29,6 +29,12 @@ test('real settings HTTP persists exact media defaults, rejects invalid values, 
     }
     assert.equal((await request({ preferences: { theme: 'light' } })).status, 200);
     assert.deepEqual((await request()).body.data.preferences.mediaNodeDefaults, defaults);
+    const expanded = {...defaults,llmSource:'zhenzhen',audioSource:'seedance-nz',seedanceSource:'seedance-nz',directorSource:'zhenzhen'};
+    assert.equal((await request({preferences:{mediaNodeDefaults:expanded}})).status, 200);
+    assert.deepEqual((await request()).body.data.preferences.mediaNodeDefaults, expanded);
+    assert.deepEqual(JSON.parse(fs.readFileSync(config.SETTINGS_FILE, 'utf8')).preferences.mediaNodeDefaults, expanded);
+    assert.equal((await request({preferences:{mediaNodeDefaults:{...expanded,llmSource:'unknown'}}})).status,400);
+    assert.deepEqual((await request()).body.data.preferences.mediaNodeDefaults, expanded);
     fs.writeFileSync(config.SETTINGS_FILE, '{broken');
     assert.equal((await request()).status, 503);
     fs.writeFileSync(config.SETTINGS_FILE, JSON.stringify({ preferences: { mediaNodeDefaults: { version: 99 } } }));

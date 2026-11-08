@@ -1,0 +1,6 @@
+{
+  "models": {
+    "zhenzhen-video-kling-v4-flash": {"maxSeconds":20,"maxImages":10,"maxVideos":5,"resolutions":["720p"],"ratios":["16:9","9:16","1:1","21:9"]},
+    "zhenzhen-video-g-omni-1.2-flash-lowprice": {"maxSeconds":15,"maxImages":10,"maxVideos":1,"resolutions":["360p","720p","1080p","4k"],"ratios":["16:9","9:16"]}
+  }
+}

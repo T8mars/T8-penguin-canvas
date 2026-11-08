@@ -2,6 +2,7 @@ import { submitMuseVideo, queryMuseVideo } from '../../services/generation';
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import KlingV4Controls from './KlingV4Controls';
+import { flashVideoProfile, KLING_FLASH_MODEL, validFlashVideoReferences } from '../../utils/flashVideo';
 import { captureKlingV4, executeKlingV4, readKlingV4Pending, isKlingV4Model, isKlingV4Aux, klingV4Reference, klingV4Settings } from '../../utils/klingV4';
 import { useCanvasStore } from '../../stores/canvas';
 import AgnesVideoControls from './AgnesVideoControls';
@@ -307,7 +308,9 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
   const isHailuo = !isExternalSelected && modelDef.kind === 'hailuo';
   const isFlux3 = !isExternalSelected && modelDef.kind === 'flux3';
   const isSeedance25 = !isExternalSelected && modelDef.kind === 'seedance25';
-  const isKling = !isExternalSelected && modelDef.kind === 'kling';
+  const flashProfile = !isExternalSelected ? flashVideoProfile(apiModel) : undefined;
+  const isFlashVideo = Boolean(flashProfile);
+  const isKling = !isExternalSelected && modelDef.kind === 'kling' && !isFlashVideo;
   const isKlingV4 = Boolean(d.klingV4Pending) || isKling && isKlingV4Model(apiModel);
   const klingV4Model = d.klingV4Pending?.model || apiModel;
   const klingV4Aux = isKlingV4 && isKlingV4Aux(klingV4Model);
@@ -377,7 +380,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
   const isKlingUpstreamUnavailable = isKling && ['kling-o3-std-r2v', 'kling-o3-pro-r2v'].includes(apiModel);
   const isSeedanceNzVideo = !isExternalSelected && videoBuiltinSource === 'seedance-nz';
   // 各参数(跳过着调用 update 默认值)
-  const apimartRatioOptions = isApimartGrok
+  const apimartRatioOptions = flashProfile ? flashProfile.ratios : isApimartGrok
     ? ['16:9', '9:16', '1:1', '3:2', '2:3']
     : ['16:9', '9:16'];
   const rawRatio: string = d?.ratio || activeModelOption?.defaultRatio || modelDef.defaultRatio;
@@ -387,7 +390,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
     ?? activeModelOption?.defaultDuration
     ?? modelDef.defaultDuration
     ?? (activeModelOption?.durations?.[0] || modelDef.durations?.[0] || 0);
-  const duration: number = isMuse ? 10 : isAgnesExternalSelected ? Math.max(4, Math.min(12, Math.round(Number(rawDuration) || 5))) : isApimartV31
+  const duration: number = flashProfile ? Number.isInteger(rawDuration) && rawDuration >= 3 && rawDuration <= flashProfile.maxSeconds ? rawDuration : 3 : isMuse ? 10 : isAgnesExternalSelected ? Math.max(4, Math.min(12, Math.round(Number(rawDuration) || 5))) : isApimartV31
     ? 8
     : isApimartGrok
       ? Math.max(6, Math.min(30, Number(rawDuration) || 6))
@@ -396,7 +399,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
           : rawDuration;
   const rawResolution: string = d?.resolution
     || (isJimengSeedanceSelected ? '720p' : activeModelOption?.defaultResolution || modelDef.defaultResolution || '');
-  const resolution: string = isMuse ? '720p' : isAgnesExternalSelected
+  const resolution: string = flashProfile ? flashProfile.resolutions.includes(rawResolution) ? rawResolution : '720p' : isMuse ? '720p' : isAgnesExternalSelected
     ? isAgnesFlash ? '720P' : AGNES_VIDEO.sizes.includes(rawResolution.toUpperCase()) ? rawResolution.toUpperCase() : '720P'
     : isApimartOmni
     ? '720p'
@@ -518,7 +521,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
     : isGrok15New
     ? ['16:9', '9:16']
     : activeModelOption?.ratios || modelDef.ratios;
-  const durationOptions = isJimengSeedanceSelected
+  const durationOptions = flashProfile ? Array.from({length:flashProfile.maxSeconds-2},(_,index)=>index+3) : isJimengSeedanceSelected
     ? jimengSeedanceDurationOptions(externalProviderModel)
     : isAgnesExternalSelected
     ? AGNES_VIDEO.durations
@@ -537,7 +540,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
     : isHailuo && !isHailuoH3 && !isHailuoH3Max && resolution === '1080p'
     ? [6]
     : activeModelOption?.durations || modelDef.durations || [];
-  const resolutionOptions = isJimengSeedanceSelected
+  const resolutionOptions = flashProfile ? flashProfile.resolutions : isJimengSeedanceSelected
     ? jimengSeedanceResolutionOptions(externalProviderModel, jimengSeedanceMode === 'multiframe')
     : isAgnesExternalSelected
     ? isAgnesFlash ? ['720P'] : AGNES_VIDEO.sizes
@@ -658,7 +661,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
     [localRefImages, localRefVideos, localRefAudios, id],
   );
   const maxMentionRefs =
-    isMuse ? 9 : isAgnesExternalSelected ? isAgnesFlash ? AGNES_VIDEO.limits.flashImages : AGNES_VIDEO.limits.images : isUpscaler
+    flashProfile ? flashProfile.maxImages : isMuse ? 9 : isAgnesExternalSelected ? isAgnesFlash ? AGNES_VIDEO.limits.flashImages : AGNES_VIDEO.limits.images : isUpscaler
       ? 0
       : isWan
       ? isWan30 ? wan30Mode === 'i2v' ? 2 : 10 : 1
@@ -704,7 +707,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
         ? 1
         : falReg.maxRefImages
       : modelDef.maxRefImages;
-  const maxMentionVideos = isKlingV4 ? klingV4Model === 'kling-v4-omni' ? 5 : klingV4Model === 'kling-v4-custom-element' && d.klingV4ReferenceType === 'video_refer' ? 1 : 0 : isAgnesExternalSelected ? isAgnesFlash ? 0 : 1 : isUpscaler
+  const maxMentionVideos = flashProfile ? flashProfile.maxVideos : isKlingV4 ? klingV4Model === 'kling-v4-omni' ? 5 : klingV4Model === 'kling-v4-custom-element' && d.klingV4ReferenceType === 'video_refer' ? 1 : 0 : isAgnesExternalSelected ? isAgnesFlash ? 0 : 1 : isUpscaler
     ? 1
     : isAnimate
     ? 1
@@ -744,7 +747,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
     ],
     [orderedImages, orderedVideos, orderedAudios, localRefMaterials, maxMentionRefs, maxMentionVideos, maxMentionAudios],
   );
-  const supportsActiveMaterials = isAgnesExternalSelected ? true : isFlux3
+  const supportsActiveMaterials = isFlashVideo || isAgnesExternalSelected ? true : isFlux3
     ? flux3Mode === 'i2v' || flux3Mode === 'v2v'
     : isSeedance25
     ? seedance25Mode !== 't2v'
@@ -752,7 +755,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
 
   // 分组动态跟随子模型: Seedance / 即梦 CLI 支持 image/video/audio, 其他 (grok/veo/sora) 仅 image
   const previewGroups = useMemo<ReadonlyArray<'text' | 'image' | 'video' | 'audio'>>(
-    () => (isKlingV4 ? ['text', 'image', 'video', 'audio'] : isAgnesExternalSelected ? ['text', 'image', 'video', 'audio'] : modelDef.kind === 'seedance' || isJimengSeedanceSelected
+    () => (isFlashVideo ? ['text', 'image', 'video'] : isKlingV4 ? ['text', 'image', 'video', 'audio'] : isAgnesExternalSelected ? ['text', 'image', 'video', 'audio'] : modelDef.kind === 'seedance' || isJimengSeedanceSelected
       ? ['text', 'image', 'video', 'audio']
       : isApimartOmni
         ? ['text', 'image', 'video']
@@ -783,7 +786,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
       : isHailuoH3 && hailuoMode === 'multi'
         ? ['text', 'image', 'video', 'audio']
         : ['text', 'image']),
-    [isKlingV4, isAgnesExternalSelected, modelDef.kind, isJimengSeedanceSelected, isApimartOmni, isApimartOmniLowprice, apimartOmniLowpriceMode, isAnimate, isUpscaler, isWan30, wan30Mode, isKling, klingMode, isSeedance25, seedance25Mode, isFlux3, flux3Mode, isViduQ4, viduMode, isMinimaxH3V2, isMinimaxH3OwAudioDrive, isHailuoH3, hailuoMode],
+    [isFlashVideo, isKlingV4, isAgnesExternalSelected, modelDef.kind, isJimengSeedanceSelected, isApimartOmni, isApimartOmniLowprice, apimartOmniLowpriceMode, isAnimate, isUpscaler, isWan30, wan30Mode, isKling, klingMode, isSeedance25, seedance25Mode, isFlux3, flux3Mode, isViduQ4, viduMode, isMinimaxH3V2, isMinimaxH3OwAudioDrive, isHailuoH3, hailuoMode],
   );
 
   // 收集上游 prompt + 参考图/视频/音频 (按用户拖拽顺序), 合并本地拖入素材
@@ -803,8 +806,8 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
     };
     return {
       prompt: prompts.join('\n').trim(),
-      imageUrls: isMuse || isKlingV4 || isViduQ4 || isAgnesExternalSelected ? [...upImageUrls, ...localRefImages] : dedupe([...upImageUrls, ...localRefImages]),
-      videoUrls: isKlingV4 || isAgnesExternalSelected ? [...upVideoUrls, ...localRefVideos] : isTopaz ? [...upVideoUrls, ...localRefVideos, ...(topazVideoUrl ? [topazVideoUrl] : [])] : dedupe([...upVideoUrls, ...localRefVideos]),
+      imageUrls: isFlashVideo || isMuse || isKlingV4 || isViduQ4 || isAgnesExternalSelected ? [...upImageUrls, ...localRefImages] : dedupe([...upImageUrls, ...localRefImages]),
+      videoUrls: isFlashVideo || isKlingV4 || isAgnesExternalSelected ? [...upVideoUrls, ...localRefVideos] : isTopaz ? [...upVideoUrls, ...localRefVideos, ...(topazVideoUrl ? [topazVideoUrl] : [])] : dedupe([...upVideoUrls, ...localRefVideos]),
       audioUrls: isKlingV4 || isViduQ4 || isAgnesExternalSelected ? [...upAudioUrls, ...localRefAudios] : dedupe([...upAudioUrls, ...localRefAudios]),
     };
   };
@@ -1256,6 +1259,10 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
     }
     setError(null);
     const { prompt: upstreamPrompt, imageUrls, videoUrls, audioUrls } = collectUpstream();
+    if (isFlashVideo && (!validFlashVideoReferences(apiModel, imageUrls, videoUrls, audioUrls) || orderedTexts.some(material => klingV4Reference(material.url)))) {
+      setError(translate('nodes:generation.flashVideoReferences', {images:flashProfile!.maxImages,videos:flashProfile!.maxVideos}));
+      return;
+    }
     if (isViduQ4 && (imageUrls.length < 1 || imageUrls.length > (viduMode === 'i2v' ? 1 : 15)
       || videoUrls.length > 0 || (viduMode === 'r2v' && audioUrls.length > 3))) {
       setError(translate('nodes:generation.newBudgetModels.viduReferences'));
@@ -1825,8 +1832,8 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
       }
 
       if (isApimartBudgetVideo) {
-        const apimartImages = imageUrls.slice(0, maxMentionRefs);
-        const apimartVideos = (isApimartOmni || (isApimartOmniLowprice && apimartOmniLowpriceMode === 'reference_video')) ? videoUrls.slice(0, 1) : [];
+        const apimartImages = isFlashVideo ? imageUrls : imageUrls.slice(0, maxMentionRefs);
+        const apimartVideos = isFlashVideo ? videoUrls : (isApimartOmni || (isApimartOmniLowprice && apimartOmniLowpriceMode === 'reference_video')) ? videoUrls.slice(0, 1) : [];
         logBus.info(
           `提交平价AI小屋视频: ${apiModel} · ${isApimartOmni ? '时长由模型决定' : `${duration}s`} · ${resolution} · ${ratio} · 图${apimartImages.length}/视${apimartVideos.length}`,
           src,
@@ -2698,9 +2705,9 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
             : (modelDef.maxRefImages || 7) + 4;
       if (cur.length >= cap) return;
       update({ localRefImages: [...cur, payload.url] });
-    } else if (payload.kind === 'video' && payload.url && (isKlingV4 && maxMentionVideos > 0 || isAgnesExternalSelected || isAnimate || isJimengSeedanceSelected || isApimartOmni || (isApimartOmniLowprice && apimartOmniLowpriceMode === 'reference_video') || isUpscaler || (isFlux3 && flux3Mode === 'v2v') || (isKling && klingMode === 'edit'))) {
+    } else if (payload.kind === 'video' && payload.url && (isFlashVideo || isKlingV4 && maxMentionVideos > 0 || isAgnesExternalSelected || isAnimate || isJimengSeedanceSelected || isApimartOmni || (isApimartOmniLowprice && apimartOmniLowpriceMode === 'reference_video') || isUpscaler || (isFlux3 && flux3Mode === 'v2v') || (isKling && klingMode === 'edit'))) {
       const cur = Array.isArray(d?.localRefVideos) ? d.localRefVideos : [];
-      const cap = isKlingV4 || isAgnesExternalSelected ? maxMentionVideos : isAnimate || isUpscaler || isApimartOmni || isApimartOmniLowprice || (isFlux3 && flux3Mode === 'v2v') || (isKling && klingMode === 'edit') ? 1 : jimengSeedanceLimits.videos;
+      const cap = isFlashVideo || isKlingV4 || isAgnesExternalSelected ? maxMentionVideos : isAnimate || isUpscaler || isApimartOmni || isApimartOmniLowprice || (isFlux3 && flux3Mode === 'v2v') || (isKling && klingMode === 'edit') ? 1 : jimengSeedanceLimits.videos;
       if (cur.indexOf(payload.url) !== -1 || cur.length >= cap) return;
       update({ localRefVideos: [...cur, payload.url] });
     } else if (payload.kind === 'audio' && payload.url && (isKlingV4 && maxMentionAudios > 0 || isAgnesExternalSelected || isJimengSeedanceSelected)) {
@@ -2713,7 +2720,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
   };
   const { dropProps, isAccepting } = useMaterialDropTarget({
     id,
-    accepts: isKlingV4 ? ['text', 'image', 'video', 'audio'] : isJimengSeedanceSelected
+    accepts: isFlashVideo ? ['text', 'image', 'video'] : isKlingV4 ? ['text', 'image', 'video', 'audio'] : isJimengSeedanceSelected
       ? ['image', 'video', 'audio', 'text']
       : isAgnesExternalSelected ? ['image', 'video', 'audio', 'text']
       : isApimartOmni ? ['image', 'video', 'text']
@@ -2930,7 +2937,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
         {/* 主模型 */}
         {!isExternalSelected && (
         <div>
-          <label className="text-[10px] text-white/50 block mb-1">模型类型</label>
+          <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.modelType')}</label>
           <select
             disabled={Boolean(d.klingV4Pending)}
             value={modelDef.id}
@@ -3014,7 +3021,12 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
               }}
               className="w-full rounded bg-white/5 border border-white/10 px-2 py-1 text-xs text-white outline-none focus:border-white/30"
             >
-              {builtinApiModelOptions.map((o) => (
+              {!isExternalSelected && modelDef.kind === 'kling' && <optgroup label={translate('klingV4:title')}>
+                {builtinApiModelOptions.filter((option) => (isKlingV4Model(option.value) || option.value === KLING_FLASH_MODEL)).map((option) => (
+                  <option key={option.value} value={option.value} disabled={option.disabled} className="bg-zinc-900">{option.label}</option>
+                ))}
+              </optgroup>}
+              {builtinApiModelOptions.filter((option) => modelDef.kind !== 'kling' || (!isKlingV4Model(option.value) && option.value !== KLING_FLASH_MODEL)).map((o) => (
                 <option key={o.value} value={o.value} disabled={o.disabled} className="bg-zinc-900">{o.label}</option>
               ))}
             </select>
@@ -3300,7 +3312,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
               </>
             )}
             <div className="mt-1 text-white/40">
-              {isApimartOmni
+              {flashProfile ? translate('nodes:generation.flashVideoHint', {max:flashProfile.maxSeconds,images:flashProfile.maxImages,videos:flashProfile.maxVideos}) : isApimartOmni
                 ? 'Omni Flash：时长由模型决定，固定 720p；支持 Prompt、最多 16 张图片，或 1 个参考视频。'
                 : isApimartOmniLowprice
                   ? '平价 Omni：4/6/8/10 秒，720p/1080p/4K；支持文生、首帧、1/3 张参考图或 1 个参考视频。参考视频模式不发送 seconds。'

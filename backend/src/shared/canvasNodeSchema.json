@@ -4431,6 +4431,10 @@
               "mureka"
             ]
           },
+          "sunoPlatform": {
+            "type": "string",
+            "enum": ["zhenzhen", "seedance-nz"]
+          },
           "seedAudioModel": {
             "type": "string",
             "enum": [

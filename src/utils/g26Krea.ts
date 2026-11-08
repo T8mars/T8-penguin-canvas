@@ -19,9 +19,9 @@ export function buildNewImageRequest(model: string,prompt: string,images: string
   if (contract.g26.models.includes(model)) {
     const low = model === contract.g26.models[0], mode = s.g26Mode;
     if (!(low?['image','gif']:['image','gif','svg']).includes(String(mode))) fail('invalidMode');
-    if (images.length > (low?contract.g26.lowpriceMaxReferences:16) || !low && mode !== 'image' && images.length) fail('g26References');
+    if (images.length > (low?contract.g26.lowpriceMaxReferences:16) || mode !== 'image' && images.length) fail('g26References');
     Object.assign(request,{output_mode:mode,n:low || mode !== 'image'?1:s.g26Count});
-    if (low) Object.assign(request,{size:s.g26Size,resolution:'1k'});
+    if (low) Object.assign(request, mode === 'gif' ? {size:'auto',output_format:'gif'} : {size:s.g26Size,resolution:s.g26Resolution,quality:s.g26Quality,output_format:s.g26Format});
     else if (mode === 'gif') Object.assign(request,{size:s.g26GifSize === 'custom'?`${s.g26GifWidth}x${s.g26GifHeight}`:s.g26GifSize,frame_count:s.g26FrameCount,frame_duration_ms:s.g26FrameDuration});
     else {
       request.size = s.g26Size === 'custom'?`${s.g26Width}x${s.g26Height}`:String(s.g26Size);

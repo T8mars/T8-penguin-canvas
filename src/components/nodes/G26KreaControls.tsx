@@ -10,19 +10,19 @@ export default function G26KreaControls({model,data,update}:{model:string;data:R
     <div className="text-[11px] opacity-70">{t(g?low?'lowDescription':'officialDescription':k?'kreaDescription':'zDescription')}</div>
     {g?<>
       {select('g26Mode','outputMode',low?['image','gif']:['image','gif','svg'])}
-      {!low&&s.g26Mode==='gif'?<>
+      {s.g26Mode==='gif'? low ? <div className="text-[11px] opacity-70">{t('autoGif')}</div> : <>
         {select('g26GifSize','frameSize',c.g26.gifSizes)}
         {s.g26GifSize==='custom'&&<div className="grid grid-cols-2 gap-2">{number('g26GifWidth','width',16,3840,16)}{number('g26GifHeight','height',16,3840,16)}</div>}
         <div className="grid grid-cols-2 gap-2">{number('g26FrameCount','frameCount',2,16)}{number('g26FrameDuration','frameDuration',20,Number.MAX_SAFE_INTEGER,10)}</div>
       </>:<>
         {select('g26Size','size',c.g26.sizes.filter(v=>!low||v!=='custom'))}
         {s.g26Size==='custom'&&<div className="grid grid-cols-2 gap-2">{number('g26Width','width',16,3840,16)}{number('g26Height','height',16,3840,16)}</div>}
-        {!low&&s.g26Mode==='image'&&<>
-          <div className="grid grid-cols-2 gap-2">{select('g26Resolution','resolution',c.g26.resolutions)}{number('g26Count','count',1,4)}</div>
+        {s.g26Mode==='image'&&<>
+          <div className="grid grid-cols-2 gap-2">{select('g26Resolution','resolution',c.g26.resolutions)}{!low&&number('g26Count','count',1,4)}</div>
           <div className="grid grid-cols-2 gap-2">{select('g26Format','format',c.g26.formats)}{select('g26Quality','quality',c.g26.qualities)}</div>
-          {select('g26Complexity','complexity',c.g26.complexities)}
-          {['jpeg','webp'].includes(String(s.g26Format))&&number('g26Compression','compression',-1,100)}
-          {text('g26MaskUrl','maskUrl')}{text('g26MarkupUrl','markupUrl')}
+          {!low&&<>{select('g26Complexity','complexity',c.g26.complexities)}
+            {['jpeg','webp'].includes(String(s.g26Format))&&number('g26Compression','compression',-1,100)}
+            {text('g26MaskUrl','maskUrl')}{text('g26MarkupUrl','markupUrl')}</>}
         </>}
       </>}
       {s.g26Mode==='gif'&&<div className="text-[11px] opacity-70">{t(low?'promptGif':'officialGif')}</div>}

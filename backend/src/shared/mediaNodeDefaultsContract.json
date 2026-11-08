@@ -1,8 +1,10 @@
 {
   "version": 1,
   "sources": ["product-default", "zhenzhen", "seedance-nz"],
-  "nodeTypes": ["image", "edit", "video"],
-  "explicitFields": ["providerSource", "providerId", "providerModel", "imageBuiltinSource", "videoBuiltinSource", "model", "apiModel", "mainId"],
+  "nodeTypes": ["image", "edit", "video", "llm", "audio", "seedance", "director-storyboard"],
+  "productDefaultSource": "seedance-nz",
+  "preferenceFields": {"image":"imageSource","edit":"imageSource","video":"videoSource","llm":"llmSource","audio":"audioSource","seedance":"seedanceSource","director-storyboard":"directorSource"},
+  "explicitFields": ["providerSource", "providerId", "providerModel", "imageBuiltinSource", "videoBuiltinSource", "model", "apiModel", "mainId", "llmApiSource", "customModel", "sunoPlatform", "audioProviderMode", "seedAudioModel", "sunoNzOperation", "sunoNzVersion", "version", "seedanceApiSource", "seedanceNzModel"],
   "defaults": {
     "image": {
       "zhenzhen": {"providerSource":"zhenzhen","providerId":"","providerModel":"","imageBuiltinSource":"zhenzhen","model":"gpt-image-2","apiModel":"gpt-image-2","aspectRatio":"1:1","sizeLevel":"1K"},
@@ -15,6 +17,22 @@
     "video": {
       "zhenzhen": {"providerSource":"zhenzhen","providerId":"","providerModel":"","videoBuiltinSource":"zhenzhen","mainId":"grok-video-3","model":"grok-video-3","ratio":"16:9","duration":15,"resolution":"720P"},
       "seedance-nz": {"providerSource":"zhenzhen","providerId":"","providerModel":"","videoBuiltinSource":"seedance-nz","mainId":"grok-video-3","model":"zhenzhen-video-gk-v15","ratio":"16:9","duration":6,"resolution":"720p"}
+    },
+    "llm": {
+      "zhenzhen": {"providerSource":"zhenzhen","providerId":"","providerModel":"","llmApiSource":"zhenzhen","model":"gemini-3.5-flash"},
+      "seedance-nz": {"providerSource":"zhenzhen","providerId":"","providerModel":"bytedance/doubao-seed-2.0-mini","llmApiSource":"seedance-nz"}
+    },
+    "audio": {
+      "zhenzhen": {"audioProviderMode":"suno","sunoPlatform":"zhenzhen"},
+      "seedance-nz": {"audioProviderMode":"suno","sunoPlatform":"seedance-nz"}
+    },
+    "seedance": {
+      "zhenzhen": {"providerSource":"zhenzhen","providerId":"","providerModel":"","seedanceApiSource":"zhenzhen-legacy","model":"doubao-seedance-2-0-fast-260128"},
+      "seedance-nz": {"providerSource":"zhenzhen","providerId":"","providerModel":"","seedanceApiSource":"seedance-nz","seedanceNzModel":"fast"}
+    },
+    "director-storyboard": {
+      "zhenzhen": {"providerSource":"zhenzhen","providerId":"","providerModel":"","seedanceApiSource":"zhenzhen-legacy","model":"doubao-seedance-2-0-fast-260128"},
+      "seedance-nz": {"providerSource":"zhenzhen","providerId":"","providerModel":"","seedanceApiSource":"seedance-nz","seedanceNzModel":"fast"}
     }
   }
 }

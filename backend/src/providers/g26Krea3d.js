@@ -41,12 +41,18 @@ function buildImage(request) {
   if (contract.g26.models.includes(model)) {
     const lowprice = model === contract.g26.models[0], mode = choice(request.output_mode ?? 'image', lowprice ? ['image','gif'] : ['image','gif','svg'], 'output mode');
     if (!lowprice && payload.prompt.length > contract.g26.maxOfficialPrompt) fail('Official G2.6 prompt exceeds 32000 characters');
-    if (refs.length > (lowprice ? contract.g26.lowpriceMaxReferences : 16) || !lowprice && mode !== 'image' && refs.length) fail('Incorrect G2.6 reference count; official GIF/SVG are text-only');
+    if (refs.length > (lowprice ? contract.g26.lowpriceMaxReferences : 16) || mode !== 'image' && refs.length) fail('Incorrect G2.6 reference count; GIF/SVG are text-only');
     if (lowprice) {
-      payload.n = 1; payload.resolution = '1k';
-      payload.size = choice(request.size ?? '1:1', contract.g26.sizes.filter(v => v !== 'custom'), 'size');
-      if (request.n !== undefined && request.n !== 1 || request.resolution !== undefined && request.resolution !== '1k') fail('LowPrice requires n=1 and resolution=1k');
-      if (mode === 'gif') payload.prompt += '\nGenerate an animated looping GIF with visible motion and a seamless loop.';
+      payload.n = 1;
+      if (request.n !== undefined && request.n !== 1) fail('LowPrice requires n=1');
+      if (mode === 'gif') {
+        payload.size = 'auto'; payload.output_format = 'gif';
+      } else {
+        payload.resolution = choice(request.resolution ?? '1k', contract.g26.resolutions, 'resolution');
+        payload.size = choice(request.size ?? '1:1', contract.g26.sizes.filter(v => v !== 'custom'), 'size');
+        payload.quality = choice(request.quality ?? 'auto', contract.g26.qualities, 'quality');
+        payload.output_format = choice(request.output_format ?? 'png', contract.g26.formats, 'output format');
+      }
     } else {
       payload.n = mode === 'image' ? integer(request.n ?? 1,1,4,'n') : 1;
       if (mode !== 'image' && request.n !== undefined && request.n !== 1) fail('GIF/SVG require n=1');
