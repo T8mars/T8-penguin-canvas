@@ -1,7 +1,7 @@
 {
   "githubIssueFollowup20261112": {
-    "status": "authorized-v3.5.2-pending-release",
-    "releaseIncluded": false,
+    "status": "released-v3.5.2",
+    "releaseIncluded": true,
     "issues": [
       33,
       31,
@@ -12,9 +12,10 @@
     ],
     "summary": "Creator提交后同步权威画布并保留编辑；本地化安装固定状态行、共享非生成维护收尾；六项已回复并保留现场边界。",
     "verification": "最终专项84/84、完整App五项及Run/NodeRun/Attempt终态通过；正常退出、无强制或残留。",
-    "boundary": "0开放PR；待v3.5.2发布，六项Issues保留；真实安装、受影响Mac、性能及英文完整现场待验。",
+    "boundary": "六项Issues保留；真实安装、受影响Mac、性能及英文完整现场待验。",
     "evidence": "docs/github-issues-20261112.md",
-    "releaseVersion": "3.5.2"
+    "releaseVersion": "3.5.2",
+    "published": true
   },
   "seedream55Draft20261111": {
     "status": "released-v3.5.1",
@@ -3488,15 +3489,58 @@
     ]
   },
   "release": {
-    "status": "authorized-v3.5.2-pending-build",
+    "status": "released-v3.5.2-dual-platform-verified",
     "version": "3.5.2",
     "tag": "v3.5.2",
-    "latest": false,
+    "latest": true,
     "date": "2026-11-12",
     "details": "docs/release-v3.5.2.md",
     "evidence": "docs/release-v3.5.2.md",
     "postReleaseEvidence": "owner-approved-post-release-v3.5.2",
-    "macBoundary": "same-tag-ad-hoc-preview; defer-only-if-actual-quota-insufficient"
+    "macBoundary": "same-tag-ad-hoc-preview; no-quota-deferral-used",
+    "sourceCommit": "1d7061c0e6d2be92797b9e3f2ff0d12d485915e7",
+    "publishedAt": "2026-11-11T21:03:38Z",
+    "draft": false,
+    "prerelease": false,
+    "macWorkflow": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/43099891142",
+    "macAttempt": 1,
+    "macWorkflowConclusion": "success",
+    "verification": [
+      "84 focused regressions, five full development App cases and 28 release contracts passed; packaged encrypted runtime/fresh storage probe, full six-asset downloads and both public updater manifests verified.",
+      "Previous v3.5.1 Tag/six assets and Windows assets during Mac append unchanged; real installation, affected Mac and F8-F10 evidence remains deferred."
+    ],
+    "assets": {
+      "windowsInstaller": {
+        "name": "T8-PenguinCanvas-Setup-3.5.2.exe",
+        "bytes": 1380068975,
+        "sha256": "645cfc430533bf62c302f96e8be8ec89432d75736ed905ae57965098d156c4f1"
+      },
+      "windowsBlockmap": {
+        "name": "T8-PenguinCanvas-Setup-3.5.2.exe.blockmap",
+        "bytes": 1439684,
+        "sha256": "f914dc6563c21e10a2dc54d5e027e80b8b3fc1cf28f18281d287763bf5343c45"
+      },
+      "windowsUpdater": {
+        "name": "latest.yml",
+        "bytes": 362,
+        "sha256": "e5c55a5fa68ac6cd2e7b45844d7670e25d637c36853ea63bd04538ed9ed2f4fa"
+      },
+      "macDmg": {
+        "name": "T8-PenguinCanvas-3.5.2-mac-arm64.dmg",
+        "bytes": 519786579,
+        "sha256": "125420f54f0a79997fd47f75acf7914ed698b8ab8ce72449d61d13c203223581"
+      },
+      "macZip": {
+        "name": "T8-PenguinCanvas-3.5.2-mac-arm64.zip",
+        "bytes": 511578134,
+        "sha256": "eacfbfce136c1d58871da9e438ab2a783a53f8c3ed1f590d8cde714fe86a7e30"
+      },
+      "macUpdater": {
+        "name": "latest-mac.yml",
+        "bytes": 536,
+        "sha256": "b961f665c877a05319af5055aa75d299a7f17d14da10a0153d6873782166ae3b"
+      }
+    }
   },
   "minimaxMusic3PromptEnhancer": {
     "status": "released-v2.9.3",
@@ -10845,8 +10889,8 @@
     "version": "3.5.2",
     "semverVersion": "3.5.2",
     "versionNumberPolicy": "T8 版本号仍采用 x.y.z 三段，但每一段只允许 0-9；任一段到 9 后下一次发布必须向左进位，禁止任一段出现两位数字。例：1.9.9 的下一版必须是 2.0.0。",
-    "versionNote": "v3.5.2创作助手与安装收尾修复已获发布授权，见docs/release-v3.5.2.md。",
-    "installer": "T8-PenguinCanvas-Setup-3.5.2.exe；待唯一正式构建与完整回下载。",
+    "versionNote": "v3.5.2创作助手与安装收尾修复双平台已发布，见docs/release-v3.5.2.md。",
+    "installer": "T8-PenguinCanvas-Setup-3.5.2.exe；唯一正式安装包与完整回下载通过。",
     "updaterInstallMode": "自动更新下载完成后不得静默安装：main.cjs 必须设置 autoInstallOnAppQuit=false，显式安装调用 quitAndInstall(false,true)；electron/build-resources/installer.nsh 通过 SetSilent normal 让新版 NSIS 安装器即使收到旧客户端传入的 /S 也尽量切回前台安装向导。",
     "installerShortcutPolicy": "安装完成后必须创建桌面和开始菜单快捷方式：package.json build.nsis.createDesktopShortcut 必须为 \"always\"，createStartMenuShortcut 必须为 true；electron/build-resources/installer.nsh 必须保留 customInstall 兜底 CreateShortCut \"$newStartMenuLink\" 与 \"$DESKTOP\\${SHORTCUT_NAME}.lnk\"，防止更新安装/keepShortcuts 路径遗漏入口。",
     "updaterEntryPolicy": "顶栏桌面更新入口不得只因 window.t8pc.updater 缺失就静默消失；Electron UA 或 t8pc.getInfo/openExternal 可用时必须显示诊断入口，提示重新安装完整桌面包，Web/纯浏览器环境才隐藏。状态为 not-available 时按钮仍保留“更新”字样，避免用户误以为自动更新入口被删除。",
@@ -17780,14 +17824,15 @@
     }
   },
   "electronReleaseV352": {
-    "status": "authorized-v3.5.2-pending-build",
+    "status": "released-v3.5.2-dual-platform-verified",
     "version": "3.5.2",
     "tag": "v3.5.2",
-    "latest": false,
+    "latest": true,
     "date": "2026-11-12",
     "details": "docs/release-v3.5.2.md",
     "evidence": "docs/release-v3.5.2.md",
     "postReleaseEvidence": "owner-approved-post-release-v3.5.2",
-    "macBoundary": "same-tag-ad-hoc-preview; defer-only-if-actual-quota-insufficient"
+    "macBoundary": "same-tag-ad-hoc-preview; no-quota-deferral-used",
+    "sourceCommit": "1d7061c0e6d2be92797b9e3f2ff0d12d485915e7"
   }
 }
