@@ -1,3 +1,4 @@
+const h3Turbo = require('../shared/h3TurboContract.json');
 const pmf = require('../shared/previewMuseFluxContract.json');
 const newModels=require('../providers/g26Krea3d');
 const canvasNodeSchema = require('../shared/canvasNodeSchema.json');
@@ -58,6 +59,7 @@ const LOCAL_EXECUTION_NODE_TYPES = new Set([
 ]);
 
 const IMAGE_RUNTIME_MODELS = Object.freeze({
+  ...Object.fromEntries([h3Turbo.minimax.model,h3Turbo.qwen.model].map(model=>[model,{defaultModel:model,models:[model]}])),
   [newModels.contract.g26.tab]:{defaultModel:newModels.contract.g26.models[0],models:newModels.contract.g26.models},
   [newModels.contract.krea.tab]:{defaultModel:newModels.contract.krea.models[0],models:newModels.contract.krea.models},
   [newModels.contract.zimage.tab]:{defaultModel:newModels.contract.zimage.model,models:[newModels.contract.zimage.model]},
@@ -157,6 +159,7 @@ const VIDEO_RUNTIME_MODELS = Object.freeze({
   'happyhorse-1.1': ['happyhorse-1.1-t2v', 'happyhorse-1.1-i2v', 'happyhorse-1.1-r2v'],
   'seedance-2.0': ['seedance-2.0'],
   'vosr2-video-upscale': ['vosr2-video-upscale'],
+  [h3Turbo.video.model]: [h3Turbo.video.model],
   [pmf.muse.videoModel]: [pmf.muse.videoModel],
   [topazVideoContract.model]: [topazVideoContract.model],
   'animate-motion-transfer': ['animate-motion-transfer'],
@@ -170,6 +173,7 @@ const VIDEO_RUNTIME_MODELS = Object.freeze({
 });
 
 const SEEDANCE_NZ_IMAGE_RUNTIME_MODELS = new Set([
+  h3Turbo.minimax.model,h3Turbo.qwen.model,
   ...newModels.imageModels,
   pmf.hy.model, pmf.muse.imageModel, ...pmf.flux.models,
   mossImageContract.model,
@@ -189,6 +193,7 @@ const SEEDANCE_NZ_IMAGE_RUNTIME_MODELS = new Set([
   'qwen-image-global-2.1',
 ]);
 const SEEDANCE_NZ_VIDEO_RUNTIME_MODELS = new Set([
+  h3Turbo.video.model,
   ...Object.keys(require('../shared/flashVideoContract.json').models),
   pmf.muse.videoModel,
   topazVideoContract.model,

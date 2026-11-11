@@ -43,7 +43,7 @@ const EXPECTED_SIGNATURES: Record<string, string> = {
   upload: 'upload|none->null[image|video|audio|model3d]',
   'model-3d-upload': 'static|none->null[model3d]',
   'model-3d-preview': 'static|null[model3d]->null[image]',
-  'model-3d': 'static|null[text|image]->null[model3d]',
+  'model-3d': 'static|null[text|image|model3d]->null[model3d]',
   'world-scene': 'static|input[model3d]->image[image],scene[model3d]',
   'code-animation': 'static|prompt[text]->video[video],storyboard[text]',
   'volcengine-assets': 'static|none->image[image],video[video],audio[audio]',

@@ -6,6 +6,7 @@ const required = ['model', 'apiModel', 'aspectRatio', 'sizeLevel', 'imageBuiltin
   'providerSource', 'providerId', 'providerModel'] as const;
 const optional = ['seedreamApiSource'] as const;
 export const IMAGE_HISTORY_EXTRA_FIELDS: Record<string, { label: string; type: 'string' | 'number' | 'boolean' }> = {
+  h3TurboSeed: {label:'h3TurboSeed',type:'number'}, h3TurboFormat: {label:'h3TurboFormat',type:'string'},
   g26Mode: {label:'g26Mode',type:'string'},
   g26Size: {label:'g26Size',type:'string'},
   g26Width: {label:'g26Width',type:'number'},
@@ -79,6 +80,8 @@ export const IMAGE_HISTORY_EXTRA_FIELDS: Record<string, { label: string; type: '
   qwenPromptExtend: { label: 'Qwen 提示词扩展', type: 'boolean' },
   wanImageWidth: { label: 'Wan 图像宽度', type: 'number' }, wanImageHeight: { label: 'Wan 图像高度', type: 'number' },
   wanImageThinkingMode: { label: 'Wan 思考模式', type: 'boolean' }, seedreamLayerResolution: { label: 'Seedream 分层分辨率', type: 'string' },
+  seedream55Background: { label: 'Seedream 5.5 背景', type: 'string' }, seedream55Watermark: { label: 'Seedream 5.5 水印', type: 'boolean' },
+  seedream55SafetyIdentifier: { label: 'Seedream 5.5 安全标识', type: 'string' }, seedream55MaxImages: { label: 'Seedream 5.5 图层数量', type: 'number' }, seedream55TextRecognition: { label: 'Seedream 5.5 识别文字', type: 'boolean' },
   seedreamNzModelFamily: { label: 'Seedream 模型区域', type: 'string' }, seedreamNzResolution: { label: 'Seedream 分辨率', type: 'string' },
   seedreamNzCustomSize: { label: 'Seedream 平价渠道自定义尺寸', type: 'string' },
 };

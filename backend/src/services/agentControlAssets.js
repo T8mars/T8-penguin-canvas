@@ -36,6 +36,8 @@ const MIME_BY_EXTENSION = Object.freeze({
   '.glb': ['model3d', 'model/gltf-binary'],
   '.gltf': ['model3d', 'model/gltf+json'],
   '.obj': ['model3d', 'model/obj'],
+  '.splat': ['model3d', 'application/octet-stream'],
+  '.3mf': ['model3d', 'model/3mf'],
   '.txt': ['text', 'text/plain'],
   '.md': ['text', 'text/markdown'],
 });

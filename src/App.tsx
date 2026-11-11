@@ -13,6 +13,7 @@ import Sidebar from './components/Sidebar';
 import CanvasStartupFeedback from './components/CanvasStartupFeedback';
 import type { AddNodeFn, InsertWorkflowFn } from './components/Canvas';
 import AppUpdaterButton from './components/AppUpdaterButton';
+import ZhenzhenCottagePromotion from './components/ZhenzhenCottagePromotion';
 import AgentControlPairingModal from './components/AgentControlPairingModal';
 import AgentControlApprovalModal from './components/AgentControlApprovalModal';
 import MaterialContextMenu from './components/MaterialContextMenu';
@@ -2001,6 +2002,8 @@ function App() {
               </div>
             )}
           </div>
+
+          <ZhenzhenCottagePromotion isPixel={isPixel} isDark={isDark} />
 
           {/* 「贞贞工坊」推广按钮: 同款胶囊, 主调 紫色(区分于 mint/yellow/pink) */}
           <div ref={zhenWrapRef} className="relative">

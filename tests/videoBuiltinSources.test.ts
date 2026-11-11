@@ -46,6 +46,7 @@ test('video built-in sources keep workshop and budget-house catalogs independent
       'Topaz-Upscale-LowPirce',
       'animate-motion-transfer',
       'seedance-2.5',
+      'minimax-h3-comfyui-max',
       'zhenzhen-video-muse',
     ],
   );

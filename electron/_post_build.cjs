@@ -901,6 +901,11 @@ function main() {
   console.log('[1] 加密后端字节码:');
   checkFile(path.join(RES, 'backend-enc', 'server.t8c'));
   checkFile(path.join(RES, 'backend-enc', 'config.t8c'));
+  for (const name of ['h3TurboContract', 'seedream55DraftContract', 'tripo3dContract']) {
+    checkFile(path.join(RES, 'backend-enc', 'shared', `${name}.t8c`));
+    checkFile(path.join(RES, 'backend-enc', 'shared', `${name}.json`));
+    if (fs.existsSync(path.join(RES, 'backend-enc', 'shared', `${name}.mjs`))) failSecurity('shared contract must be encrypted:', name);
+  }
   checkFile(path.join(RES, 'backend-enc', 'routes', 'canvas.t8c'));
   checkFile(path.join(RES, 'backend-enc', 'routes', 'settings.t8c'));
   checkFile(path.join(RES, 'backend-enc', 'routes', 'proxy.t8c'));

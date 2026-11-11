@@ -64,7 +64,7 @@ function walk(dir, results = []) {
     const st = fs.statSync(full);
     if (st.isDirectory()) {
       walk(full, results);
-    } else if (full.endsWith('.js') || full.endsWith('.cjs')) {
+    } else if (/\.(?:js|cjs|mjs)$/.test(full)) {
       results.push(full);
     } else if (full.endsWith('.json')) {
       results.push(full); // settings/canvas 模板等
@@ -116,6 +116,11 @@ function assertElectronCompilerRuntime() {
 // 把 require('./foo') / require('./foo.js') 重写为 require('./foo.t8c')
 // 使内部模块在加密产物里仍能正确 resolve(.t8c hook 已注册到 require.extensions)
 function rewriteRequires(src) {
+  // Bytecode executes in a CommonJS vm.Script without an ESM loader callback.
+  // Keep lazy Promise/error semantics, but resolve audited relative ESM through
+  // the same encrypted module loader instead of shipping plaintext factories.
+  src = src.replace(/\bimport\((['"])(\.\.?\/[^'"]+\.mjs)\1\)/g,
+    (_match, quote, request) => `Promise.resolve().then(() => require(${quote}${request.replace(/\.mjs$/, '.t8c')}${quote}))`);
   // 匹配 require('./xxx') 或 require("../xxx")  形式
   return src.replace(
     /require\((['"])(\.\.?\/[^'"]+)\1\)/g,
@@ -123,7 +128,7 @@ function rewriteRequires(src) {
       // 已有 .t8c / .json 后缀:不动
       if (/\.(t8c|json)$/.test(p)) return m;
       // 去掉 .js 后缀(若有)
-      const stripped = p.replace(/\.(?:js|cjs)$/, '');
+      const stripped = p.replace(/\.(?:js|cjs|mjs)$/, '');
       return `require(${q}${stripped}.t8c${q})`;
     },
   );
@@ -131,7 +136,7 @@ function rewriteRequires(src) {
 
 function encryptFile(srcAbs, sourceRoot = BACKEND_SRC, outRoot = OUT_DIR) {
   const rel = path.relative(sourceRoot, srcAbs).replace(/\\/g, '/');
-  const dst = path.join(outRoot, rel.replace(/\.(?:js|cjs)$/, '.t8c'));
+  const dst = path.join(outRoot, rel.replace(/\.(?:js|cjs|mjs)$/, '.t8c'));
   ensureDir(path.dirname(dst));
   const sourceBytes = fs.readFileSync(srcAbs);
   const sourceSha256 = sha256Buffer(sourceBytes);
@@ -144,6 +149,9 @@ function encryptFile(srcAbs, sourceRoot = BACKEND_SRC, outRoot = OUT_DIR) {
   }
 
   let src = sourceBytes.toString('utf8');
+  if (srcAbs.endsWith('.mjs')) {
+    src = require('esbuild').transformSync(src, { format: 'cjs', platform: 'node', target: 'node20' }).code;
+  }
   src = rewriteRequires(src);
 
   // bytenode.compileCode 返回 V8 字节码 Buffer (同步,无需临时文件)

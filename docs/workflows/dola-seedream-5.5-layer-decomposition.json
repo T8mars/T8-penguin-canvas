@@ -1,0 +1,78 @@
+{
+  "schema": "t8-workflow-fragment",
+  "version": 1,
+  "title": "dola-seedream-5.5-layer-decomposition",
+  "nodes": [
+    {
+      "id": "reference",
+      "type": "upload",
+      "position": {
+        "x": 0,
+        "y": 40
+      },
+      "data": {
+        "uploadType": "image",
+        "lockedUploadType": "image",
+        "label": "源图片 / Source image"
+      }
+    },
+    {
+      "id": "generate",
+      "type": "image",
+      "position": {
+        "x": 450,
+        "y": 40
+      },
+      "data": {
+        "model": "seedream-layer-decomposition",
+        "apiModel": "dola-seedream-5.5-layer-decomposition",
+        "imageBuiltinSource": "seedance-nz",
+        "seedreamApiSource": "seedance-nz",
+        "providerSource": "zhenzhen",
+        "providerId": "",
+        "providerModel": "",
+        "seedreamNzModelFamily": "overseas-55",
+        "seedreamNzResolution": "1k",
+        "seedreamLayerResolution": "auto",
+        "seedreamOutputFormat": "png",
+        "seedream55Background": "auto",
+        "seedream55Watermark": false,
+        "seedream55SafetyIdentifier": "",
+        "seedream55MaxImages": 3,
+        "seedream55TextRecognition": false,
+        "prompt": "",
+        "imageOnlyOutput": true,
+        "reuseResult": false
+      }
+    },
+    {
+      "id": "output",
+      "type": "output",
+      "position": {
+        "x": 980,
+        "y": 40
+      },
+      "data": {}
+    }
+  ],
+  "edges": [
+    {
+      "id": "reference-generate",
+      "source": "reference",
+      "target": "generate"
+    },
+    {
+      "id": "generate-output",
+      "source": "generate",
+      "target": "output"
+    }
+  ],
+  "nodeCount": 3,
+  "edgeCount": 2,
+  "nodeTypes": [
+    "upload",
+    "image",
+    "output"
+  ],
+  "savedAt": "2026-11-11T00:00:00.000Z"
+}

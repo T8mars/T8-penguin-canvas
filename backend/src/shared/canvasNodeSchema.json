@@ -135,7 +135,8 @@
           "id": null,
           "kinds": [
             "text",
-            "image"
+            "image",
+            "model3d"
           ],
           "required": false,
           "minConnections": 0,
@@ -2842,7 +2843,8 @@
       "ports": {
         "inputs": [
           "text",
-          "image"
+          "image",
+          "model3d"
         ],
         "outputs": [
           "model3d"
@@ -2857,7 +2859,8 @@
             "enum": [
               "hunyuan-3d",
               "hitem3d",
-              "meshy"
+              "meshy",
+              "tripo-3d"
             ]
           },
           "model": {
@@ -2870,7 +2873,32 @@
               "hitem3d-portrait-v2.1-image-to-3d",
               "hitem3d-portrait-v2.1-multi-image-to-3d",
               "meshy-6-global-image-to-3d",
-              "meshy-6-global-text-to-3d"
+              "meshy-6-global-text-to-3d",
+              "tripo-h-v3.1-text-to-3d",
+              "tripo-h-v3.1-image-to-3d",
+              "tripo-h-v3.1-multiview-to-3d",
+              "tripo-h-v3.0-text-to-3d",
+              "tripo-h-v3.0-image-to-3d",
+              "tripo-h-v3.0-multiview-to-3d",
+              "tripo-h-v2.5-text-to-3d",
+              "tripo-h-v2.5-image-to-3d",
+              "tripo-h-v2.5-multiview-to-3d",
+              "tripo-p-p2-text-to-3d",
+              "tripo-p-p2-image-to-3d",
+              "tripo-p-p2-multiview-to-3d",
+              "tripo-p-p1-text-to-3d",
+              "tripo-p-p1-image-to-3d",
+              "tripo-p-p1-multiview-to-3d",
+              "tripo-texture-v3.0",
+              "tripo-texture-v2.5",
+              "tripo-retopology-v2",
+              "tripo-retopology-v1",
+              "tripo-mesh-segment-v1",
+              "tripo-mesh-segment-v2",
+              "tripo-mesh-smartsegment",
+              "tripo-mesh-complete",
+              "tripo-convert",
+              "tripo-image-to-splat"
             ]
           },
           "prompt": {
@@ -2975,6 +3003,368 @@
             ]
           },
           "meshyPromptExpansion": {
+            "type": "string",
+            "enum": [
+              "api_default",
+              "true",
+              "false"
+            ]
+          },
+          "tripo_negative_prompt": {
+            "type": "string",
+            "maxLength": 65536
+          },
+          "tripo_model_url": {
+            "type": "string",
+            "maxLength": 65536
+          },
+          "tripo_part_names": {
+            "type": "string",
+            "maxLength": 65536
+          },
+          "tripo_face_limit": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2147483647
+          },
+          "tripo_model_seed": {
+            "type": "integer",
+            "minimum": -1,
+            "maximum": 2147483647
+          },
+          "tripo_texture_seed": {
+            "type": "integer",
+            "minimum": -1,
+            "maximum": 2147483647
+          },
+          "tripo_image_seed": {
+            "type": "integer",
+            "minimum": -1,
+            "maximum": 2147483647
+          },
+          "tripo_texture_quality": {
+            "type": "string",
+            "enum": [
+              "api_default",
+              "standard",
+              "detailed",
+              "extreme"
+            ]
+          },
+          "tripo_geometry_quality": {
+            "type": "string",
+            "enum": [
+              "api_default",
+              "standard",
+              "detailed"
+            ]
+          },
+          "tripo_texture_alignment": {
+            "type": "string",
+            "enum": [
+              "api_default",
+              "original_image",
+              "geometry"
+            ]
+          },
+          "tripo_orientation": {
+            "type": "string",
+            "enum": [
+              "api_default",
+              "default",
+              "align_image"
+            ]
+          },
+          "tripo_export_orientation": {
+            "type": "string",
+            "enum": [
+              "api_default",
+              "+x",
+              "-x",
+              "+y",
+              "-y"
+            ]
+          },
+          "tripo_compress": {
+            "type": "string",
+            "enum": [
+              "api_default",
+              "geometry"
+            ]
+          },
+          "tripo_input_mode": {
+            "type": "string",
+            "enum": [
+              "views",
+              "multiviewTaskId"
+            ]
+          },
+          "tripo_multiview_task_id": {
+            "type": "string",
+            "maxLength": 65536
+          },
+          "tripo_seg_type": {
+            "type": "string",
+            "enum": [
+              "image",
+              "model"
+            ]
+          },
+          "tripo_image_url": {
+            "type": "string",
+            "maxLength": 65536
+          },
+          "tripo_ref_image_url": {
+            "type": "string",
+            "maxLength": 65536
+          },
+          "tripo_transform": {
+            "type": "string",
+            "maxLength": 65536
+          },
+          "tripo_granularity": {
+            "type": "string",
+            "enum": [
+              "api_default",
+              "coarse",
+              "medium",
+              "fine"
+            ]
+          },
+          "tripo_hint": {
+            "type": "string",
+            "maxLength": 65536
+          },
+          "tripo_segmentation_granularity": {
+            "type": "string",
+            "enum": [
+              "api_default",
+              "simple",
+              "balanced",
+              "detailed"
+            ]
+          },
+          "tripo_tripo_segment_task_id": {
+            "type": "string",
+            "maxLength": 65536
+          },
+          "tripo_completion_mode": {
+            "type": "string",
+            "enum": [
+              "ai_completion",
+              "quick_cap"
+            ]
+          },
+          "tripo_texture_prompt_mode": {
+            "type": "string",
+            "enum": [
+              "text",
+              "image",
+              "images"
+            ]
+          },
+          "tripo_texture_prompt_text": {
+            "type": "string",
+            "maxLength": 65536
+          },
+          "tripo_style_image_url": {
+            "type": "string",
+            "maxLength": 65536
+          },
+          "tripo_texture_image_url": {
+            "type": "string",
+            "maxLength": 65536
+          },
+          "tripo_texture_front_image_url": {
+            "type": "string",
+            "maxLength": 65536
+          },
+          "tripo_texture_left_image_url": {
+            "type": "string",
+            "maxLength": 65536
+          },
+          "tripo_texture_back_image_url": {
+            "type": "string",
+            "maxLength": 65536
+          },
+          "tripo_texture_right_image_url": {
+            "type": "string",
+            "maxLength": 65536
+          },
+          "tripo_format": {
+            "type": "string",
+            "enum": [
+              "GLTF",
+              "FBX",
+              "USDZ",
+              "OBJ",
+              "STL",
+              "3MF"
+            ]
+          },
+          "tripo_texture_format": {
+            "type": "string",
+            "enum": [
+              "api_default",
+              "JPEG",
+              "PNG",
+              "WEBP"
+            ]
+          },
+          "tripo_texture_size": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 8192
+          },
+          "tripo_fbx_preset": {
+            "type": "string",
+            "enum": [
+              "api_default",
+              "blender",
+              "3dsmax",
+              "mixamo",
+              "bake_scale"
+            ]
+          },
+          "tripo_flatten_bottom_threshold": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "tripo_scale_factor": {
+            "type": "number",
+            "minimum": 0.001,
+            "maximum": 1000
+          },
+          "tripo_texture": {
+            "type": "string",
+            "enum": [
+              "api_default",
+              "true",
+              "false"
+            ]
+          },
+          "tripo_pbr": {
+            "type": "string",
+            "enum": [
+              "api_default",
+              "true",
+              "false"
+            ]
+          },
+          "tripo_export_uv": {
+            "type": "string",
+            "enum": [
+              "api_default",
+              "true",
+              "false"
+            ]
+          },
+          "tripo_enable_image_autofix": {
+            "type": "string",
+            "enum": [
+              "api_default",
+              "true",
+              "false"
+            ]
+          },
+          "tripo_auto_size": {
+            "type": "string",
+            "enum": [
+              "api_default",
+              "true",
+              "false"
+            ]
+          },
+          "tripo_quad": {
+            "type": "string",
+            "enum": [
+              "api_default",
+              "true",
+              "false"
+            ]
+          },
+          "tripo_smart_low_poly": {
+            "type": "string",
+            "enum": [
+              "api_default",
+              "true",
+              "false"
+            ]
+          },
+          "tripo_generate_parts": {
+            "type": "string",
+            "enum": [
+              "api_default",
+              "true",
+              "false"
+            ]
+          },
+          "tripo_bake": {
+            "type": "string",
+            "enum": [
+              "api_default",
+              "true",
+              "false"
+            ]
+          },
+          "tripo_split_by_connectivity": {
+            "type": "string",
+            "enum": [
+              "api_default",
+              "true",
+              "false"
+            ]
+          },
+          "tripo_force_symmetry": {
+            "type": "string",
+            "enum": [
+              "api_default",
+              "true",
+              "false"
+            ]
+          },
+          "tripo_flatten_bottom": {
+            "type": "string",
+            "enum": [
+              "api_default",
+              "true",
+              "false"
+            ]
+          },
+          "tripo_pivot_to_center_bottom": {
+            "type": "string",
+            "enum": [
+              "api_default",
+              "true",
+              "false"
+            ]
+          },
+          "tripo_export_vertex_colors": {
+            "type": "string",
+            "enum": [
+              "api_default",
+              "true",
+              "false"
+            ]
+          },
+          "tripo_pack_uv": {
+            "type": "string",
+            "enum": [
+              "api_default",
+              "true",
+              "false"
+            ]
+          },
+          "tripo_with_animation": {
+            "type": "string",
+            "enum": [
+              "api_default",
+              "true",
+              "false"
+            ]
+          },
+          "tripo_animate_in_place": {
             "type": "string",
             "enum": [
               "api_default",
@@ -3367,7 +3757,11 @@
               "flux-3-image",
               "gpt-image-2.6",
               "krea",
-              "z-image"
+              "z-image",
+              "seedream-v5-pro",
+              "seedream-layer-decomposition",
+              "minimax-h3-image",
+              "qwen-image-2.1-turbo"
             ]
           },
           "providerSource": {
@@ -3413,7 +3807,15 @@
               "zhenzhen-image-g-v2.6-sunburst",
               "krea-v3-t2i",
               "krea-v3-i2i",
-              "z-image-t2i"
+              "z-image-t2i",
+              "seedream-v5.5-t2i",
+              "seedream-v5.5-i2i",
+              "dola-seedream-5.5-t2i",
+              "dola-seedream-5.5-i2i",
+              "seedream-v5.5-layer-decomposition",
+              "dola-seedream-5.5-layer-decomposition",
+              "minimax-h3-image",
+              "qwen-image-2.1-turbo"
             ]
           },
           "aspectRatio": {
@@ -3436,7 +3838,9 @@
               "2:1",
               "5:7",
               "7:5",
-              "9:21"
+              "9:21",
+              "1:3",
+              "3:1"
             ]
           },
           "sizeLevel": {
@@ -3450,7 +3854,8 @@
               "1k",
               "1.5k",
               "2k",
-              "4k"
+              "4k",
+              "720p"
             ]
           },
           "gptImageQuality": {
@@ -3840,6 +4245,89 @@
             "type": "integer",
             "minimum": -1,
             "maximum": 9007199254740991
+          },
+          "seedream55Background": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "transparent",
+              "opaque"
+            ]
+          },
+          "seedream55Watermark": {
+            "type": "boolean"
+          },
+          "seedream55SafetyIdentifier": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "seedream55MaxImages": {
+            "type": "number",
+            "minimum": 2,
+            "maximum": 100
+          },
+          "seedream55TextRecognition": {
+            "type": "boolean"
+          },
+          "seedreamApiSource": {
+            "type": "string",
+            "enum": [
+              "zhenzhen",
+              "seedance-nz"
+            ]
+          },
+          "seedreamNzModelFamily": {
+            "type": "string",
+            "enum": [
+              "domestic",
+              "overseas",
+              "domestic-flash",
+              "overseas-flash",
+              "domestic-55",
+              "overseas-55"
+            ]
+          },
+          "seedreamNzResolution": {
+            "type": "string",
+            "enum": [
+              "1k",
+              "1.5k",
+              "2k",
+              "custom"
+            ]
+          },
+          "seedreamNzCustomSize": {
+            "type": "string",
+            "maxLength": 32
+          },
+          "seedreamLayerResolution": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "1k",
+              "1.5k",
+              "2k"
+            ]
+          },
+          "seedreamOutputFormat": {
+            "type": "string",
+            "enum": [
+              "png",
+              "jpeg"
+            ]
+          },
+          "h3TurboSeed": {
+            "type": "integer",
+            "minimum": -1,
+            "maximum": 2147483647
+          },
+          "h3TurboFormat": {
+            "type": "string",
+            "enum": [
+              "jpeg",
+              "png",
+              "webp"
+            ]
           }
         },
         "defaults": {
@@ -3948,11 +4436,7 @@
           },
           "mainId": {
             "type": "string",
-            "enum": [
-              "grok-video-3",
-              "kling-v3.0",
-              "zhenzhen-video-muse"
-            ]
+            "maxLength": 128
           },
           "model": {
             "type": "string",
@@ -3964,7 +4448,17 @@
               "kling-v4-i2v",
               "kling-v4-omni",
               "kling-v4-t2v",
-              "zhenzhen-video-muse"
+              "zhenzhen-video-muse",
+              "seedance-2.5",
+              "seedance-2.5-standard-draft-to-video",
+              "seedance-2.5-global-standard-draft-to-video",
+              "seedance-2.5-standard-t2v",
+              "seedance-2.5-standard-i2v",
+              "seedance-2.5-standard-multi",
+              "seedance-2.5-global-standard-t2v",
+              "seedance-2.5-global-standard-i2v",
+              "seedance-2.5-global-standard-multi",
+              "minimax-h3-comfyui-max"
             ]
           },
           "ratio": {
@@ -3992,7 +4486,14 @@
             "enum": [
               "720P",
               "720p",
-              "1080p"
+              "1080p",
+              "480p",
+              "608p",
+              "768p",
+              "896p",
+              "1088p",
+              "1280p",
+              "1440p"
             ]
           },
           "reuseResult": {
@@ -4074,6 +4575,24 @@
               "audio",
               "video_id"
             ]
+          },
+          "seedance25Draft": {
+            "type": "boolean"
+          },
+          "seedance25DraftTaskId": {
+            "type": "string",
+            "maxLength": 512
+          },
+          "seedance25OutputFormat": {
+            "type": "string",
+            "enum": [
+              "mp4",
+              "mov"
+            ]
+          },
+          "apiModel": {
+            "type": "string",
+            "maxLength": 128
           }
         },
         "defaults": {
@@ -4433,7 +4952,10 @@
           },
           "sunoPlatform": {
             "type": "string",
-            "enum": ["zhenzhen", "seedance-nz"]
+            "enum": [
+              "zhenzhen",
+              "seedance-nz"
+            ]
           },
           "seedAudioModel": {
             "type": "string",

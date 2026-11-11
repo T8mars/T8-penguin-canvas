@@ -1,0 +1,46 @@
+{
+  "schema": "t8-workflow-fragment",
+  "version": 1,
+  "title": "tripo-h-v3.0-text-to-3d",
+  "nodes": [
+    {
+      "id": "tripo",
+      "type": "model-3d",
+      "position": {
+        "x": 440,
+        "y": 40
+      },
+      "data": {
+        "model": "tripo-h-v3.0-text-to-3d",
+        "threeDTab": "tripo-3d",
+        "reuseResult": false,
+        "prompt": "A simple blue toy robot on a plain background."
+      }
+    },
+    {
+      "id": "result",
+      "type": "model-3d-preview",
+      "position": {
+        "x": 880,
+        "y": 40
+      },
+      "data": {
+        "label": "结果 / Result"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "tripo-result",
+      "source": "tripo",
+      "target": "result"
+    }
+  ],
+  "nodeCount": 2,
+  "edgeCount": 1,
+  "nodeTypes": [
+    "model-3d",
+    "model-3d-preview"
+  ],
+  "savedAt": "2026-11-11T00:00:00.000Z"
+}

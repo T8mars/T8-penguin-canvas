@@ -1,6 +1,7 @@
 import type { TFunction } from 'i18next';
 
 const entries = {
+  field_h3TurboSeed: ['H3/Turbo 种子', 'H3/Turbo seed'], field_h3TurboFormat: ['H3 原文件格式', 'H3 original file format'],
   error_queryTimeout: ['历史记录读取超时，请重试。', 'Reading history timed out. Please retry.'],
   error_recoveryTimeout: ['等待找回结果超时，结果尚未确认，本批已暂停。请先查看历史记录，不要连续重复找回或删除原文件。', 'Recovery timed out. Its result is not confirmed, so this batch is paused. Check history first; do not repeatedly recover or delete the original files.'],
   bananaImageHint: ['保留归档提示词和参考图顺序，图像调节不会重复追加。比例 Auto 在当前渠道请求中按 1:1 处理；API Key 未归档，生成前请检查。新建草稿不会生成图片。', 'The archived prompt and reference order are retained; image adjustments are not appended again. Auto aspect ratio uses 1:1 in this channel’s request. API keys were not archived; check before generating. Creating a draft does not generate images.'],
@@ -78,6 +79,14 @@ const entries = {
   field_apiModel: ['子模型', 'Model variant'], field_mainId: ['模型分类', 'Model family'],
   field_imageBuiltinSource: ['内置渠道', 'Built-in provider'], field_videoBuiltinSource: ['内置渠道', 'Built-in provider'],
   field_seedreamApiSource: ['Seedream 渠道', 'Seedream provider'],
+  field_seedream55Background: ['Seedream 5.5 背景', 'Seedream 5.5 background'],
+  field_seedream55Watermark: ['Seedream 5.5 水印', 'Seedream 5.5 watermark'],
+  field_seedream55SafetyIdentifier: ['Seedream 5.5 安全标识', 'Seedream 5.5 safety identifier'],
+  field_seedream55MaxImages: ['Seedream 5.5 最大图层数', 'Seedream 5.5 maximum layers'],
+  field_seedream55TextRecognition: ['Seedream 5.5 识别文字', 'Seedream 5.5 text recognition'],
+  field_seedance25Draft: ['Seedance 2.5 草稿模式', 'Seedance 2.5 draft mode'],
+  field_seedance25DraftTaskId: ['Seedance 2.5 草稿ID', 'Seedance 2.5 draft ID'],
+  field_seedance25OutputFormat: ['Seedance 2.5 成片格式', 'Seedance 2.5 video format'],
   field_klingV4ElementName: ["Kling 4主体名称","Kling 4 element name"],
   field_klingV4Tags: ["Kling 4主体标签","Kling 4 element tags"],
   field_klingV4VoiceName: ["Kling 4音色名称","Kling 4 voice name"],

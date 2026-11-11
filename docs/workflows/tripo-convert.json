@@ -1,0 +1,64 @@
+{
+  "schema": "t8-workflow-fragment",
+  "version": 1,
+  "title": "tripo-convert",
+  "nodes": [
+    {
+      "id": "source-model",
+      "type": "model-3d-upload",
+      "position": {
+        "x": 0,
+        "y": 40
+      },
+      "data": {
+        "label": "上传源模型 / Upload source model",
+        "uploadType": "model3d",
+        "lockedUploadType": "model3d"
+      }
+    },
+    {
+      "id": "tripo",
+      "type": "model-3d",
+      "position": {
+        "x": 440,
+        "y": 40
+      },
+      "data": {
+        "model": "tripo-convert",
+        "threeDTab": "tripo-3d",
+        "reuseResult": false
+      }
+    },
+    {
+      "id": "result",
+      "type": "model-3d-preview",
+      "position": {
+        "x": 880,
+        "y": 40
+      },
+      "data": {
+        "label": "结果 / Result"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "source-model-tripo",
+      "source": "source-model",
+      "target": "tripo"
+    },
+    {
+      "id": "tripo-result",
+      "source": "tripo",
+      "target": "result"
+    }
+  ],
+  "nodeCount": 3,
+  "edgeCount": 2,
+  "nodeTypes": [
+    "model-3d-upload",
+    "model-3d",
+    "model-3d-preview"
+  ],
+  "savedAt": "2026-11-11T00:00:00.000Z"
+}

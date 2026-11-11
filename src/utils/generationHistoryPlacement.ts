@@ -22,7 +22,10 @@ export function createGenerationHistoryPlacementPatch(asset: AssetRef, input: {
           // level sourceAssetEntityUid. Retain this verified fixed reference as
           // a namespaced pointer, without bypassing that migration's barriers.
           historyAssetRef: { assetId: asset.id, entityUid: asset.entityUid, contentHash: asset.contentHash || null },
-          historyPlacement: true },
+          ...(kind === 'model3d' && asset.metadata?.tripoResult ? {
+            tripoTaskId: (asset.metadata.tripoResult as any).tripoTaskId || '',
+            tripoPartNames: (asset.metadata.tripoResult as any).tripoPartNames || [],
+          } : {}), historyPlacement: true },
       } },
     }],
   };

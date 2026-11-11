@@ -2,11 +2,18 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
+import { zhCN } from '../src/i18n/resources';
 
 const repoRoot = path.resolve(import.meta.dirname, '..');
 
 function read(relativePath: string): string {
   return fs.readFileSync(path.join(repoRoot, relativePath), 'utf8');
+}
+
+function promotionTitlePosition(app: string, key: string): number {
+  const position = app.indexOf(`title={t('shell:promotions.${key}.title')}`);
+  assert.notEqual(position, -1, `missing promotion title binding: ${key}`);
+  return position;
 }
 
 test('topbar exposes plugin install as a separate button before canvas tutorial', () => {
@@ -20,7 +27,9 @@ test('topbar exposes plugin install as a separate button before canvas tutorial'
 
   assert.match(app, /pluginInstallOpen/);
   assert.match(app, /pluginInstallWrapRef/);
-  assert.ok(app.indexOf('title="插件安装') < app.indexOf('title="画布教程'));
+  assert.ok(promotionTitlePosition(app, 'plugins') < promotionTitlePosition(app, 'tutorials'));
+  assert.equal(zhCN.shell.promotions.plugins.label, '插件安装');
+  assert.equal(zhCN.shell.promotions.tutorials.label, '画布教程');
   assert.ok(app.indexOf('setPluginInstallOpen') < app.indexOf('setCanvasTutorialOpen'));
   assert.match(app, /插件安装/);
   assert.match(app, /T8 Photoshop Link/);
@@ -68,10 +77,12 @@ test('topbar exposes zhaotutu tagger tab before plugin install with its own pane
   assert.match(app, /window\.t8pc\.openExternal\(ZHAOTUTU_TAGGER_TRAINER_URL\)/);
   assert.match(app, /result\?\.success === true/);
   assert.match(app, /window\.open\(ZHAOTUTU_TAGGER_TRAINER_URL,\s*'_blank',\s*'noopener,noreferrer'\)/);
-  assert.ok(app.indexOf('title="图图打标器') < app.indexOf('title="插件安装'));
-  assert.ok(app.indexOf('<span className="text-[11px]">图图打标器</span>') < app.indexOf('<span className="text-[11px]">插件安装</span>'));
+  assert.ok(promotionTitlePosition(app, 'tagger') < promotionTitlePosition(app, 'plugins'));
+  assert.ok(app.indexOf("{t('shell:promotions.tagger.label')}") < app.indexOf("{t('shell:promotions.plugins.label')}"));
+  assert.equal(zhCN.shell.promotions.tagger.label, '图图打标器');
   assert.match(app, /最好的打标和模型训练工具-图图打标及训练器/);
-  assert.match(app, />点击获取</);
+  assert.match(app, /\{t\('shell:promotionDetails.tagger.open'\)\}/);
+  assert.equal(zhCN.shell.promotionDetails.tagger.open, '点击获取');
 });
 
 test('topbar exposes a compact API acquisition panel beside zhaotutu', () => {
@@ -79,10 +90,11 @@ test('topbar exposes a compact API acquisition panel beside zhaotutu', () => {
 
   assert.match(app, /apiAcquisitionOpen/);
   assert.match(app, /apiAcquisitionWrapRef/);
-  assert.match(app, /title="API获取 · 国内与海外 API Key 注册入口"/);
-  assert.match(app, /<span className="text-\[11px\]">API获取<\/span>/);
-  assert.ok(app.indexOf('title="图图打标器') < app.indexOf('title="API获取'));
-  assert.ok(app.indexOf('title="API获取') < app.indexOf('title="插件安装'));
+  assert.equal(zhCN.shell.promotions.apiKeys.title, 'API获取 · 国内与海外 API Key 注册入口');
+  assert.equal(zhCN.shell.promotions.apiKeys.label, 'API获取');
+  assert.match(app, /\{t\('shell:promotions.apiKeys.label'\)\}/);
+  assert.ok(promotionTitlePosition(app, 'tagger') < promotionTitlePosition(app, 'apiKeys'));
+  assert.ok(promotionTitlePosition(app, 'apiKeys') < promotionTitlePosition(app, 'plugins'));
   assert.match(app, /https:\/\/api\.seedance\.nz\/sign-up\?aff=5f4w/);
   assert.match(app, /https:\/\/ai\.t8star\.org\/register\?aff=dP7j/);
   assert.match(app, /https:\/\/www\.runninghub\.cn\/user-center\/1819214514410942465\/webapp\?inviteCode=rh-v1121/);

@@ -88,6 +88,11 @@ function checkBundle() {
 
   assertFile(path.join(RESOURCES, 'frontend', 'index.html'));
   assertFile(path.join(RESOURCES, 'backend-enc', 'server.t8c'));
+  for (const name of ['h3TurboContract', 'seedream55DraftContract', 'tripo3dContract']) {
+    assertFile(path.join(RESOURCES, 'backend-enc', 'shared', `${name}.t8c`));
+    assertFile(path.join(RESOURCES, 'backend-enc', 'shared', `${name}.json`));
+    if (fs.existsSync(path.join(RESOURCES, 'backend-enc', 'shared', `${name}.mjs`))) fail('shared contract must be encrypted');
+  }
   assertFile(path.join(RESOURCES, 'backend-enc', 'local-private', 'extensions', 'backend', 'index.t8c'));
   assertFile(path.join(RESOURCES, 'backend-enc', 'local-private', 'recharge', 'backend', 'routes.t8c'));
   assertFile(path.join(RESOURCES, 'agent', 'skills', 'zhenzhen-canvas', 'SKILL.md'));

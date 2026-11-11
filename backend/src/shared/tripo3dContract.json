@@ -1,0 +1,656 @@
+{
+  "models": [
+    {
+      "id": "tripo-h-v3.1-text-to-3d",
+      "group": "generate",
+      "mode": "text"
+    },
+    {
+      "id": "tripo-h-v3.1-image-to-3d",
+      "group": "generate",
+      "mode": "image"
+    },
+    {
+      "id": "tripo-h-v3.1-multiview-to-3d",
+      "group": "generate",
+      "mode": "multiview"
+    },
+    {
+      "id": "tripo-h-v3.0-text-to-3d",
+      "group": "generate",
+      "mode": "text"
+    },
+    {
+      "id": "tripo-h-v3.0-image-to-3d",
+      "group": "generate",
+      "mode": "image"
+    },
+    {
+      "id": "tripo-h-v3.0-multiview-to-3d",
+      "group": "generate",
+      "mode": "multiview"
+    },
+    {
+      "id": "tripo-h-v2.5-text-to-3d",
+      "group": "generate",
+      "mode": "text"
+    },
+    {
+      "id": "tripo-h-v2.5-image-to-3d",
+      "group": "generate",
+      "mode": "image"
+    },
+    {
+      "id": "tripo-h-v2.5-multiview-to-3d",
+      "group": "generate",
+      "mode": "multiview"
+    },
+    {
+      "id": "tripo-p-p2-text-to-3d",
+      "group": "generate",
+      "mode": "text"
+    },
+    {
+      "id": "tripo-p-p2-image-to-3d",
+      "group": "generate",
+      "mode": "image"
+    },
+    {
+      "id": "tripo-p-p2-multiview-to-3d",
+      "group": "generate",
+      "mode": "multiview"
+    },
+    {
+      "id": "tripo-p-p1-text-to-3d",
+      "group": "generate",
+      "mode": "text"
+    },
+    {
+      "id": "tripo-p-p1-image-to-3d",
+      "group": "generate",
+      "mode": "image"
+    },
+    {
+      "id": "tripo-p-p1-multiview-to-3d",
+      "group": "generate",
+      "mode": "multiview"
+    },
+    {
+      "id": "tripo-texture-v3.0",
+      "group": "texture",
+      "mode": "texture"
+    },
+    {
+      "id": "tripo-texture-v2.5",
+      "group": "texture",
+      "mode": "texture"
+    },
+    {
+      "id": "tripo-retopology-v2",
+      "group": "retopology",
+      "mode": "retopology"
+    },
+    {
+      "id": "tripo-retopology-v1",
+      "group": "retopology",
+      "mode": "retopology"
+    },
+    {
+      "id": "tripo-mesh-segment-v1",
+      "group": "mesh",
+      "mode": "mesh"
+    },
+    {
+      "id": "tripo-mesh-segment-v2",
+      "group": "mesh",
+      "mode": "mesh"
+    },
+    {
+      "id": "tripo-mesh-smartsegment",
+      "group": "mesh",
+      "mode": "mesh"
+    },
+    {
+      "id": "tripo-mesh-complete",
+      "group": "mesh",
+      "mode": "mesh"
+    },
+    {
+      "id": "tripo-convert",
+      "group": "convert",
+      "mode": "convert"
+    },
+    {
+      "id": "tripo-image-to-splat",
+      "group": "splat",
+      "mode": "image"
+    }
+  ],
+  "fields": {
+    "prompt": {
+      "type": "text",
+      "default": "",
+      "multiline": true
+    },
+    "negative_prompt": {
+      "type": "text",
+      "default": "",
+      "multiline": true
+    },
+    "model_url": {
+      "type": "text",
+      "default": ""
+    },
+    "part_names": {
+      "type": "text",
+      "default": "",
+      "multiline": true
+    },
+    "face_limit": {
+      "type": "integer",
+      "default": 0,
+      "min": 0,
+      "max": 2147483647
+    },
+    "model_seed": {
+      "type": "integer",
+      "default": -1,
+      "min": -1,
+      "max": 2147483647
+    },
+    "texture_seed": {
+      "type": "integer",
+      "default": -1,
+      "min": -1,
+      "max": 2147483647
+    },
+    "image_seed": {
+      "type": "integer",
+      "default": -1,
+      "min": -1,
+      "max": 2147483647
+    },
+    "texture_quality": {
+      "type": "enum",
+      "default": "api_default",
+      "options": [
+        "api_default",
+        "standard",
+        "detailed",
+        "extreme"
+      ]
+    },
+    "geometry_quality": {
+      "type": "enum",
+      "default": "api_default",
+      "options": [
+        "api_default",
+        "standard",
+        "detailed"
+      ]
+    },
+    "texture_alignment": {
+      "type": "enum",
+      "default": "api_default",
+      "options": [
+        "api_default",
+        "original_image",
+        "geometry"
+      ]
+    },
+    "orientation": {
+      "type": "enum",
+      "default": "api_default",
+      "options": [
+        "api_default",
+        "default",
+        "align_image"
+      ]
+    },
+    "export_orientation": {
+      "type": "enum",
+      "default": "api_default",
+      "options": [
+        "api_default",
+        "+x",
+        "-x",
+        "+y",
+        "-y"
+      ]
+    },
+    "compress": {
+      "type": "enum",
+      "default": "api_default",
+      "options": [
+        "api_default",
+        "geometry"
+      ]
+    },
+    "input_mode": {
+      "type": "enum",
+      "default": "views",
+      "options": [
+        "views",
+        "multiviewTaskId"
+      ]
+    },
+    "multiview_task_id": {
+      "type": "text",
+      "default": ""
+    },
+    "seg_type": {
+      "type": "enum",
+      "default": "image",
+      "options": [
+        "image",
+        "model"
+      ]
+    },
+    "image_url": {
+      "type": "text",
+      "default": ""
+    },
+    "ref_image_url": {
+      "type": "text",
+      "default": ""
+    },
+    "transform": {
+      "type": "text",
+      "default": "1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1"
+    },
+    "granularity": {
+      "type": "enum",
+      "default": "api_default",
+      "options": [
+        "api_default",
+        "coarse",
+        "medium",
+        "fine"
+      ]
+    },
+    "hint": {
+      "type": "text",
+      "default": ""
+    },
+    "segmentation_granularity": {
+      "type": "enum",
+      "default": "api_default",
+      "options": [
+        "api_default",
+        "simple",
+        "balanced",
+        "detailed"
+      ]
+    },
+    "tripo_segment_task_id": {
+      "type": "text",
+      "default": ""
+    },
+    "completion_mode": {
+      "type": "enum",
+      "default": "quick_cap",
+      "options": [
+        "ai_completion",
+        "quick_cap"
+      ]
+    },
+    "texture_prompt_mode": {
+      "type": "enum",
+      "default": "text",
+      "options": [
+        "text",
+        "image",
+        "images"
+      ]
+    },
+    "texture_prompt_text": {
+      "type": "text",
+      "default": "",
+      "multiline": true
+    },
+    "style_image_url": {
+      "type": "text",
+      "default": ""
+    },
+    "texture_image_url": {
+      "type": "text",
+      "default": ""
+    },
+    "texture_front_image_url": {
+      "type": "text",
+      "default": ""
+    },
+    "texture_left_image_url": {
+      "type": "text",
+      "default": ""
+    },
+    "texture_back_image_url": {
+      "type": "text",
+      "default": ""
+    },
+    "texture_right_image_url": {
+      "type": "text",
+      "default": ""
+    },
+    "format": {
+      "type": "enum",
+      "default": "GLTF",
+      "options": [
+        "GLTF",
+        "FBX",
+        "USDZ",
+        "OBJ",
+        "STL",
+        "3MF"
+      ]
+    },
+    "texture_format": {
+      "type": "enum",
+      "default": "api_default",
+      "options": [
+        "api_default",
+        "JPEG",
+        "PNG",
+        "WEBP"
+      ]
+    },
+    "texture_size": {
+      "type": "integer",
+      "default": 0,
+      "min": 0,
+      "max": 8192
+    },
+    "fbx_preset": {
+      "type": "enum",
+      "default": "api_default",
+      "options": [
+        "api_default",
+        "blender",
+        "3dsmax",
+        "mixamo",
+        "bake_scale"
+      ]
+    },
+    "flatten_bottom_threshold": {
+      "type": "number",
+      "default": 0.01,
+      "min": 0,
+      "max": 1
+    },
+    "scale_factor": {
+      "type": "number",
+      "default": 1.0,
+      "min": 0.001,
+      "max": 1000
+    },
+    "texture": {
+      "type": "enum",
+      "default": "api_default",
+      "options": [
+        "api_default",
+        "true",
+        "false"
+      ]
+    },
+    "pbr": {
+      "type": "enum",
+      "default": "api_default",
+      "options": [
+        "api_default",
+        "true",
+        "false"
+      ]
+    },
+    "export_uv": {
+      "type": "enum",
+      "default": "api_default",
+      "options": [
+        "api_default",
+        "true",
+        "false"
+      ]
+    },
+    "enable_image_autofix": {
+      "type": "enum",
+      "default": "api_default",
+      "options": [
+        "api_default",
+        "true",
+        "false"
+      ]
+    },
+    "auto_size": {
+      "type": "enum",
+      "default": "api_default",
+      "options": [
+        "api_default",
+        "true",
+        "false"
+      ]
+    },
+    "quad": {
+      "type": "enum",
+      "default": "api_default",
+      "options": [
+        "api_default",
+        "true",
+        "false"
+      ]
+    },
+    "smart_low_poly": {
+      "type": "enum",
+      "default": "api_default",
+      "options": [
+        "api_default",
+        "true",
+        "false"
+      ]
+    },
+    "generate_parts": {
+      "type": "enum",
+      "default": "api_default",
+      "options": [
+        "api_default",
+        "true",
+        "false"
+      ]
+    },
+    "bake": {
+      "type": "enum",
+      "default": "api_default",
+      "options": [
+        "api_default",
+        "true",
+        "false"
+      ]
+    },
+    "split_by_connectivity": {
+      "type": "enum",
+      "default": "api_default",
+      "options": [
+        "api_default",
+        "true",
+        "false"
+      ]
+    },
+    "force_symmetry": {
+      "type": "enum",
+      "default": "api_default",
+      "options": [
+        "api_default",
+        "true",
+        "false"
+      ]
+    },
+    "flatten_bottom": {
+      "type": "enum",
+      "default": "api_default",
+      "options": [
+        "api_default",
+        "true",
+        "false"
+      ]
+    },
+    "pivot_to_center_bottom": {
+      "type": "enum",
+      "default": "api_default",
+      "options": [
+        "api_default",
+        "true",
+        "false"
+      ]
+    },
+    "export_vertex_colors": {
+      "type": "enum",
+      "default": "api_default",
+      "options": [
+        "api_default",
+        "true",
+        "false"
+      ]
+    },
+    "pack_uv": {
+      "type": "enum",
+      "default": "api_default",
+      "options": [
+        "api_default",
+        "true",
+        "false"
+      ]
+    },
+    "with_animation": {
+      "type": "enum",
+      "default": "api_default",
+      "options": [
+        "api_default",
+        "true",
+        "false"
+      ]
+    },
+    "animate_in_place": {
+      "type": "enum",
+      "default": "api_default",
+      "options": [
+        "api_default",
+        "true",
+        "false"
+      ]
+    }
+  },
+  "familyFields": {
+    "generate": [
+      "prompt",
+      "face_limit",
+      "texture",
+      "pbr",
+      "export_uv",
+      "texture_quality",
+      "geometry_quality",
+      "quad",
+      "auto_size",
+      "smart_low_poly",
+      "generate_parts",
+      "compress",
+      "texture_alignment",
+      "orientation",
+      "export_orientation",
+      "input_mode",
+      "multiview_task_id",
+      "enable_image_autofix",
+      "negative_prompt",
+      "image_seed",
+      "model_seed",
+      "texture_seed"
+    ],
+    "texture": [
+      "model_url",
+      "texture_prompt_mode",
+      "texture_prompt_text",
+      "texture_image_url",
+      "texture_front_image_url",
+      "texture_left_image_url",
+      "texture_back_image_url",
+      "texture_right_image_url",
+      "style_image_url",
+      "part_names",
+      "pbr",
+      "texture_quality",
+      "texture_alignment",
+      "bake",
+      "texture_seed",
+      "compress"
+    ],
+    "retopology": [
+      "model_url",
+      "face_limit",
+      "quad",
+      "bake",
+      "part_names"
+    ],
+    "mesh": [
+      "model_url",
+      "seg_type",
+      "image_url",
+      "transform",
+      "granularity",
+      "hint",
+      "segmentation_granularity",
+      "split_by_connectivity",
+      "ref_image_url",
+      "tripo_segment_task_id",
+      "completion_mode",
+      "part_names"
+    ],
+    "convert": [
+      "model_url",
+      "format",
+      "texture_format",
+      "texture_size",
+      "face_limit",
+      "quad",
+      "force_symmetry",
+      "flatten_bottom",
+      "flatten_bottom_threshold",
+      "scale_factor",
+      "pivot_to_center_bottom",
+      "export_vertex_colors",
+      "bake",
+      "pack_uv",
+      "fbx_preset",
+      "with_animation",
+      "animate_in_place",
+      "part_names",
+      "export_orientation"
+    ],
+    "splat": [
+      "model_seed"
+    ]
+  },
+  "booleanFields": [
+    "texture",
+    "pbr",
+    "export_uv",
+    "enable_image_autofix",
+    "auto_size",
+    "quad",
+    "smart_low_poly",
+    "generate_parts",
+    "bake",
+    "split_by_connectivity",
+    "force_symmetry",
+    "flatten_bottom",
+    "pivot_to_center_bottom",
+    "export_vertex_colors",
+    "pack_uv",
+    "with_animation",
+    "animate_in_place"
+  ],
+  "views": [
+    "front",
+    "left",
+    "back",
+    "right"
+  ],
+  "maxImageBytes": 20971520,
+  "maxModelBytes": 157286400
+}

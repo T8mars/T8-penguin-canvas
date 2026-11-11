@@ -20,7 +20,7 @@ const RECOVERY_KINDS = new Set([
   'upscaler',
   'fashvsr',
   'vosr2',
-  'muse', 'topaz',
+  'h3-lowprice', 'muse', 'topaz',
   'motion',
   'animate',
   'vidu',
@@ -144,7 +144,7 @@ function recoveryRequest(baseUrl, descriptor) {
   if (descriptor.kind === 'runninghub') return get(`/api/proxy/runninghub/query?taskId=${taskId}&site=${encodeURIComponent(descriptor.site || 'cn')}`);
   if (descriptor.kind === 'seedance') return get(`/api/proxy/seedance/query?taskId=${taskId}&taskProvider=${encodeURIComponent(descriptor.taskProvider || 'seedance-nz')}`);
   if (descriptor.kind === 'seedream-nz') return get(`/api/proxy/image/seedance-nz/status/${taskId}`);
-  if (descriptor.kind === 'model3d') return get(`/api/proxy/3d/seedance-nz/status/${taskId}`);
+  if (descriptor.kind === 'model3d') return get(`/api/proxy/3d/seedance-nz/status/${taskId}${require('../providers/tripo3d').MODELS.includes(descriptor.model) ? `?model=${encodeURIComponent(descriptor.model)}` : ''}`);
   if (descriptor.kind === 'wan') return get(`/api/proxy/video/wan/status/${taskId}`);
   if (descriptor.kind === 'happyhorse') return get(`/api/proxy/video/happyhorse/status/${taskId}`);
   if (descriptor.kind === 'hailuo') return get(`/api/proxy/video/hailuo/status/${taskId}${descriptor.model ? `?model=${encodeURIComponent(descriptor.model)}` : ''}`);
@@ -153,6 +153,7 @@ function recoveryRequest(baseUrl, descriptor) {
   if (descriptor.kind === 'upscaler') return get(`/api/proxy/video/upscaler/status/${taskId}`);
   if (descriptor.kind === 'fashvsr') return get(`/api/proxy/video/fashvsr/status/${taskId}`);
   if (descriptor.kind === 'vosr2') return get(`/api/proxy/video/vosr2/status/${taskId}`);
+  if (descriptor.kind === 'h3-lowprice') return get(`/api/proxy/video/h3-lowprice/status/${taskId}`);
   if (descriptor.kind === 'muse') return get(`/api/proxy/video/muse/status/${taskId}`);
   if (descriptor.kind === 'topaz') return get(`/api/proxy/video/topaz/status/${taskId}`);
   if (descriptor.kind === 'motion') return get(`/api/proxy/video/motion/status/${taskId}?${new URLSearchParams({ model: descriptor.model, connectionRef: descriptor.connectionRef })}`);
@@ -185,7 +186,7 @@ function normalizedState(value) {
 function outputKindForDescriptor(descriptor) {
   if (descriptor.kind==='model3d')return 'model3d';
   if (descriptor.kind === 'seed-audio' || descriptor.kind === 'suno') return 'audio';
-  if (['seedance', 'wan', 'happyhorse', 'hailuo', 'flux3', 'kling', 'upscaler', 'fashvsr', 'vosr2', 'muse', 'topaz', 'motion', 'animate', 'vidu', 'video', 'video-fal'].includes(descriptor.kind)) return 'video';
+  if (['seedance', 'wan', 'happyhorse', 'hailuo', 'flux3', 'kling', 'upscaler', 'fashvsr', 'vosr2', 'h3-lowprice', 'muse', 'topaz', 'motion', 'animate', 'vidu', 'video', 'video-fal'].includes(descriptor.kind)) return 'video';
   return 'image';
 }
 
@@ -193,6 +194,15 @@ function normalizeRecoveryPayload(payload, descriptor) {
   const data = payload?.data && typeof payload.data === 'object' ? payload.data : payload;
   let state = normalizedState(data?.status ?? data?.state ?? data?.task_status ?? data?.code);
   if(descriptor.kind==='model3d'){
+    if (require('../providers/tripo3d').MODELS.includes(descriptor.model)) {
+      const files = Array.isArray(data?.files) ? data.files : [];
+      if (data?.recoverable || state === 'succeeded' && !files.some(file => file.name === 'modelUrl' && file.url)) state = 'pending';
+      return { state, outputs: state === 'succeeded' ? files.filter(file => file.url).map(file => ({
+        kind: require('../providers/tripo3d').IMAGE_FORMATS.has(file.type) ? 'image' : 'model3d', sourceUrl: file.url,
+        filename: `recovered-tripo-${file.name}.${file.type}`,
+        metadata: { fileRole: file.name, format: file.type, tripoTaskId: data.tripoTaskId || '', tripoPartNames: data.partNames || [] },
+      })) : [], error: boundedText(data?.error,4000) || null, providerStatus: boundedText(data?.status,160) || null, usage: data?.usage || {} };
+    }
     const urls=(Array.isArray(data?.modelUrls)&&data.modelUrls.length?data.modelUrls:Array.isArray(data?.urls)&&data.urls.length?data.urls:[data?.modelUrl]).map(url=>boundedText(url,16384)).filter(Boolean);
     if(data?.recoverable||state==='succeeded'&&!urls.length)state='pending';
     return {state,outputs:state==='succeeded'?urls.map((sourceUrl,index)=>({kind:'model3d',sourceUrl,filename:`recovered-model3d-${index+1}.glb` })):[],error:boundedText(data?.error,4000)||null,providerStatus:boundedText(data?.status,160)||null,usage:data?.usage||{}};

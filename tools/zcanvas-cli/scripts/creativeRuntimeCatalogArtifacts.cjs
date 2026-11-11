@@ -1,5 +1,6 @@
 const pmf = require('../../../backend/src/shared/previewMuseFluxContract.json');
 const newModels=require('../../../backend/src/providers/g26Krea3d');
+const tripo3d = require('../../../backend/src/providers/tripo3d');
 'use strict';
 
 const crypto = require('node:crypto');
@@ -33,6 +34,13 @@ const SOURCE_PATHS = [
   path.join(ROOT, 'backend', 'src', 'shared', 'mossImageContract.json'),
   path.join(ROOT, 'backend', 'src', 'shared', 'previewMuseFluxContract.json'),
   path.join(ROOT,'backend','src','shared','g26Krea3dContract.json'),
+  path.join(ROOT,'backend','src','shared','tripo3dContract.json'),
+  path.join(ROOT,'backend','src','shared','seedream55DraftContract.json'),
+  path.join(ROOT,'backend','src','shared','seedream55DraftContract.mjs'),
+  path.join(ROOT,'backend','src','shared','h3TurboContract.json'),
+  path.join(ROOT,'backend','src','shared','h3TurboContract.mjs'),
+  path.join(ROOT,'backend','src','shared','tripo3dContract.mjs'),
+  path.join(ROOT,'backend','src','providers','tripo3d.js'),
   path.join(ROOT,'backend','src','shared','flashVideoContract.json'),
   path.join(ROOT, 'backend', 'src', 'shared', 'nbLowpriceDoubaoContract.json'),
 ];
@@ -164,7 +172,8 @@ function buildRuntimeCatalog() {
   const midjourney = loadTypeScriptModule(MIDJOURNEY_SOURCE);
   const seedanceNz = require(SEEDANCE_NZ_PROVIDER_SOURCE);
   const seedanceNzLlmModels = JSON.parse(fs.readFileSync(SEEDANCE_NZ_LLM_SOURCE, 'utf8'));
-  const budgetImageModels = new Set([
+  const h3Turbo = require(path.join(ROOT,'backend/src/shared/h3TurboContract.json'));
+  const budgetImageModels = new Set([h3Turbo.minimax.model,h3Turbo.qwen.model,
     ...(models.ZHENZHEN_BUDGET_IMAGE_MODELS || []),
     ...(models.QWEN_IMAGE_30_MODELS || []),
     ...(models.SEEDREAM_LAYER_DECOMPOSITION_MODELS || []),
@@ -173,7 +182,7 @@ function buildRuntimeCatalog() {
   const budgetVideoModels = new Set([
     ...(seedanceNz.ZHENZHEN_APIMART_VIDEO_MODELS || []),
   ].map(String));
-  const seedanceNzVideoKinds = new Set(['wan', 'happyhorse', 'hailuo', 'vidu', 'kling', 'upscaler', 'seedance25', 'muse']);
+  const seedanceNzVideoKinds = new Set(['wan', 'happyhorse', 'hailuo', 'vidu', 'kling', 'upscaler', 'seedance25', 'h3-lowprice', 'muse']);
 
   const llm = [];
   for (const item of models.LLM_MODELS || []) {
@@ -236,6 +245,7 @@ function buildRuntimeCatalog() {
           supportsReference: !newTextOnly&&family.supportsReference === true,
           maxReferenceImages: option.maxReferenceImages ?? family.maxReferenceImages,
           description: family.description,
+          ...(family.paramKind==='h3-turbo-image'?{seedField:'h3TurboSeed',seedRange:[-1,2147483647],originalOutput:true,outputFormats:family.id===h3Turbo.minimax.model?h3Turbo.minimax.formats:undefined,promptMaxUtf8Bytes:family.id===h3Turbo.qwen.model?8192:undefined,resolution720pRequiresReferences:family.id===h3Turbo.qwen.model,sharedParameterContract:'backend/src/shared/h3TurboContract.mjs'}:{}),
         },
         option.disabled !== true,
       ));
@@ -244,7 +254,7 @@ function buildRuntimeCatalog() {
   for (const rawModel of seedanceNz.IMAGE_MODELS || []) {
     const model = String(rawModel || '').trim();
     if (!model) continue;
-    if ([...newModels.imageModels,pmf.hy.model, pmf.muse.imageModel, ...pmf.flux.models].includes(model)) continue;
+    if ([h3Turbo.minimax.model,h3Turbo.qwen.model,...newModels.imageModels,pmf.hy.model, pmf.muse.imageModel, ...pmf.flux.models].includes(model)) continue;
     const family = model === seedanceNz.MOSS_IMAGE_CONTRACT.model ? 'moss-image' : seedanceNz.MAI_IMAGE_MODELS?.has(model) ? 'mai-image-2-6' : model === seedanceNz.FLUX3_IMAGE_MODEL ? 'flux-3-image'
       : seedanceNz.QWEN_IMAGE_30_MODELS?.has(model)
       ? 'qwen-image-3.0'
@@ -361,6 +371,11 @@ function buildRuntimeCatalog() {
             return { sizes: specification.resolutions, aspectRatios: specification.ratios,
               defaultSize: '1k', defaultAspectRatio: model === seedanceNz.FLUX3_IMAGE_MODEL ? 'auto' : '1:1', maxOutputs: 1 };
           })() : {}),
+        ...(require('../../../backend/src/shared/seedream55DraftContract.json').imageModels.includes(model) || require('../../../backend/src/shared/seedream55DraftContract.json').layerModels.includes(model) ? {
+          sharedParameterContract: 'backend/src/shared/seedream55DraftContract.mjs', promptMaxLength: model.endsWith('decomposition') ? 2000 : 5000,
+          referenceMaxBytes: 30 * 1024 * 1024, layerCountRange: model.endsWith('decomposition') ? [2, 100] : undefined,
+          nativeSeed: false, backgroundModes: model.endsWith('decomposition') ? undefined : ['auto','transparent','opaque'],
+        } : {}),
         description: '贞贞的平价AI小屋图像模型',
       },
     ));
@@ -396,6 +411,7 @@ function buildRuntimeCatalog() {
           maxReferenceVideos: option.maxRefVideos ?? (family.supportVideos === true ? 1 : 0),
           maxReferenceAudios: option.maxRefAudios ?? 0,
           description: option.description ?? family.description,
+          ...(String(option.value).endsWith('-draft-to-video') ? { noPrompt: true, inputMode: 'completed-draft-task-id', draftTaskIdField: 'seedance25DraftTaskId', outputFormats: ['mp4','mov'], outputResolution: 'native1080p', sharedParameterContract: 'backend/src/shared/seedream55DraftContract.mjs' } : {}),
           ...(option.value === models.TOPAZ_VIDEO_UPSCALE_MODEL ? {
             restorationModels: models.TOPAZ_VIDEO_CONTRACT.qualities,
             defaultRestorationModel: models.TOPAZ_VIDEO_CONTRACT.defaultQuality,
@@ -460,6 +476,12 @@ function buildRuntimeCatalog() {
   }));
 
   const actions = [];
+  for (const item of tripo3d.contract.models) actions.push(actionEntry('model3d', 'seedance-nz', item.id, item.id, 'tripo-3d', 'model3d', {
+    tab: 'Tripo 3D', endpoint: '/v1/3d/generations', family: item.group, mode: item.mode,
+    viewOrder: item.mode === 'multiview' ? tripo3d.contract.views : [],
+    metadataFields: tripo3d.contract.familyFields[item.group].filter(field => field !== 'prompt'),
+    conditionalFieldContract: 'backend/src/shared/tripo3dContract.mjs',
+  }));
   for(const model of newModels.models3d)actions.push(actionEntry('model3d','seedance-nz',model,model,model.startsWith('hitem')?'hitem3d':'meshy','model3d',{
     tab:model.startsWith('hitem')?'hitem3d':'meshy',endpoint:'/v1/3d/generations',orderedImageViews:model===newModels.contract.meshy.textModel?0:model.includes('multi')?4:1,
     minimumReferenceImages:model===newModels.contract.meshy.textModel?0:model.includes('multi')?2:1,viewOrder:model===newModels.contract.meshy.textModel?[]:model.includes('multi')?newModels.contract.hitem.views:['front'],

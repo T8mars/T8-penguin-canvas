@@ -1,0 +1,90 @@
+{
+  "schema": "t8-workflow-fragment",
+  "version": 1,
+  "title": "minimax-h3-image-i2i",
+  "nodes": [
+    {
+      "id": "reference1",
+      "type": "upload",
+      "data": {
+        "uploadType": "image",
+        "lockedUploadType": "image",
+        "label": "参考图 1 / Reference 1"
+      },
+      "position": {
+        "x": 0,
+        "y": 30
+      }
+    },
+    {
+      "id": "reference2",
+      "type": "upload",
+      "data": {
+        "uploadType": "image",
+        "lockedUploadType": "image",
+        "label": "参考图 2 / Reference 2"
+      },
+      "position": {
+        "x": 0,
+        "y": 340
+      }
+    },
+    {
+      "id": "generate",
+      "type": "image",
+      "data": {
+        "model": "minimax-h3-image",
+        "providerSource": "zhenzhen",
+        "providerId": "",
+        "providerModel": "",
+        "reuseResult": false,
+        "prompt": "Keep the teapot shape from image one, use blue ceramic glaze, simple studio background.",
+        "apiModel": "minimax-h3-image",
+        "imageBuiltinSource": "seedance-nz",
+        "aspectRatio": "1:1",
+        "sizeLevel": "1k",
+        "h3TurboSeed": 0,
+        "h3TurboFormat": "webp",
+        "imageOnlyOutput": true
+      },
+      "position": {
+        "x": 470,
+        "y": 30
+      }
+    },
+    {
+      "id": "output",
+      "type": "output",
+      "data": {},
+      "position": {
+        "x": 960,
+        "y": 30
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "reference1-generate",
+      "source": "reference1",
+      "target": "generate"
+    },
+    {
+      "id": "reference2-generate",
+      "source": "reference2",
+      "target": "generate"
+    },
+    {
+      "id": "generate-output",
+      "source": "generate",
+      "target": "output"
+    }
+  ],
+  "nodeCount": 4,
+  "edgeCount": 3,
+  "nodeTypes": [
+    "upload",
+    "image",
+    "output"
+  ],
+  "savedAt": "2026-11-11T00:00:00.000Z"
+}

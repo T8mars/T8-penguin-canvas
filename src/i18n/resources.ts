@@ -1,3 +1,5 @@
+import { h3TurboZh, h3TurboEn } from './h3TurboCatalog';
+import { seedream55Zh, seedream55En } from './seedream55Catalog';
 import { previewMuseFluxZh, previewMuseFluxEn } from './previewMuseFluxCatalog';
 import { g26Krea3dZh,g26Krea3dEn } from './g26Krea3dCatalog';
 import electronCatalog from '../../electron/i18n-catalog.json';
@@ -14,8 +16,11 @@ import { canvasSaveZh, canvasSaveEn } from './canvasSaveCatalog';
 import { agentToolsZh, agentToolsEn } from './agentToolsCatalog';
 import { motionVideoZh, motionVideoEn } from './motionVideoCatalog';
 import { klingV4Zh, klingV4En } from './klingV4Catalog';
+import { tripo3dZh, tripo3dEn } from './tripo3dCatalog';
 
 export const zhCN = {
+  h3Turbo: h3TurboZh, seedream55: seedream55Zh,
+  tripo: tripo3dZh,
   previewMuseFlux: previewMuseFluxZh,
   g26Krea3d:g26Krea3dZh,
   klingV4: klingV4Zh,
@@ -67,6 +72,7 @@ export const zhCN = {
       latestApps: { label: '最新应用', title: '最新应用 · RunningHub 工作流' },
       aix: { label: 'AIX产品', title: 'AIX产品 · T8公司AIX产品' },
       workshop: { label: '贞贞工坊', title: '贞贞工坊 · 海外站与 Discord' },
+      cottage: { label: '贞贞小屋', title: '贞贞的平价AI小屋 · 贞贞的新网站' },
       videoTutorials: { label: '视频教程', title: '视频教程 · 关注 T8 获取免费版本更新' },
       cloudCanvas: { label: '在线画布', title: '云端创作 · 企鹅画布（还送 10 鹅卵石）' },
     },
@@ -78,6 +84,7 @@ export const zhCN = {
       latestApps: { heading: '最新应用 · RunningHub', description: 'T8 每日教学必用平台，每日同步更新最新工作流、AI 应用、节点和模型，并提供免费教学。', china: '国内站 RunningHub.cn', global: '海外站 RunningHub.ai', invitePrefix: '使用邀请码', inviteSuffix: '注册，免费领取1000积分！' },
       aix: { heading: 'AIX 产品', description: 'T8 公司 AIX 产品，欢迎体验。', open: '跳转体验（新窗口打开）' },
       workshop: { heading: '贞贞工坊 · AI 创作社区', description: '访问海外站点，加入 Discord 社区，与全球创作者一起玩转 AI。', global: '海外站 ai.t8star.org', discord: 'Discord 社区群组', noticePrefix: '贞贞的 AI 工坊预计于', noticeDate: '5月27日 — 5月29日', noticeSuffix: '开始恢复注册！' },
+      cottage: { heading: '贞贞的平价AI小屋', description: '贞贞的新网站，所有模型价格比老网站低35%-100%，推荐使用，支持在线画布等特色功能', open: '前往贞贞小屋' },
       videoTutorials: { heading: '视频教程 · T8老师', description: '跳转以下平台观看本画布与最新 AI 教程。', bilibili: '在 B 站订阅（新窗口打开）', youtube: '在 YouTube 订阅（新窗口打开）', followPrefix: '记得关注', followMiddle: '，随时获取', freeUpdates: '免费版本更新', followSuffix: '及最新 AI 教程。' },
       cloudCanvas: { heading: '云端创作 · 企鹅画布', descriptionPrefix: '云端也能爽用', product: '企鹅画布', gift: '还送 10 鹅卵石', open: '立即开通（新窗口打开）', group: '加群 · 加企鹅微信', copied: '已复制', copyTitle: '一键复制微信号', copyPrompt: '复制企鹅微信号：', copy: '复制', thanks: '感谢企鹅在我制作本画布时候的帮助，大家多多支持！' },
     },
@@ -676,6 +683,8 @@ export const zhCN = {
 } as const;
 
 export const enUS = {
+  h3Turbo: h3TurboEn, seedream55: seedream55En,
+  tripo: tripo3dEn,
   previewMuseFlux: previewMuseFluxEn,
   g26Krea3d:g26Krea3dEn,
   klingV4: klingV4En,
@@ -727,6 +736,7 @@ export const enUS = {
       latestApps: { label: 'Latest Apps', title: 'Latest Apps · RunningHub workflows' },
       aix: { label: 'AIX Products', title: 'AIX Products · products from T8' },
       workshop: { label: 'Zhenzhen Hub', title: 'Zhenzhen Hub · global site and Discord' },
+      cottage: { label: 'Zhenzhen Cottage', title: "Zhenzhen's Affordable AI Cottage · new website" },
       videoTutorials: { label: 'Video Guides', title: 'Video Guides · follow T8 for free updates' },
       cloudCanvas: { label: 'Cloud Canvas', title: 'Cloud creation · Penguin Canvas (includes 10 pebbles)' },
     },
@@ -738,6 +748,7 @@ export const enUS = {
       latestApps: { heading: 'Latest Apps · RunningHub', description: 'A core platform for T8 daily tutorials, updated every day with recent workflows, AI apps, nodes, models, and free lessons.', china: 'China site · RunningHub.cn', global: 'Global site · RunningHub.ai', invitePrefix: 'Use invite code', inviteSuffix: 'to register and receive 1,000 free credits.' },
       aix: { heading: 'AIX Products', description: 'Explore AIX products from T8.', open: 'Open AIX in a new window' },
       workshop: { heading: 'Zhenzhen Hub · AI Creator Community', description: 'Visit the global site and join the Discord community to create with people around the world.', global: 'Global site · ai.t8star.org', discord: 'Discord community', noticePrefix: 'Zhenzhen AI Workshop expects registration to resume', noticeDate: 'May 27–29', noticeSuffix: '.' },
+      cottage: { heading: "Zhenzhen's Affordable AI Cottage", description: "Zhenzhen's new website, with all models priced 35%-100% lower than the old website. Recommended, with features including an online canvas.", open: 'Visit Zhenzhen Cottage' },
       videoTutorials: { heading: 'Video Guides · T8', description: 'Open one of these platforms for Penguin Canvas and recent AI tutorials.', bilibili: 'Follow on Bilibili (opens a new window)', youtube: 'Follow on YouTube (opens a new window)', followPrefix: 'Follow', followMiddle: ' to receive', freeUpdates: 'free version updates', followSuffix: 'and recent AI tutorials.' },
       cloudCanvas: { heading: 'Cloud Creation · Penguin Canvas', descriptionPrefix: 'Use', product: 'Penguin Canvas', gift: 'Includes 10 pebbles', open: 'Get started (opens a new window)', group: 'Join the group · add Penguin on WeChat', copied: 'Copied', copyTitle: 'Copy WeChat ID', copyPrompt: 'Copy Penguin WeChat ID:', copy: 'Copy', thanks: 'Thanks to Penguin for helping build this canvas. Your support is appreciated!' },
     },

@@ -56,6 +56,8 @@ import {
 } from '../../utils/imageCompare';
 import { collectMaterialSetBucketsFromData, valueOfMaterialSetItem } from '../../utils/materialSet';
 import { selectSourceHandleData } from '../../utils/sourceHandleData';
+import { tripoForwardData } from '../../utils/tripoProvenance';
+import { forwardSeedance25Draft } from '../../utils/seedance25DraftProvenance';
 import { shouldCollectNodeTextOutput } from '../../utils/imageNodeOutputMode';
 import { getVideoOutputPrompt } from '../../utils/videoOutputPrompt';
 import {
@@ -1226,10 +1228,14 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
       collected.audios.length > 0 ||
       collected.models.length > 0;
     const passText = hasNonText ? '' : (displayText || '');
+    const draft = forwardSeedance25Draft((Array.isArray(upstreamNodes) ? upstreamNodes : []).flatMap(n => selectSourceHandleData(n.data, handleMap.get(n.id) || new Set())), collected.videos);
+    const { modelUrl: _modelUrl, modelUrls: _modelUrls, ...tripo } = tripoForwardData((Array.isArray(upstreamNodes) ? upstreamNodes : []).flatMap(n => selectSourceHandleData(n.data, handleMap.get(n.id) || new Set())), collected.models);
     const motionRefs = (Array.isArray(upstreamNodes) ? upstreamNodes : []).flatMap(n =>
       selectSourceHandleData(n.data, handleMap.get(n.id) || new Set()).flatMap(value => motionAssetRefs(value)))
       .filter(ref => collected.videos.includes(ref.url));
     const next: any = {
+      ...tripo,
+      ...draft,
       prompt: passText,
       text: passText,
       reply: passText,
@@ -1277,7 +1283,7 @@ const OutputNode = ({ id, data, selected }: NodeProps) => {
       JSON.stringify(cur.modelUrls) !== JSON.stringify(next.modelUrls) ||
       JSON.stringify(cur.textSegments) !== JSON.stringify(next.textSegments) ||
       JSON.stringify(cur.segments) !== JSON.stringify(next.segments);
-    if (changed || JSON.stringify(d.motionAssetRefs || []) !== JSON.stringify(motionRefs)) update(next);
+    if (changed || JSON.stringify(d.motionAssetRefs || []) !== JSON.stringify(motionRefs) || JSON.stringify({ tripoTaskId: d.tripoTaskId || '', tripoPartNames: d.tripoPartNames || [], tripoFiles: d.tripoFiles || [] }) !== JSON.stringify(tripo) || d.seedance25DraftTaskIdResult !== draft.seedance25DraftTaskIdResult || d.seedance25DraftSourceModel !== draft.seedance25DraftSourceModel) update(next);
     // eslint-disable-next-line react-hooks/exhaustive-deps
    }, [displayText, overrideText, collected, publishedImageUrls, upstreamNodes, handleMap]);
 

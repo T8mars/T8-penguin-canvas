@@ -215,7 +215,11 @@ function readVerifiedManagedArtifact(asset) {
     if (!evidence.hashVerified) {
       return { verified: false, reasons: [`output_asset_hash_mismatch:${assetId}`], evidence };
     }
-    const detected = detectedArtifactType(Buffer.concat(prefixChunks, prefixBytes), asset?.mimeType);
+    const tripo = asset?.metadata?.tripoResult;
+    const receiptedTripo = tripo?.schema === 't8-tripo-media-v1' && tripo.contentHash === observedHash
+      && require('../providers/tripo3d').MODELS.includes(tripo.model) && require('../providers/tripo3d').MODEL_FORMATS.has(tripo.format);
+    const detected = receiptedTripo ? { kind: 'model3d', mimeType: asset.mimeType }
+      : detectedArtifactType(Buffer.concat(prefixChunks, prefixBytes), asset?.mimeType);
     if (!detected) return { verified: false, reasons: [`output_asset_corrupt:${assetId}`], evidence };
     evidence.detectedKind = detected.kind;
     evidence.detectedMimeType = detected.mimeType;

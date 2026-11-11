@@ -1,3 +1,4 @@
+import H3_TURBO_CONTRACT from '../../backend/src/shared/h3TurboContract.json';
 import PREVIEW_MUSE_FLUX from '../../backend/src/shared/previewMuseFluxContract.json';
 import G26_KREA_3D from '../../backend/src/shared/g26Krea3dContract.json';
 import FLASH_VIDEO from '../../backend/src/shared/flashVideoContract.json';
@@ -44,7 +45,7 @@ export type ProviderType = 'zhenzhen' | 'llm-direct' | 'runninghub';
 export const PREVIEW_IMAGE_MODELS = [PREVIEW_MUSE_FLUX.hy.model, PREVIEW_MUSE_FLUX.muse.imageModel];
 export const FLUX_IMAGE_VARIANTS = PREVIEW_MUSE_FLUX.flux.models;
 export const MUSE_VIDEO_MODEL = PREVIEW_MUSE_FLUX.muse.videoModel;
-export type ImageParamKind = 'gpt-size' | 'gpt-image-2.5' | 'banana-ratio' | 'grok-image' | 'seedream-v5' | 'seedream-layer' | 'qwen-image-3.0' | 'qwen-image-global-2.1' | 'flux-image' | 'mai-image' | 'moss-image' | 'preview-image' | 'g26-krea' | 'wan-image' | 'vosr2-upscale' | 'mj';
+export type ImageParamKind = 'gpt-size' | 'gpt-image-2.5' | 'banana-ratio' | 'grok-image' | 'seedream-v5' | 'seedream-layer' | 'qwen-image-3.0' | 'qwen-image-global-2.1' | 'flux-image' | 'mai-image' | 'moss-image' | 'h3-turbo-image' | 'preview-image' | 'g26-krea' | 'wan-image' | 'vosr2-upscale' | 'mj';
 
 export interface ImageModelDef {
   id: string;             // 节点内部 id(如 'gpt-image-2')
@@ -291,6 +292,8 @@ export const SEEDREAM_LAYER_DECOMPOSITION_MODELS = [
   DOLA_SEEDREAM_LAYER_DECOMPOSITION_MODEL,
   'seedream-v5-flash-layer-decomposition',
   'dola-seedream-5.0-flash-layer-decomposition',
+  'seedream-v5.5-layer-decomposition',
+  'dola-seedream-5.5-layer-decomposition',
 ] as const;
 export type SeedreamLayerDecompositionModel = typeof SEEDREAM_LAYER_DECOMPOSITION_MODELS[number];
 export const SEEDREAM_LAYER_RESOLUTIONS = ['auto', '1k', '1.5k', '2k'] as const;
@@ -323,7 +326,7 @@ export function isZhenzhenApimartImageModel(apiModel: string | undefined | null)
 }
 
 export function isZhenzhenBudgetImageModel(apiModel: string | undefined | null): boolean {
-  return (ZHENZHEN_BUDGET_IMAGE_MODELS as readonly string[]).includes(String(apiModel || '').trim());
+  return ([H3_TURBO_CONTRACT.minimax.model,H3_TURBO_CONTRACT.qwen.model,...ZHENZHEN_BUDGET_IMAGE_MODELS] as readonly string[]).includes(String(apiModel || '').trim());
 }
 
 export function gptImage2ZhenzhenVariantSize(apiModel: string | undefined | null): '2K' | '4K' | null {
@@ -437,6 +440,12 @@ export const IMAGE_MODELS: ImageModelDef[] = [
     defaultAspectRatio: 'auto', sizes: id === PREVIEW_MUSE_FLUX.hy.model ? PREVIEW_MUSE_FLUX.hy.resolutions : [],
     defaultSize: id === PREVIEW_MUSE_FLUX.hy.model ? '1K' : '', supportsReference: true,
     maxReferenceImages: id === PREVIEW_MUSE_FLUX.hy.model ? 5 : 9,
+  })),
+  ...[H3_TURBO_CONTRACT.minimax,H3_TURBO_CONTRACT.qwen].map((spec):ImageModelDef=>({
+    id:spec.model,apiModel:spec.model,label:spec.tab,tabLabel:spec.tab,provider:'zhenzhen',paramKind:'h3-turbo-image',
+    apiModelOptions:[{value:spec.model,label:spec.model}],capabilities:['t2i','i2i','edit'],
+    aspectRatios:spec.ratios,defaultAspectRatio:'1:1',sizes:spec.resolutions,defaultSize:spec.defaultResolution,
+    supportsReference:true,maxReferenceImages:spec.maxImages,
   })),
   {
     id: MOSS_IMAGE_MODEL, apiModel: MOSS_IMAGE_MODEL,
@@ -719,7 +728,7 @@ export const NBPRO_FAL_RESOLUTIONS = ['1K', '2K', '4K'];
 
 // ========== 视频 ==========
 // kind 决定上游 payload 协议(后端会根据 model 名自动识别,前端主要用于控制参数 UI 列表)
-export type VideoKind = 'veo' | 'grok' | 'sora' | 'seedance' | 'seedance25' | 'happyhorse' | 'hailuo' | 'flux3' | 'kling' | 'vidu' | 'upscaler' | 'wan' | 'animate' | 'muse';
+export type VideoKind = 'veo' | 'grok' | 'sora' | 'seedance' | 'seedance25' | 'happyhorse' | 'hailuo' | 'flux3' | 'kling' | 'vidu' | 'upscaler' | 'wan' | 'animate' | 'muse' | 'h3-lowprice';
 
 // ---- Video FAL 渠道注册表 (1:1 对齐 gpt-image-2-web runVeo3Fal / runGrokFal / runSora2Fal) ----
 export interface VideoFalEndpointDef {
@@ -900,6 +909,8 @@ export const SEEDANCE25_VIDEO_MODELS = [
   'seedance-2.5-standard-i2v',
   'seedance-2.5-standard-multi',
   'seedance-2.5-standard-t2v',
+  'seedance-2.5-standard-draft-to-video',
+  'seedance-2.5-global-standard-draft-to-video',
 ] as const;
 export const HAILUO_H3_GLOBAL_VIDEO_MODELS = [
   'hailuo-h3-global-t2v',
@@ -1679,7 +1690,8 @@ export const VIDEO_MODELS: VideoModelDef[] = [
     builtinSource: 'seedance-nz',
     description: 'Seedance 2.5 Standard · 文生、首尾帧与多模态参考视频',
     apiModelOptions: SEEDANCE25_VIDEO_MODELS.map((value) => {
-      const mode = value.endsWith('-t2v') ? 't2v' : value.endsWith('-i2v') ? 'i2v' : 'multi';
+      const mode = value.endsWith('-draft-to-video') ? 'draft' : value.endsWith('-t2v') ? 't2v' : value.endsWith('-i2v') ? 'i2v' : 'multi';
+      if (mode === 'draft') return { value, label: value, description: '480P draft → native1080p', ratios: [], durations: [], resolutions: [], supportImages: false, supportVideos: true, supportAudios: false, maxRefImages: 0, maxRefVideos: 1, maxRefAudios: 0 };
       return {
         value,
         label: `${value}${mode === 't2v' ? '（文生视频）' : mode === 'i2v' ? '（首尾帧图生视频）' : '（多模态参考）'}`,
@@ -1712,6 +1724,10 @@ export const VIDEO_MODELS: VideoModelDef[] = [
     supportVideos: true,
     maxRefImages: 30,
   },
+  {id:H3_TURBO_CONTRACT.video.model,label:H3_TURBO_CONTRACT.video.tab,kind:'h3-lowprice',provider:'zhenzhen',builtinSource:'seedance-nz',
+   apiModelOptions:[{value:H3_TURBO_CONTRACT.video.model,label:H3_TURBO_CONTRACT.video.model,supportAudios:true,maxRefAudios:3}],
+   ratios:H3_TURBO_CONTRACT.video.ratios,defaultRatio:'16:9',durations:Array.from({length:13},(_,i)=>i+3),defaultDuration:5,
+   resolutions:H3_TURBO_CONTRACT.video.resolutions,defaultResolution:'480p',supportImages:true,supportVideos:false,maxRefImages:9},
   {
     id: MUSE_VIDEO_MODEL, label: 'Muse Video', kind: 'muse', provider: 'zhenzhen', builtinSource: 'seedance-nz',
     apiModelOptions: [{value: MUSE_VIDEO_MODEL, label: MUSE_VIDEO_MODEL}],

@@ -6,7 +6,7 @@ on:
       release_tag:
         description: Existing GitHub Release tag that receives the Mac assets
         required: true
-        default: v3.5.0
+        default: v3.5.1
         type: string
       source_ref:
         description: Immutable source tag for the Mac build (normally the same formal v<version> tag)
@@ -104,7 +104,7 @@ jobs:
         run: npm ci
 
       - name: Verify macOS release contracts
-        run: npm run test:electron:ts -- tests/macosPackaging.test.ts
+        run: npm run test:electron:ts -- tests/macosPackaging.test.ts tests/encryptedSharedContracts.test.cjs
 
       - name: Build and verify Mac package
         env:

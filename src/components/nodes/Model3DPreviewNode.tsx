@@ -6,6 +6,7 @@ import { useCanvasNodeRenderMode } from '../CanvasNodeRenderMode';
 import * as THREE from 'three';
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js';
 import { USDLoader } from 'three/examples/jsm/loaders/USDLoader.js';
@@ -15,8 +16,8 @@ import { fileNameFromUrl } from '../../utils/mediaCollection';
 import ResizableCorners from './ResizableCorners';
 import { useUpdateNodeData } from './useUpdateNodeData';
 
-const MODEL_URL_RE = /\.(glb|gltf|obj|fbx|stl|usdz|zip)(\?|#|$)/i;
-type ModelFormat = 'gltf' | 'obj' | 'stl' | 'fbx' | 'usdz' | 'zip' | 'unknown';
+const MODEL_URL_RE = /\.(glb|gltf|obj|fbx|stl|usdz|zip|splat|3mf)(\?|#|$)/i;
+type ModelFormat = 'gltf' | 'obj' | 'stl' | 'fbx' | 'usdz' | 'zip' | 'splat' | '3mf' | 'unknown';
 
 const handleStyle: CSSProperties = {
   width: 12,
@@ -63,7 +64,7 @@ function getModelFormat(url: string): ModelFormat {
   const match = url.match(/\.([a-z0-9]+)(?:\?|#|$)/i);
   const ext = String(match?.[1] || '').toLowerCase();
   if (ext === 'glb' || ext === 'gltf') return 'gltf';
-  if (ext === 'obj' || ext === 'stl' || ext === 'fbx' || ext === 'usdz' || ext === 'zip') return ext;
+  if (ext === 'obj' || ext === 'stl' || ext === 'fbx' || ext === 'usdz' || ext === 'zip' || ext === 'splat' || ext === '3mf') return ext;
   return 'unknown';
 }
 
@@ -101,7 +102,7 @@ function applyReadableFallbackMaterial(root: THREE.Object3D) {
 
 async function loadModelObject(url: string, format: ModelFormat): Promise<THREE.Object3D> {
   if (format === 'gltf') {
-    const gltf = await loadWithThreeLoader<any>(new GLTFLoader(), url);
+    const gltf = await loadWithThreeLoader<any>(new GLTFLoader().setMeshoptDecoder(MeshoptDecoder), url);
     return gltf.scene;
   }
   if (format === 'obj') {

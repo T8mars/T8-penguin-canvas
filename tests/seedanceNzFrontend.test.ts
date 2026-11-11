@@ -333,7 +333,7 @@ test('video node exposes Zhenzhen Upscaler as a dedicated single-MP4 family', ()
   assert.match(node, /queryUpscaler/);
   assert.match(node, /Zhenzhen Upscaler 必须连接或拖入且只能保留 1 个 MP4 视频/);
   assert.match(node, /videos: \[videoUrls\[0\]\]/);
-  assert.match(node, /!isUpscaler && !isAnimate && <div>/);
+  assert.match(node, /!isUpscaler && !isAnimate && (?:!\(isKlingV4 && klingV4Model === 'kling-v4-custom-voice'\) && )?<div>/);
   assert.match(generation, /\/api\/proxy\/video\/upscaler\/submit/);
   assert.match(generation, /\/api\/proxy\/video\/upscaler\/status/);
   assert.match(proxy, /seedanceNz\.submitUpscalerTask/);

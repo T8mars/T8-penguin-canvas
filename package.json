@@ -1,7 +1,7 @@
 {
   "name": "t8-penguin-canvas",
   "private": false,
-  "version": "3.5.0",
+  "version": "3.5.1",
   "type": "module",
   "main": "electron/main.cjs",
   "description": "T8-penguin-canvas — AI 节点画布工作流工具（Web + Electron 桌面端）",
@@ -50,6 +50,12 @@
     "music3-resources:generate": "node scripts/generate-minimax-music3-resource-manifest.cjs",
     "music3-resources:check": "node scripts/generate-minimax-music3-resource-manifest.cjs --check",
     "verify:seedance25:live": "node scripts/verify-seedance25-live.cjs",
+    "preverify:seedream55-draft:live": "node scripts/worktree-role.cjs development",
+    "verify:seedream55-draft:live": "node scripts/verify-seedream55-draft-live.cjs --launch",
+    "workflows:seedream55-draft": "node scripts/generate-seedream55-draft-workflows.cjs",
+    "preverify:tripo:live": "node scripts/worktree-role.cjs development",
+    "verify:tripo:live": "node scripts/verify-tripo-live.cjs --launch",
+    "workflows:tripo": "node scripts/generate-tripo-workflows.cjs",
     "verify:flux3-hailuo:live": "node scripts/verify-flux3-hailuo-live.cjs",
     "verify:hailuo-refresh:live": "cross-env FLUX3_HAILUO_VERIFY_MODELS=hailuo-h3-t2v,hailuo-h3-i2v,hailuo-h3-multi,minimax-h3-ow-i2v-fast,minimax-h3-ow-r2v-fast FLUX3_HAILUO_LIVE_RUN=hailuo-refresh-live-20260809 node scripts/verify-flux3-hailuo-live.cjs",
     "verify:minimax-h3-ow-fast-refresh:live": "cross-env FLUX3_HAILUO_VERIFY_MODELS=minimax-h3-ow-ref2va-audio-drive-fast,minimax-h3-ow-fl2va-audio-drive-fast,minimax-h3-ow-t2v-fast FLUX3_HAILUO_LIVE_RUN=minimax-h3-ow-fast-refresh-live-20260814 node scripts/verify-flux3-hailuo-live.cjs",
@@ -118,7 +124,10 @@
     "rh-toolbox:check": "node scripts/check-rh-toolbox-release.cjs",
     "public:check": "node scripts/check-public-clean.cjs",
     "postinstall": "electron-builder install-app-deps",
-    "face-model:build": "node scripts/build-ict-face-glb.cjs"
+    "face-model:build": "node scripts/build-ict-face-glb.cjs",
+    "preverify:h3-turbo:live": "node scripts/worktree-role.cjs development",
+    "verify:h3-turbo:live": "node scripts/verify-h3-turbo-live.cjs --launch",
+    "workflows:h3-turbo": "node scripts/generate-h3-turbo-workflows.cjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

@@ -1,3 +1,4 @@
+import h3Turbo from '../../backend/src/shared/h3TurboContract.json';
 import { isPreviewImage, isFluxVariant, PREVIEW_MUSE_FLUX } from './previewMuseFlux';
 import { minimumProviderMediaPollCount } from './providerTimeoutPolicy';
 import nbDoubao from '../../backend/src/shared/nbLowpriceDoubaoContract.json';
@@ -5,6 +6,7 @@ import mossImage from '../../backend/src/shared/mossImageContract.json';
 import motionVideo from '../../backend/src/shared/motionVideoContract.json';
 import {isNewImageModel,NEW_IMAGE_CONTRACT} from './g26Krea';
 import {flashVideoProfile} from './flashVideo';
+import { TRIPO } from './tripo3d';
 
 export type RunRecoveryKind =
   | 'runninghub'
@@ -19,6 +21,7 @@ export type RunRecoveryKind =
   | 'upscaler'
   | 'fashvsr'
   | 'vosr2'
+  | 'h3-lowprice'
   | 'muse'
   | 'topaz'
   | 'motion'
@@ -51,7 +54,7 @@ export interface RunRecoveryDescriptor {
 }
 const RECOVERY_KINDS = new Set<RunRecoveryKind>([
   'runninghub', 'seedance', 'seedream-nz', 'wan', 'happyhorse', 'hailuo', 'flux3', 'kling', 'upscaler', 'fashvsr', 'vosr2', 'animate', 'vidu', 'seed-audio', 'suno',
-  'model3d', 'muse', 'topaz', 'motion', 'image', 'mj', 'video', 'image-fal', 'video-fal',
+  'model3d', 'h3-lowprice', 'muse', 'topaz', 'motion', 'image', 'mj', 'video', 'image-fal', 'video-fal',
 ]);
 
 function text(value: unknown, maxLength: number): string {
@@ -110,7 +113,7 @@ export function inferRunRecoveryDescriptor(payload: Record<string, unknown>): Ru
   const maxPolls = Math.min(7200, minimumProviderMediaPollCount(pollIntervalMs, Number(payload.pollLimit) || 1200));
   if (provider === 'suno' && taskIds.length) return { version: 1, kind: 'suno', taskIds, model, pollIntervalMs, maxPolls };
   if (!taskId) return null;
-  if(provider==='seedance-nz-3d'&&[...NEW_IMAGE_CONTRACT.hitem.models,...NEW_IMAGE_CONTRACT.meshy.models,'hunyuan3d-v3.1-text-to-3d','hunyuan3d-v3.1-image-to-3d'].includes(model))return {version:1,kind:'model3d',taskId,model,pollIntervalMs,maxPolls:Math.max(maxPolls,1350)};
+  if(provider==='seedance-nz-3d'&&[...TRIPO.models,...NEW_IMAGE_CONTRACT.hitem.models,...NEW_IMAGE_CONTRACT.meshy.models,'hunyuan3d-v3.1-text-to-3d','hunyuan3d-v3.1-image-to-3d'].includes(model))return {version:1,kind:'model3d',taskId,model,pollIntervalMs,maxPolls:Math.max(maxPolls,1350)};
   if (provider === 'runninghub') {
     const site = text(payload.site, 20).toLowerCase() === 'intl' ? 'intl' : 'cn';
     return { version: 1, kind: 'runninghub', taskId, model, site, pollIntervalMs, maxPolls };
@@ -124,7 +127,7 @@ export function inferRunRecoveryDescriptor(payload: Record<string, unknown>): Ru
         outputFormat: 'pcm', sampleRate: nbDoubao.audio.iclFields.sample_rate.options.includes(String(payload.sampleRate)) ? String(payload.sampleRate) : '24000',
       } : {}),
     };
-    if (isNewImageModel(lowerModel) || isPreviewImage(lowerModel) || isFluxVariant(lowerModel) || lowerModel === mossImage.model || lowerModel.includes('seedream') || nbDoubao.banana.models.includes(lowerModel) || lowerModel === 'mai-image-2-6' || lowerModel === 'mai-image-2-6-flash' || lowerModel === 'vosr2-image-upscale' || lowerModel === 'flux-3-image' || lowerModel === 'zhenzhen-image-nb-2.1') {
+    if ([h3Turbo.minimax.model,h3Turbo.qwen.model].includes(lowerModel) || isNewImageModel(lowerModel) || isPreviewImage(lowerModel) || isFluxVariant(lowerModel) || lowerModel === mossImage.model || lowerModel.includes('seedream') || nbDoubao.banana.models.includes(lowerModel) || lowerModel === 'mai-image-2-6' || lowerModel === 'mai-image-2-6-flash' || lowerModel === 'vosr2-image-upscale' || lowerModel === 'flux-3-image' || lowerModel === 'zhenzhen-image-nb-2.1') {
       return { version: 1, kind: 'seedream-nz', taskId, model, pollIntervalMs, maxPolls };
     }
     if (lowerModel.startsWith('wan-')) return { version: 1, kind: 'wan', taskId, model, pollIntervalMs, maxPolls };
@@ -138,6 +141,7 @@ export function inferRunRecoveryDescriptor(payload: Record<string, unknown>): Ru
     if (lowerModel === 'vosr2-video-upscale') {
       return { version: 1, kind: 'vosr2', taskId, model, pollIntervalMs, maxPolls };
     }
+    if (model === h3Turbo.video.model) return {version:1,kind:'h3-lowprice',taskId,model,pollIntervalMs,maxPolls};
     if (model === PREVIEW_MUSE_FLUX.muse.videoModel) return {version:1,kind:'muse',taskId,model,pollIntervalMs,maxPolls};
     if (model === 'Topaz-Upscale-LowPirce') return { version: 1, kind: 'topaz', taskId, model, pollIntervalMs, maxPolls };
     if (lowerModel === 'animate-motion-transfer') {

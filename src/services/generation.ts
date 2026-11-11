@@ -289,6 +289,7 @@ export async function submitImageAsync(
 }
 
 export interface ImageQueryResult extends ProviderTransportTrace {
+  layers?: Array<Record<string, any>>;
   status: string;       // pending / running / completed / failed
   progress: string;
   urls?: string[];
@@ -318,9 +319,11 @@ export async function queryImageStatus(taskId: string, apiModel?: string, transp
 }
 
 export interface SeedreamNzSubmitRequest {
+  watermark?: boolean; safety_identifier?: string; max_images?: number; text_recognition?: boolean;
   prompt?: string;
   images?: string[];
   model?:
+    | 'seedream-v5.5-t2i' | 'seedream-v5.5-i2i' | 'dola-seedream-5.5-t2i' | 'dola-seedream-5.5-i2i' | 'seedream-v5.5-layer-decomposition' | 'dola-seedream-5.5-layer-decomposition'
     | 'zhenzhen-image-g2-t2i'
     | 'zhenzhen-image-g2-i2i'
     | 'zhenzhen-image-g-v2-lowprice'
@@ -343,6 +346,7 @@ export interface SeedreamNzSubmitRequest {
     | 'flux-3-image'
     | 'mai-image-2-6'
     | 'mai-image-2-6-flash'
+    | 'minimax-h3-image' | 'qwen-image-2.1-turbo'
     | 'moss-image'
     | 'zhenzhen-image-nb-pro'
     | 'qwen-image-3.0-t2i'
@@ -362,9 +366,9 @@ export interface SeedreamNzSubmitRequest {
     | 'seedream-v5-flash-layer-decomposition'
     | 'dola-seedream-5.0-flash-layer-decomposition'
     | 'vosr2-image-upscale';
-  modelFamily?: 'domestic' | 'overseas' | 'domestic-flash' | 'overseas-flash';
-  resolution?: 'auto' | '0.5k' | '768sq' | '1k' | '1.5k' | '2k' | '4k' | '1K' | '2K' | '4K';
-  ratio?: 'adaptive' | '16:9' | '4:3' | '1:1' | '3:4' | '9:16' | '21:9' | '2:3' | '3:2' | '4:5' | '5:4';
+  modelFamily?: 'domestic' | 'overseas' | 'domestic-flash' | 'overseas-flash' | 'domestic-55' | 'overseas-55';
+  resolution?: '720p' | 'auto' | '0.5k' | '768sq' | '1k' | '1.5k' | '2k' | '4k' | '1K' | '2K' | '4K';
+  ratio?: '1:3' | '3:1' | 'adaptive' | '16:9' | '4:3' | '1:1' | '3:4' | '9:16' | '21:9' | '2:3' | '3:2' | '4:5' | '5:4';
   size?: string;
   n?: number;
   output_format?: 'png' | 'jpeg' | 'webp' | 'gif' | 'svg';
@@ -1587,6 +1591,7 @@ export async function queryWan(taskId: string): Promise<HappyHorseQueryResult> {
 export type SeedanceTaskProvider = 'auto' | 'seedance-nz' | 'zhenzhen-legacy';
 
 export interface SeedanceSubmitRequest {
+  draft_task_id?: string; draft?: boolean; output_format?: 'mp4' | 'mov';
   /** 'doubao-seedance-2-0-260128' | 'doubao-seedance-2-0-fast-260128' | 'doubao-seedance-2.0-mini' */
   model: string;
   prompt: string;
@@ -1632,7 +1637,7 @@ export interface SeedanceSubmitResult extends ProviderTransportTrace {
 }
 
 export async function submitSeedance(
-  req: SeedanceSubmitRequest,
+  req: SeedanceSubmitRequest | (Omit<SeedanceSubmitRequest, 'prompt'> & { prompt?: never; draft_task_id: string }),
   transport: ProviderSubmissionTransport = {},
 ): Promise<SeedanceSubmitResult> {
   const r = await fetch('/api/proxy/seedance/submit', {
@@ -1696,6 +1701,22 @@ export async function queryMotionVideo(taskId: string, model: string, connection
   const data = await safeJsonResponse(r, 'Motion query');
   if (!r.ok || !data.success) throw providerResponseError(r, data);
   return withProviderTransportTrace(data.data as MotionQueryResult, r);
+}
+
+export async function submitH3TurboVideo(req: { model: string; prompt: string; images: string[]; audios: string[]; seconds: string; resolution: string; ratio: string }, transport: ProviderSubmissionTransport = {}) {
+  const r = await fetch('/api/proxy/video/h3-lowprice/submit', {
+    method: 'POST', headers: providerSubmissionHeaders(transport), body: JSON.stringify(req), signal: transport.signal,
+  });
+  const data = await safeJsonResponse(r, 'H3 Lowprice提交');
+  if (!r.ok || !data.success) throw providerResponseError(r, data);
+  return withProviderTransportTrace(data.data as { taskId: string; model: string; taskType: string }, r);
+}
+
+export async function queryH3TurboVideo(taskId: string, transport: ProviderSubmissionTransport = {}): Promise<HappyHorseQueryResult> {
+  const r = await fetch(`/api/proxy/video/h3-lowprice/status/${encodeURIComponent(taskId)}`, { signal: transport.signal });
+  const data = await safeJsonResponse(r, 'H3 Lowprice查询');
+  if (!r.ok || !data.success) throw providerResponseError(r, data);
+  return withProviderTransportTrace(data.data, r);
 }
 
 export async function submitMuseVideo(req: { model: 'zhenzhen-video-muse'; prompt: string; images: string[]; size: string }, transport: ProviderSubmissionTransport = {}) {
@@ -1805,9 +1826,10 @@ export async function queryAnimateMotionTransfer(
 
 export type Hunyuan3DModel = 'hunyuan3d-v3.1-text-to-3d' | 'hunyuan3d-v3.1-image-to-3d'
   | 'hitem3d-v2-image-to-3d' | 'hitem3d-v2-multi-image-to-3d' | 'hitem3d-portrait-v2.1-image-to-3d' | 'hitem3d-portrait-v2.1-multi-image-to-3d'
-  | 'meshy-6-global-image-to-3d' | 'meshy-6-global-text-to-3d';
+  | 'meshy-6-global-image-to-3d' | 'meshy-6-global-text-to-3d' | `tripo-${string}`;
 export interface Hunyuan3DSubmitRequest {
   model: Hunyuan3DModel;
+  metadata?: Record<string, unknown>;
   prompt?: string;
   face_count?: number;
   enable_pbr?: boolean;
@@ -1827,6 +1849,9 @@ export interface Hunyuan3DSubmitRequest {
 }
 
 export interface Hunyuan3DQueryResult extends ProviderTransportTrace {
+  files?: Array<{ name: string; type: string; url?: string; downloadError?: boolean }>;
+  tripoTaskId?: string;
+  partNames?: string[];
   status: string;
   progress?: string;
   modelUrl?: string;
@@ -1847,8 +1872,8 @@ export async function submitHunyuan3D(req: Hunyuan3DSubmitRequest, transport: Pr
   return withProviderTransportTrace(data.data, r) as { taskId: string; model: Hunyuan3DModel; taskProvider: 'seedance-nz-3d' } & ProviderTransportTrace;
 }
 
-export async function queryHunyuan3D(taskId: string, transport: ProviderSubmissionTransport = {}): Promise<Hunyuan3DQueryResult> {
-  const r = await fetch(`/api/proxy/3d/seedance-nz/status/${encodeURIComponent(taskId)}`, { signal: transport.signal });
+export async function queryHunyuan3D(taskId: string, transport: ProviderSubmissionTransport & { model?: string } = {}): Promise<Hunyuan3DQueryResult> {
+  const r = await fetch(`/api/proxy/3d/seedance-nz/status/${encodeURIComponent(taskId)}${transport.model?.startsWith('tripo-') ? `?model=${encodeURIComponent(transport.model)}` : ''}`, { signal: transport.signal });
   const data = await safeJsonResponse(r, 'Hunyuan 3D 查询');
   if (!r.ok && !data?.data?.recoverable) throw providerResponseError(r, data);
   return withProviderTransportTrace(data.data || { status: 'failed', error: data?.error }, r);

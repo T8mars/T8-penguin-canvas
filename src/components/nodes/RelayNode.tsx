@@ -6,6 +6,8 @@ import { collectMaterialSetBucketsFromData, valueOfMaterialSetItem } from '../..
 import { shouldCollectNodeTextOutput } from '../../utils/imageNodeOutputMode';
 import { selectSourceHandleData } from '../../utils/sourceHandleData';
 import { motionAssetRefs, motionSlotVideos } from '../../utils/motionVideo';
+import { tripoForwardData } from '../../utils/tripoProvenance';
+import { forwardSeedance25Draft } from '../../utils/seedance25DraftProvenance';
 
 /**
  * RelayNode - 数据中转
@@ -71,6 +73,8 @@ const RelayNode = (p: NodeProps) => {
           arrSig('urls'),
           arrSig('generatedImages'),
           JSON.stringify(ud.outputs || null), arrSig('motionAssetRefs'),
+          ud.modelUrl || '', arrSig('modelUrls'), ud.tripoTaskId || '', arrSig('tripoPartNames'), arrSig('tripoFiles'),
+          ud.seedance25DraftTaskIdResult || '', ud.seedance25DraftSourceModel || '',
         ].join('|');
       })
       .join('::');
@@ -79,6 +83,8 @@ const RelayNode = (p: NodeProps) => {
   // 监听上游变化，自动透传
   useEffect(() => {
     const nodes = Array.isArray(upstreamNodes) ? upstreamNodes : [];
+    const tripo = tripoForwardData(nodes.flatMap(n => selectSourceHandleData(n.data, new Set(upstreamConnections.filter(c => c.source === n.id).map(c => c.sourceHandle)))));
+    const draft = forwardSeedance25Draft(nodes.flatMap(n => selectSourceHandleData(n.data, new Set(upstreamConnections.filter(c => c.source === n.id).map(c => c.sourceHandle)))));
     const motionRefs = nodes.flatMap(n => selectSourceHandleData(n.data, new Set(upstreamConnections.filter(c => c.source === n.id).map(c => c.sourceHandle)))
       .flatMap(value => motionAssetRefs(value)));
 
@@ -95,7 +101,7 @@ const RelayNode = (p: NodeProps) => {
         audioUrls: d?.audioUrls,
       });
       const empty = JSON.stringify({});
-      if (cur !== empty || motionAssetRefs(d).length) {
+      if (cur !== empty || motionAssetRefs(d).length || d.tripoTaskId || d.modelUrl || d.seedance25DraftTaskIdResult) {
         update({
           prompt: undefined,
           imageUrl: undefined,
@@ -106,6 +112,8 @@ const RelayNode = (p: NodeProps) => {
           audioUrl: undefined,
           audioUrls: undefined,
           motionAssetRefs: [],
+          ...tripo,
+          ...draft,
         });
       }
       return;
@@ -148,7 +156,7 @@ const RelayNode = (p: NodeProps) => {
       pushUnique(images, ud.imageUrl);
       for (const k of ['imageUrls', 'urls', 'generatedImages'] as const) {
         const v = ud[k];
-        if (Array.isArray(v)) v.forEach((u: any) => pushUnique(images, u));
+        if (Array.isArray(v)) v.forEach((u: any) => { if (!tripo.modelUrls?.includes(u)) pushUnique(images, u); });
       }
       // 视频 / 音频：首个命中为准
       pushUnique(videos, ud.videoUrl);
@@ -159,6 +167,8 @@ const RelayNode = (p: NodeProps) => {
     }
 
     const merged: any = {
+      ...tripo,
+      ...draft,
       prompt: texts.length ? texts.join('\n') : undefined,
       imageUrl: images[0],
       imageUrls: images.length > 1 ? images : undefined,
@@ -193,7 +203,8 @@ const RelayNode = (p: NodeProps) => {
       audioUrls: merged.audioUrls,
       motionAssetRefs: merged.motionAssetRefs,
     });
-    if (cur !== next) update(merged);
+    const oldTripo = { modelUrl: d.modelUrl, modelUrls: d.modelUrls, tripoTaskId: d.tripoTaskId || '', tripoPartNames: d.tripoPartNames || [], tripoFiles: d.tripoFiles || [] };
+    if (cur !== next || JSON.stringify(oldTripo) !== JSON.stringify(tripo) || d.seedance25DraftTaskIdResult !== draft.seedance25DraftTaskIdResult || d.seedance25DraftSourceModel !== draft.seedance25DraftSourceModel) update(merged);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [upstreamSignature]);
 

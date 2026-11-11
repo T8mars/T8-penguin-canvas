@@ -1,0 +1,51 @@
+{
+  "schema": "t8-workflow-fragment",
+  "version": 1,
+  "title": "minimax-h3-comfyui-max-t2v",
+  "nodes": [
+    {
+      "id": "generate",
+      "type": "video",
+      "data": {
+        "model": "minimax-h3-comfyui-max",
+        "providerSource": "zhenzhen",
+        "providerId": "",
+        "providerModel": "",
+        "reuseResult": false,
+        "prompt": "A green ceramic teapot on a cream table, simple studio photography, no text.",
+        "mainId": "minimax-h3-comfyui-max",
+        "videoBuiltinSource": "seedance-nz",
+        "ratio": "16:9",
+        "duration": 3,
+        "resolution": "480p"
+      },
+      "position": {
+        "x": 470,
+        "y": 30
+      }
+    },
+    {
+      "id": "output",
+      "type": "output",
+      "data": {},
+      "position": {
+        "x": 960,
+        "y": 30
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "generate-output",
+      "source": "generate",
+      "target": "output"
+    }
+  ],
+  "nodeCount": 2,
+  "edgeCount": 1,
+  "nodeTypes": [
+    "video",
+    "output"
+  ],
+  "savedAt": "2026-11-11T00:00:00.000Z"
+}

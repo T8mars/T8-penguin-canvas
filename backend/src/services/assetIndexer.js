@@ -158,7 +158,7 @@ const EXTENSION_INFO = Object.freeze({
   mp4: ['video', 'video/mp4'], webm: ['video', 'video/webm'], mov: ['video', 'video/quicktime'], m4v: ['video', 'video/x-m4v'], mkv: ['video', 'video/x-matroska'], avi: ['video', 'video/x-msvideo'],
   mp3: ['audio', 'audio/mpeg'], wav: ['audio', 'audio/wav'], ogg: ['audio', 'audio/ogg'], m4a: ['audio', 'audio/mp4'], flac: ['audio', 'audio/flac'], aac: ['audio', 'audio/aac'],
   glb: ['model3d', 'model/gltf-binary'], gltf: ['model3d', 'model/gltf+json'], obj: ['model3d', 'model/obj'], fbx: ['model3d', 'application/octet-stream'], stl: ['model3d', 'model/stl'], usdz: ['model3d', 'model/vnd.usdz+zip'],
-  spz: ['model3d', 'application/octet-stream'], ply: ['model3d', 'application/octet-stream'], splat: ['model3d', 'application/octet-stream'], ksplat: ['model3d', 'application/octet-stream'],
+  spz: ['model3d', 'application/octet-stream'], ply: ['model3d', 'application/octet-stream'], splat: ['model3d', 'application/octet-stream'], ksplat: ['model3d', 'application/octet-stream'], '3mf': ['model3d', 'model/3mf'],
   txt: ['text', 'text/plain'], md: ['text', 'text/markdown'], json: ['text', 'application/json'], csv: ['text', 'text/csv'], srt: ['text', 'application/x-subrip'], vtt: ['text', 'text/vtt'],
 });
 
@@ -296,6 +296,12 @@ function detectHostArtifactType(filename, declaredContentType = '', sourceType =
     return null;
   })();
   if (known) return { ...known, stat };
+  // Only the Provider's verified local receipt may identify opaque model formats.
+  // Caller-supplied kind/extension/metadata remain non-authoritative.
+  if (sourceType === 'controlled-output') {
+    const tripo = require('./tripoMediaMetadata').readTripoMediaMetadata(path.dirname(filename), filename);
+    if (tripo) return { ...artifactType('model3d', extensionInfo(filename).mimeType, tripo.format), stat };
+  }
 
   const textual = prefix.length === 0 || (isUtf8(prefix) && !prefix.includes(0));
   const trimmed = textual ? prefix.toString('utf8').trimStart().toLowerCase() : '';
@@ -2366,6 +2372,9 @@ class AssetIndexer {
       const motionResult = detected.kind === 'video'
         ? require('./motionVideoMetadata').readMotionVideoMetadata(this.config.OUTPUT_DIR, materialized.absolute, contentHash, attempt.metadata?.recovery)
         : null;
+      const tripoResult = detected.kind === 'model3d'
+        ? require('./tripoMediaMetadata').readTripoMediaMetadata(this.config.OUTPUT_DIR, materialized.absolute, contentHash, attempt.metadata?.recovery)
+        : null;
       artifacts.push({
         opId: stableEntityUuid('t8-host-artifact-operation-v1', attempt.entityUid, prepared.outputOrdinal),
         artifactUid,
@@ -2381,6 +2390,7 @@ class AssetIndexer {
         metadata: {
           ...stableSource.metadata,
           ...(motionResult ? { motionResult } : {}),
+          ...(tripoResult ? { tripoResult } : {}),
           size: byteSize,
           extension: detected.extension,
           root: 'output',

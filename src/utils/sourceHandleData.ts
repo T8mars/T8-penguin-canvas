@@ -4,9 +4,9 @@ export type SourceHandleData = Record<string, unknown>;
 const OUTPUT_KIND_FIELDS: Record<string, string[]> = {
   text: ['outputText', 'reply', 'promptResolved', 'prompt', 'text', 'textSegments', 'segments', 'texts'],
   image: ['imageUrl', 'imageUrls', 'generatedImages', 'resultUrl', 'resultUrls', 'firstFrameUrl', 'lastFrameUrl'],
-  video: ['videoUrl', 'videoUrls'],
+  video: ['videoUrl', 'videoUrls', 'seedance25DraftTaskIdResult', 'seedance25DraftSourceModel'],
   audio: ['audioUrl', 'audioUrl_1', 'audioUrls'],
-  model3d: ['modelUrl', 'modelUrls', 'directModelUrl', 'directModelUrls', 'worldSceneUrl', 'worldSceneFormat', 'worldSceneSource', 'fileName', 'fileNames'],
+  model3d: ['modelUrl', 'modelUrls', 'directModelUrl', 'directModelUrls', 'worldSceneUrl', 'worldSceneFormat', 'worldSceneSource', 'fileName', 'fileNames', 'tripoTaskId', 'tripoPartNames', 'tripoFiles'],
   metadata: [
     'metadata',
     'outputMetadata',

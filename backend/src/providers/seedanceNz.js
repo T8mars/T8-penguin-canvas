@@ -26,6 +26,9 @@ const { resolveBundledFfprobe, resolveBundledFfmpeg } = require('./llmMedia');
 const NB_FLUX_VIDU = require('../shared/nb21FluxViduQ4Contract.json');
 const TOPAZ_VIDEO_CONTRACT = require('../shared/topazVideoContract.json');
 const MAI_IMAGE_CONTRACT = require('../shared/maiImageContract.json');
+const H3_TURBO_CONTRACT = require('../shared/h3TurboContract.json');
+let h3TurboPromise;
+const h3TurboApi = () => h3TurboPromise ||= import('../shared/h3TurboContract.mjs').then(m => m.createH3TurboContract(H3_TURBO_CONTRACT));
 const MOSS_IMAGE_CONTRACT = require('../shared/mossImageContract.json');
 const previewMuseFlux = require('./previewMuseFlux');
 const g26Krea3d = require('./g26Krea3d');
@@ -62,6 +65,7 @@ const SEEDANCE25_MULTI_MODELS = new Set([
   'seedance-2.5-standard-multi',
 ]);
 const SEEDANCE25_MODELS = new Set([
+  ...require('../shared/seedream55DraftContract.json').draftModels,
   ...SEEDANCE25_T2V_MODELS,
   ...SEEDANCE25_I2V_MODELS,
   ...SEEDANCE25_MULTI_MODELS,
@@ -250,6 +254,7 @@ const WHISPER_MAX_SEGMENT_TEXT_LENGTH = 4000;
 const WHISPER_MAX_SEGMENT_TEXT_TOTAL = 1_000_000;
 const ZHENZHEN_IMAGE_G2_RATIOS = new Set(RATIOS);
 const IMAGE_MODELS = new Set([
+  H3_TURBO_CONTRACT.minimax.model, H3_TURBO_CONTRACT.qwen.model,
   ...Object.values(IMAGE_MODEL_PAIRS).flat(),
   ...ZHENZHEN_IMAGE_G2_MODELS,
   ...ZHENZHEN_APIMART_IMAGE_MODELS,
@@ -2528,6 +2533,10 @@ async function validateSeedance25ReferenceDuration(buffer, file, kind, durationS
 }
 
 async function buildSeedance25Payload(request, apiKey, options = {}) {
+  if (require('../shared/seedream55DraftContract.json').draftModels.includes(request.model)) {
+    const api = await seedream55DraftApi();
+    return { payload: api.buildDraft(request), model: request.model, taskType: 'draft-to-video' };
+  }
   const model = String(request.model || '').trim().toLowerCase();
   const taskType = seedance25TaskTypeFromModel(model);
   const prompt = normalizePromptMentions(request.prompt).trim();
@@ -2581,7 +2590,8 @@ async function buildSeedance25Payload(request, apiKey, options = {}) {
   const payload = {
     model,
     metadata: {
-      resolution,
+      resolution: request.draft === true ? '480p' : resolution,
+      ...(request.draft === true ? { draft: true } : {}),
       ratio: normalizeRatio(request.ratio),
       generate_audio: request.generate_audio !== false,
       return_last_frame: request.return_last_frame === true,
@@ -3327,7 +3337,25 @@ async function buildZhenzhenImageG2Payload(request, apiKey, options = {}) {
   };
 }
 
+let seedream55ApiPromise;
+const seedream55DraftApi = () => seedream55ApiPromise || (seedream55ApiPromise = import('../shared/seedream55DraftContract.mjs').then(m => m.createSeedream55DraftContract(require('../shared/seedream55DraftContract.json'))));
+async function buildSeedream55Payload(request, apiKey, options = {}) {
+  const payload = (await seedream55DraftApi()).buildImage(request), prepared = [];
+  for (const source of payload.images || []) {
+    const file = await mediaBuffer(source, 'image', 30 * 1024 * 1024, options);
+    const metadata = await sharp(file.buffer).metadata();
+    if (!['png','jpeg','webp'].includes(metadata.format)) throw Object.assign(new Error('Seedream 5.5 requires PNG/JPEG/WebP'), { status: 400 });
+    prepared.push(source);
+  }
+  if (prepared.length) { payload.images = []; for (const source of prepared) payload.images.push(await uploadMedia(source, 'image', apiKey, { ...options, maxBytes: 30 * 1024 * 1024, allowedMimes: ['image/png','image/jpeg','image/webp'], cacheVariant: 'seedream55' })); }
+  return { payload, model: request.model, taskType: request.model.endsWith('layer-decomposition') ? 'layer-decomposition' : prepared.length ? 'i2i' : 't2i' };
+}
 async function buildImagePayload(request, apiKey, options = {}) {
+  if ((await h3TurboApi()).imageModels.includes(request.model)) return buildH3TurboPayload(request, apiKey, options);
+  if ((await seedream55DraftApi()).isImage(request.model)) {
+    if (request.modelFamily && seedreamNzContract.families[request.modelFamily] && !seedreamNzContract.families[request.modelFamily].models.includes(request.model)) throw Object.assign(new Error('Seedream model and family do not match'), { status: 400 });
+    return buildSeedream55Payload(request, apiKey, options);
+  }
   if (g26Krea3d.imageModels.includes(request.model)) return buildG26Krea3dPayload(g26Krea3d.buildImage(request), apiKey, options);
   if (previewMuseFlux.imageModels.includes(request.model)) return buildPreviewMuseFluxPayload(request, apiKey, options);
   const requestedModel = String(request.model || '').trim().toLowerCase();
@@ -3372,6 +3400,7 @@ async function buildImagePayload(request, apiKey, options = {}) {
   const model = refs.length ? modelPair[1] : modelPair[0];
   if (!IMAGE_MODELS.has(model)) throw new Error(`未知 Seedream 模型：${model}`);
   const contract = seedreamNzContract.families[family];
+  if ((await seedream55DraftApi()).isImage(model)) return buildSeedream55Payload({ ...request, model, images: refs }, apiKey, options);
   const payload = {
     model,
     prompt: normalizeImagePrompt(request.prompt, contract.promptMaxLength),
@@ -3391,6 +3420,7 @@ async function buildImagePayload(request, apiKey, options = {}) {
 }
 
 async function buildSeedreamLayerDecompositionPayload(request, apiKey, options = {}) {
+  if (require('../shared/seedream55DraftContract.json').layerModels.includes(request.model)) return buildSeedream55Payload(request, apiKey, options);
   const model = String(request.model || '').trim().toLowerCase();
   if (!SEEDREAM_LAYER_DECOMPOSITION_MODELS.has(model)) {
     throw new Error(`未知 Seedream 分层模型：${model || '(空)'}`);
@@ -6076,6 +6106,57 @@ async function buildPreviewMuseFluxPayload(request, apiKey, options = {}) {
   return built;
 }
 
+async function buildH3TurboPayload(request, apiKey, options = {}) {
+  const api = await h3TurboApi(), payload = api.build(request), spec = api.profile(request.model), video = spec === api.contract.video;
+  const preparedImages = [], preparedAudios = [];
+  // Read and validate all references before the first upload. Preserve order and repeated slots.
+  for (const source of request.images || []) {
+    const file = await mediaBuffer(source, 'image', video ? spec.imageBytes : undefined, options);
+    const info = await sharp(file.buffer).metadata();
+    if (!['png','jpeg','webp'].includes(info.format)) throw Object.assign(new Error('H3/Turbo requires PNG/JPEG/WebP'), {status:400});
+    await sharp(file.buffer).stats();
+    preparedImages.push({buffer:file.buffer,mime:info.format === 'jpeg' ? 'image/jpeg' : 'image/'+info.format});
+  }
+  if (video && preparedImages.reduce((sum,file)=>sum+file.buffer.length,0)>spec.imagesBytes) throw Object.assign(new Error('H3 image references exceed 50 MiB'),{status:400});
+  for (const source of request.audios || []) {
+    const file = await mediaBuffer(source,'audio',spec.audioBytes,options), buffer = file.buffer;
+    const wav = buffer.subarray(0,4).toString()==='RIFF' && buffer.subarray(8,12).toString()==='WAVE';
+    const mp3 = buffer.subarray(0,3).toString()==='ID3' || buffer[0]===255 && (buffer[1]&224)===224;
+    if (!wav && !mp3) throw Object.assign(new Error('H3 audio references require MP3/WAV'),{status:400});
+    // Decode locally; do not upload a corrupt header or rename an unsupported container.
+    await transcodeReferenceAudio(buffer,{...options,normalizeAudioWav:true,maxBytes:100*1024*1024});
+    preparedAudios.push({buffer,mime:wav?'audio/wav':'audio/mpeg'});
+  }
+  if (video && preparedAudios.reduce((sum,file)=>sum+file.buffer.length,0)>spec.audioBytes) throw Object.assign(new Error('H3 audio references exceed 10 MiB'),{status:400});
+  const upload = async (file,kind) => uploadMedia('data:'+file.mime+';base64,'+file.buffer.toString('base64'),kind,apiKey,{...options,cacheVariant:'h3-turbo-original',...(video?{maxBytes:kind==='image'?spec.imageBytes:spec.audioBytes}:{}),allowedMimes:[file.mime]});
+  if (preparedImages.length) { payload.images=[]; for (const file of preparedImages) payload.images.push(await upload(file,'image')); }
+  if (preparedAudios.length) { payload.metadata.audio_urls=[]; for (const file of preparedAudios) payload.metadata.audio_urls.push(await upload(file,'audio')); }
+  return {payload,model:spec.model,taskType:video?'video':preparedImages.length?'i2i':'t2i'};
+}
+async function submitH3TurboVideoTask(request, apiKey, options = {}) {
+  if (request.model !== H3_TURBO_CONTRACT.video.model) throw Object.assign(new Error('Invalid H3 Lowprice model'),{status:400});
+  if (!String(apiKey || '').trim()) throw new Error('Missing budget-house API Key');
+  const built=await buildH3TurboPayload(request,apiKey,options);
+  const response=await fetchProviderResponse(getFetchImpl(options),cleanBaseUrl(options.baseUrl)+'/v1/video/generations',{
+    method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+apiKey},body:JSON.stringify(built.payload)},options,'H3 Lowprice submit');
+  const data=await responseJson(response,'H3 Lowprice submit');
+  if (!response.ok) throw createUpstreamError(data,response);
+  const taskId=requiredTaskId(data?.task_id||data?.id||data?.data?.task_id||data?.data?.id,'H3 Lowprice submit',response);
+  return {taskId,model:built.model,taskType:built.taskType,...safeProviderTrace(response,data,{pollCount:0})};
+}
+async function queryH3TurboVideoTask(taskId, apiKey, options = {}) {
+  if (!String(apiKey || '').trim()) throw new Error('Missing budget-house API Key');
+  const response=await fetchProviderResponse(getFetchImpl(options),cleanBaseUrl(options.baseUrl)+'/v1/video/generations/'+encodeURIComponent(taskId),{
+    method:'GET',headers:{Authorization:'Bearer '+apiKey}},options,'H3 Lowprice query');
+  const data=await responseJson(response,'H3 Lowprice query');
+  if (!response.ok) throw createUpstreamError(data,response);
+  const record=data?.data||data,nested=record?.data||{};
+  if ((record.model||nested.model) && (record.model||nested.model)!==H3_TURBO_CONTRACT.video.model) throw new Error('H3 Lowprice model mismatch');
+  const statuses=[record.status,nested.status].filter(v=>typeof v==='string'&&v.trim()).map(normalizeImageTaskStatus);
+  const status=statuses.includes('failed')?'failed':statuses.length&&statuses.every(v=>v==='succeeded')?'succeeded':statuses.includes('running')?'running':'pending';
+  return {taskId,model:H3_TURBO_CONTRACT.video.model,status,progress:String(record.progress??''),videoUrl:record.result_url||nested?.content?.video_url||'',failReason:record.fail_reason||record.error?.message||'',...safeProviderTrace(response,data)};
+}
+
 async function submitMuseVideoTask(request, apiKey, options = {}) {
   if (!String(apiKey || '').trim()) throw new Error('Missing budget-house API Key');
   if (request.model !== previewMuseFlux.contract.muse.videoModel) throw new Error('Invalid Muse Video model');
@@ -6190,6 +6271,12 @@ async function queryImageTask(taskId, apiKey, options = {}) {
   const status = normalizeImageTaskStatus(record?.status || data?.status);
   const nested = record?.data && typeof record.data === 'object' ? record.data : {};
   const imageUrls = status === 'succeeded' ? imageTaskResultUrls(record, nested) : [];
+  const rawLayers = nested?.content?.layers;
+  let layers;
+  if (rawLayers !== undefined && require('../shared/seedream55DraftContract.json').layerModels.includes(record.model || options.model)) {
+    if (!Array.isArray(rawLayers) || rawLayers.length !== imageUrls.length || rawLayers.some((layer, index) => !layer || layer.url !== imageUrls[index])) throw Object.assign(new Error('Seedream layer metadata does not match image order'), { status: 502 });
+    layers = rawLayers.map(layer => Object.fromEntries(['url','outputType','size','text','zindex','boundingBox','description','name'].filter(key => layer[key] !== undefined && JSON.stringify(layer[key]).length <= 16384).map(key => [key, layer[key]])));
+  }
   const operationResult = status === 'succeeded'
     ? (record?.content?.result || nested?.content?.result || data?.content?.result || null)
     : null;
@@ -6209,12 +6296,43 @@ async function queryImageTask(taskId, apiKey, options = {}) {
     imageUrl: imageUrls[0] || null,
     imageUrls,
     operationResult,
+    ...(layers ? { layers } : {}),
     failReason,
     ...safeProviderTrace(response, data),
   };
 }
 
 async function buildHunyuan3dPayload(request, apiKey, options = {}) {
+  if (require('./tripo3d').MODELS.includes(request.model)) {
+    const tripo3d = require('./tripo3d');
+    const built = (await tripo3d.getContract()).build(request);
+    const prepared = [];
+    // Validate every input before uploading the first file.
+    for (const binding of built.bindings) {
+      const file = await mediaBuffer(binding.source, binding.kind, binding.kind === 'image' ? 50 * 1024 * 1024 : tripo3d.contract.maxModelBytes, options);
+      if (binding.kind === 'image') {
+        const buffer = await sharp(file.buffer, { failOn: 'error' }).png().toBuffer();
+        ensureSize(buffer, 'image', tripo3d.contract.maxImageBytes);
+        prepared.push({ ...binding, source: `data:image/png;base64,${buffer.toString('base64')}` });
+      } else {
+        const format = path.extname(file.fileName).slice(1).toLowerCase();
+        if (!['glb', 'gltf', 'fbx', 'obj', 'stl'].includes(format)) throw Object.assign(new Error('Tripo source model must be GLB/GLTF/FBX/OBJ/STL'), { status: 400 });
+        await tripo3d.validateArtifact(file.buffer, format);
+        prepared.push({ ...binding, format });
+      }
+    }
+    for (const binding of prepared) {
+      const uploaded = await uploadMedia(binding.source, binding.kind, apiKey, {
+        ...options, maxBytes: binding.kind === 'image' ? tripo3d.contract.maxImageBytes : tripo3d.contract.maxModelBytes,
+        cacheVariant: `tripo-${binding.kind}`,
+        ...(binding.kind === 'image' ? { allowedMimes: ['image/png'] } : { validateBuffer: buffer => tripo3d.validateArtifact(buffer, binding.format) }),
+      });
+      if (binding.field) built.payload.metadata[binding.field] = uploaded;
+      else built.payload.images[binding.index] = uploaded;
+    }
+    const { bindings, ...result } = built;
+    return result;
+  }
   if (g26Krea3d.models3d.includes(request.model)) return buildG26Krea3dPayload(g26Krea3d.build3d(request), apiKey, options);
   const model = String(request.model || '').trim().toLowerCase();
   if (!HUNYUAN3D_MODELS.has(model)) throw new Error(`未知 Hunyuan 3D 模型：${model || '(空)'}`);
@@ -6291,15 +6409,19 @@ async function queryHunyuan3dTask(taskId, apiKey, options = {}) {
   // A successful Hunyuan response can include previews and ZIP sidecars beside
   // the actual GLB. Keep only the highest-confidence renderable model so the
   // materializer and 3D preview never receive an unrelated attachment.
-  const rankedModelUrls = status === 'succeeded' ? model3dResultUrls(record) : [];
+  const tripo3d = require('./tripo3d');
+  const model = String(record.model || record.data?.model || options.model || '');
+  const tripoResult = status === 'succeeded' && tripo3d.MODELS.includes(model) ? tripo3d.parseFiles(record) : null;
+  const rankedModelUrls = status === 'succeeded' ? tripoResult ? tripoResult.modelUrls : model3dResultUrls(record) : [];
   const modelUrls = rankedModelUrls.length ? [rankedModelUrls[0]] : [];
   return {
     status,
     progress: safeProgress(record?.progress ?? data?.progress),
     modelUrl: modelUrls[0] || null,
     modelUrls,
-    model: String(record.model || record.data?.model || ''),
-    failReason: status === 'failed' ? String(record?.fail_reason || record?.failReason || record?.message || data?.message || '3D 任务失败') : null,
+    model,
+    ...(tripoResult || {}),
+    failReason: status === 'failed' ? String(record?.fail_reason || record?.failReason || record?.data?.error?.message || record?.message || data?.message || '3D 任务失败') : null,
     ...safeProviderTrace(response, data),
   };
 }
@@ -6443,6 +6565,8 @@ async function queryTask(taskId, apiKey, options = {}) {
     videoUrl: status === 'succeeded'
       ? String(metadata?.url || data?.url || data?.data?.url || '').trim() || null
       : null,
+    draftTaskId: status === 'succeeded' ? String(data?.data?.content?.draft_task_id || data?.content?.draft_task_id || metadata?.draft_task_id || '').trim() : '',
+    lastFrameUrl: status === 'succeeded' ? String(metadata?.last_frame_url || data?.data?.content?.last_frame_url || data?.content?.last_frame_url || '').trim() : '',
     draftCache: status === 'succeeded'
       ? String(metadata?.draft_cache || data?.draft_cache || data?.data?.draft_cache || '').trim() || null
       : null,
@@ -6654,6 +6778,7 @@ function resetCachesForTests() {
 }
 
 module.exports = {
+  H3_TURBO_CONTRACT, buildH3TurboPayload, submitH3TurboVideoTask, queryH3TurboVideoTask,
   VIDU_Q4_MODELS,
   FLUX3_IMAGE_MODEL,
   MAI_IMAGE_CONTRACT,

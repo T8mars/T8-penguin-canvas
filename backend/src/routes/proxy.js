@@ -3416,7 +3416,7 @@ router.get('/image/seedance-nz/status/:tid', async (req, res) => {
     return res.status(400).json({ success: false, error: '缺少贞贞的平价AI小屋 API Key' });
   }
   try {
-    const result = await seedanceNz.queryImageTask(req.params.tid, apiKey, { signal: req.t8AbortSignal });
+    const result = await seedanceNz.queryImageTask(req.params.tid, apiKey, { signal: req.t8AbortSignal, model: remembered?.model });
     if (result.status === 'succeeded') {
       if (result.operationResult && typeof result.operationResult === 'object' && result.operationResult.image_id) {
         return res.json({
@@ -3468,6 +3468,7 @@ router.get('/image/seedance-nz/status/:tid', async (req, res) => {
           progress: '100%',
           urls,
           outputCount: urls.length,
+          ...(result.layers ? { layers: result.layers.map((layer, index) => ({ ...layer, url: urls[index] })) } : {}),
           ...seedanceNzTrace(result),
         },
       });
@@ -3530,8 +3531,14 @@ router.get('/3d/seedance-nz/status/:tid', async (req, res) => {
   const apiKey = String(remembered?.apiKey || settings?.zhenzhenSd2ApiKey || '').trim();
   if (!apiKey) return res.status(400).json({ success: false, error: '缺少贞贞的平价AI小屋 API Key' });
   try {
-    const result = await seedanceNz.queryHunyuan3dTask(req.params.tid, apiKey, { signal: req.t8AbortSignal });
+    const result = await seedanceNz.queryHunyuan3dTask(req.params.tid, apiKey, { signal: req.t8AbortSignal, model: remembered?.model || req.query.model });
     if (result.status === 'succeeded') {
+      if (require('../providers/tripo3d').MODELS.includes(result.model)) {
+        const saved = await require('../providers/tripo3d').materialize(result, saveRemoteFalToolboxFile, req.params.tid);
+        if (!saved) return res.status(502).json({ success: false, data: { status: 'materializing', progress: '99%', recoverable: true, retryAfterMs: 5000 } });
+        for (const file of saved.files) if (file.url) require('../services/tripoMediaMetadata').writeTripoMediaMetadata(config.OUTPUT_DIR, file, { ...saved, model: result.model }, req.params.tid);
+        return res.json({ success: true, data: { status: 'completed', progress: '100%', ...saved, outputCount: saved.files.filter(f => f.url).length, ...seedanceNzTrace(result) } });
+      }
       const remoteUrls = (Array.isArray(result.modelUrls) ? result.modelUrls : [result.modelUrl]).map((value) => String(value || '').trim()).filter(Boolean);
       if (!remoteUrls.length) return res.status(502).json({ success: false, data: { status: 'failed', progress: '100%', error: '3D 任务完成但未返回可下载模型文件', recoverable: true } });
       const modelUrls = [];
@@ -4455,6 +4462,51 @@ router.get('/video/motion/status/:tid', async (req, res) => {
     if (sendTaskResultQueryRecovery(res, error, { taskId: req.params.tid })) return;
     return res.status(proxyErrorStatus(error)).json({ success: false, code: error.code || 'motion_query_failed',
       error: proxyPublicError(error, '代码动画查询失败', [apiKey]), ...seedanceNzTrace(error) });
+  }
+});
+
+router.post('/video/h3-lowprice/submit', async (req, res) => {
+  const apiKey = String(loadRawSettings()?.zhenzhenSd2ApiKey || '').trim();
+  if (!apiKey) return res.status(400).json({ success: false, error: '缺少贞贞的平价AI小屋 API Key' });
+  try {
+    const result = await seedanceNz.submitH3TurboVideoTask(req.body || {}, apiKey, { signal: req.t8AbortSignal });
+    rememberTaskKey(result.taskId, apiKey, { provider: 'h3-lowprice-nz', model: result.model, taskType: result.taskType });
+    return res.json({ success: true, data: { taskId: result.taskId, model: result.model, taskType: result.taskType, ...seedanceNzTrace(result) } });
+  } catch (error) {
+    proxyRouteError('proxy/video/h3-lowprice/submit 错误', error, [apiKey]);
+    const status = Number(error?.status || 500);
+    return res.status(status >= 400 && status < 600 ? status : 500).json({ success: false,
+      error: proxyPublicError(error, 'Minimax H3 Lowprice提交失败', [apiKey]), ...seedanceNzTrace(error) });
+  }
+});
+
+router.get('/video/h3-lowprice/status/:tid', async (req, res) => {
+  const remembered = recallTaskMeta(req.params.tid, 'h3-lowprice-nz');
+  const apiKey = String(remembered?.apiKey || loadRawSettings()?.zhenzhenSd2ApiKey || '').trim();
+  if (!apiKey) return res.status(400).json({ success: false, error: '缺少贞贞的平价AI小屋 API Key' });
+  try {
+    const result = await seedanceNz.queryH3TurboVideoTask(req.params.tid, apiKey, { signal: req.t8AbortSignal });
+    const videoUrls = [];
+    // An empty successful response must also pass through the shared failure boundary.
+    const sources = result.videoUrls?.length ? result.videoUrls : [result.videoUrl];
+    for (const [index, remoteUrl] of sources.entries()) {
+      const materialized = await materializeRemoteTaskOutput({ status: result.status, remoteUrl, kind: 'video',
+        materializationKey: `h3-lowprice-nz:${req.params.tid}:${index}`, providerFetchImpl: seedanceNz.fetchRemote, signal: req.t8AbortSignal });
+      if (materialized.failure) return sendCompletedRemoteOutputFailure(res, materialized.failure, {
+        status: result.status, videoUrl: null, videoUrls: [], ...seedanceNzTrace(result),
+      }, { defaultCode: 'h3_output_unusable', defaultMessage: 'Minimax H3 Lowprice 结果暂时无法保存，请继续查询原任务。' });
+      if (materialized.url) videoUrls.push(materialized.url);
+    }
+    return res.json({ success: true, data: { status: result.status, progress: safeDiagnosticText(result.progress || '', 80, [apiKey]),
+      videoUrl: videoUrls[0] || null, videoUrls,
+      failReason: result.status === 'failed' ? 'Minimax H3 Lowprice任务失败' : '',
+      model: 'minimax-h3-comfyui-max', taskType: remembered?.taskType || 't2v', ...seedanceNzTrace(result) } });
+  } catch (error) {
+    proxyRouteError('proxy/video/h3-lowprice/status 错误', error, [apiKey]);
+    if (sendTaskResultQueryRecovery(res, error, { taskId: req.params.tid })) return;
+    const status = Number(error?.status || 500);
+    return res.status(status >= 400 && status < 600 ? status : 500).json({ success: false,
+      error: proxyPublicError(error, 'Minimax H3 Lowprice查询失败', [apiKey]), ...seedanceNzTrace(error) });
   }
 });
 
@@ -7188,8 +7240,8 @@ async function saveRemoteFalToolboxFile(url, kind, materializationKey = '', opti
   try {
     const cleanUrl = String(url || '').split(/[?#]/)[0];
     const match = cleanUrl.match(/\.([a-z0-9]{2,8})$/i);
-    const ext = safeOutputExt(match?.[1], kind === 'model3d' ? 'glb' : 'bin');
-    if (kind !== 'model3d' || !new Set(['glb', 'gltf', 'obj', 'fbx', 'stl', 'usdz', 'zip']).has(ext)) {
+    const ext = options.tripo === true ? String(options.declaredFormat) : safeOutputExt(match?.[1], kind === 'model3d' ? 'glb' : 'bin');
+    if (kind !== 'model3d' || !(options.tripo === true ? require('../providers/tripo3d').MODEL_FORMATS : new Set(['glb', 'gltf', 'obj', 'fbx', 'stl', 'usdz', 'zip'])).has(ext)) {
       throw new Error('FAL 文件类型不在服务端允许列表');
     }
     const remote = await safeRemoteMediaFetch(url, {
@@ -7205,6 +7257,10 @@ async function saveRemoteFalToolboxFile(url, kind, materializationKey = '', opti
     if (!buf.length) throw new Error('FAL 模型文件为空');
     const contentType = normalizedContentType(remote.contentType);
     if (contentType === 'text/html' || contentType === 'application/xhtml+xml') throw new Error('FAL 模型响应类型无效');
+    if (options.tripo === true) {
+      const verified = await require('../providers/tripo3d').validateArtifact(buf, ext);
+      return { url: storeMaterializedOutputBuffer(buf, 'model3d', verified.format, materializationKey), actualFormat: verified.format, partNames: verified.partNames, error: null };
+    }
     if (options.extractGlb) {
       const prepared=await prepareGlbBuffer(buf);
       const archiveUrl=prepared.archive?storeMaterializedOutputBuffer(prepared.archive,'model3d','zip',materializationKey+':archive'):'';
@@ -8131,10 +8187,13 @@ router.get('/seedance/query', async (req, res) => {
         providerFetchImpl: seedanceNz.fetchRemote,
         signal: req.t8AbortSignal,
       });
+      const lastFrame = result.lastFrameUrl ? await materializeRemoteTaskOutput({ status: result.status, remoteUrl: result.lastFrameUrl, kind: 'image', materializationKey: `${seedanceNz.PROVIDER_ID}:${taskId}:last-frame`, signal: req.t8AbortSignal }) : null;
       const responseData = {
+        ...(lastFrame?.url ? { lastFrameUrl: lastFrame.url } : {}),
         status: result.status,
         progress: safeDiagnosticText(result.progress || '', 80, [apiKey]),
         videoUrl: materialized.url,
+        draftTaskId: safeDiagnosticText(result.draftTaskId || '', 512, [apiKey]),
         failReason: result.status === 'failed'
           ? safeDiagnosticText(result.failReason || 'Seedance 任务失败', 240, [apiKey])
           : '',
@@ -8143,6 +8202,7 @@ router.get('/seedance/query', async (req, res) => {
         taskType: rememberedMeta?.taskType || '',
         ...seedanceNzTrace(result),
       };
+      if (lastFrame?.failure) return sendCompletedRemoteOutputFailure(res, lastFrame.failure, responseData, { defaultCode: 'seedance_last_frame_unusable', defaultMessage: '视频尾帧暂未保存，请继续查询原任务。' });
       if (materialized.failure) {
         return sendCompletedRemoteOutputFailure(res, materialized.failure, responseData, {
           defaultCode: 'seedance_output_unusable',
@@ -9115,6 +9175,7 @@ router.get('/runninghub/app-info', async (req, res) => {
 
 module.exports = router;
 module.exports._test = Object.freeze({
+  saveRemoteFalToolboxFile,
   decodeRunningHubTextOutput,
   diagnosticDigest,
   FAL_TOOLBOX_AUTHORITY,

@@ -1,0 +1,118 @@
+{
+  "schema": "t8-workflow-fragment",
+  "version": 1,
+  "title": "tripo-p-p1-multiview-to-3d",
+  "nodes": [
+    {
+      "id": "view-0",
+      "type": "upload",
+      "position": {
+        "x": 0,
+        "y": 40
+      },
+      "data": {
+        "label": "正面 / Front",
+        "uploadType": "image",
+        "lockedUploadType": "image"
+      }
+    },
+    {
+      "id": "view-1",
+      "type": "upload",
+      "position": {
+        "x": 0,
+        "y": 290
+      },
+      "data": {
+        "label": "左面 / Left",
+        "uploadType": "image",
+        "lockedUploadType": "image"
+      }
+    },
+    {
+      "id": "view-2",
+      "type": "upload",
+      "position": {
+        "x": 0,
+        "y": 540
+      },
+      "data": {
+        "label": "背面 / Back",
+        "uploadType": "image",
+        "lockedUploadType": "image"
+      }
+    },
+    {
+      "id": "view-3",
+      "type": "upload",
+      "position": {
+        "x": 0,
+        "y": 790
+      },
+      "data": {
+        "label": "右面 / Right",
+        "uploadType": "image",
+        "lockedUploadType": "image"
+      }
+    },
+    {
+      "id": "tripo",
+      "type": "model-3d",
+      "position": {
+        "x": 440,
+        "y": 40
+      },
+      "data": {
+        "model": "tripo-p-p1-multiview-to-3d",
+        "threeDTab": "tripo-3d",
+        "reuseResult": false
+      }
+    },
+    {
+      "id": "result",
+      "type": "model-3d-preview",
+      "position": {
+        "x": 880,
+        "y": 40
+      },
+      "data": {
+        "label": "结果 / Result"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "view-0-tripo",
+      "source": "view-0",
+      "target": "tripo"
+    },
+    {
+      "id": "view-1-tripo",
+      "source": "view-1",
+      "target": "tripo"
+    },
+    {
+      "id": "view-2-tripo",
+      "source": "view-2",
+      "target": "tripo"
+    },
+    {
+      "id": "view-3-tripo",
+      "source": "view-3",
+      "target": "tripo"
+    },
+    {
+      "id": "tripo-result",
+      "source": "tripo",
+      "target": "result"
+    }
+  ],
+  "nodeCount": 6,
+  "edgeCount": 5,
+  "nodeTypes": [
+    "upload",
+    "model-3d",
+    "model-3d-preview"
+  ],
+  "savedAt": "2026-11-11T00:00:00.000Z"
+}
