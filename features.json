@@ -1,17 +1,19 @@
 {
   "seedream55Draft20261111": {
-    "status": "authorized-v3.5.1-pending-release",
+    "status": "released-v3.5.1",
     "description": "原Seedream/分层入口新增六个5.5模型；Seedance2.5 Tab新增两地草稿高清，保留原图、多图层和草稿身份。八个新模型实网成功。",
     "evidence": "docs/seedream55-draft.md",
-    "releaseIncluded": false,
-    "releaseVersion": "3.5.1"
+    "releaseIncluded": true,
+    "releaseVersion": "3.5.1",
+    "published": true
   },
   "tripo3d20261111": {
-    "status": "authorized-v3.5.1-pending-release",
+    "status": "released-v3.5.1",
     "description": "既有3D节点新增Tripo 3D：25模型、条件参数、模型串联、原生ID与多文件原格式保存。按费用限制仅实网测试3项。",
     "evidence": "docs/tripo-3d.md",
-    "releaseIncluded": false,
-    "releaseVersion": "3.5.1"
+    "releaseIncluded": true,
+    "releaseVersion": "3.5.1",
+    "published": true
   },
   "motionVideoNode20261026": {
     "status": "released-v3.4.4",
@@ -3469,15 +3471,58 @@
     ]
   },
   "release": {
-    "status": "authorized-v3.5.1-pending-build",
+    "status": "released-v3.5.1-dual-platform-verified",
     "version": "3.5.1",
     "tag": "v3.5.1",
-    "latest": false,
+    "latest": true,
     "date": "2026-11-11",
     "details": "docs/release-v3.5.1.md",
     "evidence": "docs/release-v3.5.1.md",
     "postReleaseEvidence": "owner-approved-post-release-v3.5.1",
-    "macBoundary": "same-tag-ad-hoc-preview; defer-only-if-actual-quota-insufficient"
+    "macBoundary": "same-tag-ad-hoc-preview; no-quota-deferral-used",
+    "sourceCommit": "b10d3667b360894e184bbae101aa7c4b8873aafd",
+    "publishedAt": "2026-11-11T15:52:42Z",
+    "draft": false,
+    "prerelease": false,
+    "macWorkflow": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/43052780828",
+    "macAttempt": 1,
+    "macWorkflowConclusion": "success",
+    "verification": [
+      "28 release/packaging checks and actual encrypted shared-factory packaged probe passed; full Windows/Mac downloads and both updater manifests verified. docs/release-v3.5.1.md.",
+      "Previous v3.5.0 Tag/six assets and Windows assets during Mac append unchanged. H3 functional UI assertions passed but strict IME-affected exit acceptance remains failed; installed-user/F8-F10 evidence deferred."
+    ],
+    "assets": {
+      "windowsInstaller": {
+        "name": "T8-PenguinCanvas-Setup-3.5.1.exe",
+        "bytes": 1380068266,
+        "sha256": "fe8babe5120dca1dc410c1fe9cb2bc79fd29f138c80d3ee303cf9a5b6d616654"
+      },
+      "windowsBlockmap": {
+        "name": "T8-PenguinCanvas-Setup-3.5.1.exe.blockmap",
+        "bytes": 1440269,
+        "sha256": "1d647125a4c865ad9043b69970d2afff5303dbd8755d9601a11887a3f60f2742"
+      },
+      "windowsUpdater": {
+        "name": "latest.yml",
+        "bytes": 362,
+        "sha256": "fbe0b4a2c0e3d5fb536e98563a2edc18952e2558ac64a7fa70717dfbfba0b205"
+      },
+      "macDmg": {
+        "name": "T8-PenguinCanvas-3.5.1-mac-arm64.dmg",
+        "bytes": 519805018,
+        "sha256": "654fde3b77287c1a395244d0298ab2630310a027213ec07bb2542dd8cf6c6e3d"
+      },
+      "macZip": {
+        "name": "T8-PenguinCanvas-3.5.1-mac-arm64.zip",
+        "bytes": 511577488,
+        "sha256": "6217f45db3eafbfa12f8107ebf78164440f4b1b63683440e9a8fa6a473250618"
+      },
+      "macUpdater": {
+        "name": "latest-mac.yml",
+        "bytes": 536,
+        "sha256": "80596fcc974ddccf8d7002d85c41daa8c437d975aff637212feb6c3d95b33ebe"
+      }
+    }
   },
   "minimaxMusic3PromptEnhancer": {
     "status": "released-v2.9.3",
@@ -5950,13 +5995,14 @@
     ]
   },
   "zhenzhenCottageTopbarPromotion": {
-    "status": "authorized-v3.5.1-pending-release",
+    "status": "released-v3.5.1",
     "date": "2026-11-08",
     "description": "顶部贞贞工坊旁新增独立贞贞小屋介绍与跳转入口，保留用户指定文案和链接，不改API配置。",
     "url": "https://api.seedance.nz/?s=ibVH",
     "details": "docs/zhenzhen-cottage-promotion.md",
-    "verification": "类型/双语/同步门、顶部3项及隔离生产组件交互通过；未发布。",
-    "releaseVersion": "3.5.1"
+    "verification": "类型/双语/同步门、顶部3项及隔离生产组件交互通过；已随v3.5.1双平台发布，现场证据后补。",
+    "releaseVersion": "3.5.1",
+    "published": true
   },
   "apiAcquisitionPanel": {
     "version": "2.5.2-dev",
@@ -10825,8 +10871,8 @@
     "version": "3.5.1",
     "semverVersion": "3.5.1",
     "versionNumberPolicy": "T8 版本号仍采用 x.y.z 三段，但每一段只允许 0-9；任一段到 9 后下一次发布必须向左进位，禁止任一段出现两位数字。例：1.9.9 的下一版必须是 2.0.0。",
-    "versionNote": "v3.5.1模型与小屋入口更新已获发布授权，见docs/release-v3.5.1.md。",
-    "installer": "T8-PenguinCanvas-Setup-3.5.1.exe；待唯一正式构建与完整回下载。",
+    "versionNote": "v3.5.1模型与小屋入口更新双平台已发布，见docs/release-v3.5.1.md。",
+    "installer": "T8-PenguinCanvas-Setup-3.5.1.exe；唯一正式安装包与完整回下载通过。",
     "updaterInstallMode": "自动更新下载完成后不得静默安装：main.cjs 必须设置 autoInstallOnAppQuit=false，显式安装调用 quitAndInstall(false,true)；electron/build-resources/installer.nsh 通过 SetSilent normal 让新版 NSIS 安装器即使收到旧客户端传入的 /S 也尽量切回前台安装向导。",
     "installerShortcutPolicy": "安装完成后必须创建桌面和开始菜单快捷方式：package.json build.nsis.createDesktopShortcut 必须为 \"always\"，createStartMenuShortcut 必须为 true；electron/build-resources/installer.nsh 必须保留 customInstall 兜底 CreateShortCut \"$newStartMenuLink\" 与 \"$DESKTOP\\${SHORTCUT_NAME}.lnk\"，防止更新安装/keepShortcuts 路径遗漏入口。",
     "updaterEntryPolicy": "顶栏桌面更新入口不得只因 window.t8pc.updater 缺失就静默消失；Electron UA 或 t8pc.getInfo/openExternal 可用时必须显示诊断入口，提示重新安装完整桌面包，Web/纯浏览器环境才隐藏。状态为 not-available 时按钮仍保留“更新”字样，避免用户误以为自动更新入口被删除。",
@@ -17699,20 +17745,22 @@
     }
   },
   "h3TurboModels20261111": {
-    "status": "authorized-v3.5.1-pending-release",
+    "status": "released-v3.5.1",
     "summary": "Existing image/video nodes: three H3/Turbo models, six live paths fully decoded and six credential-free workflows. 87 regressions and full App functional assertions passed; strict UI exit acceptance remains failed due to two third-party Sogou helper processes in the test Job.",
     "details": "docs/h3-turbo.md",
-    "releaseVersion": "3.5.1"
+    "releaseVersion": "3.5.1",
+    "published": true
   },
   "electronReleaseV351": {
-    "status": "authorized-v3.5.1-pending-build",
+    "status": "released-v3.5.1-dual-platform-verified",
     "version": "3.5.1",
     "tag": "v3.5.1",
-    "latest": false,
+    "latest": true,
     "date": "2026-11-11",
     "details": "docs/release-v3.5.1.md",
     "evidence": "docs/release-v3.5.1.md",
     "postReleaseEvidence": "owner-approved-post-release-v3.5.1",
-    "macBoundary": "same-tag-ad-hoc-preview; defer-only-if-actual-quota-insufficient"
+    "macBoundary": "same-tag-ad-hoc-preview; no-quota-deferral-used",
+    "sourceCommit": "b10d3667b360894e184bbae101aa7c4b8873aafd"
   }
 }

@@ -12,7 +12,7 @@ My favorite girl Go YounJung
 
 > AI 节点画布工作流工具 · Web + Electron 桌面端｜v3.5.1
 >
-> 2026-11-11：v3.5.1已获发布授权：新增Tripo 3D、Seedream 5.5、草稿转高清、H3/Turbo三个分类及贞贞小屋入口；39份工作流已保存。进度与验证边界见[发布专题](docs/release-v3.5.1.md)。
+> 2026-11-12：v3.5.1已发布Windows/macOS版：新增Tripo 3D、Seedream 5.5、草稿转高清、H3/Turbo三个分类及贞贞小屋入口；39份工作流已保存。发布与验证边界见[发布专题](docs/release-v3.5.1.md)。
 
 > 2026-11-08：v3.5.0已发布Windows/macOS版：修复视频排序、素材集同步、文本素材引用和独立输出拖动，增加分镜脚本/图片批量导入；图像模型分类改下拉、Kling4分组、新建七核心节点默认平价且保留旧配置；G2.6新增高清，接入Kling4 Flash及Omni1.2。见[发布记录](docs/release-v3.5.0.md)。
 

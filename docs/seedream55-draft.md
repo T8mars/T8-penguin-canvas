@@ -1,6 +1,6 @@
 # Seedream 5.5 与 Seedance 2.5 草稿转高清
 
-2026-11-11：完成开发、八个新模型实网验证及限定完整画布验证；已获v3.5.1发布授权，进度见[发布专题](release-v3.5.1.md)。原有模型、默认渠道、Pro 默认及旧节点参数保持兼容。旧 Flash 合同见 [Seedream Flash](seedream-v5-flash.md)。
+2026-11-11：完成开发、八个新模型实网验证及限定完整画布验证；已随[v3.5.1双平台发布](release-v3.5.1.md)；功能与现场验收边界仍以下文记录为准。原有模型、默认渠道、Pro 默认及旧节点参数保持兼容。旧 Flash 合同见 [Seedream Flash](seedream-v5-flash.md)。
 
 ## 来源与入口
 

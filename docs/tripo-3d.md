@@ -1,6 +1,6 @@
 # Tripo 3D：现有 3D 节点扩展
 
-2026-11-11，开发与限定验证完成；已获v3.5.1发布授权，进度见[发布专题](release-v3.5.1.md)。既有 Hunyuan / hitem3d / Meshy 入口和默认值保留，旧模型合同见 [G2.6/3D](g26-krea-hitem-meshy.md)。
+2026-11-11，开发与限定验证完成；已随[v3.5.1双平台发布](release-v3.5.1.md)；功能与现场验收边界仍以下文记录为准。既有 Hunyuan / hitem3d / Meshy 入口和默认值保留，旧模型合同见 [G2.6/3D](g26-krea-hitem-meshy.md)。
 
 ## 合同来源与界面
 
