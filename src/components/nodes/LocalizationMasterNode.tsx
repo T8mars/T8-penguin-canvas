@@ -995,7 +995,10 @@ function LocalizationMasterNode({ id, data, selected }: NodeProps) {
       pendingActionRef.current = null;
       setPendingAction(null);
     }
-  }, 'localization-master', { lifecycleAware: true });
+  }, 'localization-master', {
+    lifecycleAware: true,
+    nonGeneratingOperation: () => (pendingActionRef.current || actionRef.current) === 'install',
+  });
 
   const requestAction = (action: LocalizationAction) => {
     if (pendingActionRef.current || running) {
@@ -1516,7 +1519,12 @@ function LocalizationMasterNode({ id, data, selected }: NodeProps) {
           </div>}
 
           {(localError || d.error) && <div className="flex items-start gap-2 rounded-xl border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-[10px] leading-4 text-rose-500"><AlertCircle size={14} className="mt-0.5 shrink-0" /><span className="whitespace-pre-wrap">{localError || String(d.error)}</span></div>}
-          {running && <div className="flex items-center justify-center gap-2 py-1 text-[10px] text-teal-500"><Loader2 size={13} className="animate-spin" />{t('nodes.localization.running')}</div>}
+          {/* Reserve this slot before Run creation: mounting it only after a
+              click changes ReactFlow measured dimensions and invalidates the
+              still-pending execution snapshot despite unchanged inputs. */}
+          <div role="status" aria-live="polite" className="flex h-6 shrink-0 items-center justify-center gap-2 text-[10px] text-teal-500">
+            {running && <><Loader2 size={13} className="animate-spin" />{t('nodes.localization.running')}</>}
+          </div>
         </div>
       </div>
     </div>

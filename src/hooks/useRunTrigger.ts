@@ -138,6 +138,8 @@ export function useRunTrigger(
     lifecycleAware?: boolean;
     shouldReuseResult?: (nodeData: Record<string, unknown>) => boolean;
     captureHistoryInput?: () => Record<string, unknown>;
+    /** Explicit local maintenance, such as installing an engine or refreshing a catalog. */
+    nonGeneratingOperation?: () => boolean;
   } = {},
 ) {
   const { getNodes, getEdges } = useReactFlow();
@@ -153,6 +155,8 @@ export function useRunTrigger(
   shouldReuseResultRef.current = options.shouldReuseResult;
   const captureHistoryInputRef = useRef(options.captureHistoryInput);
   captureHistoryInputRef.current = options.captureHistoryInput;
+  const nonGeneratingOperationRef = useRef(options.nonGeneratingOperation);
+  nonGeneratingOperationRef.current = options.nonGeneratingOperation;
   const startedTokensRef = useRef(new Set<string>());
 
   useEffect(
@@ -169,6 +173,9 @@ export function useRunTrigger(
       const executionAbortController = new AbortController();
       const runContext = binding?.runContext || null;
       const runId = runContext?.runId || null;
+      // Capture the operation once. Mutable node data cannot opt a generation
+      // into the zero-output maintenance path after it has started.
+      const nonGeneratingOperation = nonGeneratingOperationRef.current?.() === true;
       const executionContext = binding?.nodeContext || getRunNodeExecutionContext(nodeId);
       let nodeRunId: string | undefined;
       let attemptId: string | undefined;
@@ -265,6 +272,16 @@ export function useRunTrigger(
                     payload,
                   });
                 }
+              } else if (type === 'node.output' && nonGeneratingOperation) {
+                if (!Array.isArray(payload.assets) || payload.assets.length !== 0 || payload.outputCount !== 0) {
+                  throw new Error('NON_GENERATING_OUTPUT_INVALID');
+                }
+                const { assets: _assets, ...eventPayload } = payload;
+                // No artifact was generated. Do not forge the host-only
+                // node.output event or rearchive previously selected media.
+                await appendProjectRunEvent(runId, { nodeRunId, type: 'node.progress', payload: {
+                  ...eventPayload, phase: 'completed-without-output', nonGeneratingOperation: true,
+                } });
               } else if (type === 'node.output' && Array.isArray(payload.assets) && payload.assets.length > 0) {
                 const { assets, ...eventPayload } = payload;
                 await persistProjectRunOutputAssets(runId, nodeRunId, {
@@ -371,7 +388,7 @@ export function useRunTrigger(
               : normalizeRunError(error) as unknown as Record<string, unknown>;
           const terminalNodeData = getNodes().find((node) => node.id === nodeId)?.data as Record<string, unknown> | undefined;
           const terminalTrace = rememberProviderTrace(extractRunProviderTrace(terminalNodeData));
-          if (!reusedExistingResult && hasProviderIdentity(terminalTrace) && !providerResponseRecorded) {
+          if (!nonGeneratingOperation && !reusedExistingResult && hasProviderIdentity(terminalTrace) && !providerResponseRecorded) {
             await lifecycle.reporter.providerResponse({
               ...terminalTrace,
               status,
@@ -457,7 +474,7 @@ export function useRunTrigger(
           const snapshot = inputSnapshot.replayable
             ? inputSnapshot.node.data
             : executionContext?.inputSnapshot || {};
-          const initialTrace = rememberProviderTrace(extractRunProviderTrace(snapshot));
+          const initialTrace = nonGeneratingOperation ? {} : rememberProviderTrace(extractRunProviderTrace(snapshot));
           const generatedAttemptId = `attempt-${typeof globalThis.crypto?.randomUUID === 'function'
             ? globalThis.crypto.randomUUID()
             : `${Date.now()}-${Math.random().toString(36).slice(2)}`}`;
@@ -551,7 +568,7 @@ export function useRunTrigger(
         if (!reusedExistingResult && (latestStatus === 'error' || latestStatus === 'failed' || latestStatus === 'failure')) {
           throw new Error(String(latestNodeData?.error || latestNodeData?.failReason || '节点运行失败'));
         }
-        if (!reusedExistingResult) {
+        if (!nonGeneratingOperation && !reusedExistingResult) {
           const finalTrace = rememberProviderTrace(extractRunProviderTrace(latestNodeData));
           if ((finalTrace.upstreamTaskId || finalTrace.requestId) && !providerSubmittedRecorded) {
             await lifecycle.reporter.providerSubmitted({ ...finalTrace, observedFrom: 'node-result' });
@@ -569,7 +586,7 @@ export function useRunTrigger(
           await lifecycle.reporter.progress({ phase: 'completed', progress: 100 });
         }
         if (!lifecycle.outputEmitted()) {
-          const assets = collectRunOutputAssets(latestNodeData);
+          const assets = nonGeneratingOperation ? [] : collectRunOutputAssets(latestNodeData);
           if (reusedExistingResult) {
             await lifecycle.reporter.output({ status: 'succeeded', outputCount: assets.length, assets, reusedResult: true });
           } else {

@@ -1,4 +1,13 @@
 {
+  "githubIssueFollowup20261112": {
+    "status": "local-fixed-targeted-app-verified-not-released",
+    "releaseIncluded": false,
+    "issues": [33, 31, 30, 29, 24, 25],
+    "summary": "Creator提交后同步权威画布并保留编辑；本地化安装固定状态行、共享非生成维护收尾；六项已回复并保留现场边界。",
+    "verification": "最终专项84/84、完整App五项及Run/NodeRun/Attempt终态通过；正常退出、无强制或残留。",
+    "boundary": "0开放PR；未发布，六项Issues保留；真实安装、受影响Mac、性能及英文完整现场待验。",
+    "evidence": "docs/github-issues-20261112.md"
+  },
   "seedream55Draft20261111": {
     "status": "released-v3.5.1",
     "description": "原Seedream/分层入口新增六个5.5模型；Seedance2.5 Tab新增两地草稿高清，保留原图、多图层和草稿身份。八个新模型实网成功。",

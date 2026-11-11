@@ -75,11 +75,12 @@ test('project run routes force queued creation, redact payloads and map running 
   assert.match(imageNode, /kind: 'mj'/);
   assert.match(videoNode, /kind: 'video-fal'/);
   const recoveryFamilies = {
-    isWan: 'wan', isSeedance25: 'seedance', isFlux3: 'flux3', isHailuo: 'hailuo', isKling: 'kling',
-    isVosr2: 'vosr2', isFashVsr: 'fashvsr', isUpscaler: 'upscaler', isVidu: 'vidu',
+    isH3Lowprice: 'h3-lowprice', isMuse: 'muse', isWan: 'wan', isAnimate: 'animate',
+    isSeedance25: 'seedance', isFlux3: 'flux3', isHailuo: 'hailuo', isKling: 'kling',
+    isTopaz: 'topaz', isVosr2: 'vosr2', isFashVsr: 'fashvsr', isUpscaler: 'upscaler', isVidu: 'vidu',
     isHappyHorse: 'happyhorse', isApimartBudgetVideo: 'seedance',
   };
-  const recoveryExpression = videoNode.match(/kind: (isWan[^\r\n]+)/)?.[1].replace(/,\s*$/, '');
+  const recoveryExpression = videoNode.match(/kind: (isH3Lowprice[^\r\n]+)/)?.[1].replace(/,\s*$/, '');
   assert.ok(recoveryExpression, 'actual VideoNode recovery discriminator must be present');
   // Repository-owned expression only; verify each family and precedence rather
   // than an obsolete one-line spelling that omitted already shipped models.

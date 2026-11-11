@@ -82,7 +82,7 @@ export interface CreatorAgentPanelV2Props {
   visualStyle: string;
   themeMode: 'light' | 'dark';
   themeTokens: ThemeTokens;
-  onFocusNode: (nodeId: string) => void;
+  onFocusNode: (nodeId: string, placement: Pick<CreatorMediaRef, 'assetId' | 'contentHash' | 'canvasRevision'>) => void | Promise<void>;
   apiSettingsRevision?: number;
   onOpenApiSettings?: () => void;
   initialOpen?: boolean;
@@ -278,6 +278,15 @@ type CreatorCopy = (zh: string, en: string) => string;
 function recoveryErrorText(error: unknown, fallback: string, copy: CreatorCopy) {
   if (error && typeof error === 'object' && 'code' in error && String(error.code).startsWith('CREATOR_SKILL_')) return skillFailureText(error, copy);
   const raw = error instanceof Error ? error.message : '';
+  if (raw.includes('CREATOR_CANVAS_SCOPE_CHANGED')) {
+    return copy('画布已切换或尚未就绪。素材仍保留在原对话中，请回到原画布后查看。', 'The canvas changed or is not ready. The asset is saved in its original conversation; return to that canvas to view it.');
+  }
+  if (raw.includes('CREATOR_CANVAS_NODE_MISSING')) {
+    return copy('结果节点已删除或发生变化，未定位其他节点。素材仍保留在对话中。', 'The result node was deleted or changed. No other node was focused; the asset remains in the conversation.');
+  }
+  if (raw.includes('CREATOR_CANVAS_REVISION_PENDING')) {
+    return copy('结果已提交，但画布版本尚未同步。请再次点击查看，无需重新生成。', 'The result was committed, but the canvas revision has not synced. Click View again; do not regenerate.');
+  }
   if (/(?:VISION_REQUIRED|不能读取图片|不能读取视频|vision(?:-capable)? model|read (?:images|videos))/iu.test(raw)) {
     return copy('当前 LLM 不能读取这些图片或视频。请打开右上角生成设置，改用智能选择或支持视觉的模型。', 'The current LLM cannot read these images or videos. Open generation settings and use Automatic or a vision-capable model.');
   }
@@ -503,6 +512,7 @@ export default function CreatorAgentPanelV2(props: CreatorAgentPanelV2Props) {
   const [preferences, setPreferences] = useState<CreatorPreferencesV2>(DEFAULT_PREFERENCES);
   const [settingsDraft, setSettingsDraft] = useState<CreatorPreferencesV2>(DEFAULT_PREFERENCES);
   const [sentNodes, setSentNodes] = useState<Record<string, string>>({});
+  const sentRevisionsRef = useRef<Record<string, number>>({});
   const [boundSelectionIds, setBoundSelectionIds] = useState<string[]>(initialComposerDraft.selectedNodeIds);
   const [boundSelectionDetails, setBoundSelectionDetails] = useState<CreatorSelectionSummary[]>(initialComposerDraft.selectedNodes);
   const [freshConversationRequested, setFreshConversationRequested] = useState(false);
@@ -792,6 +802,7 @@ export default function CreatorAgentPanelV2(props: CreatorAgentPanelV2Props) {
       snapshot.pendingAction?.sequence || 0,
     );
     setSentNodes({});
+    sentRevisionsRef.current = {};
     setNewReplyBelow(false);
     stickToBottomRef.current = true;
     setFreshConversationRequested(false);
@@ -1073,6 +1084,7 @@ export default function CreatorAgentPanelV2(props: CreatorAgentPanelV2Props) {
     setHistoryQuery('');
     dismissSettings();
     setSentNodes({});
+    sentRevisionsRef.current = {};
     setActiveResponseId('');
     setNewReplyBelow(false);
     stickToBottomRef.current = true;
@@ -1516,11 +1528,17 @@ export default function CreatorAgentPanelV2(props: CreatorAgentPanelV2Props) {
     setOperation('canvas-send');
     setError('');
     try {
-      const sent = await sendCreatorAssetToCanvasV2(conversation.id, sourceActionId, asset.assetId, props.projectId, props.canvasId);
+      const placedNodeId = asset.canvasNodeId || sentNodes[asset.assetId];
+      const sent = placedNodeId
+        ? { nodeId: placedNodeId, canvasRevision: asset.canvasRevision ?? sentRevisionsRef.current[asset.assetId] }
+        : await sendCreatorAssetToCanvasV2(conversation.id, sourceActionId, asset.assetId, props.projectId, props.canvasId);
+      // Keep the committed receipt even if the following read/reveal fails.
+      // View then retries only synchronization, never another placement POST.
+      if (sent.canvasRevision != null) sentRevisionsRef.current[asset.assetId] = sent.canvasRevision;
       setSentNodes((current) => ({ ...current, [asset.assetId]: sent.nodeId }));
-      props.onFocusNode(sent.nodeId);
-    } catch (sendError) { setError(recoveryErrorText(sendError, copy('结果没有发送到画布，素材仍在对话中，请重试。', 'The result was not sent to the canvas. It is still in the conversation; try again.'), copy)); } finally { finishOperation('canvas-send'); }
-  }, [conversation, copy, finishOperation, isOperating, props]);
+      await props.onFocusNode(sent.nodeId, { assetId: asset.assetId, contentHash: asset.contentHash, canvasRevision: sent.canvasRevision });
+    } catch (sendError) { setError(recoveryErrorText(sendError, copy('画布操作没有完成，素材仍保留在对话中，请重试查看。', 'The canvas operation did not finish. The asset is saved in the conversation; try viewing it again.'), copy)); } finally { finishOperation('canvas-send'); }
+  }, [conversation, copy, finishOperation, isOperating, props, sentNodes]);
 
   const markMediaVisible = useCallback((asset: CreatorMediaRef, sourceActionId?: string | null) => {
     settleMessageScroll();
@@ -2051,7 +2069,7 @@ export default function CreatorAgentPanelV2(props: CreatorAgentPanelV2Props) {
                           <section key={asset.assetId} className="t8-creator-v2-result" aria-label={asset.title || copy('生成结果', 'Generated result')}>
                             {asset.kind === 'image' && asset.previewUrl && <img src={asset.previewUrl} alt={asset.title || copy('生成图片', 'Generated image')} loading="lazy" onLoad={() => markMediaVisible(currentAsset, message.actionId)} />}
                             {asset.kind === 'video' && asset.previewUrl && <video src={asset.previewUrl} aria-label={asset.title || copy('生成视频', 'Generated video')} controls preload="metadata" onLoadedData={() => markMediaVisible(currentAsset, message.actionId)} />}
-                            {message.role === 'assistant' && message.actionId && <footer><button type="button" disabled={isOperating} onClick={() => { setAttachments([currentAsset]); requestAnimationFrame(() => composerRef.current?.focus()); }}>{copy('继续调整', 'Adjust')}</button><button type="button" className="is-primary" disabled={isOperating || (!sentNodeId && !isReviewed)} onClick={() => sentNodeId ? props.onFocusNode(sentNodeId) : void sendToCanvas(currentAsset, message.actionId)}>{sentNodeId ? copy('已发送 · 查看', 'Sent · View') : isReviewed ? copy('采用并发送', 'Use and send') : copy('正在准备…', 'Preparing…')}</button></footer>}
+                            {message.role === 'assistant' && message.actionId && <footer><button type="button" disabled={isOperating} onClick={() => { setAttachments([currentAsset]); requestAnimationFrame(() => composerRef.current?.focus()); }}>{copy('继续调整', 'Adjust')}</button><button type="button" className="is-primary" disabled={isOperating || (!sentNodeId && !isReviewed)} onClick={() => void sendToCanvas(currentAsset, message.actionId)}>{sentNodeId ? copy('已发送 · 查看', 'Sent · View') : isReviewed ? copy('采用并发送', 'Use and send') : copy('正在准备…', 'Preparing…')}</button></footer>}
                           </section>
                         );
                       })}

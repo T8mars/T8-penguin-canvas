@@ -286,7 +286,8 @@ test('creator Agent preview uses the Canvas baseline callback and never directly
     assert.match(panelV2, /sentNodes\[asset\.assetId\]/);
     assert.match(panelV2, /copy\('采用并发送', 'Use and send'\)/);
     assert.match(panelV2, /disabled=\{isOperating \|\| \(!sentNodeId && !isReviewed\)\}/);
-    assert.match(panelV2, /onClick=\{\(\) => sentNodeId \? props\.onFocusNode\(sentNodeId\) : void sendToCanvas\(currentAsset, message\.actionId\)\}/);
+    assert.match(panelV2, /onClick=\{\(\) => void sendToCanvas\(currentAsset, message\.actionId\)\}/);
+    assert.match(panelV2, /await props\.onFocusNode\(sent\.nodeId,/);
     assert.match(serviceV2, /\/media\/\$\{encodeURIComponent\(assetId\)\}\/send-to-canvas/);
     assert.match(serviceV2, /JSON\.stringify\(\{\s*projectId, canvasId, actionId,\s*clientRequestId: `creator-media-send:\$\{actionId\}:\$\{assetId\}`/);
     assert.doesNotMatch(panelV2, /onPreviewPatch|applyCanvasPatch|applyPlan/);

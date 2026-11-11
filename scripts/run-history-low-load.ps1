@@ -1,12 +1,13 @@
 param(
-    [ValidateSet('Probe', 'TransportProbe', 'HistoryUI', 'BasicSettingsUI', 'ImageInputUI', 'ImageInputPersist', 'BudgetImageInputPersist', 'FalImageInputPersist', 'BananaImageInputPersist', 'VideoInputPersist', 'FalVideoInputPersist', 'BasicSettingsPersist', 'GeneratedVersions', 'FullHistory', 'CreativeCanvas', 'StrataCanvas', 'MotionCanvas', 'KlingCanvas', 'PmfCanvas', 'G26Canvas', 'TripoCanvas', 'Seedream55Canvas', 'H3TurboCanvas', 'CanvasSave', 'UpdateExit')][string]$Mode = 'Probe',
+    [ValidateSet('Probe', 'TransportProbe', 'HistoryUI', 'BasicSettingsUI', 'ImageInputUI', 'ImageInputPersist', 'BudgetImageInputPersist', 'FalImageInputPersist', 'BananaImageInputPersist', 'VideoInputPersist', 'FalVideoInputPersist', 'BasicSettingsPersist', 'GeneratedVersions', 'FullHistory', 'CreativeCanvas', 'StrataCanvas', 'MotionCanvas', 'KlingCanvas', 'PmfCanvas', 'G26Canvas', 'TripoCanvas', 'Seedream55Canvas', 'H3TurboCanvas', 'IssuesCanvas', 'CanvasSave', 'UpdateExit')][string]$Mode = 'Probe',
     [ValidateSet('image-standard', 'image-fal', 'image-mj', 'image-budget', 'video')][string]$SettingsCase = 'image-standard',
     [ValidateSet('gpt-image-2-fal', 'nano-banana-pro-fal', 'nano-banana-2-fal')][string]$FalModel = 'gpt-image-2-fal',
     [ValidateSet('zhenzhen-image-g-v2.5-lowprice', 'zhenzhen-image-g-v2.5-flare', 'zhenzhen-image-g-v2.5-sunburst')][string]$BudgetModel = 'zhenzhen-image-g-v2.5-flare',
     [ValidateSet('gemini-3.1-flash-image', 'gemini-3.1-flash-lite-image', 'nano-banana-pro', 'nano-banana-pro-2k', 'nano-banana-pro-4k', 'gemini-3-pro-image')][string]$BananaModel = 'gemini-3.1-flash-lite-image',
     [ValidateSet('veo3.1-fal', 'grok-video-fal', 'grok-imagine-video-1.5', 'sora-2')][string]$FalVideoModel = 'veo3.1-fal',
     [ValidateSet(0, 17)][int]$ProbeExitCode = 0,
-    [switch]$ProbeLeaveIdleChild
+    [switch]$ProbeLeaveIdleChild,
+    [string]$ScratchRoot = ''
 )
 # Dedicated child PowerShell only; never dot-source this into a user's shell.
 # Windows Job limits cover this runner and its descendants, not other apps.
@@ -184,10 +185,17 @@ public sealed class T8HistoryJob : IDisposable {
             ($_.CommandLine -like '*verify-generation-history-full-electron.cjs*' -or $_.CommandLine -like '*verify-history-basic-settings-ui.cjs*' -or $_.CommandLine -like '*t8-full-electron-*')
         }
         if ($activeTests) { throw 'An existing acceptance process is alive; inspect it instead of starting another.' }
-        $taskDrive = [IO.Path]::GetPathRoot($taskRoot)
+        # An explicit local scratch volume avoids using the source drive when
+        # it is full. Inspect the actual selected volume; never skip the gate.
+        if ($ScratchRoot -and (-not [IO.Path]::IsPathFullyQualified($ScratchRoot) -or $ScratchRoot.StartsWith('\\'))) {
+            throw 'ScratchRoot must be an absolute local path.'
+        }
+        $taskScratchParent = if ($ScratchRoot) { [IO.Path]::GetFullPath($ScratchRoot) } else { [IO.Path]::GetPathRoot($taskRoot) }
+        $taskDrive = [IO.Path]::GetPathRoot($taskScratchParent)
         $taskDisk = Get-CimInstance Win32_LogicalDisk -Filter "DeviceID='$($taskDrive.TrimEnd('\'))'"
         if (-not $taskDisk -or $taskDisk.FreeSpace -lt 10GB) { throw 'At least 10 GB of free scratch-disk space is required.' }
-        $taskScratch = Join-Path $taskDrive ('t8-history-low-load-' + [Guid]::NewGuid().ToString('N'))
+        if (-not (Test-Path -LiteralPath $taskScratchParent -PathType Container)) { New-Item -ItemType Directory -Path $taskScratchParent -Force | Out-Null }
+        $taskScratch = Join-Path $taskScratchParent ('t8-history-low-load-' + [Guid]::NewGuid().ToString('N'))
         New-Item -ItemType Directory -Path $taskScratch | Out-Null
         $env:TEMP = $taskScratch
         $env:TMP = $taskScratch
@@ -242,6 +250,7 @@ public sealed class T8HistoryJob : IDisposable {
             elseif ($Mode -eq 'G26Canvas') { & $taskNode $taskNodeHeapFlag scripts/verify-g26-krea-3d-canvas.cjs }
             elseif ($Mode -eq 'TripoCanvas') { & $taskNode $taskNodeHeapFlag scripts/verify-tripo-canvas.cjs }
             elseif ($Mode -eq 'H3TurboCanvas') { & $taskNode $taskNodeHeapFlag scripts/verify-h3-turbo-canvas.cjs }
+            elseif ($Mode -eq 'IssuesCanvas') { & $taskNode $taskNodeHeapFlag scripts/verify-issue-followup-canvas.cjs }
             elseif ($Mode -eq 'Seedream55Canvas') { & $taskNode $taskNodeHeapFlag scripts/verify-seedream55-draft-canvas.cjs }
             elseif ($Mode -eq 'KlingCanvas') { & $taskNode $taskNodeHeapFlag scripts/verify-kling-v4-canvas.cjs }
             elseif ($Mode -eq 'MotionCanvas') { & $taskNode $taskNodeHeapFlag scripts/verify-motion-video-canvas.cjs }

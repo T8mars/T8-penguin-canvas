@@ -206,7 +206,7 @@ const VolcengineAssetsNode = ({ id, data, selected }: NodeProps) => {
     return () => window.clearTimeout(timer);
   }, [importJobs, refreshImportJobs, t]);
 
-  useRunTrigger(id, refreshAll, 'volcengine-assets', { lifecycleAware: true });
+  useRunTrigger(id, refreshAll, 'volcengine-assets', { lifecycleAware: true, nonGeneratingOperation: () => true });
 
   const commitSelection = useCallback((next: VolcengineAssetItem[]) => {
     const output = buildVolcengineAssetsNodeOutput(next);

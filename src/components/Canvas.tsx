@@ -13960,6 +13960,49 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, onReadinessChange, onR
     pulseNearestNode(target.id);
   }, [activeId, getViewport, loaded, loadedCanvasId, setCenter]);
 
+  const revealCreatorCanvasNode = useCallback(async (nodeId: string, placement: {
+    assetId: string; contentHash?: string | null; canvasRevision?: number | null;
+  }) => {
+    const canvasId = String(activeId || '');
+    const projectId = String(activeProjectId || '');
+    const assertScope = () => {
+      if (!canvasId || !projectId || !loadedRef.current || loadedCanvasIdRef.current !== canvasId
+        || useCanvasStore.getState().activeId !== canvasId || activeProjectIdRef.current !== projectId) {
+        throw new Error('CREATOR_CANVAS_SCOPE_CHANGED');
+      }
+    };
+    assertScope();
+    return enqueueCanvasMutation(canvasId, async () => {
+      assertScope();
+      const baseline = lastSavedByCanvasRef.current.get(canvasId);
+      if (!baseline) throw new Error('CREATOR_CANVAS_SCOPE_CHANGED');
+      const document = await fetchAuthoritativeCanvasPatchDocument(canvasId);
+      assertScope();
+      if (placement.canvasRevision != null && (!Number.isSafeInteger(placement.canvasRevision)
+        || placement.canvasRevision < 1 || document.revision < placement.canvasRevision)) {
+        throw new Error('CREATOR_CANVAS_REVISION_PENDING');
+      }
+      const target = document.nodes.find((node) => node.id === nodeId);
+      const bindings = Array.isArray(target?.data?.referenceBindings) ? target.data.referenceBindings : [];
+      if (!target || target.data?.sourceAssetId !== placement.assetId
+        || (placement.contentHash && !bindings.some((binding: { assetId?: unknown; contentHash?: unknown } | null) => binding?.assetId === placement.assetId && binding?.contentHash === placement.contentHash))) {
+        throw new Error('CREATOR_CANVAS_NODE_MISSING');
+      }
+      // A placement is already committed by the backend. Read it into the
+      // existing three-way merge/CAS machinery before selecting or centering.
+      const committed = commitAuthoritativeCanvasPatchDocument(canvasId, document, { expectedLocalSnapshot: baseline });
+      assertScope();
+      const visibleTarget = committed.state.nodes.find((node) => node.id === nodeId);
+      if (!committed.active || !visibleTarget) throw new Error('CREATOR_CANVAS_NODE_MISSING');
+      setNodes((previous) => previous.map((node) => ({ ...node, selected: node.id === nodeId })));
+      const rect = rectOf(visibleTarget);
+      const zoom = Math.min(Math.max(getViewport().zoom || 1, 0.55), 1.15);
+      setCenter(rect.x + rect.w / 2, rect.y + rect.h / 2, { zoom, duration: 450 });
+      pulseNearestNode(nodeId);
+    });
+  }, [activeId, activeProjectId, commitAuthoritativeCanvasPatchDocument, enqueueCanvasMutation,
+    fetchAuthoritativeCanvasPatchDocument, getViewport, setCenter]);
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const handoffId = String(params.get('zcanvasHandoff') || '').trim();
@@ -15246,7 +15289,7 @@ function CanvasInner({ onAddNodeRef, onInsertWorkflowRef, onReadinessChange, onR
           visualStyle={visualStyle}
           themeMode={theme}
           themeTokens={themeTokens}
-          onFocusNode={focusGenerationHistoryNode}
+          onFocusNode={revealCreatorCanvasNode}
           apiSettingsRevision={apiSettingsRevision}
           onOpenApiSettings={onOpenApiSettings}
         />
