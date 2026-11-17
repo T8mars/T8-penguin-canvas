@@ -3,8 +3,8 @@
 更新：2026-11-17。仅维护当前事实；长期规则见根 `SKILL.md` 和 `AGENTS.md`。预算80行/8 KiB，历史见专题。
 
 - 默认目录 `E:\PenguinPravite\T8-penguin-canvas`；branch `codex/release-v3.0.8-volcengine-assets-ux`，common dir `.git`。开工以git/worktree门为准；正式源码/Tag固定后记录在发布专题，不移动。
-- package `3.5.3` 已授权发布，见[专题](release-v3.5.3.md)；旧v3.5.2 Tag/六资产冻结。
-- 本版现场/安装升级/F8–F10按 `owner-approved-post-release-v3.5.3` 后补；Mac同Tag构建未公证预览。
+- package `3.5.3` 双平台已发，见[专题](release-v3.5.3.md)；旧v3.5.2 Tag/六资产冻结。
+- 本版现场/安装升级/F8–F10按 `owner-approved-post-release-v3.5.3` 后补；Mac已发ad-hoc未公证预览。
 
 ## 当前检查点
 
@@ -12,7 +12,7 @@
 
 | 事项 | 当前事实与下一步 |
 | --- | --- |
-| 本轮开发 | [SD2.5 Flash/H3](sd25-flash-h3.md)：10模型实网全片解码、17工作流、124回归及完整App通过；待v3.5.3发布。既有H3/Turbo、5.5/草稿、Tripo及小屋入口已随v3.5.1发布。 |
+| 本轮开发 | [SD2.5 Flash/H3](sd25-flash-h3.md)：10模型实网全片解码、17工作流、124回归及完整App通过；已随v3.5.3发布。既有H3/Turbo、5.5/草稿、Tripo及小屋入口已随v3.5.1发布。 |
 | G2.6/Krea/Z-image/3D | Meshy文生v3.4.8已发；LowPrice十图实测通过、v3.4.9已发，见[专题](g26-krea-hitem-meshy.md)。 |
 | HY/Muse/Flux | 七模型、十一工作流及Motion复验，v3.4.6已发；验证见[专题](preview-muse-flux.md)。 |
 | Kling4 | 既有视频Kling新增五模型，v3.4.5已发；六条实网、133回归及临时完整画布通过，见[专题](kling-v4.md)。 |
@@ -30,7 +30,7 @@
 | RH 媒体误判 | 已随v3.2.6双平台发布：媒体保留上传；专项18/18、相邻40/40通过。两个应用真实元数据确认误判，一个真实素材上传/任务/结果完整解码成功；安装版未复验。见[专题](rh-media-field-validation-20261007.md)。 |
 | 画布归档/新建默认来源 | v3.2.5双平台已发布：schema33、大管理窗、归档只读/恢复与权威写入门；默认来源仅初始化空白image/edit/video，不改旧节点。功能/持久化/保真/处理器专项通过；端到端UI未验。见[专题](canvas-archive-media-defaults.md)。 |
 | Seedream Flash | 已随v3.2.4双平台发布；国内/海外六路径、六份工作流，Pro默认不变。六任务成功、13结果完整解码；263项回归及同步门通过，见[专题](seedream-v5-flash.md)。 |
-| GitHub PR / Issues | 0 PR/6开放；#30真实COMBO封装漏解析已修，58回归及完整App通过，待v3.5.3发布；其余按现场/验收边界保留，见[专题](github-issues-20261117.md)。 |
+| GitHub PR / Issues | 0 PR/6开放；#30真实COMBO封装漏解析已修，58回归及完整App通过，已随v3.5.3发布；其余按现场/验收边界保留，见[专题](github-issues-20261117.md)。 |
 | 文档轻量化 | 原文逐字节归档、按需查询；证据见`local-private/context-maintenance/verification.json`。 |
 | 生成历史 | 当前支持范围已随 v3.1.6 发布；19个完整客户端场景/25项、React UI 13项、限定回归56/56通过，通过进程正常退出/强制0/残留0。完整状态与剩余范围见[验收清单](generation-history-acceptance-status.md)及[证据索引](generation-history-acceptance-20260912.md)。 |
 | Provider 超时策略 | 已随 v3.1.7 发布：移除媒体生成通用代理 90 秒边界，并覆盖扩展适配器、工具箱自定义轮询、导演分镜与崩溃恢复；媒体全链路最低 15 分钟，LLM 默认且最长 3 分钟，连接探测/重试间隔不变。详情用 `feature providerTimeoutPolicy20260913` 查询。 |

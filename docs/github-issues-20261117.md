@@ -50,3 +50,6 @@
 ## 后续发布授权
 
 用户已明确授权随 v3.5.3 打包发布，现场证据后补；Mac 仅实际 GitHub 额度不足时延期。进度见[发布专题](release-v3.5.3.md)；上文未发布结论保留为检查时事实，Issues 不因发布自动关闭。
+
+本轮 RH COMBO 补丁已随 [v3.5.3 双平台发布](release-v3.5.3.md)，固定源码、六资产与两个自动更新清单验证通过。此前未发布描述为检查阶段事实；六项 Issues 的现场/验收边界保留。
+已通知 [#30 升级复验](https://github.com/T8mars/T8-penguin-canvas/issues/30#issuecomment-6942264351)，状态由待发布改为待复验，Issue 继续开放。

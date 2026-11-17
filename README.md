@@ -12,7 +12,7 @@ My favorite girl Go YounJung
 
 > AI 节点画布工作流工具 · Web + Electron 桌面端｜v3.5.3
 >
-> 2026-11-17：v3.5.3已获发布授权：Seedance 2.5 Flash六模型、H3四模型扩展及17份工作流；修复RH真实COMBO选项封装漏解析。保留旧画布配置，进度见[发布专题](docs/release-v3.5.3.md)。
+> 2026-11-17：v3.5.3已发布Windows/macOS版：Seedance 2.5 Flash六模型、H3四模型扩展及17份工作流；修复RH真实COMBO选项封装漏解析。保留旧画布配置，发布与验证边界见[发布专题](docs/release-v3.5.3.md)。
 
 > 2026-11-12：v3.5.2已发布Windows/macOS版：修复创作助手结果发送/查看同步、本地化安装布局误拦截及非生成维护收尾；旧画布与运行保护保留。发布与验证边界见[发布专题](docs/release-v3.5.2.md)。
 

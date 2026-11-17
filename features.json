@@ -3489,15 +3489,58 @@
     ]
   },
   "release": {
-    "status": "authorized-v3.5.3-pending-build",
+    "status": "released-v3.5.3-dual-platform-verified",
     "version": "3.5.3",
     "tag": "v3.5.3",
-    "latest": false,
+    "latest": true,
     "date": "2026-11-17",
     "details": "docs/release-v3.5.3.md",
     "evidence": "docs/release-v3.5.3.md",
     "postReleaseEvidence": "owner-approved-post-release-v3.5.3",
-    "macBoundary": "same-tag-ad-hoc-preview; defer-only-if-actual-quota-insufficient"
+    "macBoundary": "same-tag-ad-hoc-preview; no-quota-deferral-used",
+    "sourceCommit": "49926729c23f1c92eb4d7d7221cecc0a7a462071",
+    "publishedAt": "2026-11-17T07:48:34Z",
+    "draft": false,
+    "prerelease": false,
+    "macWorkflow": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/44041644888",
+    "macAttempt": 1,
+    "macWorkflowConclusion": "success",
+    "verification": [
+      "Ten model real decoded successes and seventeen workflows; 124 model regressions, eleven full development App runs; RH 58 regressions and full App passed. 28 packaging contracts, encrypted packaged runtime/fresh storage probe, six-asset full downloads and both public updater manifests verified.",
+      "Previous v3.5.2 Tag/six assets and Windows assets during Mac append unchanged; installed-user, affected Mac and F8-F10 evidence remains deferred."
+    ],
+    "assets": {
+      "windowsInstaller": {
+        "name": "T8-PenguinCanvas-Setup-3.5.3.exe",
+        "bytes": 1380093739,
+        "sha256": "eee64a00d051dab83b3799fd8ac51dcfca9b8fb1bc3666e8b9bca0c753a06b08"
+      },
+      "windowsBlockmap": {
+        "name": "T8-PenguinCanvas-Setup-3.5.3.exe.blockmap",
+        "bytes": 1439523,
+        "sha256": "77c02cde38bd5c2d681f62ae59c8c4029a059cc1bcc3b8858d5f82749a04f21c"
+      },
+      "windowsUpdater": {
+        "name": "latest.yml",
+        "bytes": 362,
+        "sha256": "ed61da7843c57c40519e3f7ebc944e8cd79376eeaae04a51ce0ec1ba5f61a08a"
+      },
+      "macDmg": {
+        "name": "T8-PenguinCanvas-3.5.3-mac-arm64.dmg",
+        "bytes": 519874940,
+        "sha256": "2c75078886ff4a0501012bf63f2f721a907da2d662ce979ae2daa6bc25f2d428"
+      },
+      "macZip": {
+        "name": "T8-PenguinCanvas-3.5.3-mac-arm64.zip",
+        "bytes": 511603378,
+        "sha256": "1d2cc66b390514ff5db0b8430824b678afeffa8c8249d9a499a8ce3a59707cfa"
+      },
+      "macUpdater": {
+        "name": "latest-mac.yml",
+        "bytes": 536,
+        "sha256": "b57a42f567b66f46eac9fd3ea92640610b74efa76def63b15a2feeb33a3700f0"
+      }
+    }
   },
   "minimaxMusic3PromptEnhancer": {
     "status": "released-v2.9.3",
@@ -10846,8 +10889,8 @@
     "version": "3.5.3",
     "semverVersion": "3.5.3",
     "versionNumberPolicy": "T8 版本号仍采用 x.y.z 三段，但每一段只允许 0-9；任一段到 9 后下一次发布必须向左进位，禁止任一段出现两位数字。例：1.9.9 的下一版必须是 2.0.0。",
-    "versionNote": "v3.5.3 Flash/H3扩展及RH枚举补修已获发布授权，见docs/release-v3.5.3.md。",
-    "installer": "T8-PenguinCanvas-Setup-3.5.3.exe；待唯一正式构建与完整回下载。",
+    "versionNote": "v3.5.3 Flash/H3扩展及RH枚举补修双平台已发布，见docs/release-v3.5.3.md。",
+    "installer": "T8-PenguinCanvas-Setup-3.5.3.exe；唯一正式安装包与完整回下载通过。",
     "updaterInstallMode": "自动更新下载完成后不得静默安装：main.cjs 必须设置 autoInstallOnAppQuit=false，显式安装调用 quitAndInstall(false,true)；electron/build-resources/installer.nsh 通过 SetSilent normal 让新版 NSIS 安装器即使收到旧客户端传入的 /S 也尽量切回前台安装向导。",
     "installerShortcutPolicy": "安装完成后必须创建桌面和开始菜单快捷方式：package.json build.nsis.createDesktopShortcut 必须为 \"always\"，createStartMenuShortcut 必须为 true；electron/build-resources/installer.nsh 必须保留 customInstall 兜底 CreateShortCut \"$newStartMenuLink\" 与 \"$DESKTOP\\${SHORTCUT_NAME}.lnk\"，防止更新安装/keepShortcuts 路径遗漏入口。",
     "updaterEntryPolicy": "顶栏桌面更新入口不得只因 window.t8pc.updater 缺失就静默消失；Electron UA 或 t8pc.getInfo/openExternal 可用时必须显示诊断入口，提示重新安装完整桌面包，Web/纯浏览器环境才隐藏。状态为 not-available 时按钮仍保留“更新”字样，避免用户误以为自动更新入口被删除。",
@@ -17835,26 +17878,31 @@
     }
   },
   "sd25FlashH3Models20261117": {
-    "status": "authorized-v3.5.3-pending-release",
-    "summary": "Ten budget-house models in existing Seedance 2.5 / SD2.5 and H3 Lowprice entries; exact media/frame/seed contracts, ten real decoded successes, seventeen key-free workflows, 124 regressions and eleven full App runs with clean exit. Unreleased.",
+    "status": "released-v3.5.3",
+    "summary": "Ten budget-house models in existing Seedance 2.5 / SD2.5 and H3 Lowprice entries; exact media/frame/seed contracts, ten real decoded successes, seventeen key-free workflows, 124 regressions and eleven full App runs with clean exit. Released in v3.5.3.",
     "details": "docs/sd25-flash-h3.md",
-    "releaseVersion": "3.5.3"
+    "releaseVersion": "3.5.3",
+    "releaseIncluded": true,
+    "published": true
   },
   "githubIssueFollowup20261117": {
-    "status": "authorized-v3.5.3-pending-release",
+    "status": "released-v3.5.3",
     "summary": "0 open PRs / 6 open issues reviewed. Issue 30: real RH COMBO descriptor fixed in shared parser; 58 regressions and full App passed, no paid generation. Replied and added status labels; other platform/acceptance boundaries retained.",
     "details": "docs/github-issues-20261117.md",
-    "releaseVersion": "3.5.3"
+    "releaseVersion": "3.5.3",
+    "releaseIncluded": true,
+    "published": true
   },
   "electronReleaseV353": {
-    "status": "authorized-v3.5.3-pending-build",
+    "status": "released-v3.5.3-dual-platform-verified",
     "version": "3.5.3",
     "tag": "v3.5.3",
-    "latest": false,
+    "latest": true,
     "date": "2026-11-17",
     "details": "docs/release-v3.5.3.md",
     "evidence": "docs/release-v3.5.3.md",
     "postReleaseEvidence": "owner-approved-post-release-v3.5.3",
-    "macBoundary": "same-tag-ad-hoc-preview; defer-only-if-actual-quota-insufficient"
+    "macBoundary": "same-tag-ad-hoc-preview; no-quota-deferral-used",
+    "sourceCommit": "49926729c23f1c92eb4d7d7221cecc0a7a462071"
   }
 }

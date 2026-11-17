@@ -1,6 +1,6 @@
 # Seedance 2.5 Flash / H3 Comfy 扩展
 
-2026-11-17，开发完成，已获 v3.5.3 发布授权；进度见[发布专题](release-v3.5.3.md)。旧 H3/Turbo 三模型见 [原专题](h3-turbo.md)。
+2026-11-17，已随 v3.5.3 双平台发布；验证与边界见[发布专题](release-v3.5.3.md)。旧 H3/Turbo 三模型见 [原专题](h3-turbo.md)。
 
 ## 范围
 
