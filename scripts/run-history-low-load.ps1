@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('Probe', 'TransportProbe', 'HistoryUI', 'BasicSettingsUI', 'ImageInputUI', 'ImageInputPersist', 'BudgetImageInputPersist', 'FalImageInputPersist', 'BananaImageInputPersist', 'VideoInputPersist', 'FalVideoInputPersist', 'BasicSettingsPersist', 'GeneratedVersions', 'FullHistory', 'CreativeCanvas', 'StrataCanvas', 'MotionCanvas', 'KlingCanvas', 'PmfCanvas', 'G26Canvas', 'TripoCanvas', 'Seedream55Canvas', 'H3TurboCanvas', 'SD25FlashH3Canvas', 'IssuesCanvas', 'CanvasSave', 'UpdateExit')][string]$Mode = 'Probe',
+    [ValidateSet('Probe', 'TransportProbe', 'HistoryUI', 'BasicSettingsUI', 'ImageInputUI', 'ImageInputPersist', 'BudgetImageInputPersist', 'FalImageInputPersist', 'BananaImageInputPersist', 'VideoInputPersist', 'FalVideoInputPersist', 'BasicSettingsPersist', 'GeneratedVersions', 'FullHistory', 'CreativeCanvas', 'StrataCanvas', 'MotionCanvas', 'KlingCanvas', 'PmfCanvas', 'G26Canvas', 'TripoCanvas', 'Seedream55Canvas', 'H3TurboCanvas', 'SD25FlashH3Canvas', 'RhComboCanvas', 'IssuesCanvas', 'CanvasSave', 'UpdateExit')][string]$Mode = 'Probe',
     [ValidateSet('image-standard', 'image-fal', 'image-mj', 'image-budget', 'video')][string]$SettingsCase = 'image-standard',
     [ValidateSet('gpt-image-2-fal', 'nano-banana-pro-fal', 'nano-banana-2-fal')][string]$FalModel = 'gpt-image-2-fal',
     [ValidateSet('zhenzhen-image-g-v2.5-lowprice', 'zhenzhen-image-g-v2.5-flare', 'zhenzhen-image-g-v2.5-sunburst')][string]$BudgetModel = 'zhenzhen-image-g-v2.5-flare',
@@ -251,6 +251,7 @@ public sealed class T8HistoryJob : IDisposable {
             elseif ($Mode -eq 'TripoCanvas') { & $taskNode $taskNodeHeapFlag scripts/verify-tripo-canvas.cjs }
             elseif ($Mode -eq 'H3TurboCanvas') { & $taskNode $taskNodeHeapFlag scripts/verify-h3-turbo-canvas.cjs }
             elseif ($Mode -eq 'SD25FlashH3Canvas') { & $taskNode $taskNodeHeapFlag scripts/verify-sd25-flash-h3-canvas.cjs }
+            elseif ($Mode -eq 'RhComboCanvas') { & $taskNode $taskNodeHeapFlag scripts/verify-rh-combo-canvas.cjs }
             elseif ($Mode -eq 'IssuesCanvas') { & $taskNode $taskNodeHeapFlag scripts/verify-issue-followup-canvas.cjs }
             elseif ($Mode -eq 'Seedream55Canvas') { & $taskNode $taskNodeHeapFlag scripts/verify-seedream55-draft-canvas.cjs }
             elseif ($Mode -eq 'KlingCanvas') { & $taskNode $taskNodeHeapFlag scripts/verify-kling-v4-canvas.cjs }

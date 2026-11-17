@@ -17839,5 +17839,10 @@
     "status": "implemented-unreleased",
     "summary": "Ten budget-house models in existing Seedance 2.5 / SD2.5 and H3 Lowprice entries; exact media/frame/seed contracts, ten real decoded successes, seventeen key-free workflows, 124 regressions and eleven full App runs with clean exit. Unreleased.",
     "details": "docs/sd25-flash-h3.md"
+  },
+  "githubIssueFollowup20261117": {
+    "status": "implemented-unreleased",
+    "summary": "0 open PRs / 6 open issues reviewed. Issue 30: real RH COMBO descriptor fixed in shared parser; 58 regressions and full App passed, no paid generation. Replied and added status labels; other platform/acceptance boundaries retained.",
+    "details": "docs/github-issues-20261117.md"
   }
 }

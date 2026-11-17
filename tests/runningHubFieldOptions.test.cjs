@@ -5,6 +5,7 @@ const test = require('node:test');
 const { runInNewContext } = require('node:vm');
 const ts = require('typescript');
 const observedRhApps = require('./fixtures/rh-media-app-info-20261007.json');
+const observedIssue30 = require('./fixtures/rh-issue30-combo-20261117.json');
 
 const choices = ['1:1 (Square)', '2:3 (Portrait Photo)', '3:2 (Photo)',
   '3:4 (Portrait Standard)', '4:3 (Standard)', '9:16 (Portrait Widescreen)',
@@ -36,7 +37,7 @@ function parser(relative, name) {
   const javascript = ts.transpileModule(`${selected.map((node) => node.getText(parsed)).join('\n')}\nresult = ${name};`, {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
   }).outputText;
-  const context = { exports: {}, ...shared };
+  const context = { exports: {}, result: undefined, ...shared };
   runInNewContext(javascript, context);
   return { parse: context.result, shared, source };
 }
@@ -48,7 +49,7 @@ for (const [relative, name] of [
 ]) {
   test(`${relative}: exact RH choices survive JSON and ComfyUI combo envelopes`, () => {
     const { parse } = parser(relative, name);
-    for (const fieldData of [choices, JSON.stringify(choices), [choices, {}], JSON.stringify([choices, { default: choices[0] }])]) {
+    for (const fieldData of [choices, JSON.stringify(choices), [choices, {}], JSON.stringify([choices, { default: choices[0] }]), observedIssue30.field.fieldData, ['COMBO', {label:'Widget label is not an option',options:choices}]]) {
       const actual = parse({ nodeId: '291', fieldName: 'aspect_ratio', fieldType: 'LIST', fieldData, fieldValue: choices[0] });
       assert.deepEqual(Array.from(actual || []), choices);
       assert.equal(actual.includes('21:9'), false);
@@ -57,7 +58,7 @@ for (const [relative, name] of [
 
   test(`${relative}: missing or numeric metadata never invents enum values`, () => {
     const { parse } = parser(relative, name);
-    for (const fieldData of [undefined, 'not JSON', '["INT", {"min": 0, "max": 100}]']) {
+    for (const fieldData of [undefined, 'not JSON', '["INT", {"min": 0, "max": 100}]', ['INT',{label:'Width',default:1,min:0,max:100}], ['STRING',{label:'Prompt',default:'',options:['not-an-enum']}], ['BOOLEAN',{label:'Toggle',default:false}]]) {
       assert.equal(Boolean(parse({ fieldName: 'aspect_ratio', fieldType: 'TEXT', fieldData, fieldValue: '21:9 (Ultrawide)' })), false);
     }
     assert.deepEqual(Array.from(parse({ fieldName: 'quality', options: [{ label: 'Shown', value: 'EXACT' }] }) || []), ['EXACT']);
@@ -147,10 +148,12 @@ for (const component of ['RunningHubNode.tsx', 'RHToolsNode.tsx']) {
     runInNewContext(ts.transpileModule(`result = (${builder.getText(parsed)});`, {
       compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
     }).outputText, context);
-    const field = { nodeId: '291', fieldName: 'aspect_ratio', fieldType: 'TEXT', fieldData: JSON.stringify([choices, {}]) };
-    const data = context.result([field], { '291__aspect_ratio': { value: choices[7] } });
-    assert.equal(data[0].fieldValue, '21:9 (Ultrawide)');
-    assert.throws(() => context.result([field], { '291__aspect_ratio': { value: '21:9' } }), /select/);
+    for (const field of [{ nodeId: '291', fieldName: 'aspect_ratio', fieldType: 'TEXT', fieldData: JSON.stringify([choices, {}]) },observedIssue30.field]) {
+      const data = context.result([field], { '291__aspect_ratio': { value: choices[7] } });
+      assert.equal(data[0].fieldValue, '21:9 (Ultrawide)');
+      assert.equal(data[0].valueType,'select');
+      assert.throws(() => context.result([field], { '291__aspect_ratio': { value: '21:9' } }), /select/);
+    }
     const numeric = context.result([{ nodeId: '2', fieldName: 'size', fieldType: 'NUMBER', options: ['001', '002'] }], { '2__size': { value: '001' } });
     assert.equal(numeric[0].fieldValue, '001');
     assert.equal(numeric[0].valueType, 'select', 'later upload resolution must not coerce an enum to a number');

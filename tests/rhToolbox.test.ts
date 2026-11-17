@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
+import { runInNewContext } from 'node:vm';
+import ts from 'typescript';
 import { assertProductionNodeSchema } from './helpers/canvasNodeSchema.ts';
 
 const loadRhToolboxUtils = async () => import('../src/utils/rhToolbox.ts');
@@ -133,7 +135,29 @@ test('RH smart translation is a persisted text capability shared by Text, LLM/Vi
   assert.match(textNode, /rebaseMediaMentions/);
   assert.match(llmNode, /<SmartTranslateButton[\s\S]*text=\{localPrompt\}/);
   assert.match(outputNode, /<SmartTranslateButton[\s\S]*text=\{displayText\}/);
-  assert.match(outputNode, /update\(\{ outputText: translatedText, smartTranslation: record \}\)/);
+  // Execute the current handler: translation also rebases asset mentions.
+  // An exact object-text regex incorrectly rejects that preserved behavior.
+  const ast = ts.createSourceFile('OutputNode.tsx', outputNode, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  let handler: ts.Expression | undefined;
+  const visit = (node: ts.Node) => {
+    if (ts.isVariableDeclaration(node) && node.name.getText(ast) === 'handleTranslated'
+      && node.initializer && ts.isCallExpression(node.initializer)) handler = node.initializer.arguments[0];
+    ts.forEachChild(node, visit);
+  };
+  visit(ast);
+  assert.ok(handler);
+  const { rebaseMediaMentions } = await import('../src/components/nodes/mediaMentions.ts');
+  const outputMentions = [{id:'fixture',kind:'image' as const,materialKey:'image:fixture',url:'/files/input/reference.png',token:'@img1',start:6,end:11}];
+  let patch: any, editing: boolean | undefined;
+  const context = {result:undefined as any,outputMentions,rebaseMediaMentions,update:(value:any)=>{patch=value;},setEditing:(value:boolean)=>{editing=value;}};
+  runInNewContext(ts.transpileModule(`result = (${handler.getText(ast)});`,{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText,context);
+  const record = {status:'completed',toolId:'fixture-translation'};
+  context.result('你好 @img1',record);
+  assert.equal(patch.outputText,'你好 @img1');
+  assert.equal(patch.smartTranslation,record);
+  assert.deepEqual(patch.outputPromptMentions,rebaseMediaMentions('你好 @img1',outputMentions));
+  assert.equal(patch.outputPromptMentions[0].start,3);
+  assert.equal(editing,false);
   assert.match(backendSettings, /RH_SMART_TRANSLATION_WEBAPP_ID/);
   assert.match(backendSettings, /capabilities:\s*\['text\.translate'\]/);
 });

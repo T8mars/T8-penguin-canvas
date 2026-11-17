@@ -32,6 +32,23 @@ export function extractRhFieldOptions(field: any): RhFieldOption[] | null {
   if (/^(IMAGE|VIDEO|AUDIO)$/i.test(String(field?.fieldType || ''))) return null;
   for (const candidate of [field?.fieldData, ...OPTION_KEYS.map((key) => field?.[key])]) {
     const parsed = parseMetadata(candidate);
+    // Observed RH LIST metadata: ["COMBO", { default, options: [...] }].
+    // Resolve the typed descriptor before treating its label/default as a choice.
+    if (Array.isArray(parsed) && typeof parsed[0] === 'string'
+      && parsed[1] && typeof parsed[1] === 'object' && !Array.isArray(parsed[1])) {
+      const widget = parsed[0].toUpperCase();
+      const descriptor = parsed[1] as Record<string, unknown>;
+      const typed = [...OPTION_KEYS, 'default', 'min', 'max', 'step', 'multiline']
+        .some((key) => Object.hasOwn(descriptor, key));
+      if (typed && /^(INT|INTEGER|FLOAT|NUMBER|STRING|TEXT|BOOLEAN|IMAGE|VIDEO|AUDIO)$/.test(widget)) continue;
+      if (typed && /^(COMBO|LIST|SELECT|DROPDOWN|ENUM)$/.test(widget)) {
+        for (const key of OPTION_KEYS) {
+          const values = optionList(parseMetadata(descriptor[key]));
+          if (values) return values;
+        }
+        continue;
+      }
+    }
     const direct = optionList(parsed);
     if (direct) return direct;
     // ComfyUI INPUT_TYPES combo: [[exact values], {default, ...}].
