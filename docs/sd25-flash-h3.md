@@ -1,6 +1,6 @@
 # Seedance 2.5 Flash / H3 Comfy 扩展
 
-2026-11-17，开发完成，尚未打包发布；产品版本仍为 3.5.2。旧 H3/Turbo 三模型见 [原专题](h3-turbo.md)。
+2026-11-17，开发完成，已获 v3.5.3 发布授权；进度见[发布专题](release-v3.5.3.md)。旧 H3/Turbo 三模型见 [原专题](h3-turbo.md)。
 
 ## 范围
 
@@ -64,4 +64,4 @@ Flash 走 `POST /v1/videos`、`GET /v1/videos/{id}`。分辨率仅 480p/720p；4
 
 最终 type-check、能力同步、i18n、public-clean、worktree/development、diff 及上下文预算门均通过；两份受保护运行时散列不变。最后一次受影响专项 34/34 通过，没有生产 build。
 
-复用入口：`npm run workflows:sd25-flash-h3`；实网必须显式 `--confirm-live` 且 Key 只放进程环境。完整 App 用 `scripts/run-history-low-load.ps1 -Mode SD25FlashH3Canvas`，遵守原资源门。所有正式 build、打包、版本升级及发布等待用户另行授权。
+复用入口：`npm run workflows:sd25-flash-h3`；实网必须显式 `--confirm-live` 且 Key 只放进程环境。完整 App 用 `scripts/run-history-low-load.ps1 -Mode SD25FlashH3Canvas`，遵守原资源门。本轮正式 build、打包与发布已获用户明确授权，完成状态以发布专题为准。
