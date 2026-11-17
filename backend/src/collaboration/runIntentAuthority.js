@@ -158,8 +158,9 @@ const VIDEO_RUNTIME_MODELS = Object.freeze({
   'wan-2.7-spicy': ['wan-2.7-spicy-i2v'],
   'happyhorse-1.1': ['happyhorse-1.1-t2v', 'happyhorse-1.1-i2v', 'happyhorse-1.1-r2v'],
   'seedance-2.0': ['seedance-2.0'],
+  'seedance-2.5': require('../shared/creativeModelCatalog.json').video.filter(entry => entry.family === 'seedance-2.5' && entry.provider === 'seedance-nz').map(entry => entry.model),
   'vosr2-video-upscale': ['vosr2-video-upscale'],
-  [h3Turbo.video.model]: [h3Turbo.video.model],
+  [h3Turbo.video.model]: Object.values(h3Turbo).filter(spec => spec === h3Turbo.video || spec.video).map(spec => spec.model),
   [pmf.muse.videoModel]: [pmf.muse.videoModel],
   [topazVideoContract.model]: [topazVideoContract.model],
   'animate-motion-transfer': ['animate-motion-transfer'],
@@ -193,7 +194,8 @@ const SEEDANCE_NZ_IMAGE_RUNTIME_MODELS = new Set([
   'qwen-image-global-2.1',
 ]);
 const SEEDANCE_NZ_VIDEO_RUNTIME_MODELS = new Set([
-  h3Turbo.video.model,
+  ...VIDEO_RUNTIME_MODELS[h3Turbo.video.model],
+  ...VIDEO_RUNTIME_MODELS['seedance-2.5'],
   ...Object.keys(require('../shared/flashVideoContract.json').models),
   pmf.muse.videoModel,
   topazVideoContract.model,

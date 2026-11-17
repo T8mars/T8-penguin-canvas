@@ -1,3 +1,4 @@
+import SD25_FLASH from '../../backend/src/shared/seedance25FlashContract.json';
 import H3_TURBO_CONTRACT from '../../backend/src/shared/h3TurboContract.json';
 import PREVIEW_MUSE_FLUX from '../../backend/src/shared/previewMuseFluxContract.json';
 import G26_KREA_3D from '../../backend/src/shared/g26Krea3dContract.json';
@@ -911,6 +912,7 @@ export const SEEDANCE25_VIDEO_MODELS = [
   'seedance-2.5-standard-t2v',
   'seedance-2.5-standard-draft-to-video',
   'seedance-2.5-global-standard-draft-to-video',
+  ...SD25_FLASH.models,
 ] as const;
 export const HAILUO_H3_GLOBAL_VIDEO_MODELS = [
   'hailuo-h3-global-t2v',
@@ -1688,7 +1690,7 @@ export const VIDEO_MODELS: VideoModelDef[] = [
     kind: 'seedance25',
     provider: 'zhenzhen',
     builtinSource: 'seedance-nz',
-    description: 'Seedance 2.5 Standard · 文生、首尾帧与多模态参考视频',
+    description: 'Seedance 2.5 Standard / Flash · 文生、首尾帧与多模态参考视频',
     apiModelOptions: SEEDANCE25_VIDEO_MODELS.map((value) => {
       const mode = value.endsWith('-draft-to-video') ? 'draft' : value.endsWith('-t2v') ? 't2v' : value.endsWith('-i2v') ? 'i2v' : 'multi';
       if (mode === 'draft') return { value, label: value, description: '480P draft → native1080p', ratios: [], durations: [], resolutions: [], supportImages: false, supportVideos: true, supportAudios: false, maxRefImages: 0, maxRefVideos: 1, maxRefAudios: 0 };
@@ -1699,19 +1701,19 @@ export const VIDEO_MODELS: VideoModelDef[] = [
           ? '仅提示词；不发送参考素材。'
           : mode === 'i2v'
             ? '1-2 张图片，依次作为首帧和可选尾帧；提示词可选。'
-            : '至少 1 个素材；最多 30 图、10 视频、10 音频，合计不超过 50 个。',
-        ratios: SEEDANCE25_RATIOS,
+            : SD25_FLASH.models.includes(value) ? '10 images / 5 videos / 5 audios' : '至少 1 个素材；最多 30 图、10 视频、10 音频，合计不超过 50 个。',
+        ratios: SD25_FLASH.models.includes(value) && mode === 'i2v' ? ['adaptive'] : SEEDANCE25_RATIOS,
         defaultRatio: mode === 'i2v' ? 'adaptive' : '16:9',
         durations: SEEDANCE25_DURATIONS,
         defaultDuration: 5,
-        resolutions: SEEDANCE25_RESOLUTIONS,
+        resolutions: SD25_FLASH.models.includes(value) ? SD25_FLASH.resolutions : SEEDANCE25_RESOLUTIONS,
         defaultResolution: '720p',
         supportImages: mode !== 't2v',
         supportVideos: mode === 'multi',
         supportAudios: mode === 'multi',
-        maxRefImages: mode === 't2v' ? 0 : mode === 'i2v' ? 2 : 30,
-        maxRefVideos: mode === 'multi' ? 10 : 0,
-        maxRefAudios: mode === 'multi' ? 10 : 0,
+        maxRefImages: mode === 't2v' ? 0 : mode === 'i2v' ? 2 : SD25_FLASH.models.includes(value) ? 10 : 30,
+        maxRefVideos: mode === 'multi' ? SD25_FLASH.models.includes(value) ? 5 : 10 : 0,
+        maxRefAudios: mode === 'multi' ? SD25_FLASH.models.includes(value) ? 5 : 10 : 0,
       };
     }),
     ratios: SEEDANCE25_RATIOS,
@@ -1725,7 +1727,13 @@ export const VIDEO_MODELS: VideoModelDef[] = [
     maxRefImages: 30,
   },
   {id:H3_TURBO_CONTRACT.video.model,label:H3_TURBO_CONTRACT.video.tab,kind:'h3-lowprice',provider:'zhenzhen',builtinSource:'seedance-nz',
-   apiModelOptions:[{value:H3_TURBO_CONTRACT.video.model,label:H3_TURBO_CONTRACT.video.model,supportAudios:true,maxRefAudios:3}],
+   apiModelOptions:Object.values(H3_TURBO_CONTRACT).filter(spec => spec === H3_TURBO_CONTRACT.video || 'video' in spec && spec.video).map(spec => ({
+     value:spec.model,label:spec.model,supportImages:true,maxRefImages:spec.maxImages,
+     supportAudios:'maxAudios' in spec && spec.maxAudios > 0,maxRefAudios:'maxAudios' in spec ? spec.maxAudios : 0,
+     supportVideos:'maxVideos' in spec && spec.maxVideos > 0,maxRefVideos:'maxVideos' in spec ? spec.maxVideos : 0,
+     ratios:spec.ratios,defaultRatio:spec.ratios[0],resolutions:spec.resolutions,defaultResolution:spec.defaultResolution,
+     durations:Array.from({length:16-('minSeconds' in spec ? spec.minSeconds : 3)},(_,i)=>i+('minSeconds' in spec ? spec.minSeconds : 3)),defaultDuration:5,
+   })),
    ratios:H3_TURBO_CONTRACT.video.ratios,defaultRatio:'16:9',durations:Array.from({length:13},(_,i)=>i+3),defaultDuration:5,
    resolutions:H3_TURBO_CONTRACT.video.resolutions,defaultResolution:'480p',supportImages:true,supportVideos:false,maxRefImages:9},
   {

@@ -39,6 +39,8 @@ const SOURCE_PATHS = [
   path.join(ROOT,'backend','src','shared','seedream55DraftContract.mjs'),
   path.join(ROOT,'backend','src','shared','h3TurboContract.json'),
   path.join(ROOT,'backend','src','shared','h3TurboContract.mjs'),
+  path.join(ROOT,'backend','src','shared','seedance25FlashContract.json'),
+  path.join(ROOT,'backend','src','shared','seedance25FlashContract.mjs'),
   path.join(ROOT,'backend','src','shared','tripo3dContract.mjs'),
   path.join(ROOT,'backend','src','providers','tripo3d.js'),
   path.join(ROOT,'backend','src','shared','flashVideoContract.json'),
@@ -411,6 +413,8 @@ function buildRuntimeCatalog() {
           maxReferenceVideos: option.maxRefVideos ?? (family.supportVideos === true ? 1 : 0),
           maxReferenceAudios: option.maxRefAudios ?? 0,
           description: option.description ?? family.description,
+          ...(family.kind === 'h3-lowprice' ? {sharedParameterContract:'backend/src/shared/h3TurboContract.mjs',nativeSeed:['minimax-h3-comfyui-charswap','minimax-h3-comfyui-wuxi'].includes(option.value),seedField:'h3ComfySeed',...(option.value === 'minimax-h3-comfyui-charswap' ? {framesField:'h3ComfyFrames',durationModeField:'h3ComfyDurationMode',framesRange:{min:22,max:362,step:17}} : {})} : {}),
+          ...(String(option.value).includes('-flash-') && family.kind === 'seedance25' ? {sharedParameterContract:'backend/src/shared/seedance25FlashContract.mjs',supportsDraft:false,referenceTaskTypes:['auto','reference','edit','extend'],referenceTaskTypeField:'seedance25ReferenceTaskType',referenceDuration:{min:2,max:30,totalMax:30}} : {}),
           ...(String(option.value).endsWith('-draft-to-video') ? { noPrompt: true, inputMode: 'completed-draft-task-id', draftTaskIdField: 'seedance25DraftTaskId', outputFormats: ['mp4','mov'], outputResolution: 'native1080p', sharedParameterContract: 'backend/src/shared/seedream55DraftContract.mjs' } : {}),
           ...(option.value === models.TOPAZ_VIDEO_UPSCALE_MODEL ? {
             restorationModels: models.TOPAZ_VIDEO_CONTRACT.qualities,

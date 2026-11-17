@@ -15,6 +15,7 @@ const SEEDANCE_FIELDS = {
   duration: '时长', ratio: '比例', resolution: '分辨率', generateAudio: '生成声音',
   returnLastFrame: '返回尾帧', watermark: '水印', webSearch: '联网搜索', seed: '种子',
   maxPoll: '最大轮询次数', pollInt: '轮询间隔', frameMode: '首尾帧模式',
+  seedance25ReferenceTaskType:'多模态任务类型',
 } as const;
 const PROVIDER_FIELDS = { providerSource: '渠道来源', providerId: '扩展渠道', providerModel: '扩展模型' } as const;
 const IMAGE_FIELDS = {

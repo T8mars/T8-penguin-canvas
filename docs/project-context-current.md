@@ -1,6 +1,6 @@
 # 当前项目上下文
 
-更新：2026-11-12。仅维护当前事实；长期规则见根 `SKILL.md` 和 `AGENTS.md`。预算80行/8 KiB，历史见专题。
+更新：2026-11-17。仅维护当前事实；长期规则见根 `SKILL.md` 和 `AGENTS.md`。预算80行/8 KiB，历史见专题。
 
 - 默认目录 `E:\PenguinPravite\T8-penguin-canvas`；branch `codex/release-v3.0.8-volcengine-assets-ux`，common dir `.git`。开工以git/worktree门为准；正式源码/Tag固定后记录在发布专题，不移动。
 - package `3.5.2` 双平台已发，见[专题](release-v3.5.2.md)；旧v3.5.1 Tag/六资产冻结。
@@ -12,7 +12,7 @@
 
 | 事项 | 当前事实与下一步 |
 | --- | --- |
-| 本轮开发 | [H3/Turbo](h3-turbo.md)三模型实网六条/App功能通过，退出未验收；[5.5/草稿](seedream55-draft.md)、[Tripo](tripo-3d.md)、[小屋入口](zhenzhen-cottage-promotion.md)均已随v3.5.1发布。 |
+| 本轮开发 | [SD2.5 Flash/H3](sd25-flash-h3.md)：10模型实网全片解码、17工作流、124回归及完整App通过；未发布。既有H3/Turbo、5.5/草稿、Tripo及小屋入口已随v3.5.1发布。 |
 | G2.6/Krea/Z-image/3D | Meshy文生v3.4.8已发；LowPrice十图实测通过、v3.4.9已发，见[专题](g26-krea-hitem-meshy.md)。 |
 | HY/Muse/Flux | 七模型、十一工作流及Motion复验，v3.4.6已发；验证见[专题](preview-muse-flux.md)。 |
 | Kling4 | 既有视频Kling新增五模型，v3.4.5已发；六条实网、133回归及临时完整画布通过，见[专题](kling-v4.md)。 |

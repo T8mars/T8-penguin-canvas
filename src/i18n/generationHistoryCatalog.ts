@@ -85,6 +85,8 @@ const entries = {
   field_seedream55MaxImages: ['Seedream 5.5 最大图层数', 'Seedream 5.5 maximum layers'],
   field_seedream55TextRecognition: ['Seedream 5.5 识别文字', 'Seedream 5.5 text recognition'],
   field_seedance25Draft: ['Seedance 2.5 草稿模式', 'Seedance 2.5 draft mode'],
+    field_seedance25ReferenceTaskType:['多模态任务类型','Multimodal task type'],
+    field_h3ComfySeed:['H3 种子','H3 seed'],field_h3ComfyFrames:['H3 帧数','H3 frames'],field_h3ComfyDurationMode:['H3 时长模式','H3 duration mode'],
   field_seedance25DraftTaskId: ['Seedance 2.5 草稿ID', 'Seedance 2.5 draft ID'],
   field_seedance25OutputFormat: ['Seedance 2.5 成片格式', 'Seedance 2.5 video format'],
   field_klingV4ElementName: ["Kling 4主体名称","Kling 4 element name"],

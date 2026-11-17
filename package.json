@@ -127,7 +127,10 @@
     "face-model:build": "node scripts/build-ict-face-glb.cjs",
     "preverify:h3-turbo:live": "node scripts/worktree-role.cjs development",
     "verify:h3-turbo:live": "node scripts/verify-h3-turbo-live.cjs --launch",
-    "workflows:h3-turbo": "node scripts/generate-h3-turbo-workflows.cjs"
+    "workflows:h3-turbo": "node scripts/generate-h3-turbo-workflows.cjs",
+    "preverify:sd25-flash-h3:live": "node scripts/worktree-role.cjs development",
+    "verify:sd25-flash-h3:live": "node scripts/verify-sd25-flash-h3-live.cjs --launch",
+    "workflows:sd25-flash-h3": "node scripts/generate-sd25-flash-h3-workflows.cjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

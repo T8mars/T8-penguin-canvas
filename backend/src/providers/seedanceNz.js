@@ -27,6 +27,9 @@ const NB_FLUX_VIDU = require('../shared/nb21FluxViduQ4Contract.json');
 const TOPAZ_VIDEO_CONTRACT = require('../shared/topazVideoContract.json');
 const MAI_IMAGE_CONTRACT = require('../shared/maiImageContract.json');
 const H3_TURBO_CONTRACT = require('../shared/h3TurboContract.json');
+const SD25_FLASH = require('../shared/seedance25FlashContract.json');
+let sd25FlashPromise;
+const sd25FlashApi = () => sd25FlashPromise ||= import('../shared/seedance25FlashContract.mjs').then(m => m.createSeedance25FlashContract(SD25_FLASH));
 let h3TurboPromise;
 const h3TurboApi = () => h3TurboPromise ||= import('../shared/h3TurboContract.mjs').then(m => m.createH3TurboContract(H3_TURBO_CONTRACT));
 const MOSS_IMAGE_CONTRACT = require('../shared/mossImageContract.json');
@@ -55,14 +58,17 @@ const RESOLUTIONS = new Set(['480p', '720p', '1080p', '2k', '4k', 'native1080p',
 const SEEDANCE25_T2V_MODELS = new Set([
   'seedance-2.5-global-standard-t2v',
   'seedance-2.5-standard-t2v',
+  ...SD25_FLASH.models.filter(model => model.endsWith('-t2v')),
 ]);
 const SEEDANCE25_I2V_MODELS = new Set([
   'seedance-2.5-global-standard-i2v',
   'seedance-2.5-standard-i2v',
+  ...SD25_FLASH.models.filter(model => model.endsWith('-i2v')),
 ]);
 const SEEDANCE25_MULTI_MODELS = new Set([
   'seedance-2.5-global-standard-multi',
   'seedance-2.5-standard-multi',
+  ...SD25_FLASH.models.filter(model => model.endsWith('-multi')),
 ]);
 const SEEDANCE25_MODELS = new Set([
   ...require('../shared/seedream55DraftContract.json').draftModels,
@@ -2471,7 +2477,7 @@ async function probeSeedance25ReferenceDuration(buffer, file, kind, options = {}
       let stderr = '';
       const child = spawn(ffprobe, [
         '-v', 'error',
-        '-show_entries', 'format=duration',
+        '-show_entries', 'format=duration:stream=codec_type',
         '-of', 'json',
         inputPath,
       ], { windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
@@ -2504,7 +2510,12 @@ async function probeSeedance25ReferenceDuration(buffer, file, kind, options = {}
           return;
         }
         try {
-          const duration = Number(JSON.parse(stdout)?.format?.duration);
+          const probe = JSON.parse(stdout);
+          if (options.requireAudioTrack && !probe.streams?.some(stream => stream.codec_type === 'audio')) {
+            finish(Object.assign(new Error('CharSwap 源视频必须包含音轨；当前视频没有音轨，请提供带音轨的 MP4。'),{status:400,code:'h3_source_audio_required'}));
+            return;
+          }
+          const duration = Number(probe?.format?.duration);
           if (!Number.isFinite(duration) || duration <= 0) throw new Error('invalid duration');
           finish(null, duration);
         } catch {
@@ -2539,6 +2550,9 @@ async function buildSeedance25Payload(request, apiKey, options = {}) {
   }
   const model = String(request.model || '').trim().toLowerCase();
   const taskType = seedance25TaskTypeFromModel(model);
+  const flashApi = await sd25FlashApi(), flash = flashApi.isFlash(model);
+  const omni = flashApi.validate({...request, model});
+  const limits = flash ? SD25_FLASH.limits : SEEDANCE25_MULTI_LIMITS;
   const prompt = normalizePromptMentions(request.prompt).trim();
   if (prompt.length > SEEDANCE25_PROMPT_MAX_LENGTH) {
     throw new Error(`Seedance 2.5 prompt 最多 ${SEEDANCE25_PROMPT_MAX_LENGTH} 字符`);
@@ -2568,17 +2582,17 @@ async function buildSeedance25Payload(request, apiKey, options = {}) {
   }
   if (taskType === 'multi') {
     if (mediaCount < 1) throw new Error('Seedance 2.5 multi 至少需要 1 个参考素材');
-    if (allImages.length > SEEDANCE25_MULTI_LIMITS.images) {
-      throw new Error(`Seedance 2.5 multi 最多支持 ${SEEDANCE25_MULTI_LIMITS.images} 张图片`);
+    if (allImages.length > limits.images) {
+      throw new Error(`Seedance 2.5 multi 最多支持 ${limits.images} 张图片`);
     }
-    if (videos.length > SEEDANCE25_MULTI_LIMITS.videos) {
-      throw new Error(`Seedance 2.5 multi 最多支持 ${SEEDANCE25_MULTI_LIMITS.videos} 个视频`);
+    if (videos.length > limits.videos) {
+      throw new Error(`Seedance 2.5 multi 最多支持 ${limits.videos} 个视频`);
     }
-    if (audios.length > SEEDANCE25_MULTI_LIMITS.audios) {
-      throw new Error(`Seedance 2.5 multi 最多支持 ${SEEDANCE25_MULTI_LIMITS.audios} 个音频`);
+    if (audios.length > limits.audios) {
+      throw new Error(`Seedance 2.5 multi 最多支持 ${limits.audios} 个音频`);
     }
-    if (mediaCount > SEEDANCE25_MULTI_LIMITS.total) {
-      throw new Error(`Seedance 2.5 multi 参考素材合计最多 ${SEEDANCE25_MULTI_LIMITS.total} 个`);
+    if (mediaCount > limits.total) {
+      throw new Error(`Seedance 2.5 multi 参考素材合计最多 ${limits.total} 个`);
     }
   }
 
@@ -2595,6 +2609,7 @@ async function buildSeedance25Payload(request, apiKey, options = {}) {
       ratio: normalizeRatio(request.ratio),
       generate_audio: request.generate_audio !== false,
       return_last_frame: request.return_last_frame === true,
+      ...omni,
     },
   };
   if (seconds === -1) payload.metadata.duration = -1;
@@ -2604,10 +2619,37 @@ async function buildSeedance25Payload(request, apiKey, options = {}) {
     payload.metadata.seed = Number(request.seed);
   }
 
+  // Flash validates every slot before any upload, including the last AV duration.
+  const prepared = new Map();
+  if (flash) {
+    const state = {total: 0};
+    for (const [kind, sources, maxBytes, allowed] of [
+      ['image', allImages, SEEDANCE25_IMAGE_MAX_BYTES, SEEDANCE25_IMAGE_MIMES],
+      ['video', videos, SEEDANCE25_MEDIA_MAX_BYTES, SEEDANCE25_VIDEO_MIMES],
+      ['audio', audios, SEEDANCE25_MEDIA_MAX_BYTES, SEEDANCE25_AUDIO_MIMES],
+    ]) for (const source of sources) {
+      const file = await mediaBuffer(source, kind, maxBytes, options);
+      if (!allowed.includes(file.mime)) throw new Error(`Seedance Flash invalid ${kind} format`);
+      if (kind === 'image') { const info = await sharp(file.buffer).metadata(); if (!['png','jpeg','webp'].includes(info.format)) throw new Error('Invalid Flash image'); await sharp(file.buffer).stats(); file.mime='image/'+info.format; }
+      else {
+        if (kind === 'video' && file.buffer.subarray(4,8).toString() !== 'ftyp') throw new Error('Flash video requires MP4');
+        if (kind === 'audio') {
+          const wav=file.buffer.subarray(0,4).toString()==='RIFF'&&file.buffer.subarray(8,12).toString()==='WAVE',mp3=file.buffer.subarray(0,3).toString()==='ID3'||file.buffer[0]===255&&(file.buffer[1]&224)===224;
+          if(!wav&&!mp3)throw new Error('Flash audio requires MP3/WAV');
+          file.mime=wav?'audio/wav':'audio/mpeg';
+          await transcodeReferenceAudio(file.buffer,{...options,normalizeAudioWav:true,maxBytes:100*1024*1024});
+        }
+        await validateSeedance25ReferenceDuration(file.buffer, file, kind, state, options);
+      }
+      prepared.set(kind + ':' + source, `data:${file.mime};base64,${file.buffer.toString('base64')}`);
+    }
+  }
+  const preparedSource = (source, kind) => prepared.get(kind + ':' + source) || source;
+
   if (taskType === 'i2v') {
     payload.images = [];
     for (const source of allImages) {
-      payload.images.push(await uploadMedia(source, 'image', apiKey, {
+      payload.images.push(await uploadMedia(preparedSource(source, 'image'), 'image', apiKey, {
         ...options,
         maxBytes: SEEDANCE25_IMAGE_MAX_BYTES,
         allowedMimes: SEEDANCE25_IMAGE_MIMES,
@@ -2618,7 +2660,7 @@ async function buildSeedance25Payload(request, apiKey, options = {}) {
     payload.metadata.content = [];
     const durationState = { total: 0 };
     for (const source of allImages) {
-      const url = await uploadMedia(source, 'image', apiKey, {
+      const url = await uploadMedia(preparedSource(source, 'image'), 'image', apiKey, {
         ...options,
         maxBytes: SEEDANCE25_IMAGE_MAX_BYTES,
         allowedMimes: SEEDANCE25_IMAGE_MIMES,
@@ -2627,12 +2669,12 @@ async function buildSeedance25Payload(request, apiKey, options = {}) {
       payload.metadata.content.push({ type: 'image_url', image_url: { url } });
     }
     for (const source of videos) {
-      const url = await uploadMedia(source, 'video', apiKey, {
+      const url = await uploadMedia(preparedSource(source, 'video'), 'video', apiKey, {
         ...options,
         maxBytes: SEEDANCE25_MEDIA_MAX_BYTES,
         allowedMimes: SEEDANCE25_VIDEO_MIMES,
         uploadCacheTtlMs: 0,
-        validateBuffer: (buffer, file) => validateSeedance25ReferenceDuration(
+        validateBuffer: flash ? undefined : (buffer, file) => validateSeedance25ReferenceDuration(
           buffer,
           file,
           'video',
@@ -2643,12 +2685,12 @@ async function buildSeedance25Payload(request, apiKey, options = {}) {
       payload.metadata.content.push({ type: 'video_url', video_url: { url } });
     }
     for (const source of audios) {
-      const url = await uploadMedia(source, 'audio', apiKey, {
+      const url = await uploadMedia(preparedSource(source, 'audio'), 'audio', apiKey, {
         ...options,
         maxBytes: SEEDANCE25_MEDIA_MAX_BYTES,
         allowedMimes: SEEDANCE25_AUDIO_MIMES,
         uploadCacheTtlMs: 0,
-        validateBuffer: (buffer, file) => validateSeedance25ReferenceDuration(
+        validateBuffer: flash ? undefined : (buffer, file) => validateSeedance25ReferenceDuration(
           buffer,
           file,
           'audio',
@@ -6107,8 +6149,8 @@ async function buildPreviewMuseFluxPayload(request, apiKey, options = {}) {
 }
 
 async function buildH3TurboPayload(request, apiKey, options = {}) {
-  const api = await h3TurboApi(), payload = api.build(request), spec = api.profile(request.model), video = spec === api.contract.video;
-  const preparedImages = [], preparedAudios = [];
+  const api = await h3TurboApi(), payload = api.build(request), spec = api.profile(request.model), video = api.videoModels.includes(spec.model);
+  const preparedImages = [], preparedAudios = [], preparedVideos = [];
   // Read and validate all references before the first upload. Preserve order and repeated slots.
   for (const source of request.images || []) {
     const file = await mediaBuffer(source, 'image', video ? spec.imageBytes : undefined, options);
@@ -6117,7 +6159,7 @@ async function buildH3TurboPayload(request, apiKey, options = {}) {
     await sharp(file.buffer).stats();
     preparedImages.push({buffer:file.buffer,mime:info.format === 'jpeg' ? 'image/jpeg' : 'image/'+info.format});
   }
-  if (video && preparedImages.reduce((sum,file)=>sum+file.buffer.length,0)>spec.imagesBytes) throw Object.assign(new Error('H3 image references exceed 50 MiB'),{status:400});
+  if (video && preparedImages.reduce((sum,file)=>sum+file.buffer.length,0)>spec.imagesBytes) throw Object.assign(new Error('H3 image references exceed combined size limit'),{status:400});
   for (const source of request.audios || []) {
     const file = await mediaBuffer(source,'audio',spec.audioBytes,options), buffer = file.buffer;
     const wav = buffer.subarray(0,4).toString()==='RIFF' && buffer.subarray(8,12).toString()==='WAVE';
@@ -6128,13 +6170,21 @@ async function buildH3TurboPayload(request, apiKey, options = {}) {
     preparedAudios.push({buffer,mime:wav?'audio/wav':'audio/mpeg'});
   }
   if (video && preparedAudios.reduce((sum,file)=>sum+file.buffer.length,0)>spec.audioBytes) throw Object.assign(new Error('H3 audio references exceed 10 MiB'),{status:400});
-  const upload = async (file,kind) => uploadMedia('data:'+file.mime+';base64,'+file.buffer.toString('base64'),kind,apiKey,{...options,cacheVariant:'h3-turbo-original',...(video?{maxBytes:kind==='image'?spec.imageBytes:spec.audioBytes}:{}),allowedMimes:[file.mime]});
+  for (const source of request.videos || []) {
+    const file = await mediaBuffer(source, 'video', spec.videoBytes, options);
+    if (file.buffer.subarray(4,8).toString() !== 'ftyp') throw Object.assign(new Error('H3 video requires MP4'),{status:400});
+    await probeSeedance25ReferenceDuration(file.buffer,file,'video',{...options,requireAudioTrack:request.model === H3_TURBO_CONTRACT.charswap.model});
+    preparedVideos.push({buffer:file.buffer,mime:'video/mp4'});
+  }
+  if (preparedVideos.reduce((sum,file)=>sum+file.buffer.length,0) > (spec.videoBytes || 0)) throw Object.assign(new Error('H3 video references exceed 50 MiB'),{status:400});
+  const upload = async (file,kind) => uploadMedia('data:'+file.mime+';base64,'+file.buffer.toString('base64'),kind,apiKey,{...options,cacheVariant:'h3-turbo-original',...(video?{maxBytes:kind==='image'?spec.imageBytes:kind==='audio'?spec.audioBytes:spec.videoBytes}:{}),allowedMimes:[file.mime]});
   if (preparedImages.length) { payload.images=[]; for (const file of preparedImages) payload.images.push(await upload(file,'image')); }
   if (preparedAudios.length) { payload.metadata.audio_urls=[]; for (const file of preparedAudios) payload.metadata.audio_urls.push(await upload(file,'audio')); }
+  if (preparedVideos.length) { payload.metadata.video_url=[]; for (const file of preparedVideos) payload.metadata.video_url.push(await upload(file,'video')); }
   return {payload,model:spec.model,taskType:video?'video':preparedImages.length?'i2i':'t2i'};
 }
 async function submitH3TurboVideoTask(request, apiKey, options = {}) {
-  if (request.model !== H3_TURBO_CONTRACT.video.model) throw Object.assign(new Error('Invalid H3 Lowprice model'),{status:400});
+  if (!(await h3TurboApi()).videoModels.includes(request.model)) throw Object.assign(new Error('Invalid H3 Lowprice model'),{status:400});
   if (!String(apiKey || '').trim()) throw new Error('Missing budget-house API Key');
   const built=await buildH3TurboPayload(request,apiKey,options);
   const response=await fetchProviderResponse(getFetchImpl(options),cleanBaseUrl(options.baseUrl)+'/v1/video/generations',{
@@ -6151,10 +6201,12 @@ async function queryH3TurboVideoTask(taskId, apiKey, options = {}) {
   const data=await responseJson(response,'H3 Lowprice query');
   if (!response.ok) throw createUpstreamError(data,response);
   const record=data?.data||data,nested=record?.data||{};
-  if ((record.model||nested.model) && (record.model||nested.model)!==H3_TURBO_CONTRACT.video.model) throw new Error('H3 Lowprice model mismatch');
+  const api = await h3TurboApi();
+  const model = api.normalizeResultModel(record.model || nested.model || options.model || H3_TURBO_CONTRACT.video.model);
+  if (!api.videoModels.includes(model) || options.model && options.model !== model || [record.model,nested.model].filter(Boolean).some(value=>api.normalizeResultModel(value)!==model)) throw new Error('H3 Lowprice model mismatch');
   const statuses=[record.status,nested.status].filter(v=>typeof v==='string'&&v.trim()).map(normalizeImageTaskStatus);
   const status=statuses.includes('failed')?'failed':statuses.length&&statuses.every(v=>v==='succeeded')?'succeeded':statuses.includes('running')?'running':'pending';
-  return {taskId,model:H3_TURBO_CONTRACT.video.model,status,progress:String(record.progress??''),videoUrl:record.result_url||nested?.content?.video_url||'',failReason:record.fail_reason||record.error?.message||'',...safeProviderTrace(response,data)};
+  return {taskId,model,status,progress:String(record.progress??''),videoUrl:record.result_url||nested.result_url||nested?.content?.video_url||'',failReason:record.fail_reason||record.error?.message||'',...safeProviderTrace(response,data)};
 }
 
 async function submitMuseVideoTask(request, apiKey, options = {}) {

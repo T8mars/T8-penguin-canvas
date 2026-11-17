@@ -17834,5 +17834,10 @@
     "postReleaseEvidence": "owner-approved-post-release-v3.5.2",
     "macBoundary": "same-tag-ad-hoc-preview; no-quota-deferral-used",
     "sourceCommit": "1d7061c0e6d2be92797b9e3f2ff0d12d485915e7"
+  },
+  "sd25FlashH3Models20261117": {
+    "status": "implemented-unreleased",
+    "summary": "Ten budget-house models in existing Seedance 2.5 / SD2.5 and H3 Lowprice entries; exact media/frame/seed contracts, ten real decoded successes, seventeen key-free workflows, 124 regressions and eleven full App runs with clean exit. Unreleased.",
+    "details": "docs/sd25-flash-h3.md"
   }
 }

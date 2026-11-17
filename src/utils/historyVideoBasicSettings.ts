@@ -5,6 +5,7 @@ const requiredStrings = ['mainId', 'model', 'videoBuiltinSource', 'ratio', 'reso
   'providerSource', 'providerId', 'providerModel'] as const;
 const requiredNumbers = ['duration', 'seed'] as const;
 export const VIDEO_HISTORY_EXTRA_FIELDS: Record<string, { label: string; type: 'boolean' | 'string' | 'number' | 'number-or-api-default' }> = {
+  h3ComfySeed:{label:'H3 Seed',type:'number'},h3ComfyDurationMode:{label:'H3 duration mode',type:'string'},h3ComfyFrames:{label:'H3 frames',type:'number'},seedance25ReferenceTaskType:{label:'Seedance reference task type',type:'string'},
   seedance25Draft: { label: 'Seedance 2.5 草稿', type: 'boolean' }, seedance25DraftTaskId: { label: 'Seedance 2.5 草稿ID', type: 'string' }, seedance25OutputFormat: { label: 'Seedance 2.5 输出格式', type: 'string' },
   klingV4ElementName: { label: 'klingV4ElementName', type: 'string' },
   klingV4Tags: { label: 'klingV4Tags', type: 'string' },

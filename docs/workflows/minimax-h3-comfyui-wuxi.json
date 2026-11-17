@@ -1,0 +1,109 @@
+{
+  "schema": "t8-workflow-fragment",
+  "version": 1,
+  "title": "minimax-h3-comfyui-wuxi",
+  "nodes": [
+    {
+      "id": "image1",
+      "type": "upload",
+      "data": {
+        "uploadType": "image",
+        "lockedUploadType": "image",
+        "label": "image 1"
+      },
+      "position": {
+        "x": 0,
+        "y": 30
+      }
+    },
+    {
+      "id": "video1",
+      "type": "upload",
+      "data": {
+        "uploadType": "video",
+        "lockedUploadType": "video",
+        "label": "video 1"
+      },
+      "position": {
+        "x": 0,
+        "y": 360
+      }
+    },
+    {
+      "id": "audio1",
+      "type": "upload",
+      "data": {
+        "uploadType": "audio",
+        "lockedUploadType": "audio",
+        "label": "audio 1"
+      },
+      "position": {
+        "x": 0,
+        "y": 690
+      }
+    },
+    {
+      "id": "generate",
+      "type": "video",
+      "data": {
+        "model": "minimax-h3-comfyui-wuxi",
+        "providerSource": "zhenzhen",
+        "providerId": "",
+        "providerModel": "",
+        "reuseResult": false,
+        "prompt": "The subject in <Picture 1> gently moves, static camera.",
+        "duration": 5,
+        "resolution": "480p",
+        "ratio": "16:9",
+        "mainId": "minimax-h3-comfyui-max",
+        "apiModel": "minimax-h3-comfyui-wuxi",
+        "videoBuiltinSource": "seedance-nz",
+        "h3ComfySeed": -1,
+        "h3ComfyDurationMode": "seconds"
+      },
+      "position": {
+        "x": 480,
+        "y": 30
+      }
+    },
+    {
+      "id": "output",
+      "type": "output",
+      "data": {},
+      "position": {
+        "x": 980,
+        "y": 30
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "image1-generate",
+      "source": "image1",
+      "target": "generate"
+    },
+    {
+      "id": "video1-generate",
+      "source": "video1",
+      "target": "generate"
+    },
+    {
+      "id": "audio1-generate",
+      "source": "audio1",
+      "target": "generate"
+    },
+    {
+      "id": "generate-output",
+      "source": "generate",
+      "target": "output"
+    }
+  ],
+  "nodeCount": 5,
+  "edgeCount": 4,
+  "nodeTypes": [
+    "upload",
+    "video",
+    "output"
+  ],
+  "savedAt": "2026-11-17T00:00:00.000Z"
+}

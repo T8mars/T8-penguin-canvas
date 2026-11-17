@@ -1,3 +1,4 @@
+import flashContract from '../../backend/src/shared/seedance25FlashContract.json';
 export const LEGACY_SEEDANCE_MODEL_OPTIONS = [
   { value: 'doubao-seedance-2-0-fast-260128', label: 'seedance-2-0-fast' },
   { value: 'doubao-seedance-2-0-260128', label: 'seedance-2-0' },
@@ -28,6 +29,7 @@ export const SEEDANCE25_MODEL_OPTIONS = [
   { value: 'seedance-2.5-standard-i2v', label: '国内 Standard · 图生视频' },
   { value: 'seedance-2.5-standard-multi', label: '国内 Standard · 多模态参考' },
   { value: 'seedance-2.5-standard-t2v', label: '国内 Standard · 文生视频' },
+  ...flashContract.models.map(value => ({value, label:value})),
 ] as const;
 export const SEEDANCE25_DURATION_OPTIONS = [-1, ...Array.from({ length: 27 }, (_, index) => index + 4)] as const;
 export const SEEDANCE25_RATIO_OPTIONS = ['adaptive', '16:9', '4:3', '1:1', '3:4', '9:16', '21:9'] as const;

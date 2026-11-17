@@ -4485,7 +4485,7 @@ router.get('/video/h3-lowprice/status/:tid', async (req, res) => {
   const apiKey = String(remembered?.apiKey || loadRawSettings()?.zhenzhenSd2ApiKey || '').trim();
   if (!apiKey) return res.status(400).json({ success: false, error: '缺少贞贞的平价AI小屋 API Key' });
   try {
-    const result = await seedanceNz.queryH3TurboVideoTask(req.params.tid, apiKey, { signal: req.t8AbortSignal });
+    const result = await seedanceNz.queryH3TurboVideoTask(req.params.tid, apiKey, { signal: req.t8AbortSignal, model: remembered?.model });
     const videoUrls = [];
     // An empty successful response must also pass through the shared failure boundary.
     const sources = result.videoUrls?.length ? result.videoUrls : [result.videoUrl];
@@ -4500,7 +4500,7 @@ router.get('/video/h3-lowprice/status/:tid', async (req, res) => {
     return res.json({ success: true, data: { status: result.status, progress: safeDiagnosticText(result.progress || '', 80, [apiKey]),
       videoUrl: videoUrls[0] || null, videoUrls,
       failReason: result.status === 'failed' ? 'Minimax H3 Lowprice任务失败' : '',
-      model: 'minimax-h3-comfyui-max', taskType: remembered?.taskType || 't2v', ...seedanceNzTrace(result) } });
+      model: result.model, taskType: remembered?.taskType || 'video', ...seedanceNzTrace(result) } });
   } catch (error) {
     proxyRouteError('proxy/video/h3-lowprice/status 错误', error, [apiKey]);
     if (sendTaskResultQueryRecovery(res, error, { taskId: req.params.tid })) return;

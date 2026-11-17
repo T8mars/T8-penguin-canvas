@@ -1591,6 +1591,7 @@ export async function queryWan(taskId: string): Promise<HappyHorseQueryResult> {
 export type SeedanceTaskProvider = 'auto' | 'seedance-nz' | 'zhenzhen-legacy';
 
 export interface SeedanceSubmitRequest {
+  omni_reference_task_type?: string;
   draft_task_id?: string; draft?: boolean; output_format?: 'mp4' | 'mov';
   /** 'doubao-seedance-2-0-260128' | 'doubao-seedance-2-0-fast-260128' | 'doubao-seedance-2.0-mini' */
   model: string;
@@ -1703,7 +1704,7 @@ export async function queryMotionVideo(taskId: string, model: string, connection
   return withProviderTransportTrace(data.data as MotionQueryResult, r);
 }
 
-export async function submitH3TurboVideo(req: { model: string; prompt: string; images: string[]; audios: string[]; seconds: string; resolution: string; ratio: string }, transport: ProviderSubmissionTransport = {}) {
+export async function submitH3TurboVideo(req: { model: string; prompt: string; images: string[]; audios: string[]; videos?: string[]; seconds?: string; frames?: number; seed?: number; resolution: string; ratio: string }, transport: ProviderSubmissionTransport = {}) {
   const r = await fetch('/api/proxy/video/h3-lowprice/submit', {
     method: 'POST', headers: providerSubmissionHeaders(transport), body: JSON.stringify(req), signal: transport.signal,
   });

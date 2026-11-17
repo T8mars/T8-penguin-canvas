@@ -1,0 +1,6 @@
+{
+  "models": ["seedance-2.5-global-flash-multi", "seedance-2.5-global-flash-i2v", "seedance-2.5-global-flash-t2v", "seedance-2.5-flash-i2v", "seedance-2.5-flash-multi", "seedance-2.5-flash-t2v"],
+  "resolutions": ["480p", "720p"],
+  "limits": {"images": 10, "videos": 5, "audios": 5, "total": 20},
+  "taskTypes": ["auto", "reference", "edit", "extend"]
+}

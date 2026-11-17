@@ -4593,6 +4593,53 @@
           "apiModel": {
             "type": "string",
             "maxLength": 128
+          },
+          "seedance25ReferenceTaskType": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "reference",
+              "edit",
+              "extend"
+            ]
+          },
+          "h3ComfySeed": {
+            "type": "integer",
+            "minimum": -1,
+            "maximum": 2147483647
+          },
+          "h3ComfyDurationMode": {
+            "type": "string",
+            "enum": [
+              "seconds",
+              "frames"
+            ]
+          },
+          "h3ComfyFrames": {
+            "type": "integer",
+            "enum": [
+              22,
+              39,
+              56,
+              73,
+              90,
+              107,
+              124,
+              141,
+              158,
+              175,
+              192,
+              209,
+              226,
+              243,
+              260,
+              277,
+              294,
+              311,
+              328,
+              345,
+              362
+            ]
           }
         },
         "defaults": {
@@ -4715,7 +4762,13 @@
               "seedance-2.5-global-standard-t2v",
               "seedance-2.5-standard-i2v",
               "seedance-2.5-standard-multi",
-              "seedance-2.5-standard-t2v"
+              "seedance-2.5-standard-t2v",
+              "seedance-2.5-global-flash-multi",
+              "seedance-2.5-global-flash-i2v",
+              "seedance-2.5-global-flash-t2v",
+              "seedance-2.5-flash-i2v",
+              "seedance-2.5-flash-multi",
+              "seedance-2.5-flash-t2v"
             ]
           },
           "duration": {
@@ -4787,6 +4840,15 @@
           },
           "reuseResult": {
             "type": "boolean"
+          },
+          "seedance25ReferenceTaskType": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "reference",
+              "edit",
+              "extend"
+            ]
           }
         },
         "defaults": {

@@ -1,0 +1,73 @@
+{
+  "schema": "t8-workflow-fragment",
+  "version": 1,
+  "title": "seedance-2.5-flash-i2v-sd25",
+  "nodes": [
+    {
+      "id": "image1",
+      "type": "upload",
+      "data": {
+        "uploadType": "image",
+        "lockedUploadType": "image",
+        "label": "image 1"
+      },
+      "position": {
+        "x": 0,
+        "y": 30
+      }
+    },
+    {
+      "id": "generate",
+      "type": "seedance25",
+      "data": {
+        "model": "seedance-2.5-flash-i2v",
+        "providerSource": "zhenzhen",
+        "providerId": "",
+        "providerModel": "",
+        "reuseResult": false,
+        "prompt": "A green toy robot gently waves in a beige studio.",
+        "duration": 4,
+        "resolution": "480p",
+        "ratio": "adaptive",
+        "seedanceApiSource": "seedance-nz",
+        "generateAudio": true,
+        "returnLastFrame": false,
+        "seed": -1,
+        "seedance25ReferenceTaskType": "auto"
+      },
+      "position": {
+        "x": 480,
+        "y": 30
+      }
+    },
+    {
+      "id": "output",
+      "type": "output",
+      "data": {},
+      "position": {
+        "x": 980,
+        "y": 30
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "image1-generate",
+      "source": "image1",
+      "target": "generate"
+    },
+    {
+      "id": "generate-output",
+      "source": "generate",
+      "target": "output"
+    }
+  ],
+  "nodeCount": 3,
+  "edgeCount": 2,
+  "nodeTypes": [
+    "upload",
+    "seedance25",
+    "output"
+  ],
+  "savedAt": "2026-11-17T00:00:00.000Z"
+}

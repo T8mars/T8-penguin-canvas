@@ -1,1 +1,1 @@
-export function createH3TurboContract(contract: any): { contract: any; imageModels: string[]; profile(model: string): any; build(request: any): any };
+export function createH3TurboContract(contract: any): { contract: any; imageModels: string[]; videoModels: string[]; frames: number[]; ratios(spec: any, resolution: string): string[]; profile(model: string): any; build(request: any): any; normalizeResultModel(model: string): string };

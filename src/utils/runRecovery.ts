@@ -141,7 +141,7 @@ export function inferRunRecoveryDescriptor(payload: Record<string, unknown>): Ru
     if (lowerModel === 'vosr2-video-upscale') {
       return { version: 1, kind: 'vosr2', taskId, model, pollIntervalMs, maxPolls };
     }
-    if (model === h3Turbo.video.model) return {version:1,kind:'h3-lowprice',taskId,model,pollIntervalMs,maxPolls};
+    if (Object.values(h3Turbo).some(spec => (spec === h3Turbo.video || 'video' in spec && spec.video) && spec.model === model)) return {version:1,kind:'h3-lowprice',taskId,model,pollIntervalMs,maxPolls};
     if (model === PREVIEW_MUSE_FLUX.muse.videoModel) return {version:1,kind:'muse',taskId,model,pollIntervalMs,maxPolls};
     if (model === 'Topaz-Upscale-LowPirce') return { version: 1, kind: 'topaz', taskId, model, pollIntervalMs, maxPolls };
     if (lowerModel === 'animate-motion-transfer') {

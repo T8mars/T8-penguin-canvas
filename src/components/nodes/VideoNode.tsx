@@ -1,4 +1,7 @@
-import { H3_TURBO } from '../../utils/h3Turbo';
+import { H3_TURBO, buildH3VideoRequest } from '../../utils/h3Turbo';
+import { SD25_FLASH, seedance25Limits } from '../../utils/seedance25Flash';
+import Seedance25ReferenceControls from './Seedance25ReferenceControls';
+import H3ComfyControls from './H3ComfyControls';
 import { submitH3TurboVideo, queryH3TurboVideo } from '../../services/generation';
 import Seedance25DraftControls from './Seedance25DraftControls';
 import { SEEDREAM55_DRAFT, resolveSeedance25Draft } from '../../utils/seedream55Draft';
@@ -136,10 +139,6 @@ import {
 import { LocalNodeAddonSlot } from 'virtual:t8-local-extensions';
 import JimengCliHelpButton from './JimengCliHelpButton';
 import {
-  SEEDANCE25_MULTI_MAX_AUDIOS,
-  SEEDANCE25_MULTI_MAX_IMAGES,
-  SEEDANCE25_MULTI_MAX_TOTAL,
-  SEEDANCE25_MULTI_MAX_VIDEOS,
   SEEDANCE25_DEFAULT_DURATION,
   SEEDANCE25_DEFAULT_RESOLUTION,
 } from '../../config/seedance';
@@ -309,11 +308,14 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
     : builtinApiModelOptions[0]?.value || modelDef.apiModelOptions[0].value;
   const activeModelOption = builtinApiModelOptions.find((option) => option.value === apiModel);
   const isH3Lowprice = !isExternalSelected && modelDef.kind === 'h3-lowprice';
+  const h3Spec = isH3Lowprice ? H3_TURBO.profile(apiModel) : undefined;
   const isMuse = !isExternalSelected && modelDef.kind === 'muse';
   const isHappyHorse = !isExternalSelected && modelDef.kind === 'happyhorse';
   const isHailuo = !isExternalSelected && modelDef.kind === 'hailuo';
   const isFlux3 = !isExternalSelected && modelDef.kind === 'flux3';
   const isSeedance25 = !isExternalSelected && modelDef.kind === 'seedance25';
+  const isSeedance25Flash = isSeedance25 && SD25_FLASH.isFlash(apiModel);
+  const sd25Limits = seedance25Limits(apiModel);
   const isSeedance25Draft = isSeedance25 && SEEDREAM55_DRAFT.isDraft(apiModel);
   const draftSources = useSeedance25DraftSource(id);
   const flashProfile = !isExternalSelected ? flashVideoProfile(apiModel) : undefined;
@@ -520,7 +522,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
   const isVeoOmni = !isExternalSelected && apiModel === 'veo-omni-10s';
   const showBuiltinFalControls = !isExternalSelected && isFal && !!falReg;
   const showGenericVideoControls = (isExternalSelected || !isFal) && !isSeedance25Draft;
-  const ratioOptions = isJimengSeedanceSelected
+  const ratioOptions = h3Spec ? H3_TURBO.ratios(h3Spec, resolution) : isSeedance25Flash && seedance25Mode === 'i2v' ? ['adaptive'] : isJimengSeedanceSelected
     ? ['16:9', '9:16', '1:1', '4:3', '3:4', '21:9']
     : isAgnesExternalSelected
     ? AGNES_VIDEO.ratios
@@ -529,7 +531,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
     : isGrok15New
     ? ['16:9', '9:16']
     : activeModelOption?.ratios || modelDef.ratios;
-  const durationOptions = flashProfile ? Array.from({length:flashProfile.maxSeconds-2},(_,index)=>index+3) : isJimengSeedanceSelected
+  const durationOptions = h3Spec?.frames && d.h3ComfyDurationMode === 'frames' ? [] : flashProfile ? Array.from({length:flashProfile.maxSeconds-2},(_,index)=>index+3) : isJimengSeedanceSelected
     ? jimengSeedanceDurationOptions(externalProviderModel)
     : isAgnesExternalSelected
     ? AGNES_VIDEO.durations
@@ -669,7 +671,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
     [localRefImages, localRefVideos, localRefAudios, id],
   );
   const maxMentionRefs =
-    isH3Lowprice ? 9 : flashProfile ? flashProfile.maxImages : isMuse ? 9 : isAgnesExternalSelected ? isAgnesFlash ? AGNES_VIDEO.limits.flashImages : AGNES_VIDEO.limits.images : isUpscaler
+    isH3Lowprice ? h3Spec.maxImages : flashProfile ? flashProfile.maxImages : isMuse ? 9 : isAgnesExternalSelected ? isAgnesFlash ? AGNES_VIDEO.limits.flashImages : AGNES_VIDEO.limits.images : isUpscaler
       ? 0
       : isWan
       ? isWan30 ? wan30Mode === 'i2v' ? 2 : 10 : 1
@@ -679,7 +681,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
       : isVidu
       ? viduMode === 't2v' ? 0 : viduMode === 'i2v' ? 1 : viduMode === 'start-end' ? 2 : viduMode === 'r2v' ? isViduQ4 ? 15 : 9 : 14
       : isSeedance25
-      ? seedance25Mode === 't2v' ? 0 : seedance25Mode === 'i2v' ? 2 : SEEDANCE25_MULTI_MAX_IMAGES
+      ? seedance25Mode === 't2v' ? 0 : seedance25Mode === 'i2v' ? 2 : sd25Limits.images
       : isFlux3
       ? flux3Mode === 'i2v' ? 10 : 0
       : isHailuo
@@ -715,7 +717,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
         ? 1
         : falReg.maxRefImages
       : modelDef.maxRefImages;
-  const maxMentionVideos = flashProfile ? flashProfile.maxVideos : isKlingV4 ? klingV4Model === 'kling-v4-omni' ? 5 : klingV4Model === 'kling-v4-custom-element' && d.klingV4ReferenceType === 'video_refer' ? 1 : 0 : isAgnesExternalSelected ? isAgnesFlash ? 0 : 1 : isUpscaler
+  const maxMentionVideos = h3Spec ? h3Spec.maxVideos || 0 : flashProfile ? flashProfile.maxVideos : isKlingV4 ? klingV4Model === 'kling-v4-omni' ? 5 : klingV4Model === 'kling-v4-custom-element' && d.klingV4ReferenceType === 'video_refer' ? 1 : 0 : isAgnesExternalSelected ? isAgnesFlash ? 0 : 1 : isUpscaler
     ? 1
     : isAnimate
     ? 1
@@ -724,7 +726,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
     : isKling && klingMode === 'edit'
     ? 1
     : isSeedance25 && seedance25Mode === 'multi'
-    ? SEEDANCE25_MULTI_MAX_VIDEOS
+    ? sd25Limits.videos
     : isFlux3 && flux3Mode === 'v2v'
     ? 1
     : isMinimaxH3V2
@@ -736,10 +738,10 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
     : isApimartOmniLowprice && apimartOmniLowpriceMode === 'reference_video'
     ? 1
     : isJimengSeedanceSelected ? jimengSeedanceLimits.videos : 0;
-  const maxMentionAudios = isH3Lowprice ? 3 : isKlingV4 ? klingV4Model === 'kling-v4-custom-voice' && d.klingV4VoiceSource !== 'video_id' ? 1 : 0 : isAgnesExternalSelected ? 3 : isViduQ4 && viduMode === 'r2v' ? 3 : isMinimaxH3V2
+  const maxMentionAudios = isH3Lowprice ? h3Spec.maxAudios : isKlingV4 ? klingV4Model === 'kling-v4-custom-voice' && d.klingV4VoiceSource !== 'video_id' ? 1 : 0 : isAgnesExternalSelected ? 3 : isViduQ4 && viduMode === 'r2v' ? 3 : isMinimaxH3V2
     ? 4
     : isSeedance25 && seedance25Mode === 'multi'
-    ? SEEDANCE25_MULTI_MAX_AUDIOS
+    ? sd25Limits.audios
     : isWan30 && wan30Mode === 'r2v'
     ? 5
     : isMinimaxH3OwAudioDrive
@@ -763,7 +765,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
 
   // 分组动态跟随子模型: Seedance / 即梦 CLI 支持 image/video/audio, 其他 (grok/veo/sora) 仅 image
   const previewGroups = useMemo<ReadonlyArray<'text' | 'image' | 'video' | 'audio'>>(
-    () => (isH3Lowprice ? ['text','image','audio'] : isFlashVideo ? ['text', 'image', 'video'] : isKlingV4 ? ['text', 'image', 'video', 'audio'] : isAgnesExternalSelected ? ['text', 'image', 'video', 'audio'] : modelDef.kind === 'seedance' || isJimengSeedanceSelected
+    () => (isH3Lowprice ? ['text','image','video','audio'] : isFlashVideo ? ['text', 'image', 'video'] : isKlingV4 ? ['text', 'image', 'video', 'audio'] : isAgnesExternalSelected ? ['text', 'image', 'video', 'audio'] : modelDef.kind === 'seedance' || isJimengSeedanceSelected
       ? ['text', 'image', 'video', 'audio']
       : isApimartOmni
         ? ['text', 'image', 'video']
@@ -814,9 +816,9 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
     };
     return {
       prompt: prompts.join('\n').trim(),
-      imageUrls: isH3Lowprice || isFlashVideo || isMuse || isKlingV4 || isViduQ4 || isAgnesExternalSelected ? [...upImageUrls, ...localRefImages] : dedupe([...upImageUrls, ...localRefImages]),
-      videoUrls: isFlashVideo || isKlingV4 || isAgnesExternalSelected ? [...upVideoUrls, ...localRefVideos] : isTopaz ? [...upVideoUrls, ...localRefVideos, ...(topazVideoUrl ? [topazVideoUrl] : [])] : dedupe([...upVideoUrls, ...localRefVideos]),
-      audioUrls: isH3Lowprice || isKlingV4 || isViduQ4 || isAgnesExternalSelected ? [...upAudioUrls, ...localRefAudios] : dedupe([...upAudioUrls, ...localRefAudios]),
+      imageUrls: isSeedance25Flash || isH3Lowprice || isFlashVideo || isMuse || isKlingV4 || isViduQ4 || isAgnesExternalSelected ? [...upImageUrls, ...localRefImages] : dedupe([...upImageUrls, ...localRefImages]),
+      videoUrls: isSeedance25Flash || isH3Lowprice || isFlashVideo || isKlingV4 || isAgnesExternalSelected ? [...upVideoUrls, ...localRefVideos] : isTopaz ? [...upVideoUrls, ...localRefVideos, ...(topazVideoUrl ? [topazVideoUrl] : [])] : dedupe([...upVideoUrls, ...localRefVideos]),
+      audioUrls: isSeedance25Flash || isH3Lowprice || isKlingV4 || isViduQ4 || isAgnesExternalSelected ? [...upAudioUrls, ...localRefAudios] : dedupe([...upAudioUrls, ...localRefAudios]),
     };
   };
 
@@ -1387,6 +1389,9 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
       logBus.error(`生成中止: ${hailuoLabel} 图生视频缺少首帧图`, src);
       return;
     }
+    if (isSeedance25 && !isSeedance25Draft) {
+      try { SD25_FLASH.validate({model:apiModel,refImages:imageUrls,videos:videoUrls,audios:audioUrls,duration,resolution,ratio,draft:d.seedance25Draft,omni_reference_task_type:seedance25Mode === 'multi' ? d.seedance25ReferenceTaskType || 'auto' : 'auto'}); } catch { setError(translate('h3Turbo:invalid')); return; }
+    }
     if (isSeedance25 && seedance25Mode === 't2v'
       && (imageUrls.length > 0 || videoUrls.length > 0 || audioUrls.length > 0)) {
       setError('Seedance 2.5 文生视频不接受参考素材，请断开图片、视频和音频');
@@ -1413,20 +1418,20 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
     }
     if (isSeedance25 && seedance25Mode === 'multi') {
       const total = imageUrls.length + videoUrls.length + audioUrls.length;
-      if (imageUrls.length > SEEDANCE25_MULTI_MAX_IMAGES) {
-        setError(`Seedance 2.5 多模态参考最多支持 ${SEEDANCE25_MULTI_MAX_IMAGES} 张图片`);
+      if (imageUrls.length > sd25Limits.images) {
+        setError(`Seedance 2.5 多模态参考最多支持 ${sd25Limits.images} 张图片`);
         return;
       }
-      if (videoUrls.length > SEEDANCE25_MULTI_MAX_VIDEOS) {
-        setError(`Seedance 2.5 多模态参考最多支持 ${SEEDANCE25_MULTI_MAX_VIDEOS} 个视频`);
+      if (videoUrls.length > sd25Limits.videos) {
+        setError(`Seedance 2.5 多模态参考最多支持 ${sd25Limits.videos} 个视频`);
         return;
       }
-      if (audioUrls.length > SEEDANCE25_MULTI_MAX_AUDIOS) {
-        setError(`Seedance 2.5 多模态参考最多支持 ${SEEDANCE25_MULTI_MAX_AUDIOS} 个音频`);
+      if (audioUrls.length > sd25Limits.audios) {
+        setError(`Seedance 2.5 多模态参考最多支持 ${sd25Limits.audios} 个音频`);
         return;
       }
-      if (total > SEEDANCE25_MULTI_MAX_TOTAL) {
-        setError(`Seedance 2.5 多模态参考素材合计最多 ${SEEDANCE25_MULTI_MAX_TOTAL} 个`);
+      if (total > sd25Limits.total) {
+        setError(`Seedance 2.5 多模态参考素材合计最多 ${sd25Limits.total} 个`);
         return;
       }
     }
@@ -1534,7 +1539,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
       return;
     }
     if (isH3Lowprice) {
-      try { H3_TURBO.build({model:apiModel,prompt:finalPrompt,images:imageUrls,audios:audioUrls,videos:videoUrls,seconds:String(duration),resolution,ratio}); } catch { setError(translate('h3Turbo:invalid')); return; }
+      try { buildH3VideoRequest(apiModel,finalPrompt,imageUrls,audioUrls,videoUrls,d,duration,resolution,ratio); } catch { setError(translate('h3Turbo:invalid')); return; }
     }
     if (isMuse && (imageUrls.length > 9 || videoUrls.length || audioUrls.length)) {
       setError(translate('previewMuseFlux:museReferences')); return;
@@ -1748,7 +1753,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
           ratio,
           duration,
           resolution,
-          seed: seed > 0 ? seed : undefined,
+          seed: (isSeedance25Flash ? seed >= 0 : seed > 0) ? seed : undefined,
           images: refs,
           videos: videoRefs,
           audios: audioRefs,
@@ -1905,9 +1910,9 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
         return await startPolling(result.taskId, runId, reporter, '');
       }
       if (isSeedance25) {
-        const seedance25Images = imageUrls.slice(0, seedance25Mode === 'i2v' ? 2 : seedance25Mode === 'multi' ? SEEDANCE25_MULTI_MAX_IMAGES : 0);
-        const seedance25Videos = seedance25Mode === 'multi' ? videoUrls.slice(0, SEEDANCE25_MULTI_MAX_VIDEOS) : [];
-        const seedance25Audios = seedance25Mode === 'multi' ? audioUrls.slice(0, SEEDANCE25_MULTI_MAX_AUDIOS) : [];
+        const seedance25Images = seedance25Mode === 't2v' ? [] : imageUrls;
+        const seedance25Videos = seedance25Mode === 'multi' ? videoUrls : [];
+        const seedance25Audios = seedance25Mode === 'multi' ? audioUrls : [];
         logBus.info(
           `提交 Seedance 2.5: ${apiModel} · ${duration === -1 ? '自动时长' : `${duration}s`} · ${resolution} · ${ratio} · 图${seedance25Images.length}/视${seedance25Videos.length}/音${seedance25Audios.length}`,
           src,
@@ -1919,7 +1924,8 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
           ratio,
           resolution,
           generate_audio: generateAudio,
-          draft: d.seedance25Draft === true,
+          draft: !isSeedance25Flash && d.seedance25Draft === true,
+          omni_reference_task_type: seedance25Mode === 'multi' ? d.seedance25ReferenceTaskType || 'auto' : 'auto',
           return_last_frame: returnLastFrame,
           seed: seed > 0 ? seed : undefined,
           ...(seedance25Mode === 'i2v'
@@ -2217,7 +2223,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
       }
 
       if (isH3Lowprice) {
-        const result = await submitH3TurboVideo({model:apiModel,prompt:finalPrompt,images:imageUrls,audios:audioUrls,seconds:String(duration),resolution,ratio},{submissionKey:reporter?.providerSubmissionKey,signal:reporter?.signal});
+        const result = await submitH3TurboVideo(buildH3VideoRequest(apiModel,finalPrompt,imageUrls,audioUrls,videoUrls,d,duration,resolution,ratio),{submissionKey:reporter?.providerSubmissionKey,signal:reporter?.signal});
         if (!isCurrentGenerationRun(runId) || reporter?.signal?.aborted) return;
         await reporter?.providerSubmitted({provider:traceProvider,model:apiModel,upstreamTaskId:result.taskId,requestId:result.requestId,transportHttpStatus:result.transportHttpStatus,upstreamHttpStatus:result.upstreamHttpStatus,usage:result.usage,httpStatusSource:'local-backend'});
         if (!isCurrentGenerationRun(runId) || reporter?.signal?.aborted) return;
@@ -2685,6 +2691,8 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
             ...(falReg.paramKind === 'sora-fal' ? { soraMode, soraRatio, soraDuration, soraResolution, soraDeleteVideo, soraBlockIp } : {}),
           } : {}),
           ...(!isExternalSelected ? {
+            ...(h3Spec?.video ? {h3ComfySeed:d.h3ComfySeed ?? -1,h3ComfyDurationMode:d.h3ComfyDurationMode || 'seconds',h3ComfyFrames:d.h3ComfyFrames ?? 124} : {}),
+            ...(isSeedance25 ? {seedance25ReferenceTaskType:d.seedance25ReferenceTaskType || 'auto'} : {}),
             ...(isTopaz ? { topazQuality } : {}),
             ...(isApimartBudgetVideo && isApimartOmniLowprice ? { apimartOmniLowpriceMode, apimartOmniLowpriceNsfwCheck } : {}),
             ...(isSeedance25 ? { generateAudio, returnLastFrame, seedance25Draft: d.seedance25Draft ?? false, seedance25DraftTaskId: isSeedance25Draft ? resolveSeedance25Draft(apiModel, d, draftSources) : d.seedance25DraftTaskId || '', seedance25OutputFormat: d.seedance25OutputFormat || 'mp4' } : {}),
@@ -3037,8 +3045,9 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
                      : nextModel.startsWith('hailuo-2.3-')
                        ? { ratio: '16:9', duration: 6, resolution: '768p' }
                        : {}),
+                   ...(H3_TURBO.videoModels.includes(nextModel) ? {ratio:H3_TURBO.profile(nextModel).ratios[0],resolution:H3_TURBO.profile(nextModel).defaultResolution,duration:5,h3ComfyDurationMode:'seconds'} : {}),
                    ...(nextModel.startsWith('seedance-2.5-')
-                     ? { ratio: nextModel.endsWith('-i2v') ? 'adaptive' : '16:9', duration: SEEDANCE25_DEFAULT_DURATION, resolution: SEEDANCE25_DEFAULT_RESOLUTION, generateAudio: true, returnLastFrame: false }
+                     ? { ratio: nextModel.endsWith('-i2v') ? 'adaptive' : '16:9', duration: SEEDANCE25_DEFAULT_DURATION, resolution: SEEDANCE25_DEFAULT_RESOLUTION, generateAudio: true, returnLastFrame: false, seedance25Draft:false, seedance25ReferenceTaskType:'auto' }
                      : {}),
                    ...(nextModel.startsWith('flux-3-video-')
                      ? { ratio: 'auto', duration: 5, resolution: 'hd', flux3Draft: false, flux3AudioMode: 'api_default', flux3SafetyTolerance: 'api_default' }
@@ -3307,8 +3316,10 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
           </div>
         )}
 
-        {isSeedance25 && <Seedance25DraftControls data={d} enhance={isSeedance25Draft} upstreamId={draftSources[0]?.id || d.seedance25DraftTaskIdResult || ''} update={update} />}
-        {isSeedance25 && !isSeedance25Draft && (
+        {isSeedance25 && !isSeedance25Flash && <Seedance25DraftControls data={d} enhance={isSeedance25Draft} upstreamId={draftSources[0]?.id || d.seedance25DraftTaskIdResult || ''} update={update} />}
+        {isSeedance25 && seedance25Mode === 'multi' && <Seedance25ReferenceControls data={d} update={update}/>}
+        {isSeedance25Flash && <div className="text-xs">{translate('h3Turbo:flashHint')}</div>}
+        {isSeedance25 && !isSeedance25Draft && !isSeedance25Flash && (
           <div className="rounded border border-fuchsia-300/20 bg-fuchsia-400/[0.06] px-2 py-1.5 text-[10px] leading-relaxed text-white/55">
             {seedance25Mode === 't2v'
               ? '文生视频必须填写提示词，不发送任何参考素材。'
@@ -3528,7 +3539,8 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
           </div>
         )}
 
-        {isH3Lowprice && <div className="nodrag nowheel rounded border p-2 text-xs" style={{background:'var(--t8-bg-panel)',color:'var(--t8-text-main)',borderColor:'var(--t8-border)'}}>{translate('h3Turbo:videoHint')}</div>}
+        {isH3Lowprice && <H3ComfyControls model={apiModel} data={d} update={update}/>}
+        {isH3Lowprice && !h3Spec?.video && <div className="nodrag nowheel rounded border p-2 text-xs" style={{background:'var(--t8-bg-panel)',color:'var(--t8-text-main)',borderColor:'var(--t8-border)'}}>{translate('h3Turbo:videoHint')}</div>}
         {isMuse && <div className="nodrag nowheel rounded border p-2 text-xs" style={{background:'var(--t8-bg-panel)',color:'var(--t8-text-main)',borderColor:'var(--t8-border)'}}>{translate('previewMuseFlux:museVideoDescription')}</div>}
         {isTopaz && <TopazVideoControls quality={topazQuality} videoUrl={topazVideoUrl} update={update} />}
 
@@ -4164,7 +4176,11 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
             <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:generation.resolution')}</label>
             <select
               value={resolution || resolutionOptions[0]}
-              onChange={(e) => update({ resolution: e.target.value })}
+              onChange={(e) => {
+                const next = e.target.value;
+                const ratios = h3Spec ? H3_TURBO.ratios(h3Spec,next) : [];
+                update({resolution:next,...(h3Spec && !ratios.includes(ratio) ? {ratio:ratios[0]} : {})});
+              }}
               className="w-full rounded bg-white/5 border border-white/10 px-2 py-1 text-xs text-white outline-none focus:border-white/30"
             >
               {resolutionOptions.map((r) => (

@@ -1,0 +1,92 @@
+{
+  "schema": "t8-workflow-fragment",
+  "version": 1,
+  "title": "minimax-h3-comfyui-charswap-frames",
+  "nodes": [
+    {
+      "id": "image1",
+      "type": "upload",
+      "data": {
+        "uploadType": "image",
+        "lockedUploadType": "image",
+        "label": "image 1"
+      },
+      "position": {
+        "x": 0,
+        "y": 30
+      }
+    },
+    {
+      "id": "video1",
+      "type": "upload",
+      "data": {
+        "uploadType": "video",
+        "lockedUploadType": "video",
+        "label": "含音轨源视频 / MP4 with audio"
+      },
+      "position": {
+        "x": 0,
+        "y": 360
+      }
+    },
+    {
+      "id": "generate",
+      "type": "video",
+      "data": {
+        "model": "minimax-h3-comfyui-charswap",
+        "providerSource": "zhenzhen",
+        "providerId": "",
+        "providerModel": "",
+        "reuseResult": false,
+        "prompt": "Replace the subject with <Picture 1>, preserve source motion.",
+        "duration": 5,
+        "resolution": "480p",
+        "ratio": "auto",
+        "mainId": "minimax-h3-comfyui-max",
+        "apiModel": "minimax-h3-comfyui-charswap",
+        "videoBuiltinSource": "seedance-nz",
+        "h3ComfySeed": -1,
+        "h3ComfyDurationMode": "frames",
+        "h3ComfyFrames": 124
+      },
+      "position": {
+        "x": 480,
+        "y": 30
+      }
+    },
+    {
+      "id": "output",
+      "type": "output",
+      "data": {},
+      "position": {
+        "x": 980,
+        "y": 30
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "image1-generate",
+      "source": "image1",
+      "target": "generate"
+    },
+    {
+      "id": "video1-generate",
+      "source": "video1",
+      "target": "generate"
+    },
+    {
+      "id": "generate-output",
+      "source": "generate",
+      "target": "output"
+    }
+  ],
+  "nodeCount": 4,
+  "edgeCount": 3,
+  "nodeTypes": [
+    "upload",
+    "video",
+    "output"
+  ],
+  "savedAt": "2026-11-17T00:00:00.000Z"
+}

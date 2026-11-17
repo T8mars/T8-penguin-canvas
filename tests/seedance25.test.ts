@@ -19,6 +19,7 @@ import {
 
 const require = createRequire(import.meta.url);
 const provider = require('../backend/src/providers/seedanceNz.js');
+const FLASH_MODELS = require('../backend/src/shared/seedance25FlashContract.json').models;
 const root = join(import.meta.dirname, '..');
 const workflow = (model: string) => JSON.parse(readFileSync(join(root, 'docs', 'workflows', `${model}.json`), 'utf8'));
 
@@ -45,8 +46,8 @@ const uploadFetch = async (_url: string, init?: RequestInit) => {
 };
 
 test('Seedance 2.5 preserves six standalone models and appends two draft enhancement models to the Video tab', () => {
-  assert.deepEqual(SEEDANCE25_MODEL_OPTIONS.map((item) => item.value), MODELS);
-  assert.deepEqual(SEEDANCE25_VIDEO_MODELS, [...MODELS, ...require('../backend/src/shared/seedream55DraftContract.json').draftModels]);
+  assert.deepEqual(SEEDANCE25_MODEL_OPTIONS.map((item) => item.value), [...MODELS,...FLASH_MODELS]);
+  assert.deepEqual(SEEDANCE25_VIDEO_MODELS, [...MODELS, ...require('../backend/src/shared/seedream55DraftContract.json').draftModels,...FLASH_MODELS]);
   assert.deepEqual(SEEDANCE25_RESOLUTION_OPTIONS, ['480p', '720p', '1080p', '2k', '4k', 'native1080p']);
   assert.deepEqual(
     [SEEDANCE25_MULTI_MAX_IMAGES, SEEDANCE25_MULTI_MAX_VIDEOS, SEEDANCE25_MULTI_MAX_AUDIOS, SEEDANCE25_MULTI_MAX_TOTAL],
@@ -65,7 +66,7 @@ test('Seedance 2.5 preserves six standalone models and appends two draft enhance
   assert.equal(tab.defaultRatio, 'adaptive');
   assert.equal(tab.defaultDuration, 5);
   assert.equal(tab.defaultResolution, '720p');
-  assert.deepEqual(videoModelOptionsForSource(tab, 'seedance-nz').map((item) => item.value), [...MODELS, ...require('../backend/src/shared/seedream55DraftContract.json').draftModels]);
+  assert.deepEqual(videoModelOptionsForSource(tab, 'seedance-nz').map((item) => item.value), [...MODELS, ...require('../backend/src/shared/seedream55DraftContract.json').draftModels,...FLASH_MODELS]);
   assert.equal(videoModelOptionsForSource(tab, 'seedance-nz')[0].defaultRatio, 'adaptive');
   assert.equal(seedance25TaskType(MODELS[0]), 'i2v');
   assert.equal(seedance25TaskType(MODELS[1]), 'multi');
@@ -287,5 +288,5 @@ test('Seedance 2.5 standalone and Video UI share submit/query plumbing', () => {
   assert.match(video, /const isSeedance25/);
   assert.match(video, /if \(isSeedance25\)/);
   assert.match(video, /querySeedance\(tid, 'seedance-nz'\)/);
-  assert.match(video, /const maxMentionAudios = [^;]*isSeedance25 && seedance25Mode === 'multi'\s*\? SEEDANCE25_MULTI_MAX_AUDIOS/);
+  assert.match(video, /const maxMentionAudios = [^;]*isSeedance25 && seedance25Mode === 'multi'\s*\? sd25Limits.audios/);
 });

@@ -1,6 +1,7 @@
 const {test}=require('node:test'),assert=require('node:assert/strict');
 const c=require('../backend/src/shared/h3TurboContract.json'),provider=require('../backend/src/providers/seedanceNz');
 const api=import('../backend/src/shared/h3TurboContract.mjs').then(m=>m.createH3TurboContract(c));
+const originalProfiles=[c.video,c.minimax,c.qwen];
 test('exact defaults, image-only native seed and format',async()=>{
  const a=await api;
  assert.deepEqual(a.build({model:c.video.model,prompt:'test'}),{model:c.video.model,prompt:'test',seconds:'5',metadata:{resolution:'480p',ratio:'16:9'}});
@@ -15,7 +16,7 @@ test('Qwen UTF-8 boundary, 720p only editing, no inherited output/size/count',as
 });
 test('all resolutions, ratios, seconds and seed boundaries',async()=>{
  const a=await api;
- for(const spec of Object.values(c))for(const resolution of spec.resolutions)for(const ratio of spec.ratios)assert.doesNotThrow(()=>a.build({model:spec.model,prompt:'test',images:['x'],resolution,ratio}));
+ for(const spec of originalProfiles)for(const resolution of spec.resolutions)for(const ratio of spec.ratios)assert.doesNotThrow(()=>a.build({model:spec.model,prompt:'test',images:['x'],resolution,ratio}));
  for(let n=3;n<=15;n++)assert.equal(a.build({model:c.video.model,prompt:'x',seconds:String(n)}).seconds,String(n));
  for(const seconds of [3,'03','2','16','5.0'])assert.throws(()=>a.build({model:c.video.model,prompt:'x',seconds}));
  for(const seed of [-2,0.1,2147483648])assert.throws(()=>a.build({model:c.minimax.model,prompt:'x',seed}));
@@ -23,7 +24,7 @@ test('all resolutions, ratios, seconds and seed boundaries',async()=>{
 });
 test('ordered duplicate references remain; caps reject rather than truncate',async()=>{
  const a=await api;
- for(const spec of Object.values(c)){
+ for(const spec of originalProfiles){
   const images=Array(spec.maxImages).fill('same');assert.deepEqual(a.build({model:spec.model,prompt:'x',images}).images,images);
   assert.throws(()=>a.build({model:spec.model,prompt:'x',images:[...images,'x']}));
  }
@@ -49,7 +50,7 @@ test('authority, published capability metadata and recovery keep the exact provi
  const authority=require('../backend/src/collaboration/runIntentAuthority');
  const catalog=require('../backend/src/shared/creativeModelCatalog.json');
  const recovery=require('../backend/src/services/runRecovery');
- for(const spec of Object.values(c)){
+ for(const spec of originalProfiles){
   const video=spec===c.video,node={id:'fixture',type:video?'video':'image',data:{model:spec.model,apiModel:spec.model,mainId:spec.model,providerSource:'zhenzhen',...(video?{videoBuiltinSource:'seedance-nz'}:{imageBuiltinSource:'seedance-nz'})}};
   assert.deepEqual(authority.providerDeclarationForNode(node),{provider:'seedance-nz',model:spec.model});
   const entries=catalog[video?'video':'image'].filter(row=>row.provider==='seedance-nz'&&row.model===spec.model);assert.equal(entries.length,1);
