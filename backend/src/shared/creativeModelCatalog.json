@@ -1,6 +1,6 @@
 {
   "schema": "t8-creative-runtime-catalog-v1",
-  "sourceDigest": "c09a7414272e62402aebedb2328728511cb10a64287a56f05b3ae04f42478dd6",
+  "sourceDigest": "71bc6af6d351e0fe1a7a7ad1c429609c11674f0a01631ffedb2b427205913be5",
   "generatedFrom": [
     "backend/src/shared/nov19ModelsContract.json",
     "backend/src/shared/nov19ModelsContract.mjs",

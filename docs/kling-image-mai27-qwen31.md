@@ -1,6 +1,6 @@
 # Kling Image、Mai 2.7 与 Qwen Audio 3.1
 
-2026-11-19，已开发、未发布。六个模型均为贞贞的平价AI小屋渠道；版本仍为3.5.3。
+2026-11-19，六模型已开发并获v3.5.4发布授权，均为贞贞的平价AI小屋渠道；进度见[发布专题](release-v3.5.4.md)。
 
 依据：[官方合同](https://api.seedance.nz/docs/llms.txt)，以及本机只读参考实现 `F:\AI-T8-video-onekey\ComfyUI\custom_nodes\ComfyUI_Seedance` 的 `core/image_nov19.py`、`core/qwen_audio31.py`、音色数据及对应测试。参数由前后端共用合同验证，不沿用旧模型猜测新参数。
 
