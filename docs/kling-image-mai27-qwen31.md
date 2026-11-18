@@ -1,6 +1,6 @@
 # Kling Image、Mai 2.7 与 Qwen Audio 3.1
 
-2026-11-19，六模型已开发并获v3.5.4发布授权，均为贞贞的平价AI小屋渠道；进度见[发布专题](release-v3.5.4.md)。
+2026-11-19，六模型已随v3.5.4双平台发布，均为贞贞的平价AI小屋渠道；验证与边界见[发布专题](release-v3.5.4.md)。
 
 依据：[官方合同](https://api.seedance.nz/docs/llms.txt)，以及本机只读参考实现 `F:\AI-T8-video-onekey\ComfyUI\custom_nodes\ComfyUI_Seedance` 的 `core/image_nov19.py`、`core/qwen_audio31.py`、音色数据及对应测试。参数由前后端共用合同验证，不沿用旧模型猜测新参数。
 
@@ -37,4 +37,4 @@ Kling参考图转换为PNG后检查每边至少300像素、比例2:5至5:2、最
 
 专项与相邻回归49项通过（23个后端、26个前端，按不重复测试计）：共享参数合同、末项媒体检查先于上传、旧Mai/Qwen请求不变、双声道字节保真、权威目录/schema、加密合同加载、原任务GET恢复、完整历史输入、真实React处理器事件清空/重放、无密钥工作流和双语面板。日志：[后端](../local-private/kling-mai-qwen-20261119/backend-regressions.log)、[恢复补验](../local-private/kling-mai-qwen-20261119/recovery-final.log)、[前端](../local-private/kling-mai-qwen-20261119/ui-regressions-final.log)、[新增工作流](../local-private/kling-mai-qwen-20261119/new-ui-final.log)。初次后端恢复测试因C盘低于物理空间门失败，保留原失败日志，仅将该测试的新TEMP库改到G盘补验通过，未改产品空间门。Kling新家族运行前检查漏走小屋Key的问题已由工作流用例发现并修正；轮询服务补齐新Qwen模型身份及默认采样率，覆盖后端任务内存丢失时的原任务GET配方。首轮旧测试profile清理被自动审批以“blocked by policy”拦截，目录保留；后续测试profile正常清理。
 
-不将夹具当实网，不将开发Electron当安装版。4K、10图极限、全部音色/语言/采样率组合为合同验证，未逐项付费测试。未做安装发布、用户设备/GPU或F8–F10验收。旧Mai合同及旧证据见[Mai 2.6专题](mai-image.md)。
+不将夹具当实网，不将开发Electron当安装版。4K、10图极限、全部音色/语言/采样率组合为合同验证，未逐项付费测试。安装升级、用户设备/GPU及F8–F10尚未验收。旧Mai合同及旧证据见[Mai 2.6专题](mai-image.md)。

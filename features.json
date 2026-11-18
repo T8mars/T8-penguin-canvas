@@ -3489,15 +3489,59 @@
     ]
   },
   "release": {
-    "status": "authorized-v3.5.4-pending-build",
+    "status": "released-v3.5.4-dual-platform-verified",
     "version": "3.5.4",
     "tag": "v3.5.4",
-    "latest": false,
+    "latest": true,
     "date": "2026-11-19",
     "details": "docs/release-v3.5.4.md",
     "evidence": "docs/release-v3.5.4.md",
     "postReleaseEvidence": "owner-approved-post-release-v3.5.4",
-    "macBoundary": "same-tag-ad-hoc-preview; defer-only-if-actual-quota-insufficient"
+    "macBoundary": "same-tag-ad-hoc-preview; no-quota-deferral-used",
+    "sourceCommit": "83cbbcb7255682651f9a01e4ec5049b5da5d42e8",
+    "publishedAt": "2026-11-18T19:53:10Z",
+    "draft": false,
+    "prerelease": false,
+    "macWorkflow": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/44385277712",
+    "macAttempt": 1,
+    "macWorkflowConclusion": "success",
+    "verification": [
+      "Six models: seven live tasks, nine decoded outputs, eleven workflows; full development App eleven paths and 49 regressions passed. 27 packaging contracts and three read-only transport tests passed.",
+      "Windows unique formal build, encrypted packaged six-model/fresh-storage probe, both platform full asset downloads and two public updater manifests verified.",
+      "Previous v3.5.3 Tag/six assets and Windows during Mac append unchanged; installed-user, affected Mac and F8-F10 evidence remains deferred."
+    ],
+    "assets": {
+      "windowsInstaller": {
+        "name": "T8-PenguinCanvas-Setup-3.5.4.exe",
+        "bytes": 1380126645,
+        "sha256": "d4f724895c6e728920c3b8b9467c77cc1896c0627a7e4f640284a0398ba8ae3d"
+      },
+      "windowsBlockmap": {
+        "name": "T8-PenguinCanvas-Setup-3.5.4.exe.blockmap",
+        "bytes": 1439702,
+        "sha256": "5f5edb34b1bf206f85eb53d35132156776afd4d4ddbcbd9f2366fdd05a40ee21"
+      },
+      "windowsUpdater": {
+        "name": "latest.yml",
+        "bytes": 362,
+        "sha256": "c47c82653e3964d63a7341e2c592a316da3337d836e9c7a670379002c73897e0"
+      },
+      "macDmg": {
+        "name": "T8-PenguinCanvas-3.5.4-mac-arm64.dmg",
+        "bytes": 519913174,
+        "sha256": "193cf261dd37ffd5a98c8f0a2292c905a802c22016f70b31ad34e66abea614d6"
+      },
+      "macZip": {
+        "name": "T8-PenguinCanvas-3.5.4-mac-arm64.zip",
+        "bytes": 511638017,
+        "sha256": "687f289f47deb71c30229c76cb8c14d871c792f484be3ff32488bfacd91a478e"
+      },
+      "macUpdater": {
+        "name": "latest-mac.yml",
+        "bytes": 536,
+        "sha256": "8f7d42107abdc0ae03102514250b20b0f24c17675c43b7caa68724fd281931c8"
+      }
+    }
   },
   "minimaxMusic3PromptEnhancer": {
     "status": "released-v2.9.3",
@@ -10846,8 +10890,8 @@
     "version": "3.5.4",
     "semverVersion": "3.5.4",
     "versionNumberPolicy": "T8 版本号仍采用 x.y.z 三段，但每一段只允许 0-9；任一段到 9 后下一次发布必须向左进位，禁止任一段出现两位数字。例：1.9.9 的下一版必须是 2.0.0。",
-    "versionNote": "v3.5.4 Kling Image、Mai 2.7、Qwen Audio 3.1已获发布授权，见docs/release-v3.5.4.md。",
-    "installer": "T8-PenguinCanvas-Setup-3.5.4.exe；待唯一正式构建及远端完整回下载。",
+    "versionNote": "v3.5.4 Kling Image、Mai 2.7与Qwen Audio 3.1双平台已发布，见docs/release-v3.5.4.md。",
+    "installer": "T8-PenguinCanvas-Setup-3.5.4.exe；唯一正式安装包与完整回下载通过。",
     "updaterInstallMode": "自动更新下载完成后不得静默安装：main.cjs 必须设置 autoInstallOnAppQuit=false，显式安装调用 quitAndInstall(false,true)；electron/build-resources/installer.nsh 通过 SetSilent normal 让新版 NSIS 安装器即使收到旧客户端传入的 /S 也尽量切回前台安装向导。",
     "installerShortcutPolicy": "安装完成后必须创建桌面和开始菜单快捷方式：package.json build.nsis.createDesktopShortcut 必须为 \"always\"，createStartMenuShortcut 必须为 true；electron/build-resources/installer.nsh 必须保留 customInstall 兜底 CreateShortCut \"$newStartMenuLink\" 与 \"$DESKTOP\\${SHORTCUT_NAME}.lnk\"，防止更新安装/keepShortcuts 路径遗漏入口。",
     "updaterEntryPolicy": "顶栏桌面更新入口不得只因 window.t8pc.updater 缺失就静默消失；Electron UA 或 t8pc.getInfo/openExternal 可用时必须显示诊断入口，提示重新安装完整桌面包，Web/纯浏览器环境才隐藏。状态为 not-available 时按钮仍保留“更新”字样，避免用户误以为自动更新入口被删除。",
@@ -17905,7 +17949,7 @@
     }
   },
   "klingImageMai27Qwen3120261119": {
-    "status": "authorized-v3.5.4-pending-release",
+    "status": "released-v3.5.4-dual-platform-live-verified",
     "summary": "Budget-only Kling Image, Mai 2.7/Flash and Qwen Audio 3.1 Flash/Next/Plus; Qwen-TTS display rename preserves old identities/defaults. Seven live tasks, eleven workflows and isolated full-App paths verified.",
     "details": "docs/kling-image-mai27-qwen31.md",
     "models": [
@@ -17922,17 +17966,20 @@
       "No installed-client/user-device or F8-F10 acceptance",
       "4K, maximum references and all voice/language/rate combinations not live-tested"
     ],
-    "releaseVersion": "3.5.4"
+    "releaseVersion": "3.5.4",
+    "releaseIncluded": true,
+    "published": true
   },
   "electronReleaseV354": {
-    "status": "authorized-v3.5.4-pending-build",
+    "status": "released-v3.5.4-dual-platform-verified",
     "version": "3.5.4",
     "tag": "v3.5.4",
-    "latest": false,
+    "latest": true,
     "date": "2026-11-19",
     "details": "docs/release-v3.5.4.md",
     "evidence": "docs/release-v3.5.4.md",
     "postReleaseEvidence": "owner-approved-post-release-v3.5.4",
-    "macBoundary": "same-tag-ad-hoc-preview; defer-only-if-actual-quota-insufficient"
+    "macBoundary": "same-tag-ad-hoc-preview; no-quota-deferral-used",
+    "sourceCommit": "83cbbcb7255682651f9a01e4ec5049b5da5d42e8"
   }
 }

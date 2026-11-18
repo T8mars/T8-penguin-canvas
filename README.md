@@ -12,7 +12,7 @@ My favorite girl Go YounJung
 
 > AI 节点画布工作流工具 · Web + Electron 桌面端｜v3.5.4
 >
-> 2026-11-19：v3.5.4已获发布授权：Kling Image、Mai 2.7/Flash、Qwen Audio 3.1三模型及11份工作流；Qwen-TTS显示名更新，旧画布模型与配置保留。进度见[发布专题](docs/release-v3.5.4.md)。
+> 2026-11-19：v3.5.4已发布Windows/macOS版：Kling Image、Mai 2.7/Flash、Qwen Audio 3.1三模型及11份工作流；Qwen-TTS显示名更新，旧画布模型与配置保留。发布与验证边界见[发布专题](docs/release-v3.5.4.md)。
 
 > 2026-11-12：v3.5.2已发布Windows/macOS版：修复创作助手结果发送/查看同步、本地化安装布局误拦截及非生成维护收尾；旧画布与运行保护保留。发布与验证边界见[发布专题](docs/release-v3.5.2.md)。
 
