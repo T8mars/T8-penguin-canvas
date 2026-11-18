@@ -1,3 +1,4 @@
+import nov19 from '../../backend/src/shared/nov19ModelsContract.json';
 import h3Turbo from '../../backend/src/shared/h3TurboContract.json';
 import { isPreviewImage, isFluxVariant, PREVIEW_MUSE_FLUX } from './previewMuseFlux';
 import { minimumProviderMediaPollCount } from './providerTimeoutPolicy';
@@ -45,6 +46,7 @@ export interface RunRecoveryDescriptor {
   model?: string;
   connectionRef?: string;
   outputFormat?: 'pcm';
+  channels?: string;
   sampleRate?: string;
   site?: 'cn' | 'intl';
   taskProvider?: 'seedance-nz' | 'zhenzhen-legacy';
@@ -79,6 +81,7 @@ function normalizeExplicitRecovery(value: unknown): RunRecoveryDescriptor | null
     endpoint: text(raw.endpoint, 1024) || undefined,
     model: text(raw.model, 240) || undefined,
     ...(kind === 'motion' && /^seedance-nz:[a-f0-9]{64}$/.test(String(raw.connectionRef || '')) ? { connectionRef: String(raw.connectionRef) } : {}),
+    ...(nov19.audio.models.includes(String(raw.model)) && raw.outputFormat==='pcm'?{outputFormat:'pcm' as const,sampleRate:(String(raw.model).endsWith('-next')?nov19.audio.nextRates:nov19.audio.systemRates).includes(String(raw.sampleRate))?String(raw.sampleRate):String(raw.model).endsWith('-next')?'48000':'22050',channels:raw.channels==='2'&&String(raw.model).endsWith('-next')?'2':'1'}:{}),
     ...(raw.model === nbDoubao.audio.iclModel && raw.outputFormat === 'pcm' ? {
       outputFormat: 'pcm' as const,
       sampleRate: nbDoubao.audio.iclFields.sample_rate.options.includes(String(raw.sampleRate)) ? String(raw.sampleRate) : '24000',
@@ -122,12 +125,13 @@ export function inferRunRecoveryDescriptor(payload: Record<string, unknown>): Ru
     const lowerModel = model.toLowerCase();
     if (flashVideoProfile(model)) return {version:1,kind:'seedance',taskId,model,taskProvider:'seedance-nz',pollIntervalMs,maxPolls};
     if (motionVideo.models.includes(model)) return normalizeExplicitRecovery({ kind: 'motion', taskId, model, connectionRef: payload.connectionRef, pollIntervalMs, maxPolls });
-    if (lowerModel.includes('seed-audio') || [nbDoubao.audio.cloneModel, nbDoubao.audio.iclModel].includes(lowerModel)) return { version: 1, kind: 'seed-audio', taskId, model, pollIntervalMs, maxPolls,
+    if (nov19.audio.models.includes(lowerModel) || lowerModel.includes('seed-audio') || [nbDoubao.audio.cloneModel, nbDoubao.audio.iclModel].includes(lowerModel)) return { version: 1, kind: 'seed-audio', taskId, model, pollIntervalMs, maxPolls,
+      ...(nov19.audio.models.includes(lowerModel)&&payload.outputFormat==='pcm'?{outputFormat:'pcm',sampleRate:String(payload.sampleRate|| (lowerModel.endsWith('-next')?'48000':'22050')),channels:payload.channels==='2'&&lowerModel.endsWith('-next')?'2':'1'}:{}),
       ...(lowerModel === nbDoubao.audio.iclModel && payload.outputFormat === 'pcm' ? {
         outputFormat: 'pcm', sampleRate: nbDoubao.audio.iclFields.sample_rate.options.includes(String(payload.sampleRate)) ? String(payload.sampleRate) : '24000',
       } : {}),
     };
-    if ([h3Turbo.minimax.model,h3Turbo.qwen.model].includes(lowerModel) || isNewImageModel(lowerModel) || isPreviewImage(lowerModel) || isFluxVariant(lowerModel) || lowerModel === mossImage.model || lowerModel.includes('seedream') || nbDoubao.banana.models.includes(lowerModel) || lowerModel === 'mai-image-2-6' || lowerModel === 'mai-image-2-6-flash' || lowerModel === 'vosr2-image-upscale' || lowerModel === 'flux-3-image' || lowerModel === 'zhenzhen-image-nb-2.1') {
+    if ([nov19.kling.model,...nov19.mai.models,h3Turbo.minimax.model,h3Turbo.qwen.model].includes(lowerModel) || isNewImageModel(lowerModel) || isPreviewImage(lowerModel) || isFluxVariant(lowerModel) || lowerModel === mossImage.model || lowerModel.includes('seedream') || nbDoubao.banana.models.includes(lowerModel) || lowerModel === 'mai-image-2-6' || lowerModel === 'mai-image-2-6-flash' || lowerModel === 'vosr2-image-upscale' || lowerModel === 'flux-3-image' || lowerModel === 'zhenzhen-image-nb-2.1') {
       return { version: 1, kind: 'seedream-nz', taskId, model, pollIntervalMs, maxPolls };
     }
     if (lowerModel.startsWith('wan-')) return { version: 1, kind: 'wan', taskId, model, pollIntervalMs, maxPolls };

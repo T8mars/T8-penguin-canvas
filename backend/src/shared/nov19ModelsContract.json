@@ -1,0 +1,5 @@
+{
+  "kling": {"model":"kling-v4-image","tab":"Kling Image","maxImages":10,"maxBytes":30000000,"minEdge":300,"maxAspectRatio":2.5,"sizes":["auto","16:9","9:16","1:1","4:3","3:4","3:2","2:3","21:9"],"resolutions":["2k","4k"]},
+  "mai": {"models":["mai-image-2-7","mai-image-2-7-flash"],"maxImages":5,"maxPrompt":20000,"maxPixels":4194304,"minEdge":768,"step":32,"maxAspectRatio":4,"resolutions":["1k","2k"]},
+  "audio": {"models":["qwen-audio-3.1-tts-flash","qwen-audio-3.1-tts-next","qwen-audio-3.1-tts-plus"],"systemFormats":["mp3","wav","pcm","opus"],"nextFormats":["wav","mp3","pcm"],"systemRates":["8000","12000","16000","22050","24000","44100","48000"],"nextRates":["8000","16000","24000","44100","48000"],"flashLanguages":["zh","en"],"plusLanguages":["zh","en","fr","de","ja","ko","ru","pt","th","id","vi","es","it","ms","fil","ar"],"maxReferences":3,"maxReferenceBytes":10000000,"maxReferenceSeconds":30}
+}

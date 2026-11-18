@@ -17904,5 +17904,24 @@
     "postReleaseEvidence": "owner-approved-post-release-v3.5.3",
     "macBoundary": "same-tag-ad-hoc-preview; no-quota-deferral-used",
     "sourceCommit": "49926729c23f1c92eb4d7d7221cecc0a7a462071"
+  },
+  "klingImageMai27Qwen3120261119": {
+    "status": "implemented-unreleased-live-and-canvas-verified",
+    "summary": "Budget-only Kling Image, Mai 2.7/Flash and Qwen Audio 3.1 Flash/Next/Plus; Qwen-TTS display rename preserves old identities/defaults. Seven live tasks, eleven workflows and isolated full-App paths verified.",
+    "details": "docs/kling-image-mai27-qwen31.md",
+    "models": [
+      "kling-v4-image",
+      "mai-image-2-7",
+      "mai-image-2-7-flash",
+      "qwen-audio-3.1-tts-flash",
+      "qwen-audio-3.1-tts-next",
+      "qwen-audio-3.1-tts-plus"
+    ],
+    "workflows": 11,
+    "boundaries": [
+      "No packaging or release in this task",
+      "No installed-client/user-device or F8-F10 acceptance",
+      "4K, maximum references and all voice/language/rate combinations not live-tested"
+    ]
   }
 }

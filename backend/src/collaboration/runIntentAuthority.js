@@ -7,6 +7,7 @@ const seedreamNzContract = require('../shared/seedreamNzContract.json');
 const nb21FluxViduContract = require('../shared/nb21FluxViduQ4Contract.json');
 const nbDoubaoContract = require('../shared/nbLowpriceDoubaoContract.json');
 const topazVideoContract = require('../shared/topazVideoContract.json');
+const nov19=require('../shared/nov19ModelsContract.json');
 const maiImageContract = require('../shared/maiImageContract.json');
 const mossImageContract = require('../shared/mossImageContract.json');
 
@@ -65,7 +66,8 @@ const IMAGE_RUNTIME_MODELS = Object.freeze({
   [newModels.contract.zimage.tab]:{defaultModel:newModels.contract.zimage.model,models:[newModels.contract.zimage.model]},
   ...Object.fromEntries([pmf.hy.model, pmf.muse.imageModel].map(model => [model, {defaultModel:model, models:[model]}])),
   [mossImageContract.model]: { defaultModel: mossImageContract.model, models: [mossImageContract.model] },
-  'mai-image-2-6': { defaultModel: maiImageContract.models[0], models: maiImageContract.models },
+  [nov19.kling.model]:{defaultModel:nov19.kling.model,models:[nov19.kling.model]},
+  'mai-image-2-6': { defaultModel: maiImageContract.models[0], models: [...maiImageContract.models,...nov19.mai.models] },
   'gpt-image-2': {
     defaultModel: 'gpt-image-2-all',
     models: [
@@ -179,6 +181,7 @@ const SEEDANCE_NZ_IMAGE_RUNTIME_MODELS = new Set([
   pmf.hy.model, pmf.muse.imageModel, ...pmf.flux.models,
   mossImageContract.model,
   ...nbDoubaoContract.banana.models,
+  nov19.kling.model,...nov19.mai.models,
   ...maiImageContract.models,
   nb21FluxViduContract.banana21.model, nb21FluxViduContract.flux.model,
   ...seedreamNzContract.layerModels,

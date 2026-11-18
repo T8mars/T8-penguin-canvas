@@ -1,7 +1,7 @@
 'use strict';
 
-// Doubao / the reference ComfyUI client define raw PCM as signed 16-bit LE,
-// mono. A sample rate must come from the submitted contract, never a filename.
+// Raw PCM is signed 16-bit LE. Qwen Next permits stereo; Doubao stays mono.
+// Rate and channels come from the submitted model contract, never a filename.
 const rates = new Set(require('../shared/nbLowpriceDoubaoContract.json').audio.iclFields.sample_rate.options.map(Number));
 function hasAudioContainerHeader(buffer) {
   if (!Buffer.isBuffer(buffer)) return false;
@@ -13,15 +13,20 @@ function hasAudioContainerHeader(buffer) {
 function wrapPcm16MonoWav(buffer, sampleRate, maxBytes = 50 * 1024 * 1024) {
   const rate = Number(sampleRate);
   if (!rates.has(rate)) throw new Error('PCM 采样率不在 Doubao 合同内');
-  if (!Buffer.isBuffer(buffer) || !buffer.length || buffer.length % 2 || buffer.length + 44 > maxBytes) {
+  return wrapPcm16Wav(buffer,rate,1,maxBytes);
+}
+function wrapPcm16Wav(buffer,sampleRate,channels,maxBytes=50*1024*1024){
+  const rate=Number(sampleRate),count=Number(channels);
+  if(![8000,12000,16000,22050,24000,32000,44100,48000].includes(rate)||![1,2].includes(count))throw new Error('Invalid PCM sample rate or channel count');
+  if (!Buffer.isBuffer(buffer) || !buffer.length || buffer.length % (2*count) || buffer.length + 44 > maxBytes) {
     throw new Error('PCM 音频为空、帧不完整或超过大小限制');
   }
   const head = Buffer.alloc(44);
   head.write('RIFF', 0); head.writeUInt32LE(buffer.length + 36, 4); head.write('WAVEfmt ', 8);
-  head.writeUInt32LE(16, 16); head.writeUInt16LE(1, 20); head.writeUInt16LE(1, 22);
-  head.writeUInt32LE(rate, 24); head.writeUInt32LE(rate * 2, 28);
-  head.writeUInt16LE(2, 32); head.writeUInt16LE(16, 34);
+  head.writeUInt32LE(16, 16); head.writeUInt16LE(1, 20); head.writeUInt16LE(count, 22);
+  head.writeUInt32LE(rate, 24); head.writeUInt32LE(rate * 2 * count, 28);
+  head.writeUInt16LE(2*count, 32); head.writeUInt16LE(16, 34);
   head.write('data', 36); head.writeUInt32LE(buffer.length, 40);
   return Buffer.concat([head, buffer]);
 }
-module.exports = { wrapPcm16MonoWav, hasAudioContainerHeader };
+module.exports = { wrapPcm16MonoWav,wrapPcm16Wav, hasAudioContainerHeader };

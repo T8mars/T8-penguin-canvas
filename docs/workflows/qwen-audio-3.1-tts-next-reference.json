@@ -1,0 +1,72 @@
+{
+  "schema": "t8-workflow-fragment",
+  "version": 1,
+  "title": "qwen-audio-3.1-tts-next-reference",
+  "nodes": [
+    {
+      "id": "reference0",
+      "type": "upload",
+      "position": {
+        "x": 0,
+        "y": 30
+      },
+      "data": {
+        "uploadType": "audio",
+        "lockedUploadType": "audio",
+        "label": "audio 1"
+      }
+    },
+    {
+      "id": "generate",
+      "type": "audio",
+      "position": {
+        "x": 440,
+        "y": 30
+      },
+      "data": {
+        "providerSource": "zhenzhen",
+        "reuseResult": false,
+        "prompt": "@voice1 你好，这是一段参考声音示例。",
+        "audioProviderMode": "qwen3-tts",
+        "qwenTtsModel": "qwen-audio-3.1-tts-next",
+        "qwenAudio31Params": {
+          "seed": 0,
+          "format": "pcm",
+          "sample_rate": "48000",
+          "channels": "2"
+        }
+      }
+    },
+    {
+      "id": "output",
+      "type": "output",
+      "position": {
+        "x": 900,
+        "y": 30
+      },
+      "data": {
+        "label": "结果 / Result"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "reference0-generate",
+      "source": "reference0",
+      "target": "generate"
+    },
+    {
+      "id": "generate-output",
+      "source": "generate",
+      "target": "output"
+    }
+  ],
+  "nodeCount": 3,
+  "edgeCount": 2,
+  "nodeTypes": [
+    "upload",
+    "audio",
+    "output"
+  ],
+  "savedAt": "2026-11-19T00:00:00.000Z"
+}

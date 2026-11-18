@@ -1,0 +1,56 @@
+{
+  "schema": "t8-workflow-fragment",
+  "version": 1,
+  "title": "kling-v4-image-group",
+  "nodes": [
+    {
+      "id": "generate",
+      "type": "image",
+      "position": {
+        "x": 440,
+        "y": 30
+      },
+      "data": {
+        "providerSource": "zhenzhen",
+        "reuseResult": false,
+        "prompt": "Create two related storyboard images of a green toy robot waving in a pastel studio.",
+        "model": "kling-v4-image",
+        "apiModel": "kling-v4-image",
+        "imageBuiltinSource": "seedance-nz",
+        "imageOnlyOutput": true,
+        "referenceImages": [],
+        "klingImageSize": "1:1",
+        "klingImageResolution": "2k",
+        "klingImageMode": "auto",
+        "klingImageCount": 1,
+        "klingImageMaxImages": 2,
+        "klingImageNsfw": false
+      }
+    },
+    {
+      "id": "output",
+      "type": "output",
+      "position": {
+        "x": 900,
+        "y": 30
+      },
+      "data": {
+        "label": "结果 / Result"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "generate-output",
+      "source": "generate",
+      "target": "output"
+    }
+  ],
+  "nodeCount": 2,
+  "edgeCount": 1,
+  "nodeTypes": [
+    "image",
+    "output"
+  ],
+  "savedAt": "2026-11-19T00:00:00.000Z"
+}

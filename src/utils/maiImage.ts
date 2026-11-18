@@ -1,11 +1,13 @@
+import {NOV19} from './nov19Models';
 import contract from '../../backend/src/shared/maiImageContract.json';
 import type { SeedreamNzSubmitRequest } from '../services/generation';
 
 export const MAI_IMAGE_CONTRACT = contract;
 export const MAI_IMAGE_TAB = contract.models[0];
-export const isMaiImageModel = (model: string) => contract.models.includes(model);
-export function maiImageSettings(data: Record<string, any>) {
+export const isMaiImageModel = (model: string) => contract.models.includes(model) || NOV19.isMai(model);
+export function maiImageSettings(data: Record<string, any>, model?:string) {
   return {
+    ...(NOV19.isMai(model || '')?{maiBackground:data.maiBackground??'auto',maiNsfw:data.maiNsfw??false}:{}),
     maiSize: data.maiSize ?? contract.defaultSize,
     maiResolution: data.maiResolution ?? contract.defaultResolution,
     maiCustomRatio: data.maiCustomRatio ?? '16:9',
@@ -16,6 +18,11 @@ export function maiImageSettings(data: Record<string, any>) {
   };
 }
 export function buildMaiImageRequest(model: string, prompt: string, images: string[], data: Record<string, any>): SeedreamNzSubmitRequest {
+  if(NOV19.isMai(model)){
+    const s=maiImageSettings(data,model);
+    return NOV19.image({model,prompt,images,n:1,background:s.maiBackground,nsfw_check:s.maiNsfw,
+      ...(s.maiSize==='custom_pixels'?{width:s.maiWidth,height:s.maiHeight}:{size:s.maiSize==='custom_ratio'?s.maiCustomRatio:s.maiSize,resolution:s.maiResolution})});
+  }
   const fail = (key: string): never => { throw new Error(`nodes:generation.mai.${key}`); };
   if (!isMaiImageModel(model)) fail('invalidModel');
   if (!prompt.trim()) fail('promptRequired');

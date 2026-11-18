@@ -1,0 +1,444 @@
+{
+  "flash": [
+    {
+      "name": "于小云",
+      "gender": "女",
+      "style": "元气、亲切、自然",
+      "id": "yuxiaoyun_v3.1"
+    },
+    {
+      "name": "乔小娇",
+      "gender": "女",
+      "style": "俏丽、可爱",
+      "id": "qiaoxiaojiao_v3.1"
+    },
+    {
+      "name": "夏小晨",
+      "gender": "女",
+      "style": "元气、明亮",
+      "id": "xiaxiaochen_v3.1"
+    },
+    {
+      "name": "安明远",
+      "gender": "男",
+      "style": "清亮、自然",
+      "id": "anmingyuan_v3.1"
+    },
+    {
+      "name": "温怀清",
+      "gender": "女",
+      "style": "清亮、柔和",
+      "id": "wenhuaiqing_v3.1"
+    },
+    {
+      "name": "安小岚",
+      "gender": "女",
+      "style": "清甜、纯净",
+      "id": "anxiaolan_v3.1"
+    },
+    {
+      "name": "谢舒柔",
+      "gender": "女",
+      "style": "柔和、自然、知性",
+      "id": "xieshurou_v3.1"
+    },
+    {
+      "name": "白清岚",
+      "gender": "女",
+      "style": "明亮、清纯",
+      "id": "baiqinglan_v3.1"
+    },
+    {
+      "name": "许玉远",
+      "gender": "女",
+      "style": "知性、成熟、质感",
+      "id": "xuyuyuan_v3.1"
+    },
+    {
+      "name": "安若柔",
+      "gender": "女",
+      "style": "气声、知性",
+      "id": "anruorou_v3.1"
+    },
+    {
+      "name": "闻怀之",
+      "gender": "女",
+      "style": "稳重、成熟",
+      "id": "wenhuaizhi_v3.1"
+    },
+    {
+      "name": "萧行之",
+      "gender": "女",
+      "style": "端庄、贵气",
+      "id": "xiaoxingzhi_v3.1"
+    },
+    {
+      "name": "顾云舒",
+      "gender": "女",
+      "style": "成熟、稳重",
+      "id": "guyunshu_v3.1"
+    },
+    {
+      "name": "霍拙石",
+      "gender": "男",
+      "style": "清亮",
+      "id": "huozhuoshi_v3.1"
+    },
+    {
+      "name": "叶清禾",
+      "gender": "女",
+      "style": "亲切、温柔",
+      "id": "yeqinghe_v3.1"
+    },
+    {
+      "name": "云欢欢",
+      "gender": "女",
+      "style": "高亢、热情",
+      "id": "yunhuanhuan_v3.1"
+    },
+    {
+      "name": "徐小俏",
+      "gender": "女",
+      "style": "自然、俏皮",
+      "id": "xuxiaoqiao_v3.1"
+    },
+    {
+      "name": "白安然",
+      "gender": "女",
+      "style": "低沉、浑厚、气声",
+      "id": "baianran_v3.1"
+    },
+    {
+      "name": "许言初",
+      "gender": "女",
+      "style": "沉稳、磁性",
+      "id": "xuyanchu_v3.1"
+    },
+    {
+      "name": "叶知晴",
+      "gender": "女",
+      "style": "轻快、自然",
+      "id": "yezhiqing_v3.1"
+    },
+    {
+      "name": "安迪",
+      "gender": "男",
+      "style": "ABC口音",
+      "id": "andi_v3.1"
+    },
+    {
+      "name": "安语晴",
+      "gender": "女",
+      "style": "甜妹",
+      "id": "anyuqing_v3.1"
+    },
+    {
+      "name": "林小灵",
+      "gender": "女",
+      "style": "甜妹",
+      "id": "linxiaoling_v3.1"
+    },
+    {
+      "name": "龙菲菲",
+      "gender": "女",
+      "style": "甜妹",
+      "id": "longfeifei_v3.1"
+    },
+    {
+      "name": "龙婧",
+      "gender": "女",
+      "style": "质感、沉稳",
+      "id": "longjing_v3.1"
+    },
+    {
+      "name": "龙嫱",
+      "gender": "女",
+      "style": "浪漫、风情",
+      "id": "longqiang_v3.1"
+    },
+    {
+      "name": "龙颜",
+      "gender": "女",
+      "style": "温暖、自然、亲切",
+      "id": "longyan_v3.1"
+    },
+    {
+      "name": "龙小白",
+      "gender": "女",
+      "style": "磁性、质感",
+      "id": "longxiaobai_v3.1"
+    },
+    {
+      "name": "龙悦",
+      "gender": "女",
+      "style": "温暖、磁性",
+      "id": "longyue_v3.1"
+    },
+    {
+      "name": "龙橙",
+      "gender": "男",
+      "style": "智慧、磁性",
+      "id": "longcheng_v3.1"
+    },
+    {
+      "name": "龙老铁",
+      "gender": "男",
+      "style": "东北、直率",
+      "id": "longlaotie_v3.1"
+    },
+    {
+      "name": "龙邵",
+      "gender": "男",
+      "style": "积极、元气",
+      "id": "longshao_v3.1"
+    },
+    {
+      "name": "龙书",
+      "gender": "男",
+      "style": "沉稳、磁性",
+      "id": "longshu_v3.1"
+    },
+    {
+      "name": "龙泽",
+      "gender": "男",
+      "style": "温暖、元气、自然",
+      "id": "longze_v3.1"
+    },
+    {
+      "name": "龙浩",
+      "gender": "男",
+      "style": "多情、忧郁",
+      "id": "longhao_v3.1"
+    },
+    {
+      "name": "龙津",
+      "gender": "男",
+      "style": "优雅、温润",
+      "id": "longjin_v3.1"
+    },
+    {
+      "name": "龙楠",
+      "gender": "男",
+      "style": "睿智",
+      "id": "longnan_v3.1"
+    },
+    {
+      "name": "龙硕",
+      "gender": "男",
+      "style": "博才、干练",
+      "id": "longshuo_v3.1"
+    },
+    {
+      "name": "龙天",
+      "gender": "男",
+      "style": "磁性、理智",
+      "id": "longtian_v3.1"
+    },
+    {
+      "name": "龙小诚",
+      "gender": "男",
+      "style": "磁性、低音",
+      "id": "longxiaocheng_v3.1"
+    },
+    {
+      "name": "龙可",
+      "gender": "儿童",
+      "style": "懵懂",
+      "id": "longke_v3.1"
+    },
+    {
+      "name": "Bella",
+      "gender": "女",
+      "style": "干练、磁性、知性",
+      "id": "loongbella_v3.1"
+    },
+    {
+      "name": "龙安元妃",
+      "gender": "女",
+      "style": "高傲妃子音",
+      "id": "longanyuanfei_v3.1"
+    },
+    {
+      "name": "龙杰力豆",
+      "gender": "男",
+      "style": "天真男童音",
+      "id": "longjielidou_v3.1"
+    },
+    {
+      "name": "龙安灵希",
+      "gender": "女",
+      "style": "可爱甜美音",
+      "id": "longanlingxi_v3.1"
+    },
+    {
+      "name": "龙火火",
+      "gender": "男",
+      "style": "顽皮少年音",
+      "id": "longhuohuo_v3.1"
+    },
+    {
+      "name": "龙应桃",
+      "gender": "女",
+      "style": "温柔淡定女",
+      "id": "longyingtao_v3.1"
+    },
+    {
+      "name": "龙安雅",
+      "gender": "女",
+      "style": "高雅气质女",
+      "id": "longanya_v3.1"
+    },
+    {
+      "name": "龙婉",
+      "gender": "女",
+      "style": "细腻柔声女",
+      "id": "longwan_v3.1"
+    },
+    {
+      "name": "龙星",
+      "gender": "女",
+      "style": "温婉邻家女",
+      "id": "longxing_v3.1"
+    },
+    {
+      "name": "龙华",
+      "gender": "女",
+      "style": "元气甜美女",
+      "id": "longhua_v3.1"
+    },
+    {
+      "name": "龙寒",
+      "gender": "男",
+      "style": "温暖痴情男",
+      "id": "longhan_v3.1"
+    },
+    {
+      "name": "龙安智",
+      "gender": "男",
+      "style": "睿智轻熟男",
+      "id": "longanzhi_v3.1"
+    },
+    {
+      "name": "龙哲",
+      "gender": "男",
+      "style": "呆板大暖男",
+      "id": "longzhe_v3.1"
+    },
+    {
+      "name": "龙安洋",
+      "gender": "男",
+      "style": "阳光大男孩",
+      "id": "longanyang_v3.1"
+    },
+    {
+      "name": "李白",
+      "gender": "男",
+      "style": "古代诗仙男",
+      "id": "libai_v3.1"
+    },
+    {
+      "name": "龙铃",
+      "gender": "女",
+      "style": "稚气呆板女",
+      "id": "longling_v3.1"
+    },
+    {
+      "name": "龙牛牛",
+      "gender": "男",
+      "style": "阳光男童声",
+      "id": "longniuniu_v3.1"
+    },
+    {
+      "name": "龙闪闪",
+      "gender": "男",
+      "style": "戏剧化童声",
+      "id": "longshanshan_v3.1"
+    },
+    {
+      "name": "龙泡泡",
+      "gender": "女",
+      "style": "飞天泡泡音",
+      "id": "longpaopao_v3.1"
+    },
+    {
+      "name": "Stella",
+      "gender": "女",
+      "style": "飒爽利落女",
+      "id": "loongstella_v3.1"
+    },
+    {
+      "name": "龙媛",
+      "gender": "女",
+      "style": "温暖治愈女",
+      "id": "longyuan_v3.1"
+    },
+    {
+      "name": "龙妙",
+      "gender": "女",
+      "style": "抑扬顿挫女",
+      "id": "longmiao_v3.1"
+    },
+    {
+      "name": "龙三叔",
+      "gender": "男",
+      "style": "沉稳质感男",
+      "id": "longsanshu_v3.1"
+    },
+    {
+      "name": "龙安莉",
+      "gender": "女",
+      "style": "利落从容女",
+      "id": "longanli_v3.1"
+    },
+    {
+      "name": "龙安温",
+      "gender": "女",
+      "style": "优雅知性女",
+      "id": "longanwen_v3.1"
+    },
+    {
+      "name": "龙安朗",
+      "gender": "男",
+      "style": "清爽利落男",
+      "id": "longanlang_v3.1"
+    },
+    {
+      "name": "龙小夏",
+      "gender": "女",
+      "style": "沉稳权威女",
+      "id": "longxiaoxia_v3.1"
+    },
+    {
+      "name": "龙安冲",
+      "gender": "男",
+      "style": "激情推销男",
+      "id": "longanchong_v3.1"
+    }
+  ],
+  "plus": [
+    {
+      "name": "龙安欢",
+      "gender": "女",
+      "style": "旗舰",
+      "id": "longanhuan_v3.1"
+    },
+    {
+      "name": "龙安灵心",
+      "gender": "女",
+      "style": "旗舰",
+      "id": "longanlingxin_v3.1"
+    },
+    {
+      "name": "龙安风悦",
+      "gender": "女",
+      "style": "旗舰",
+      "id": "longanfengyue_v3.1"
+    },
+    {
+      "name": "许南川",
+      "gender": "男",
+      "style": "旗舰",
+      "id": "xunanchuan_v3.1"
+    }
+  ]
+}

@@ -10,6 +10,9 @@ import FLASH_VIDEO from '../../backend/src/shared/flashVideoContract.json';
 
 import NB_FLUX_VIDU from '../../backend/src/shared/nb21FluxViduQ4Contract.json';
 import TOPAZ_VIDEO from '../../backend/src/shared/topazVideoContract.json';
+import NOV19 from '../../backend/src/shared/nov19ModelsContract.json';
+export const KLING_IMAGE_MODEL=NOV19.kling.model;
+export const QWEN_AUDIO31_MODELS=NOV19.audio.models;
 import MAI_IMAGE from '../../backend/src/shared/maiImageContract.json';
 import MOSS_IMAGE from '../../backend/src/shared/mossImageContract.json';
 export const MOSS_IMAGE_MODEL = MOSS_IMAGE.model;
@@ -18,7 +21,7 @@ export const NB_LOWPRICE_DOUBAO_CONTRACT = NB_DOUBAO;
 export const NB_LOWPRICE_MODELS = NB_DOUBAO.banana.models;
 export const isNbLowpriceModel = (model: string) => NB_LOWPRICE_MODELS.includes(model);
 export const SEED_AUDIO_MODELS = [NB_DOUBAO.audio.legacyModel, NB_DOUBAO.audio.cloneModel, NB_DOUBAO.audio.iclModel];
-export const MAI_IMAGE_MODELS = MAI_IMAGE.models;
+export const MAI_IMAGE_MODELS = [...MAI_IMAGE.models,...NOV19.mai.models];
 export const MAI_IMAGE_TAB = MAI_IMAGE.models[0];
 export const isMaiImageModel = (model: string) => MAI_IMAGE_MODELS.includes(model);
 export const TOPAZ_VIDEO_CONTRACT = TOPAZ_VIDEO;
@@ -46,7 +49,7 @@ export type ProviderType = 'zhenzhen' | 'llm-direct' | 'runninghub';
 export const PREVIEW_IMAGE_MODELS = [PREVIEW_MUSE_FLUX.hy.model, PREVIEW_MUSE_FLUX.muse.imageModel];
 export const FLUX_IMAGE_VARIANTS = PREVIEW_MUSE_FLUX.flux.models;
 export const MUSE_VIDEO_MODEL = PREVIEW_MUSE_FLUX.muse.videoModel;
-export type ImageParamKind = 'gpt-size' | 'gpt-image-2.5' | 'banana-ratio' | 'grok-image' | 'seedream-v5' | 'seedream-layer' | 'qwen-image-3.0' | 'qwen-image-global-2.1' | 'flux-image' | 'mai-image' | 'moss-image' | 'h3-turbo-image' | 'preview-image' | 'g26-krea' | 'wan-image' | 'vosr2-upscale' | 'mj';
+export type ImageParamKind = 'gpt-size' | 'gpt-image-2.5' | 'banana-ratio' | 'grok-image' | 'seedream-v5' | 'seedream-layer' | 'qwen-image-3.0' | 'qwen-image-global-2.1' | 'flux-image' | 'mai-image' | 'kling-image' | 'moss-image' | 'h3-turbo-image' | 'preview-image' | 'g26-krea' | 'wan-image' | 'vosr2-upscale' | 'mj';
 
 export interface ImageModelDef {
   id: string;             // 节点内部 id(如 'gpt-image-2')
@@ -208,6 +211,7 @@ export const ZHENZHEN_APIMART_IMAGE_MODELS = [
   ...PREVIEW_IMAGE_MODELS, ...FLUX_IMAGE_VARIANTS,
   MOSS_IMAGE_MODEL,
   ...NB_LOWPRICE_MODELS,
+  KLING_IMAGE_MODEL,
   ...MAI_IMAGE_MODELS,
   FLUX3_IMAGE_MODEL,
   ZHENZHEN_IMAGE_NB_21_MODEL,
@@ -420,8 +424,11 @@ export const IMAGE_MODELS: ImageModelDef[] = [
     supportsReference: true, maxReferenceImages: NB_FLUX_VIDU.flux.maxImages,
   },
   {
+    id: KLING_IMAGE_MODEL,apiModel:KLING_IMAGE_MODEL,label:'Kling Image',tabLabel:'Kling Image',provider:'zhenzhen',paramKind:'kling-image',capabilities:['t2i','i2i','edit'],apiModelOptions:[{value:KLING_IMAGE_MODEL,label:KLING_IMAGE_MODEL}],aspectRatios:[],defaultAspectRatio:'',sizes:[],defaultSize:'',supportsReference:true,maxReferenceImages:10,
+  },
+  {
     id: MAI_IMAGE_TAB, apiModel: MAI_IMAGE_TAB,
-    label: 'MAI Image 2.6 / Flash', tabLabel: 'Mai', provider: 'zhenzhen', paramKind: 'mai-image',
+    label: 'MAI Image 2.6 / 2.7 / Flash', tabLabel: 'Mai', provider: 'zhenzhen', paramKind: 'mai-image',
     capabilities: ['t2i', 'i2i', 'edit'],
     apiModelOptions: MAI_IMAGE_MODELS.map((value) => ({ value, label: value })),
     aspectRatios: [], defaultAspectRatio: '', sizes: [], defaultSize: '',
@@ -2025,6 +2032,7 @@ export const LLM_MODELS: LlmModelDef[] = [
 export const QWEN3_TTS_FLASH_MODEL = 'qwen3-tts-flash';
 export const QWEN3_TTS_INSTRUCT_FLASH_MODEL = 'qwen3-tts-instruct-flash';
 export const QWEN3_TTS_MODELS = [QWEN3_TTS_FLASH_MODEL, QWEN3_TTS_INSTRUCT_FLASH_MODEL] as const;
+export const QWEN_TTS_MODELS = [...QWEN3_TTS_MODELS,...QWEN_AUDIO31_MODELS];
 export const QWEN3_TTS_LANGUAGE_TYPES = [
   'Chinese', 'English', 'Japanese', 'Korean', 'German',
   'French', 'Russian', 'Portuguese', 'Spanish', 'Italian',
@@ -2089,6 +2097,7 @@ export function getFlowMusicActionDef(value: unknown) {
 
 export const SEEDANCE_NZ_AUDIO_MODELS = [
   ...QWEN3_TTS_MODELS,
+  ...QWEN_AUDIO31_MODELS,
   ...MINIMAX_AUDIO_MODELS,
   ...MUREKA_BGM_MODELS,
   FLOWMUSIC_MODEL,

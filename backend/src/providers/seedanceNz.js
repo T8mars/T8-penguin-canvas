@@ -25,6 +25,11 @@ const { providerIdempotencyHeaders } = require('../services/providerSubmissionCo
 const { resolveBundledFfprobe, resolveBundledFfmpeg } = require('./llmMedia');
 const NB_FLUX_VIDU = require('../shared/nb21FluxViduQ4Contract.json');
 const TOPAZ_VIDEO_CONTRACT = require('../shared/topazVideoContract.json');
+const NOV19_CONTRACT = require('../shared/nov19ModelsContract.json');
+const NOV19_VOICES = require('../shared/qwenAudio31Voices.json');
+const NOV19_AUDIO_MODELS = new Set(NOV19_CONTRACT.audio.models);
+let nov19Promise;
+const nov19Api = () => nov19Promise ||= import('../shared/nov19ModelsContract.mjs').then(m => m.createNov19ModelsContract(NOV19_CONTRACT,NOV19_VOICES));
 const MAI_IMAGE_CONTRACT = require('../shared/maiImageContract.json');
 const H3_TURBO_CONTRACT = require('../shared/h3TurboContract.json');
 const SD25_FLASH = require('../shared/seedance25FlashContract.json');
@@ -39,7 +44,7 @@ const { buildMotionVideoPayload, normalizeMotionVideoResponse, motionError } = r
 const NB_DOUBAO = require('../shared/nbLowpriceDoubaoContract.json');
 const { isDoubaoVoiceModel, buildDoubaoVoicePayload } = require('./doubaoVoiceContract');
 const NB_LOWPRICE_MODELS = new Set(NB_DOUBAO.banana.models);
-const MAI_IMAGE_MODELS = new Set(MAI_IMAGE_CONTRACT.models);
+const MAI_IMAGE_MODELS = new Set([...MAI_IMAGE_CONTRACT.models,...NOV19_CONTRACT.mai.models]);
 const ZHENZHEN_IMAGE_NB_21_MODEL = NB_FLUX_VIDU.banana21.model;
 const FLUX3_IMAGE_MODEL = NB_FLUX_VIDU.flux.model;
 const VIDU_Q4_MODELS = new Set(NB_FLUX_VIDU.viduQ4.models);
@@ -150,6 +155,7 @@ const ZHENZHEN_APIMART_IMAGE_MODELS = new Set([
   ...g26Krea3d.imageModels,
   ...previewMuseFlux.imageModels,
   MOSS_IMAGE_CONTRACT.model,
+  NOV19_CONTRACT.kling.model,
   ...MAI_IMAGE_MODELS,
   FLUX3_IMAGE_MODEL,
   ZHENZHEN_IMAGE_G_V2_LOWPRICE_MODEL,
@@ -621,6 +627,7 @@ const SEEDANCE_NZ_AUDIO_MODELS = new Set([
   NB_DOUBAO.audio.cloneModel,
   NB_DOUBAO.audio.iclModel,
   ...QWEN3_TTS_MODELS,
+  ...NOV19_AUDIO_MODELS,
   ...MINIMAX_AUDIO_MODELS,
   ...MUREKA_BGM_MODELS,
 ]);
@@ -2909,6 +2916,17 @@ async function buildApimartImagePayload(request, apiKey, options = {}) {
       cacheVariant: 'moss-png', fileName: 'moss-reference.png', allowedMimes: ['image/png'],
     })];
     return { payload, model, taskType: sources.length ? 'i2i' : 't2i' };
+  }
+  if (model === NOV19_CONTRACT.kling.model || NOV19_CONTRACT.mai.models.includes(model)) {
+    const api=await nov19Api(),payload=api.image({...request,model}),prepared=[];
+    for(const source of payload.images || []){
+      const file=await mediaBuffer(source,'image',model===NOV19_CONTRACT.kling.model?NOV19_CONTRACT.kling.maxBytes:IMAGE_REFERENCE_MAX_BYTES,options);
+      const buffer=await sharp(file.buffer).png().toBuffer(),info=await sharp(buffer).metadata();
+      if(model===NOV19_CONTRACT.kling.model&&(Math.min(info.width,info.height)<300||Math.max(info.width,info.height)>Math.min(info.width,info.height)*2.5||buffer.length>NOV19_CONTRACT.kling.maxBytes))throw Object.assign(new Error('Kling reference requires >=300 px, ratio 2:5..5:2 and <=30 MB'),{status:400});
+      prepared.push(buffer);
+    }
+    if(prepared.length){payload.images=[];for(const buffer of prepared)payload.images.push(await uploadMedia('data:image/png;base64,'+buffer.toString('base64'),'image',apiKey,{...options,maxBytes:model===NOV19_CONTRACT.kling.model?NOV19_CONTRACT.kling.maxBytes:IMAGE_REFERENCE_MAX_BYTES,allowedMimes:['image/png'],cacheVariant:'nov19-original-png'}));}
+    return {payload,model,taskType:prepared.length?'i2i':'t2i'};
   }
   if (MAI_IMAGE_MODELS.has(model)) {
     const contract = MAI_IMAGE_CONTRACT;
@@ -5759,6 +5777,19 @@ async function buildAudioPayload(request, apiKey, options = {}) {
     return { payload: built.payload, model };
   }
 
+  if (NOV19_AUDIO_MODELS.has(model)) {
+    const api=await nov19Api(),payload=api.audio({...request,model}),prepared=[];
+    for(const source of payload.metadata.audio_urls || []){
+      const file=await mediaBuffer(source,'audio',NOV19_CONTRACT.audio.maxReferenceBytes,options),b=file.buffer;
+      const wav=b.subarray(0,4).toString()==='RIFF'&&b.subarray(8,12).toString()==='WAVE',ogg=b.subarray(0,4).toString()==='OggS',mp3=b.subarray(0,3).toString()==='ID3'||b[0]===255&&(b[1]&224)===224&&(b[1]&24)!==8&&(b[1]&6)===2;
+      if(!wav&&!ogg&&!mp3)throw Object.assign(new Error('Qwen Next references require WAV/MP3/OGG'),{status:400});
+      const duration=await probeSeedance25ReferenceDuration(b,file,'audio',options);if(duration>30)throw Object.assign(new Error('Qwen Next reference exceeds 30 seconds'),{status:400});
+      await transcodeReferenceAudio(b,{...options,normalizeAudioWav:true,maxBytes:100*1024*1024});
+      prepared.push({buffer:b,mime:wav?'audio/wav':ogg?'audio/ogg':'audio/mpeg'});
+    }
+    if(prepared.length){payload.metadata.audio_urls=[];for(const file of prepared)payload.metadata.audio_urls.push(await uploadMedia('data:'+file.mime+';base64,'+file.buffer.toString('base64'),'audio',apiKey,{...options,maxBytes:NOV19_CONTRACT.audio.maxReferenceBytes,allowedMimes:[file.mime],cacheVariant:'qwen31-original'}));}
+    return {payload,model};
+  }
   if (QWEN3_TTS_MODELS.has(model)) {
     const prompt = String(request.prompt || '').trim();
     const voice = String(request.voice || '').trim();
@@ -5924,7 +5955,8 @@ async function submitAudioTask(request, apiKey, options = {}) {
   if (!response.ok) throw createUpstreamError(data, response);
   const taskId = requiredTaskId(data?.task_id || data?.id || data?.data?.task_id, 'seedance.nz Seed Audio 任务提交', response);
   return { taskId, model: built.model,
-    ...(built.model === NB_DOUBAO.audio.iclModel ? {
+    ...((built.model === NB_DOUBAO.audio.iclModel || NOV19_AUDIO_MODELS.has(built.model)) ? {
+      channels: built.payload.metadata.channels || '1',
       outputFormat: built.payload.metadata.format,
       sampleRate: built.payload.metadata.sample_rate,
     } : {}), ...safeProviderTrace(response, data, { pollCount: 0 }) };
@@ -5995,6 +6027,10 @@ async function queryAudioTask(taskId, apiKey, options = {}) {
     audioUrl: audioUrls[0] || null,
     audioUrls,
     resultText,
+    ...(NOV19_AUDIO_MODELS.has(audioModel) && options.outputFormat === 'pcm' ? {
+      pcmSampleRate: (await nov19Api()).audioProfile(audioModel).rates.includes(String(options.sampleRate)) ? Number(options.sampleRate) : audioModel.endsWith('-next') ? 48000 : 22050,
+      pcmChannels: audioModel.endsWith('-next') && String(options.channels)==='2' ? 2 : 1,
+    } : {}),
     ...(audioModel === NB_DOUBAO.audio.iclModel && options.outputFormat === 'pcm' ? {
       pcmSampleRate: NB_DOUBAO.audio.iclFields.sample_rate.options.includes(String(options.sampleRate)) ? Number(options.sampleRate) : 24000,
     } : {}),
@@ -6833,6 +6869,7 @@ module.exports = {
   H3_TURBO_CONTRACT, buildH3TurboPayload, submitH3TurboVideoTask, queryH3TurboVideoTask,
   VIDU_Q4_MODELS,
   FLUX3_IMAGE_MODEL,
+  NOV19_CONTRACT, NOV19_AUDIO_MODELS,
   MAI_IMAGE_CONTRACT,
   MOSS_IMAGE_CONTRACT,
   MAI_IMAGE_MODELS,

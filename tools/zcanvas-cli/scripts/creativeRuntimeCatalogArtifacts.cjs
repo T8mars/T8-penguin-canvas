@@ -23,6 +23,7 @@ const BACKEND_TARGET = path.join(ROOT, 'backend', 'src', 'shared', 'creativeMode
 const CLI_TARGET = path.join(ROOT, 'tools', 'zcanvas-cli', 'generated', 'creative-runtime-catalog.json');
 
 const SOURCE_PATHS = [
+  path.join(ROOT,'backend/src/shared/nov19ModelsContract.json'),path.join(ROOT,'backend/src/shared/nov19ModelsContract.mjs'),path.join(ROOT,'backend/src/shared/qwenAudio31Voices.json'),
   MODEL_SOURCE,
   SEEDANCE_SOURCE,
   MIDJOURNEY_SOURCE,
@@ -257,7 +258,7 @@ function buildRuntimeCatalog() {
     const model = String(rawModel || '').trim();
     if (!model) continue;
     if ([h3Turbo.minimax.model,h3Turbo.qwen.model,...newModels.imageModels,pmf.hy.model, pmf.muse.imageModel, ...pmf.flux.models].includes(model)) continue;
-    const family = model === seedanceNz.MOSS_IMAGE_CONTRACT.model ? 'moss-image' : seedanceNz.MAI_IMAGE_MODELS?.has(model) ? 'mai-image-2-6' : model === seedanceNz.FLUX3_IMAGE_MODEL ? 'flux-3-image'
+    const family = model === seedanceNz.NOV19_CONTRACT.kling.model ? model : model === seedanceNz.MOSS_IMAGE_CONTRACT.model ? 'moss-image' : seedanceNz.MAI_IMAGE_MODELS?.has(model) ? 'mai-image-2-6' : model === seedanceNz.FLUX3_IMAGE_MODEL ? 'flux-3-image'
       : seedanceNz.QWEN_IMAGE_30_MODELS?.has(model)
       ? 'qwen-image-3.0'
       : model === seedanceNz.VOSR2_IMAGE_UPSCALE_MODEL
@@ -452,7 +453,7 @@ function buildRuntimeCatalog() {
     modelEntry('audio', 'grok-oauth', 'xai-tts', 'Grok TTS', 'grok-oauth'),
     modelEntry('audio', 'grok-oauth', 'xai-stt', 'Grok STT', 'grok-oauth'),
   );
-  for (const model of seedanceNz.QWEN3_TTS_MODELS || []) {
+  for (const model of [...seedanceNz.QWEN3_TTS_MODELS,...seedanceNz.NOV19_AUDIO_MODELS]) {
     audio.push(modelEntry('audio', 'seedance-nz', model, model, 'qwen3-tts'));
   }
   for (const model of [models.NB_LOWPRICE_DOUBAO_CONTRACT.audio.cloneModel, models.NB_LOWPRICE_DOUBAO_CONTRACT.audio.iclModel]) {

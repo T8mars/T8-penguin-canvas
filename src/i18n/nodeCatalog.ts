@@ -43,7 +43,7 @@ export const ENGLISH_NODE_CATALOG: Record<string, EnglishNodeCopy> = {
   'director-storyboard': { label: 'Director Storyboard', description: 'Long-form shot planning with prompts, references, and unlimited concurrent Seedance 2.0 generation.' },
   story: { label: 'Story Automated Production', description: 'Turn a script into shots, assets, prompts, SD2.0 clips, and a finished video with step-by-step control.' },
   'script-master': { label: 'Script Master', description: 'Professional script analysis, stable asset binding, multitrack timeline, and capability-aware PromptPack compilation.' },
-  audio: { label: 'Audio', description: 'Generate audio with Suno, Seed Audio, Qwen3-TTS, MiniMax, or Mureka, and transcribe speech with Whisper.' },
+  audio: { label: 'Audio', description: 'Generate audio with Suno, Seed Audio, Qwen-TTS, MiniMax, or Mureka, and transcribe speech with Whisper.' },
   llm: { label: 'LLM', description: 'GPT-5, Claude 4.5, and Gemini 2.5 with independent API keys.' },
   'minimax-h3-prompt-enhancer': { label: 'MiniMax H3 Prompt Enhancer', description: 'Enhance T2VA, I2VA, FL2VA, L2VA, and Ref2VA prompts with H3 skills, presets, multimodal understanding, and selectable LLM channels.' },
   'minimax-music3-prompt-enhancer': { label: 'MiniMax Music Prompt Enhancer', description: 'Plan songs and lyrics with the Music 3 skill, controlled rewrites, templates, privacy isolation, and selectable LLM channels.' },

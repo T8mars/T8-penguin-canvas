@@ -1,7 +1,10 @@
 {
   "schema": "t8-creative-runtime-catalog-v1",
-  "sourceDigest": "22b00903dd181c91a49f628336b42b7e25e940868df43a65cc69287af0329afe",
+  "sourceDigest": "c09a7414272e62402aebedb2328728511cb10a64287a56f05b3ae04f42478dd6",
   "generatedFrom": [
+    "backend/src/shared/nov19ModelsContract.json",
+    "backend/src/shared/nov19ModelsContract.mjs",
+    "backend/src/shared/qwenAudio31Voices.json",
     "src/providers/models.ts",
     "src/config/seedance.ts",
     "src/utils/midjourneyNz.ts",
@@ -1257,6 +1260,30 @@
       }
     },
     {
+      "id": "image:seedance-nz:kling-v4-image",
+      "provider": "seedance-nz",
+      "platformLabel": "贞贞的平价AI小屋",
+      "model": "kling-v4-image",
+      "label": "kling-v4-image",
+      "family": "kling-v4-image",
+      "available": true,
+      "parameters": {
+        "label": "kling-v4-image",
+        "platformLabel": "贞贞的平价AI小屋",
+        "family": "kling-v4-image",
+        "available": true,
+        "tabLabel": "GPT2",
+        "capabilities": [
+          "t2i",
+          "i2i",
+          "edit"
+        ],
+        "parameterKind": "seedance-nz-image",
+        "supportsReference": true,
+        "description": "贞贞的平价AI小屋图像模型"
+      }
+    },
+    {
       "id": "image:seedance-nz:krea-v3-i2i",
       "provider": "seedance-nz",
       "platformLabel": "贞贞的平价AI小屋",
@@ -1373,6 +1400,112 @@
       "available": true,
       "parameters": {
         "label": "mai-image-2-6-flash",
+        "platformLabel": "贞贞的平价AI小屋",
+        "family": "mai-image-2-6",
+        "available": true,
+        "tabLabel": "Mai",
+        "capabilities": [
+          "t2i",
+          "i2i",
+          "edit"
+        ],
+        "parameterKind": "mai-image",
+        "supportsReference": true,
+        "maxReferenceImages": 5,
+        "sizes": [
+          "1k",
+          "2k"
+        ],
+        "aspectRatios": [
+          "auto",
+          "1:1",
+          "16:9",
+          "9:16",
+          "4:3",
+          "3:4",
+          "3:2",
+          "2:3",
+          "4:5",
+          "5:4",
+          "21:9",
+          "9:21",
+          "1:4",
+          "4:1",
+          "custom_ratio",
+          "custom_pixels"
+        ],
+        "defaultSize": "1k",
+        "defaultAspectRatio": "1:1",
+        "maxOutputs": 1,
+        "referenceSizing": "upstream-controlled",
+        "webGrounding": true,
+        "nativeSeed": false,
+        "description": "贞贞的平价AI小屋图像模型"
+      }
+    },
+    {
+      "id": "image:seedance-nz:mai-image-2-7",
+      "provider": "seedance-nz",
+      "platformLabel": "贞贞的平价AI小屋",
+      "model": "mai-image-2-7",
+      "label": "mai-image-2-7",
+      "family": "mai-image-2-6",
+      "available": true,
+      "parameters": {
+        "label": "mai-image-2-7",
+        "platformLabel": "贞贞的平价AI小屋",
+        "family": "mai-image-2-6",
+        "available": true,
+        "tabLabel": "Mai",
+        "capabilities": [
+          "t2i",
+          "i2i",
+          "edit"
+        ],
+        "parameterKind": "mai-image",
+        "supportsReference": true,
+        "maxReferenceImages": 5,
+        "sizes": [
+          "1k",
+          "2k"
+        ],
+        "aspectRatios": [
+          "auto",
+          "1:1",
+          "16:9",
+          "9:16",
+          "4:3",
+          "3:4",
+          "3:2",
+          "2:3",
+          "4:5",
+          "5:4",
+          "21:9",
+          "9:21",
+          "1:4",
+          "4:1",
+          "custom_ratio",
+          "custom_pixels"
+        ],
+        "defaultSize": "1k",
+        "defaultAspectRatio": "1:1",
+        "maxOutputs": 1,
+        "referenceSizing": "upstream-controlled",
+        "webGrounding": true,
+        "nativeSeed": false,
+        "description": "贞贞的平价AI小屋图像模型"
+      }
+    },
+    {
+      "id": "image:seedance-nz:mai-image-2-7-flash",
+      "provider": "seedance-nz",
+      "platformLabel": "贞贞的平价AI小屋",
+      "model": "mai-image-2-7-flash",
+      "label": "mai-image-2-7-flash",
+      "family": "mai-image-2-6",
+      "available": true,
+      "parameters": {
+        "label": "mai-image-2-7-flash",
         "platformLabel": "贞贞的平价AI小屋",
         "family": "mai-image-2-6",
         "available": true,
@@ -11508,6 +11641,51 @@
       }
     },
     {
+      "id": "audio:seedance-nz:qwen-audio-3.1-tts-flash",
+      "provider": "seedance-nz",
+      "platformLabel": "贞贞的平价AI小屋",
+      "model": "qwen-audio-3.1-tts-flash",
+      "label": "qwen-audio-3.1-tts-flash",
+      "family": "qwen3-tts",
+      "available": true,
+      "parameters": {
+        "label": "qwen-audio-3.1-tts-flash",
+        "platformLabel": "贞贞的平价AI小屋",
+        "family": "qwen3-tts",
+        "available": true
+      }
+    },
+    {
+      "id": "audio:seedance-nz:qwen-audio-3.1-tts-next",
+      "provider": "seedance-nz",
+      "platformLabel": "贞贞的平价AI小屋",
+      "model": "qwen-audio-3.1-tts-next",
+      "label": "qwen-audio-3.1-tts-next",
+      "family": "qwen3-tts",
+      "available": true,
+      "parameters": {
+        "label": "qwen-audio-3.1-tts-next",
+        "platformLabel": "贞贞的平价AI小屋",
+        "family": "qwen3-tts",
+        "available": true
+      }
+    },
+    {
+      "id": "audio:seedance-nz:qwen-audio-3.1-tts-plus",
+      "provider": "seedance-nz",
+      "platformLabel": "贞贞的平价AI小屋",
+      "model": "qwen-audio-3.1-tts-plus",
+      "label": "qwen-audio-3.1-tts-plus",
+      "family": "qwen3-tts",
+      "available": true,
+      "parameters": {
+        "label": "qwen-audio-3.1-tts-plus",
+        "platformLabel": "贞贞的平价AI小屋",
+        "family": "qwen3-tts",
+        "available": true
+      }
+    },
+    {
       "id": "audio:seedance-nz:qwen3-tts-flash",
       "provider": "seedance-nz",
       "platformLabel": "贞贞的平价AI小屋",
@@ -13965,9 +14143,9 @@
   ],
   "counts": {
     "llm": 34,
-    "image": 90,
+    "image": 93,
     "video": 157,
-    "audio": 19,
+    "audio": 22,
     "actions": 92
   }
 }

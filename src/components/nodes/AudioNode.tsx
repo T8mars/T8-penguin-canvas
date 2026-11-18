@@ -1,4 +1,6 @@
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
+import QwenAudio31Controls from './QwenAudio31Controls';
+import {NOV19,buildQwenAudio31Request,qwenAudio31Settings} from '../../utils/nov19Models';
 import { useTranslation } from 'react-i18next';
 import { Handle, Position, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
 import { AlertCircle, Loader2, Music, Sparkles, Square, Upload, X } from 'lucide-react';
@@ -34,6 +36,7 @@ import {
   DEFAULT_SUNO_NZ_OPERATION,
   SUNO_NZ_ACTIONS,
   getSunoNzActionDef,
+  QWEN_TTS_MODELS,
   QWEN3_TTS_MODELS,
   QWEN3_TTS_FLASH_MODEL,
   QWEN3_TTS_INSTRUCT_FLASH_MODEL,
@@ -224,9 +227,11 @@ const AudioNode = ({ id, data, selected }: NodeProps) => {
   const seedAudioSpeechRate: number = Number.isInteger(d?.seedAudioSpeechRate) ? d.seedAudioSpeechRate : 0;
   const seedAudioLoudnessRate: number = Number.isInteger(d?.seedAudioLoudnessRate) ? d.seedAudioLoudnessRate : 0;
   const seedAudioPitchRate: number = Number.isInteger(d?.seedAudioPitchRate) ? d.seedAudioPitchRate : 0;
-  const qwenTtsModel = (QWEN3_TTS_MODELS as readonly string[]).includes(d?.qwenTtsModel)
+  const qwenTtsModel = (QWEN_TTS_MODELS as readonly string[]).includes(d?.qwenTtsModel)
     ? d.qwenTtsModel
     : QWEN3_TTS_FLASH_MODEL;
+  const isQwenAudio31=NOV19.isAudio(qwenTtsModel);
+  const qwenAudio31Params=d?.qwenAudio31Params || {};
   const qwenTtsVoice: string = String(d?.qwenTtsVoice || 'Cherry');
   const qwenTtsLanguage: string = (QWEN3_TTS_LANGUAGE_TYPES as readonly string[]).includes(d?.qwenTtsLanguage)
     ? d.qwenTtsLanguage
@@ -750,7 +755,7 @@ const AudioNode = ({ id, data, selected }: NodeProps) => {
     tid: string,
     modelName: string,
     reporter?: RunNodeLifecycleReporter,
-    recipe: { outputFormat?: string; sampleRate?: string } = {},
+    recipe: { outputFormat?: string; sampleRate?: string; channels?: string } = {},
   ): Promise<void> => {
     stopPoll();
     return new Promise<void>((resolve, reject) => {
@@ -1266,7 +1271,7 @@ const AudioNode = ({ id, data, selected }: NodeProps) => {
         return;
       }
       if (isSeedanceNzAudio) {
-        if (isQwen3Tts && !qwenTtsVoice.trim()) throw new Error('Qwen3-TTS 必须填写音色 ID');
+        if (isQwen3Tts && !isQwenAudio31 && !qwenTtsVoice.trim()) throw new Error('Qwen-TTS 必须填写音色 ID');
         if (isMinimaxMusic && !minimaxInstrumental && !minimaxLyrics.trim() && !minimaxLyricsOptimizer) {
           throw new Error('MiniMax Music 非纯音乐模式必须填写歌词或启用歌词生成');
         }
@@ -1280,7 +1285,7 @@ const AudioNode = ({ id, data, selected }: NodeProps) => {
           ? buildDoubaoVoiceClientRequest({ model: seedAudioModel, prompt: finalPrompt, params: doubaoVoiceParams,
             speaker: seedAudioSpeaker, texts: orderedTexts, audioUrls: upstream.audioUrls })
           : isQwen3Tts
-          ? {
+          ? isQwenAudio31 ? buildQwenAudio31Request(qwenTtsModel,finalPrompt,upstream.audioUrls,qwenAudio31Params) : {
               model: qwenTtsModel,
               prompt: finalPrompt,
               voice: qwenTtsVoice.trim(),
@@ -1323,7 +1328,7 @@ const AudioNode = ({ id, data, selected }: NodeProps) => {
           model: latestAudioModel,
           upstreamTaskId: result.taskId,
           outputFormat: result.outputFormat,
-          sampleRate: result.sampleRate,
+          sampleRate: result.sampleRate,channels:result.channels,
           requestId: result.requestId,
           transportHttpStatus: result.transportHttpStatus,
           upstreamHttpStatus: result.upstreamHttpStatus,
@@ -1339,7 +1344,7 @@ const AudioNode = ({ id, data, selected }: NodeProps) => {
           model: latestAudioModel,
           apiModel: latestAudioModel,
         });
-        await startSeedanceNzAudioPolling(result.taskId, latestAudioModel, reporter, { outputFormat: result.outputFormat, sampleRate: result.sampleRate });
+        await startSeedanceNzAudioPolling(result.taskId, latestAudioModel, reporter, { outputFormat: result.outputFormat, sampleRate: result.sampleRate,channels:result.channels });
         return;
       }
       if (isSunoNz) {
@@ -1654,7 +1659,7 @@ const AudioNode = ({ id, data, selected }: NodeProps) => {
           <div className="text-sm font-semibold text-white">{translate('nodes:audio.titleWithProvider', { provider:
             isWhisper ? 'Whisper'
               : isSeedAudio ? 'Seed Audio'
-                : isQwen3Tts ? 'Qwen3-TTS'
+                : isQwen3Tts ? 'Qwen-TTS'
                   : isMinimaxAudio ? 'MiniMax'
                     : isMureka ? 'Mureka'
                       : isLyria ? 'Lyria' : 'Suno'
@@ -1681,7 +1686,7 @@ const AudioNode = ({ id, data, selected }: NodeProps) => {
             { value: 'suno', label: 'Suno' },
             { value: 'seed-audio', label: 'Seed Audio' },
             { value: 'whisper', label: 'Whisper' },
-            { value: 'qwen3-tts', label: 'Qwen3-TTS' },
+            { value: 'qwen3-tts', label: 'Qwen-TTS' },
             { value: 'minimax', label: 'MiniMax' },
             { value: 'mureka', label: 'Mureka' },
             { value: 'lyria', label: 'Lyria' },
@@ -1875,11 +1880,11 @@ const AudioNode = ({ id, data, selected }: NodeProps) => {
           <div className="rounded border border-cyan-300/20 bg-cyan-400/[0.05] p-2 space-y-2">
             <div>
               <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:audio.qwenModel')}</label>
-              <select value={qwenTtsModel} onChange={(e) => update({ qwenTtsModel: e.target.value })} className="w-full rounded bg-white/5 border border-white/10 px-2 py-1 text-xs text-white outline-none">
-                {QWEN3_TTS_MODELS.map((item) => <option key={item} value={item} className="bg-zinc-900">{item}</option>)}
+              <select value={qwenTtsModel} onChange={(e) => {const value=e.currentTarget.value;update({qwenTtsModel:value,...(NOV19.isAudio(value)?{qwenAudio31Params:qwenAudio31Settings(value,{})}:{})});}} className="w-full rounded bg-white/5 border border-white/10 px-2 py-1 text-xs text-white outline-none">
+                {QWEN_TTS_MODELS.map((item) => <option key={item} value={item} className="bg-zinc-900">{item}</option>)}
               </select>
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            {isQwenAudio31 ? <QwenAudio31Controls model={qwenTtsModel} data={qwenAudio31Params} referenceCount={upstream.audios.length} update={update} /> : <><div className="grid grid-cols-2 gap-2">
               <div>
                 <label className="text-[10px] text-white/50 block mb-1">{translate('nodes:audio.voiceId')}</label>
                 <input value={qwenTtsVoice} onChange={(e) => update({ qwenTtsVoice: e.target.value })} placeholder="Cherry" className="w-full rounded bg-white/5 border border-white/10 px-2 py-1 text-xs text-white outline-none" />
@@ -1901,6 +1906,7 @@ const AudioNode = ({ id, data, selected }: NodeProps) => {
                 </label>
               </div>
             )}
+            </>}
           </div>
         )}
 

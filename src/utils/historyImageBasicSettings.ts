@@ -34,6 +34,7 @@ export const IMAGE_HISTORY_EXTRA_FIELDS: Record<string, { label: string; type: '
   kreaNegative: {label:'kreaNegative',type:'string'},
   zImageRatio: {label:'zImageRatio',type:'string'},
   zImageSeed: {label:'zImageSeed',type:'number'},
+  klingImageSize:{label:'klingImageSize',type:'string'},klingImageResolution:{label:'klingImageResolution',type:'string'},klingImageMode:{label:'klingImageMode',type:'string'},klingImageCount:{label:'klingImageCount',type:'number'},klingImageMaxImages:{label:'klingImageMaxImages',type:'number'},klingImageNsfw:{label:'klingImageNsfw',type:'boolean'},maiBackground:{label:'maiBackground',type:'string'},maiNsfw:{label:'maiNsfw',type:'boolean'},
   maiSize: { label: 'Mai 尺寸模式', type: 'string' }, maiResolution: { label: 'Mai 分辨率', type: 'string' },
   maiCustomRatio: { label: 'Mai 自定义比例', type: 'string' }, maiWidth: { label: 'Mai 宽度', type: 'number' },
   maiHeight: { label: 'Mai 高度', type: 'number' }, maiAutoAspectRatio: { label: 'Mai 自动画幅', type: 'boolean' },

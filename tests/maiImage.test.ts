@@ -22,7 +22,8 @@ test('Mai registry and channel remain isolated; original defaults unchanged', ()
   assert.equal(definition.id, contract.models[0]);
   assert.equal(definition.paramKind, 'mai-image');
   assert.equal(definition.maxReferenceImages, 5);
-  assert.deepEqual(definition.apiModelOptions.map((item) => item.value), contract.models);
+  assert.deepEqual(definition.apiModelOptions.map((item) => item.value).slice(0,2), contract.models);
+  assert.deepEqual(definition.apiModelOptions.map((item) => item.value).slice(2), ['mai-image-2-7','mai-image-2-7-flash']);
   for (const model of contract.models) assert.ok(isZhenzhenBudgetImageModel(model));
 });
 

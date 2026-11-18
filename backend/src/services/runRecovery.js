@@ -1,4 +1,5 @@
 'use strict';
+const nov19=require('../shared/nov19ModelsContract.json');
 
 const { minimumProviderMediaPollCount } = require('../providers/providerTimeoutPolicy');
 const viduQ4Models = new Set(require('../shared/nb21FluxViduQ4Contract.json').viduQ4.models);
@@ -91,6 +92,7 @@ function normalizeRunRecoveryDescriptor(value) {
     model: boundedText(value.model, 240) || null,
     ...(kind === 'kling' && klingV4.referenceTypes.includes(value.referenceType) ? { referenceType: value.referenceType } : {}),
     ...(kind === 'motion' && /^seedance-nz:[a-f0-9]{64}$/.test(String(value.connectionRef || '')) ? { connectionRef: String(value.connectionRef) } : {}),
+    ...(nov19.audio.models.includes(value.model) && value.outputFormat==='pcm'?{outputFormat:'pcm',sampleRate:(String(value.model).endsWith('-next')?nov19.audio.nextRates:nov19.audio.systemRates).includes(String(value.sampleRate))?String(value.sampleRate):String(value.model).endsWith('-next')?'48000':'22050',channels:value.channels==='2'&&String(value.model).endsWith('-next')?'2':'1'}:{}),
     ...(value.model === nbDoubao.audio.iclModel && value.outputFormat === 'pcm' ? {
       outputFormat: 'pcm', sampleRate: nbDoubao.audio.iclFields.sample_rate.options.includes(String(value.sampleRate)) ? String(value.sampleRate) : '24000',
     } : {}),
@@ -161,9 +163,9 @@ function recoveryRequest(baseUrl, descriptor) {
   if (descriptor.kind === 'vidu') return get(`/api/proxy/video/vidu/status/${taskId}${viduQ4Models.has(descriptor.model) ? `?model=${encodeURIComponent(descriptor.model)}` : ''}`);
   if (descriptor.kind === 'seed-audio') {
     const query = new URLSearchParams();
-    if ([nbDoubao.audio.cloneModel, nbDoubao.audio.iclModel].includes(descriptor.model)) query.set('model', descriptor.model);
-    if (descriptor.model === nbDoubao.audio.iclModel && descriptor.outputFormat === 'pcm') {
-      query.set('outputFormat', 'pcm'); query.set('sampleRate', descriptor.sampleRate || '24000');
+    if ([...nov19.audio.models,nbDoubao.audio.cloneModel, nbDoubao.audio.iclModel].includes(descriptor.model)) query.set('model', descriptor.model);
+    if ((nov19.audio.models.includes(descriptor.model) || descriptor.model === nbDoubao.audio.iclModel) && descriptor.outputFormat === 'pcm') {
+      query.set('outputFormat', 'pcm'); query.set('sampleRate', descriptor.sampleRate || '24000');if(descriptor.channels)query.set('channels',descriptor.channels);
     }
     return get(`/api/proxy/audio/seed-audio/status/${taskId}${query.size ? `?${query}` : ''}`);
   }

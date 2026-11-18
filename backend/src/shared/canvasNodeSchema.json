@@ -3761,7 +3761,8 @@
               "seedream-v5-pro",
               "seedream-layer-decomposition",
               "minimax-h3-image",
-              "qwen-image-2.1-turbo"
+              "qwen-image-2.1-turbo",
+              "kling-v4-image"
             ]
           },
           "providerSource": {
@@ -3815,7 +3816,10 @@
               "seedream-v5.5-layer-decomposition",
               "dola-seedream-5.5-layer-decomposition",
               "minimax-h3-image",
-              "qwen-image-2.1-turbo"
+              "qwen-image-2.1-turbo",
+              "kling-v4-image",
+              "mai-image-2-7",
+              "mai-image-2-7-flash"
             ]
           },
           "aspectRatio": {
@@ -4328,6 +4332,57 @@
               "png",
               "webp"
             ]
+          },
+          "maiBackground": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "opaque"
+            ]
+          },
+          "maiNsfw": {
+            "type": "boolean"
+          },
+          "klingImageSize": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "16:9",
+              "9:16",
+              "1:1",
+              "4:3",
+              "3:4",
+              "3:2",
+              "2:3",
+              "21:9"
+            ]
+          },
+          "klingImageResolution": {
+            "type": "string",
+            "enum": [
+              "2k",
+              "4k"
+            ]
+          },
+          "klingImageMode": {
+            "type": "string",
+            "enum": [
+              "disabled",
+              "auto"
+            ]
+          },
+          "klingImageCount": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9
+          },
+          "klingImageMaxImages": {
+            "type": "integer",
+            "minimum": 2,
+            "maximum": 4
+          },
+          "klingImageNsfw": {
+            "type": "boolean"
           }
         },
         "defaults": {
@@ -5038,7 +5093,10 @@
             "type": "string",
             "enum": [
               "qwen3-tts-flash",
-              "qwen3-tts-instruct-flash"
+              "qwen3-tts-instruct-flash",
+              "qwen-audio-3.1-tts-flash",
+              "qwen-audio-3.1-tts-next",
+              "qwen-audio-3.1-tts-plus"
             ]
           },
           "qwenTtsVoice": {
@@ -5190,6 +5248,10 @@
           },
           "reuseResult": {
             "type": "boolean"
+          },
+          "qwenAudio31Params": {
+            "type": "object",
+            "maxProperties": 18
           }
         },
         "defaults": {

@@ -6,6 +6,7 @@ import { ZHENZHEN_IMAGE_G25_MODELS, ZHENZHEN_IMAGE_G25_LOWPRICE_MODEL, ZHENZHEN_
   ZHENZHEN_IMAGE_G25_PROMPT_MAX_LENGTH, ZHENZHEN_IMAGE_G25_LOWPRICE_MAX_IMAGES,
   ZHENZHEN_IMAGE_G25_OFFICIAL_MAX_IMAGES, validateGptImage25Size } from '../providers/models';
 import { historyImageBasicSettings } from './historyImageBasicSettings';
+import {NOV19,buildKlingImageRequest,klingImageSettings} from './nov19Models';
 import { MAI_IMAGE_TAB, isMaiImageModel, buildMaiImageRequest } from './maiImage';
 import { MOSS_IMAGE_CONTRACT, buildMossImageRequest } from './mossImage';
 
@@ -51,9 +52,15 @@ export function readHistoryBudgetImageInput(data: Record<string, unknown>) {
     return { settings: Object.fromEntries(keys.map(key => [key, settings[key]])), prompt: context.prompt,
       media: context.referenceImages.map((url, index) => ({ kind: 'image' as const, url, label: `图片 ${index + 1}` })) };
   }
+  if(settings.model===NOV19.contract.kling.model){
+    const keys=['model','apiModel','aspectRatio','sizeLevel','imageBuiltinSource','providerSource','providerId','providerModel',...Object.keys(klingImageSettings({}))],invalid=()=>new Error('Kling image history inputs are incomplete');
+    if(settings.apiModel!==NOV19.contract.kling.model||settings.imageBuiltinSource!=='seedance-nz'||settings.providerSource!=='zhenzhen'||settings.providerId!==''||settings.providerModel!==''||keys.some(k=>!Object.hasOwn(settings,k)))throw invalid();
+    const context=data.historyResolvedInput as {prompt:string;referenceImages:string[]};try{buildKlingImageRequest(context.prompt,context.referenceImages,settings);}catch{throw invalid();}
+    return {settings:Object.fromEntries(keys.map(k=>[k,settings[k]])),prompt:context.prompt,media:context.referenceImages.map((url,index)=>({kind:'image' as const,url,label:'image '+(index+1)}))};
+  }
   if (settings.model === MAI_IMAGE_TAB) {
     const keys = ['model', 'apiModel', 'aspectRatio', 'sizeLevel', 'imageBuiltinSource', 'providerSource', 'providerId', 'providerModel',
-      'maiSize', 'maiResolution', 'maiCustomRatio', 'maiWidth', 'maiHeight', 'maiAutoAspectRatio', 'maiWebGrounding'];
+      'maiSize', 'maiResolution', 'maiCustomRatio', 'maiWidth', 'maiHeight', 'maiAutoAspectRatio', 'maiWebGrounding',...(NOV19.isMai(String(settings.apiModel))?['maiBackground','maiNsfw']:[])];
     const invalid = () => new Error('历史 Mai 输入不完整或已不兼容，未套用当前默认值');
     if (!isMaiImageModel(String(settings.apiModel)) || settings.imageBuiltinSource !== 'seedance-nz'
       || settings.providerSource !== 'zhenzhen' || settings.providerId !== '' || settings.providerModel !== ''

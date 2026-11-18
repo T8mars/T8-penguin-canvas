@@ -1,0 +1,1 @@
+export function createNov19ModelsContract(contract:any,voices:any): {contract:any;voices:any;isMai(model:string):boolean;isImage(model:string):boolean;isAudio(model:string):boolean;audioProfile(model:string):any;image(request:any):any;audio(request:any):any};

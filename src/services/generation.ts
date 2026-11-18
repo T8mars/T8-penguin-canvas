@@ -5,6 +5,7 @@
 import type { AdvancedProviderConfig } from '../types/canvas';
 import type { ImageParamKind, SunoNzOperation, SunoNzResultFamily } from '../providers/models';
 import { normalizeProviderErrorMessage } from '../utils/providerErrorMessage.ts';
+import nov19Models from '../../backend/src/shared/nov19ModelsContract.json';
 
 export interface ProviderTransportTrace {
   /** 上游或本地代理显式返回的请求 ID；绝不从通用 id 字段猜测。 */
@@ -345,7 +346,7 @@ export interface SeedreamNzSubmitRequest {
     | 'flux-3-image-t2i' | 'flux-3-image-i2i' | 'flux-3-image-klein-t2i' | 'flux-3-image-klein-i2i'
     | 'flux-3-image'
     | 'mai-image-2-6'
-    | 'mai-image-2-6-flash'
+    | 'mai-image-2-6-flash' | 'mai-image-2-7' | 'mai-image-2-7-flash' | 'kling-v4-image'
     | 'minimax-h3-image' | 'qwen-image-2.1-turbo'
     | 'moss-image'
     | 'zhenzhen-image-nb-pro'
@@ -366,6 +367,8 @@ export interface SeedreamNzSubmitRequest {
     | 'seedream-v5-flash-layer-decomposition'
     | 'dola-seedream-5.0-flash-layer-decomposition'
     | 'vosr2-image-upscale';
+  sequential_image_generation?: 'disabled' | 'auto';
+  sequential_image_generation_options?: {max_images:number};
   modelFamily?: 'domestic' | 'overseas' | 'domestic-flash' | 'overseas-flash' | 'domestic-55' | 'overseas-55';
   resolution?: '720p' | 'auto' | '0.5k' | '768sq' | '1k' | '1.5k' | '2k' | '4k' | '1K' | '2K' | '4K';
   ratio?: '1:3' | '3:1' | 'adaptive' | '16:9' | '4:3' | '1:1' | '3:4' | '9:16' | '21:9' | '2:3' | '3:2' | '4:5' | '5:4';
@@ -2344,6 +2347,7 @@ export type SeedanceNzAudioModel =
   | 'doubao-voice-clone'
   | 'doubao-seed-icl-2.0'
   | 'doubao-seed-audio-1.0'
+  | 'qwen-audio-3.1-tts-flash' | 'qwen-audio-3.1-tts-next' | 'qwen-audio-3.1-tts-plus'
   | 'qwen3-tts-flash'
   | 'qwen3-tts-instruct-flash'
   | 'minimax-music-2.6'
@@ -2355,6 +2359,7 @@ export type SeedanceNzAudioModel =
 
 export interface SeedanceNzAudioSubmitRequest {
   model: SeedanceNzAudioModel;
+  qwenAudio31?: Record<string, string | number | boolean>;
   doubaoVoice?: Record<string, string | number | boolean>;
   audioUrl?: string;
   prompt?: string;
@@ -2413,7 +2418,7 @@ export interface SeedanceNzAudioQueryResult extends ProviderTransportTrace {
 export async function submitSeedanceNzAudio(
   req: SeedanceNzAudioSubmitRequest,
   transport: ProviderSubmissionTransport = {},
-): Promise<{ taskId: string; model: string; outputFormat?: string; sampleRate?: string } & ProviderTransportTrace> {
+): Promise<{ taskId: string; model: string; outputFormat?: string; sampleRate?: string; channels?: string } & ProviderTransportTrace> {
   const r = await fetch('/api/proxy/audio/seed-audio/submit', {
     method: 'POST',
     headers: providerSubmissionHeaders(transport),
@@ -2428,12 +2433,13 @@ export async function submitSeedanceNzAudio(
 export async function querySeedanceNzAudio(
   taskId: string,
   transport: ProviderSubmissionTransport = {},
-  recipe: { model?: string; outputFormat?: string; sampleRate?: string } = {},
+  recipe: { model?: string; outputFormat?: string; sampleRate?: string; channels?: string } = {},
 ): Promise<SeedanceNzAudioQueryResult> {
   const query = new URLSearchParams();
-  if (recipe.model === 'doubao-voice-clone' || recipe.model === 'doubao-seed-icl-2.0') query.set('model', recipe.model);
-  if (recipe.model === 'doubao-seed-icl-2.0' && recipe.outputFormat === 'pcm') {
-    query.set('outputFormat', 'pcm'); query.set('sampleRate', recipe.sampleRate || '24000');
+  const qwen31 = nov19Models.audio.models.includes(recipe.model || '');
+  if (qwen31 || recipe.model === 'doubao-voice-clone' || recipe.model === 'doubao-seed-icl-2.0') query.set('model', recipe.model!);
+  if ((recipe.model === 'doubao-seed-icl-2.0' || qwen31) && recipe.outputFormat === 'pcm') {
+    query.set('outputFormat', 'pcm'); query.set('sampleRate', recipe.sampleRate || (qwen31 ? recipe.model?.endsWith('-next') ? '48000' : '22050' : '24000'));if(recipe.channels)query.set('channels',recipe.channels);
   }
   const r = await fetch(`/api/proxy/audio/seed-audio/status/${encodeURIComponent(taskId)}${query.size ? `?${query}` : ''}`, { signal: transport.signal });
   const data = await safeJsonResponse(r, '贞贞的平价AI小屋音频任务查询');

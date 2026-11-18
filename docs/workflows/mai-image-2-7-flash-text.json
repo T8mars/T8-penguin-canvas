@@ -1,0 +1,56 @@
+{
+  "schema": "t8-workflow-fragment",
+  "version": 1,
+  "title": "mai-image-2-7-flash-text",
+  "nodes": [
+    {
+      "id": "generate",
+      "type": "image",
+      "position": {
+        "x": 440,
+        "y": 30
+      },
+      "data": {
+        "providerSource": "zhenzhen",
+        "reuseResult": false,
+        "prompt": "A green toy robot in a pastel studio, detailed illustration, no text.",
+        "model": "mai-image-2-6",
+        "apiModel": "mai-image-2-7-flash",
+        "imageBuiltinSource": "seedance-nz",
+        "imageOnlyOutput": true,
+        "referenceImages": [],
+        "maiSize": "1:1",
+        "maiResolution": "1k",
+        "maiBackground": "opaque",
+        "maiNsfw": false,
+        "maiAutoAspectRatio": false,
+        "maiWebGrounding": false
+      }
+    },
+    {
+      "id": "output",
+      "type": "output",
+      "position": {
+        "x": 900,
+        "y": 30
+      },
+      "data": {
+        "label": "结果 / Result"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "generate-output",
+      "source": "generate",
+      "target": "output"
+    }
+  ],
+  "nodeCount": 2,
+  "edgeCount": 1,
+  "nodeTypes": [
+    "image",
+    "output"
+  ],
+  "savedAt": "2026-11-19T00:00:00.000Z"
+}
