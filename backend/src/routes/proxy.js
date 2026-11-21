@@ -7272,7 +7272,10 @@ async function saveRemoteFalToolboxFile(url, kind, materializationKey = '', opti
     const contentType = normalizedContentType(remote.contentType);
     if (contentType === 'text/html' || contentType === 'application/xhtml+xml') throw new Error('FAL 模型响应类型无效');
     if (options.tripo === true || options.miora === true) {
-      const verified = await require(options.miora===true?'../providers/miora3d':'../providers/tripo3d').validateArtifact(buf, ext);
+      const validator = options.miora === true
+        ? require('../providers/miora3d')
+        : require('../providers/tripo3d');
+      const verified = await validator.validateArtifact(buf, ext);
       return { url: storeMaterializedOutputBuffer(buf, 'model3d', verified.format, materializationKey), actualFormat: verified.format, partNames: verified.partNames, error: null };
     }
     if (options.extractGlb) {
