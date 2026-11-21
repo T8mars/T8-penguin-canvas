@@ -3489,15 +3489,54 @@
     ]
   },
   "release": {
-    "status": "authorized-v3.5.5-pending-build",
+    "status": "released-v3.5.5-dual-platform-verified",
     "version": "3.5.5",
     "tag": "v3.5.5",
-    "latest": false,
+    "latest": true,
     "date": "2026-11-22",
     "details": "docs/release-v3.5.5.md",
     "evidence": "docs/release-v3.5.5.md",
     "postReleaseEvidence": "owner-approved-post-release-v3.5.5",
-    "macBoundary": "same-tag ad-hoc preview; defer only if GitHub quota is insufficient"
+    "macBoundary": "same-tag ad-hoc preview",
+    "sourceCommit": "d7750b90e607b5580bb7c56250d6fdca02bf577f",
+    "publishedAt": "2026-11-21T19:37:38Z",
+    "draft": false,
+    "prerelease": false,
+    "macWorkflow": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/44941971769",
+    "macAttempt": 1,
+    "macWorkflowConclusion": "success",
+    "assets": {
+      "windowsInstaller": {
+        "name": "T8-PenguinCanvas-Setup-3.5.5.exe",
+        "bytes": 1380164596,
+        "sha256": "99af02a6613ac78de1445679bb08b2856431b2e5bbd49e94608b8535bdd3e0da"
+      },
+      "windowsBlockmap": {
+        "name": "T8-PenguinCanvas-Setup-3.5.5.exe.blockmap",
+        "bytes": 1440005,
+        "sha256": "01c0c3f65fbd85d0a247999daa32479374d669c76fed0be1d4e568510fec861a"
+      },
+      "windowsUpdater": {
+        "name": "latest.yml",
+        "bytes": 362,
+        "sha256": "350dce44da9f901be46529f0f50fb76ac294292fe8fdc8cf198d4922c326ca9a"
+      },
+      "macDmg": {
+        "name": "T8-PenguinCanvas-3.5.5-mac-arm64.dmg",
+        "bytes": 520056389,
+        "sha256": "efdbdf4653a8c7b07c371f76c50441af340deb229b2ba24cb9ee0de0f3e48459"
+      },
+      "macZip": {
+        "name": "T8-PenguinCanvas-3.5.5-mac-arm64.zip",
+        "bytes": 511677310,
+        "sha256": "54de417f833929c16ae8fdfd6ab7b4e6562e29c844031a07ba5d6db74eec8ec6"
+      },
+      "macUpdater": {
+        "name": "latest-mac.yml",
+        "bytes": 536,
+        "sha256": "3bd2b9a2e5323cf0bbc34c150667e0990110c1fa3bd0fcf4d9e310ab71681fe9"
+      }
+    }
   },
   "minimaxMusic3PromptEnhancer": {
     "status": "released-v2.9.3",
@@ -10846,8 +10885,8 @@
     "version": "3.5.5",
     "semverVersion": "3.5.5",
     "versionNumberPolicy": "T8 版本号仍采用 x.y.z 三段，但每一段只允许 0-9；任一段到 9 后下一次发布必须向左进位，禁止任一段出现两位数字。例：1.9.9 的下一版必须是 2.0.0。",
-    "versionNote": "v3.5.5 新增 10 个平价小屋模型，见 docs/release-v3.5.5.md。",
-    "installer": "T8-PenguinCanvas-Setup-3.5.5.exe",
+    "versionNote": "v3.5.5 双平台已发布，见 docs/release-v3.5.5.md。",
+    "installer": "T8-PenguinCanvas-Setup-3.5.5.exe，远端完整回下载已校验。",
     "updaterInstallMode": "自动更新下载完成后不得静默安装：main.cjs 必须设置 autoInstallOnAppQuit=false，显式安装调用 quitAndInstall(false,true)；electron/build-resources/installer.nsh 通过 SetSilent normal 让新版 NSIS 安装器即使收到旧客户端传入的 /S 也尽量切回前台安装向导。",
     "installerShortcutPolicy": "安装完成后必须创建桌面和开始菜单快捷方式：package.json build.nsis.createDesktopShortcut 必须为 \"always\"，createStartMenuShortcut 必须为 true；electron/build-resources/installer.nsh 必须保留 customInstall 兜底 CreateShortCut \"$newStartMenuLink\" 与 \"$DESKTOP\\${SHORTCUT_NAME}.lnk\"，防止更新安装/keepShortcuts 路径遗漏入口。",
     "updaterEntryPolicy": "顶栏桌面更新入口不得只因 window.t8pc.updater 缺失就静默消失；Electron UA 或 t8pc.getInfo/openExternal 可用时必须显示诊断入口，提示重新安装完整桌面包，Web/纯浏览器环境才隐藏。状态为 not-available 时按钮仍保留“更新”字样，避免用户误以为自动更新入口被删除。",
@@ -17987,7 +18026,7 @@
     "details": "docs/github-issues-20261121.md"
   },
   "nov21Models20261122": {
-    "status": "implemented-local-heygen-upstream-pending",
+    "status": "released-v3.5.5-heygen-upstream-pending",
     "summary": "Ten budget-house models in existing nodes: Kling long image, Gemini TTS, H3 Token, HeyGen Avatar 6 and Miora 3D; fourteen credential-free workflows. Eight models have decoded real results; HeyGen originals remain running.",
     "details": "docs/nov21-models.md",
     "models": [
@@ -18007,17 +18046,58 @@
       "HeyGen real completed output not verified",
       "No installed-client, user-device or F8-F10 acceptance"
     ],
-    "releaseVersion": "3.5.5"
+    "releaseVersion": "3.5.5",
+    "releaseIncluded": true,
+    "published": true
   },
   "electronReleaseV355": {
-    "status": "authorized-v3.5.5-pending-build",
+    "status": "released-v3.5.5-dual-platform-verified",
     "version": "3.5.5",
     "tag": "v3.5.5",
-    "latest": false,
+    "latest": true,
     "date": "2026-11-22",
     "details": "docs/release-v3.5.5.md",
     "evidence": "docs/release-v3.5.5.md",
     "postReleaseEvidence": "owner-approved-post-release-v3.5.5",
-    "macBoundary": "same-tag ad-hoc preview; defer only if GitHub quota is insufficient"
+    "macBoundary": "same-tag ad-hoc preview",
+    "sourceCommit": "d7750b90e607b5580bb7c56250d6fdca02bf577f",
+    "publishedAt": "2026-11-21T19:37:38Z",
+    "draft": false,
+    "prerelease": false,
+    "macWorkflow": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/44941971769",
+    "macAttempt": 1,
+    "macWorkflowConclusion": "success",
+    "assets": {
+      "windowsInstaller": {
+        "name": "T8-PenguinCanvas-Setup-3.5.5.exe",
+        "bytes": 1380164596,
+        "sha256": "99af02a6613ac78de1445679bb08b2856431b2e5bbd49e94608b8535bdd3e0da"
+      },
+      "windowsBlockmap": {
+        "name": "T8-PenguinCanvas-Setup-3.5.5.exe.blockmap",
+        "bytes": 1440005,
+        "sha256": "01c0c3f65fbd85d0a247999daa32479374d669c76fed0be1d4e568510fec861a"
+      },
+      "windowsUpdater": {
+        "name": "latest.yml",
+        "bytes": 362,
+        "sha256": "350dce44da9f901be46529f0f50fb76ac294292fe8fdc8cf198d4922c326ca9a"
+      },
+      "macDmg": {
+        "name": "T8-PenguinCanvas-3.5.5-mac-arm64.dmg",
+        "bytes": 520056389,
+        "sha256": "efdbdf4653a8c7b07c371f76c50441af340deb229b2ba24cb9ee0de0f3e48459"
+      },
+      "macZip": {
+        "name": "T8-PenguinCanvas-3.5.5-mac-arm64.zip",
+        "bytes": 511677310,
+        "sha256": "54de417f833929c16ae8fdfd6ab7b4e6562e29c844031a07ba5d6db74eec8ec6"
+      },
+      "macUpdater": {
+        "name": "latest-mac.yml",
+        "bytes": 536,
+        "sha256": "3bd2b9a2e5323cf0bbc34c150667e0990110c1fa3bd0fcf4d9e310ab71681fe9"
+      }
+    }
   }
 }
