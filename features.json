@@ -17981,5 +17981,10 @@
     "postReleaseEvidence": "owner-approved-post-release-v3.5.4",
     "macBoundary": "same-tag-ad-hoc-preview; no-quota-deferral-used",
     "sourceCommit": "83cbbcb7255682651f9a01e4ec5049b5da5d42e8"
+  },
+  "githubIssueAudit20261121": {
+    "status": "review-complete-no-new-reproducible-defect",
+    "summary": "0 open PRs and 6 existing issues; no reporter follow-up. Released RH, localization and Creator fixes preserved. Mac, performance and English acceptance gaps remain open.",
+    "details": "docs/github-issues-20261121.md"
   }
 }
