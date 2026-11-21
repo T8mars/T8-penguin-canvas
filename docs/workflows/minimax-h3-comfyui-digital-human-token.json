@@ -1,0 +1,89 @@
+{
+  "schema": "t8-workflow-fragment",
+  "version": 1,
+  "title": "minimax-h3-comfyui-digital-human-token",
+  "nodes": [
+    {
+      "id": "image0",
+      "type": "upload",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "data": {
+        "uploadType": "image",
+        "lockedUploadType": "image",
+        "label": "image 1"
+      }
+    },
+    {
+      "id": "audio0",
+      "type": "upload",
+      "position": {
+        "x": 0,
+        "y": 280
+      },
+      "data": {
+        "uploadType": "audio",
+        "lockedUploadType": "audio",
+        "label": "audio 1"
+      }
+    },
+    {
+      "id": "generate",
+      "type": "video",
+      "position": {
+        "x": 440,
+        "y": 30
+      },
+      "data": {
+        "providerSource": "zhenzhen",
+        "reuseResult": false,
+        "prompt": "A friendly person looks at the camera and waves gently.",
+        "mainId": "minimax-h3-comfyui-max",
+        "model": "minimax-h3-comfyui-digital-human-token",
+        "videoBuiltinSource": "seedance-nz",
+        "duration": 5,
+        "ratio": "16:9",
+        "resolution": "768p",
+        "h3ComfyDurationMode": "seconds"
+      }
+    },
+    {
+      "id": "result",
+      "type": "output",
+      "position": {
+        "x": 900,
+        "y": 30
+      },
+      "data": {
+        "label": "结果 / Result"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "image0-generate",
+      "source": "image0",
+      "target": "generate"
+    },
+    {
+      "id": "audio0-generate",
+      "source": "audio0",
+      "target": "generate"
+    },
+    {
+      "id": "generate-result",
+      "source": "generate",
+      "target": "result"
+    }
+  ],
+  "nodeCount": 4,
+  "edgeCount": 3,
+  "nodeTypes": [
+    "upload",
+    "video",
+    "output"
+  ],
+  "savedAt": "2026-11-22T00:00:00.000Z"
+}

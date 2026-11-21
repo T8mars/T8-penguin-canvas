@@ -1,5 +1,7 @@
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import QwenAudio31Controls from './QwenAudio31Controls';
+import {NOV21,buildGeminiTtsRequest} from '../../utils/nov21Models';
+import {GeminiTtsControls} from './Nov21Controls';
 import {NOV19,buildQwenAudio31Request,qwenAudio31Settings} from '../../utils/nov19Models';
 import { useTranslation } from 'react-i18next';
 import { Handle, Position, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
@@ -146,7 +148,7 @@ const AudioNode = ({ id, data, selected }: NodeProps) => {
 
   const d = data as any;
   const providerParams = (d?.providerParams && typeof d.providerParams === 'object') ? d.providerParams : {};
-  const audioProviderMode: AudioProviderMode = ['seed-audio', 'whisper', 'qwen3-tts', 'minimax', 'mureka', 'lyria'].includes(d?.audioProviderMode)
+  const audioProviderMode: AudioProviderMode = ['seed-audio', 'whisper', 'qwen3-tts', 'gemini-tts', 'minimax', 'mureka', 'lyria'].includes(d?.audioProviderMode)
     ? d.audioProviderMode
     : 'suno';
   const isSeedAudio = audioProviderMode === 'seed-audio';
@@ -166,11 +168,13 @@ const AudioNode = ({ id, data, selected }: NodeProps) => {
   }, [id, isDoubaoVoice, isDoubaoClone, isDoubaoIcl, canvasRenderMode, updateNodeInternals]);
   const doubaoVoiceParams = d?.doubaoVoiceParams && typeof d.doubaoVoiceParams === 'object' && !Array.isArray(d.doubaoVoiceParams) ? d.doubaoVoiceParams : EMPTY_DOUBAO_PARAMS;
   const isWhisper = audioProviderMode === 'whisper';
+  const isGeminiTts=audioProviderMode==='gemini-tts';
+  const geminiTtsModel=NOV21.contract.gemini.models.includes(d.geminiTtsModel)?d.geminiTtsModel:NOV21.contract.gemini.models[0];
   const isQwen3Tts = audioProviderMode === 'qwen3-tts';
   const isMinimaxAudio = audioProviderMode === 'minimax';
   const isMureka = audioProviderMode === 'mureka';
   const isLyria = audioProviderMode === 'lyria';
-  const isSeedanceNzAudio = isQwen3Tts || isMinimaxAudio || isMureka || isDoubaoVoice;
+  const isSeedanceNzAudio = isGeminiTts || isQwen3Tts || isMinimaxAudio || isMureka || isDoubaoVoice;
   const isSuno = audioProviderMode === 'suno';
   const sunoPlatform: SunoPlatform = d?.sunoPlatform === 'seedance-nz' ? 'seedance-nz' : 'zhenzhen';
   const isSunoNz = isSuno && sunoPlatform === 'seedance-nz';
@@ -1086,7 +1090,7 @@ const AudioNode = ({ id, data, selected }: NodeProps) => {
       setError('Seed Audio 提示词长度必须为 5-2048 字符');
       return;
     }
-    const latestAudioModel = isQwen3Tts
+    const latestAudioModel = isGeminiTts ? geminiTtsModel : isQwen3Tts
       ? qwenTtsModel
       : isMinimaxAudio
         ? minimaxAudioModel
@@ -1281,7 +1285,7 @@ const AudioNode = ({ id, data, selected }: NodeProps) => {
         if (isMureka && Boolean(finalPrompt) === Boolean(murekaInstrumentalId.trim())) {
           throw new Error('Mureka 的 Prompt 与 instrumental_id 必须且只能填写一个');
         }
-        const request = isDoubaoVoice
+        const request = isGeminiTts ? buildGeminiTtsRequest(geminiTtsModel,finalPrompt,upstream.audioUrls,d.geminiTtsParams||{}) : isDoubaoVoice
           ? buildDoubaoVoiceClientRequest({ model: seedAudioModel, prompt: finalPrompt, params: doubaoVoiceParams,
             speaker: seedAudioSpeaker, texts: orderedTexts, audioUrls: upstream.audioUrls })
           : isQwen3Tts
@@ -1659,7 +1663,7 @@ const AudioNode = ({ id, data, selected }: NodeProps) => {
           <div className="text-sm font-semibold text-white">{translate('nodes:audio.titleWithProvider', { provider:
             isWhisper ? 'Whisper'
               : isSeedAudio ? 'Seed Audio'
-                : isQwen3Tts ? 'Qwen-TTS'
+                : isGeminiTts ? 'Gemini 2.5 TTS' : isQwen3Tts ? 'Qwen-TTS'
                   : isMinimaxAudio ? 'MiniMax'
                     : isMureka ? 'Mureka'
                       : isLyria ? 'Lyria' : 'Suno'
@@ -1670,7 +1674,7 @@ const AudioNode = ({ id, data, selected }: NodeProps) => {
               : isSeedAudio
                 ? `${seedAudioModel} · ${translate('nodes:generation.budgetHouse')}`
                 : isSeedanceNzAudio
-                  ? `${isQwen3Tts ? qwenTtsModel : isMinimaxAudio ? minimaxAudioModel : murekaModel} · ${translate('nodes:generation.budgetHouse')}`
+                  ? `${isGeminiTts ? geminiTtsModel : isQwen3Tts ? qwenTtsModel : isMinimaxAudio ? minimaxAudioModel : murekaModel} · ${translate('nodes:generation.budgetHouse')}`
                 : isLyria
                   ? `${flowMusicOperation} · flowmusic · ${translate('nodes:generation.budgetHouse')}`
                 : isSunoNz
@@ -1687,6 +1691,7 @@ const AudioNode = ({ id, data, selected }: NodeProps) => {
             { value: 'seed-audio', label: 'Seed Audio' },
             { value: 'whisper', label: 'Whisper' },
             { value: 'qwen3-tts', label: 'Qwen-TTS' },
+            {value:'gemini-tts',label:'Gemini 2.5 TTS'},
             { value: 'minimax', label: 'MiniMax' },
             { value: 'mureka', label: 'Mureka' },
             { value: 'lyria', label: 'Lyria' },
@@ -1876,6 +1881,7 @@ const AudioNode = ({ id, data, selected }: NodeProps) => {
           </div>
         )}
 
+        {isGeminiTts && <div className="space-y-2"><select aria-label="Gemini TTS model" className="w-full rounded border p-1 text-xs" style={{background:'var(--t8-bg-panel)',color:'var(--t8-text-main)'}} value={geminiTtsModel} onChange={e=>{const value=e.currentTarget.value;update({geminiTtsModel:value});}}>{NOV21.contract.gemini.models.map((model:string)=><option key={model} value={model}>{model}</option>)}</select><GeminiTtsControls data={d.geminiTtsParams||{}} update={update}/></div>}
         {isQwen3Tts && (
           <div className="rounded border border-cyan-300/20 bg-cyan-400/[0.05] p-2 space-y-2">
             <div>
@@ -2012,9 +2018,9 @@ const AudioNode = ({ id, data, selected }: NodeProps) => {
           update={update}
           context={{
             providerSource: isSeedAudio || isWhisper || isSunoNz || isSeedanceNzAudio || isLyria ? 'seedance-nz' : 'zhenzhen',
-            model: isWhisper ? 'whisper-1' : isSeedAudio ? seedAudioModel : isQwen3Tts ? qwenTtsModel : isMinimaxAudio ? minimaxAudioModel : isMureka ? murekaModel : isLyria ? flowMusicOperation : isSunoNz ? sunoNzOperation : version,
-            apiModel: isWhisper ? 'whisper-1' : isSeedAudio ? seedAudioModel : isQwen3Tts ? qwenTtsModel : isMinimaxAudio ? minimaxAudioModel : isMureka ? murekaModel : isLyria ? 'flowmusic' : isSunoNz ? sunoNzOperation : `suno-${version}`,
-            providerKind: isWhisper ? 'whisper' : isSeedAudio ? 'seed-audio' : isQwen3Tts ? 'qwen3-tts' : isMinimaxAudio ? 'minimax' : isMureka ? 'mureka' : isLyria ? 'lyria' : 'suno',
+            model: isGeminiTts ? geminiTtsModel : isWhisper ? 'whisper-1' : isSeedAudio ? seedAudioModel : isQwen3Tts ? qwenTtsModel : isMinimaxAudio ? minimaxAudioModel : isMureka ? murekaModel : isLyria ? flowMusicOperation : isSunoNz ? sunoNzOperation : version,
+            apiModel: isGeminiTts ? geminiTtsModel : isWhisper ? 'whisper-1' : isSeedAudio ? seedAudioModel : isQwen3Tts ? qwenTtsModel : isMinimaxAudio ? minimaxAudioModel : isMureka ? murekaModel : isLyria ? 'flowmusic' : isSunoNz ? sunoNzOperation : `suno-${version}`,
+            providerKind: isGeminiTts ? 'gemini-tts' : isWhisper ? 'whisper' : isSeedAudio ? 'seed-audio' : isQwen3Tts ? 'qwen3-tts' : isMinimaxAudio ? 'minimax' : isMureka ? 'mureka' : isLyria ? 'lyria' : 'suno',
           }}
         />
 

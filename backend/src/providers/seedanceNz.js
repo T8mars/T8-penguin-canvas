@@ -26,6 +26,9 @@ const { resolveBundledFfprobe, resolveBundledFfmpeg } = require('./llmMedia');
 const NB_FLUX_VIDU = require('../shared/nb21FluxViduQ4Contract.json');
 const TOPAZ_VIDEO_CONTRACT = require('../shared/topazVideoContract.json');
 const NOV19_CONTRACT = require('../shared/nov19ModelsContract.json');
+const NOV21_CONTRACT = require('../shared/nov21ModelsContract.json');
+let nov21Promise;
+const nov21Api = () => nov21Promise ||= import('../shared/nov21ModelsContract.mjs').then(m => m.createNov21ModelsContract(NOV21_CONTRACT));
 const NOV19_VOICES = require('../shared/qwenAudio31Voices.json');
 const NOV19_AUDIO_MODELS = new Set(NOV19_CONTRACT.audio.models);
 let nov19Promise;
@@ -156,6 +159,7 @@ const ZHENZHEN_APIMART_IMAGE_MODELS = new Set([
   ...previewMuseFlux.imageModels,
   MOSS_IMAGE_CONTRACT.model,
   NOV19_CONTRACT.kling.model,
+  NOV21_CONTRACT.longImage.model,
   ...MAI_IMAGE_MODELS,
   FLUX3_IMAGE_MODEL,
   ZHENZHEN_IMAGE_G_V2_LOWPRICE_MODEL,
@@ -628,6 +632,7 @@ const SEEDANCE_NZ_AUDIO_MODELS = new Set([
   NB_DOUBAO.audio.iclModel,
   ...QWEN3_TTS_MODELS,
   ...NOV19_AUDIO_MODELS,
+  ...NOV21_CONTRACT.gemini.models,
   ...MINIMAX_AUDIO_MODELS,
   ...MUREKA_BGM_MODELS,
 ]);
@@ -2916,6 +2921,18 @@ async function buildApimartImagePayload(request, apiKey, options = {}) {
       cacheVariant: 'moss-png', fileName: 'moss-reference.png', allowedMimes: ['image/png'],
     })];
     return { payload, model, taskType: sources.length ? 'i2i' : 't2i' };
+  }
+  if (model === NOV21_CONTRACT.longImage.model) {
+    const payload=(await nov21Api()).image({...request,model}),roles=payload.image_with_roles;
+    const sources=payload.images || roles?.map(v=>v.url) || [],prepared=[];
+    for(const source of sources){
+      const file=await mediaBuffer(source,'image',NOV21_CONTRACT.longImage.maxBytes,options),info=await sharp(file.buffer).metadata();
+      if(!['jpeg','png'].includes(info.format)||Math.min(info.width,info.height)<300||Math.max(info.width,info.height)>Math.min(info.width,info.height)*2.5)throw Object.assign(new Error('Kling long-image references require JPEG/PNG, >=300 px and ratio 2:5..5:2'),{status:400});
+      await sharp(file.buffer).stats();prepared.push({buffer:file.buffer,mime:info.format==='jpeg'?'image/jpeg':'image/png'});
+    }
+    const urls=[];for(const file of prepared)urls.push(await uploadMedia('data:'+file.mime+';base64,'+file.buffer.toString('base64'),'image',apiKey,{...options,maxBytes:NOV21_CONTRACT.longImage.maxBytes,allowedMimes:[file.mime],cacheVariant:'kling-long-original'}));
+    if(payload.images)payload.images=urls;else if(roles)payload.image_with_roles=roles.map((v,i)=>({...v,url:urls[i]}));
+    return {payload,model,taskType:sources.length?'i2i':'t2i'};
   }
   if (model === NOV19_CONTRACT.kling.model || NOV19_CONTRACT.mai.models.includes(model)) {
     const api=await nov19Api(),payload=api.image({...request,model}),prepared=[];
@@ -5777,6 +5794,7 @@ async function buildAudioPayload(request, apiKey, options = {}) {
     return { payload: built.payload, model };
   }
 
+  if (NOV21_CONTRACT.gemini.models.includes(model)) return {payload:(await nov21Api()).audio({...request,model}),model};
   if (NOV19_AUDIO_MODELS.has(model)) {
     const api=await nov19Api(),payload=api.audio({...request,model}),prepared=[];
     for(const source of payload.metadata.audio_urls || []){
@@ -6203,9 +6221,10 @@ async function buildH3TurboPayload(request, apiKey, options = {}) {
     if (!wav && !mp3) throw Object.assign(new Error('H3 audio references require MP3/WAV'),{status:400});
     // Decode locally; do not upload a corrupt header or rename an unsupported container.
     await transcodeReferenceAudio(buffer,{...options,normalizeAudioWav:true,maxBytes:100*1024*1024});
+    if(spec.audioCoversDuration && await probeSeedance25ReferenceDuration(buffer,file,'audio',options)>Number(payload.seconds)+0.05)throw Object.assign(new Error('H3 digital-human duration must cover the driving audio'),{status:400});
     preparedAudios.push({buffer,mime:wav?'audio/wav':'audio/mpeg'});
   }
-  if (video && preparedAudios.reduce((sum,file)=>sum+file.buffer.length,0)>spec.audioBytes) throw Object.assign(new Error('H3 audio references exceed 10 MiB'),{status:400});
+  if (video && !spec.audioPerFile && preparedAudios.reduce((sum,file)=>sum+file.buffer.length,0)>spec.audioBytes) throw Object.assign(new Error('H3 audio references exceed 10 MiB'),{status:400});
   for (const source of request.videos || []) {
     const file = await mediaBuffer(source, 'video', spec.videoBytes, options);
     if (file.buffer.subarray(4,8).toString() !== 'ftyp') throw Object.assign(new Error('H3 video requires MP4'),{status:400});
@@ -6231,6 +6250,32 @@ async function submitH3TurboVideoTask(request, apiKey, options = {}) {
   return {taskId,model:built.model,taskType:built.taskType,...safeProviderTrace(response,data,{pollCount:0})};
 }
 async function queryH3TurboVideoTask(taskId, apiKey, options = {}) {
+  return queryNov21LegacyVideoTask(taskId,apiKey,options,(await h3TurboApi()).videoModels,H3_TURBO_CONTRACT.video.model);
+}
+async function buildHeygenPayload(request,apiKey,options={}) {
+  const payload=(await nov21Api()).video(request),source=payload.metadata.audio_urls?.[0];
+  if(source){
+    const file=await mediaBuffer(source,'audio',undefined,options),b=file.buffer;
+    const valid=b.subarray(0,4).toString()==='RIFF'&&b.subarray(8,12).toString()==='WAVE'||b.subarray(0,3).toString()==='ID3'||b[0]===255&&(b[1]&224)===224&&(b[1]&24)!==8&&(b[1]&6)===2||b.subarray(4,8).toString()==='ftyp';
+    if(!valid)throw Object.assign(new Error('HeyGen audio must be MP3/WAV/M4A'),{status:400});
+    await transcodeReferenceAudio(b,{...options,normalizeAudioWav:true,maxBytes:100*1024*1024});
+    const url=await uploadMedia(source,'audio',apiKey,{...options,cacheVariant:'heygen-original-audio'});
+    if(!/^https:\/\//i.test(url))throw Object.assign(new Error('HeyGen requires a public HTTPS audio URL'),{status:400});
+    payload.metadata.audio_urls=[url];
+  }
+  return {payload,model:request.model,taskType:source?'audio':'text'};
+}
+async function submitHeygenVideoTask(request,apiKey,options={}) {
+  if(!String(apiKey||'').trim())throw new Error('Missing budget-house API Key');
+  const built=await buildHeygenPayload(request,apiKey,options);
+  const response=await fetchProviderResponse(getFetchImpl(options),cleanBaseUrl(options.baseUrl)+'/v1/video/generations',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+apiKey},body:JSON.stringify(built.payload)},options,'HeyGen submit');
+  const data=await responseJson(response,'HeyGen submit');if(!response.ok)throw createUpstreamError(data,response);
+  return {taskId:requiredTaskId(data?.task_id||data?.id||data?.data?.task_id||data?.data?.id,'HeyGen submit',response),model:built.model,taskType:built.taskType,...safeProviderTrace(response,data,{pollCount:0})};
+}
+async function queryHeygenVideoTask(taskId,apiKey,options={}) {
+  return queryNov21LegacyVideoTask(taskId,apiKey,options,NOV21_CONTRACT.heygen.models,NOV21_CONTRACT.heygen.models[0]);
+}
+async function queryNov21LegacyVideoTask(taskId, apiKey, options, models, fallback) {
   if (!String(apiKey || '').trim()) throw new Error('Missing budget-house API Key');
   const response=await fetchProviderResponse(getFetchImpl(options),cleanBaseUrl(options.baseUrl)+'/v1/video/generations/'+encodeURIComponent(taskId),{
     method:'GET',headers:{Authorization:'Bearer '+apiKey}},options,'H3 Lowprice query');
@@ -6238,8 +6283,8 @@ async function queryH3TurboVideoTask(taskId, apiKey, options = {}) {
   if (!response.ok) throw createUpstreamError(data,response);
   const record=data?.data||data,nested=record?.data||{};
   const api = await h3TurboApi();
-  const model = api.normalizeResultModel(record.model || nested.model || options.model || H3_TURBO_CONTRACT.video.model);
-  if (!api.videoModels.includes(model) || options.model && options.model !== model || [record.model,nested.model].filter(Boolean).some(value=>api.normalizeResultModel(value)!==model)) throw new Error('H3 Lowprice model mismatch');
+  const model = api.normalizeResultModel(record.model || nested.model || options.model || fallback);
+  if (!models.includes(model) || options.model && options.model !== model || [record.model,nested.model].filter(Boolean).some(value=>api.normalizeResultModel(value)!==model)) throw new Error('Video model mismatch');
   const statuses=[record.status,nested.status].filter(v=>typeof v==='string'&&v.trim()).map(normalizeImageTaskStatus);
   const status=statuses.includes('failed')?'failed':statuses.length&&statuses.every(v=>v==='succeeded')?'succeeded':statuses.includes('running')?'running':'pending';
   return {taskId,model,status,progress:String(record.progress??''),videoUrl:record.result_url||nested.result_url||nested?.content?.video_url||'',failReason:record.fail_reason||record.error?.message||'',...safeProviderTrace(response,data)};
@@ -6391,6 +6436,12 @@ async function queryImageTask(taskId, apiKey, options = {}) {
 }
 
 async function buildHunyuan3dPayload(request, apiKey, options = {}) {
+  if(request.model===NOV21_CONTRACT.miora.model){
+    const payload=(await nov21Api()).model3d(request),prepared=[];
+    for(const source of payload.images||[]){const file=await mediaBuffer(source,'image',NOV21_CONTRACT.miora.maxBytes,options),info=await sharp(file.buffer).metadata();if(!['jpeg','png','webp'].includes(info.format))throw Object.assign(new Error('Miora requires JPEG/PNG/WebP views'),{status:400});await sharp(file.buffer).stats();prepared.push({buffer:file.buffer,mime:'image/'+(info.format==='jpeg'?'jpeg':info.format)});}
+    if(prepared.length){payload.images=[];for(const file of prepared)payload.images.push(await uploadMedia('data:'+file.mime+';base64,'+file.buffer.toString('base64'),'image',apiKey,{...options,maxBytes:NOV21_CONTRACT.miora.maxBytes,allowedMimes:[file.mime],cacheVariant:'miora-original'}));}
+    return {payload,model:request.model,taskType:prepared.length?'i3d':'t3d'};
+  }
   if (require('./tripo3d').MODELS.includes(request.model)) {
     const tripo3d = require('./tripo3d');
     const built = (await tripo3d.getContract()).build(request);
@@ -6499,7 +6550,8 @@ async function queryHunyuan3dTask(taskId, apiKey, options = {}) {
   // materializer and 3D preview never receive an unrelated attachment.
   const tripo3d = require('./tripo3d');
   const model = String(record.model || record.data?.model || options.model || '');
-  const tripoResult = status === 'succeeded' && tripo3d.MODELS.includes(model) ? tripo3d.parseFiles(record) : null;
+  if(options.model && model!==options.model)throw new Error('3D result model mismatch');
+  const tripoResult = status === 'succeeded' ? model===NOV21_CONTRACT.miora.model ? require('./miora3d').parseFiles(record) : tripo3d.MODELS.includes(model) ? tripo3d.parseFiles(record) : null : null;
   const rankedModelUrls = status === 'succeeded' ? tripoResult ? tripoResult.modelUrls : model3dResultUrls(record) : [];
   const modelUrls = rankedModelUrls.length ? [rankedModelUrls[0]] : [];
   return {
@@ -7158,6 +7210,7 @@ module.exports = {
   submitViduTask,
   submitHappyHorseTask,
   buildPreviewMuseFluxPayload, submitMuseVideoTask, queryMuseVideoTask,
+  buildHeygenPayload, submitHeygenVideoTask, queryHeygenVideoTask,
   submitImageTask,
   submitMinimaxH3ContextIrTask,
   submitMidjourneyAction,

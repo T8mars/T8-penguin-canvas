@@ -6,6 +6,7 @@ const required = ['model', 'apiModel', 'aspectRatio', 'sizeLevel', 'imageBuiltin
   'providerSource', 'providerId', 'providerModel'] as const;
 const optional = ['seedreamApiSource'] as const;
 export const IMAGE_HISTORY_EXTRA_FIELDS: Record<string, { label: string; type: 'string' | 'number' | 'boolean' }> = {
+  longImageSkill:{label:'longImageSkill',type:'string'},longImageLength:{label:'longImageLength',type:'string'},longImageResolution:{label:'longImageResolution',type:'string'},longImageSingleRole:{label:'longImageSingleRole',type:'string'},longImageNsfw:{label:'longImageNsfw',type:'boolean'},
   h3TurboSeed: {label:'h3TurboSeed',type:'number'}, h3TurboFormat: {label:'h3TurboFormat',type:'string'},
   g26Mode: {label:'g26Mode',type:'string'},
   g26Size: {label:'g26Size',type:'string'},

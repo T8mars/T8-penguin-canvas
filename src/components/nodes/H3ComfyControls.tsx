@@ -5,7 +5,7 @@ export default function H3ComfyControls({model,data,update}: {model:string;data:
   if (!spec?.video) return null;
   const style = {background:'var(--t8-bg-panel)',borderColor:'var(--t8-border)',color:'var(--t8-text-main)'};
   return <div className="nodrag nowheel space-y-2 text-xs" style={{color:'var(--t8-text-main)'}}>
-    <div>{t(`h3Turbo:${spec.frames?'charswapHint':spec.nativeSeed?'wuxiHint':spec.audioNeedsImage?'selfliftHint':'wfHint'}`)}</div>
+    <div>{t(spec.token?'nov21:h3TokenHint':`h3Turbo:${spec.frames?'charswapHint':spec.nativeSeed?'wuxiHint':spec.audioNeedsImage?'selfliftHint':'wfHint'}`)}</div>
     {spec.frames && <>
       <label className="block">{t('h3Turbo:durationMode')}<select aria-label={t('h3Turbo:durationMode')} style={style} className="block w-full rounded border p-1" value={data.h3ComfyDurationMode || 'seconds'} onChange={e=>update({h3ComfyDurationMode:e.target.value})}>
         <option value="seconds">{t('h3Turbo:seconds')}</option><option value="frames">{t('h3Turbo:frames')}</option>

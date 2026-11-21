@@ -346,7 +346,7 @@ export interface SeedreamNzSubmitRequest {
     | 'flux-3-image-t2i' | 'flux-3-image-i2i' | 'flux-3-image-klein-t2i' | 'flux-3-image-klein-i2i'
     | 'flux-3-image'
     | 'mai-image-2-6'
-    | 'mai-image-2-6-flash' | 'mai-image-2-7' | 'mai-image-2-7-flash' | 'kling-v4-image'
+    | 'mai-image-2-6-flash' | 'mai-image-2-7' | 'mai-image-2-7-flash' | 'kling-v4-image' | 'kling-v4-long-image'
     | 'minimax-h3-image' | 'qwen-image-2.1-turbo'
     | 'moss-image'
     | 'zhenzhen-image-nb-pro'
@@ -1707,6 +1707,8 @@ export async function queryMotionVideo(taskId: string, model: string, connection
   return withProviderTransportTrace(data.data as MotionQueryResult, r);
 }
 
+export async function submitHeygenVideo(req: ReturnType<typeof import('../utils/nov21Models').buildHeygenRequest>, transport:ProviderSubmissionTransport={}){const r=await fetch('/api/proxy/video/heygen/submit',{method:'POST',headers:providerSubmissionHeaders(transport),body:JSON.stringify(req),signal:transport.signal});const data=await safeJsonResponse(r,'HeyGen submit');if(!r.ok||!data.success)throw providerResponseError(r,data);return withProviderTransportTrace(data.data,r);}
+export async function queryHeygenVideo(taskId:string,model:string,transport:ProviderSubmissionTransport={}):Promise<HappyHorseQueryResult>{const r=await fetch('/api/proxy/video/heygen/status/'+encodeURIComponent(taskId)+'?model='+encodeURIComponent(model),{signal:transport.signal});const data=await safeJsonResponse(r,'HeyGen query');if(!r.ok||!data.success)throw providerResponseError(r,data);return withProviderTransportTrace(data.data,r);}
 export async function submitH3TurboVideo(req: { model: string; prompt: string; images: string[]; audios: string[]; videos?: string[]; seconds?: string; frames?: number; seed?: number; resolution: string; ratio: string }, transport: ProviderSubmissionTransport = {}) {
   const r = await fetch('/api/proxy/video/h3-lowprice/submit', {
     method: 'POST', headers: providerSubmissionHeaders(transport), body: JSON.stringify(req), signal: transport.signal,
@@ -1716,8 +1718,8 @@ export async function submitH3TurboVideo(req: { model: string; prompt: string; i
   return withProviderTransportTrace(data.data as { taskId: string; model: string; taskType: string }, r);
 }
 
-export async function queryH3TurboVideo(taskId: string, transport: ProviderSubmissionTransport = {}): Promise<HappyHorseQueryResult> {
-  const r = await fetch(`/api/proxy/video/h3-lowprice/status/${encodeURIComponent(taskId)}`, { signal: transport.signal });
+export async function queryH3TurboVideo(taskId: string, transport: ProviderSubmissionTransport & {model?:string} = {}): Promise<HappyHorseQueryResult> {
+  const r = await fetch(`/api/proxy/video/h3-lowprice/status/${encodeURIComponent(taskId)}${transport.model?'?model='+encodeURIComponent(transport.model):''}`, { signal: transport.signal });
   const data = await safeJsonResponse(r, 'H3 Lowprice查询');
   if (!r.ok || !data.success) throw providerResponseError(r, data);
   return withProviderTransportTrace(data.data, r);
@@ -1828,7 +1830,7 @@ export async function queryAnimateMotionTransfer(
   return withProviderTransportTrace(data.data, r);
 }
 
-export type Hunyuan3DModel = 'hunyuan3d-v3.1-text-to-3d' | 'hunyuan3d-v3.1-image-to-3d'
+export type Hunyuan3DModel = 'miora-3d' | 'hunyuan3d-v3.1-text-to-3d' | 'hunyuan3d-v3.1-image-to-3d'
   | 'hitem3d-v2-image-to-3d' | 'hitem3d-v2-multi-image-to-3d' | 'hitem3d-portrait-v2.1-image-to-3d' | 'hitem3d-portrait-v2.1-multi-image-to-3d'
   | 'meshy-6-global-image-to-3d' | 'meshy-6-global-text-to-3d' | `tripo-${string}`;
 export interface Hunyuan3DSubmitRequest {
@@ -1877,7 +1879,7 @@ export async function submitHunyuan3D(req: Hunyuan3DSubmitRequest, transport: Pr
 }
 
 export async function queryHunyuan3D(taskId: string, transport: ProviderSubmissionTransport & { model?: string } = {}): Promise<Hunyuan3DQueryResult> {
-  const r = await fetch(`/api/proxy/3d/seedance-nz/status/${encodeURIComponent(taskId)}${transport.model?.startsWith('tripo-') ? `?model=${encodeURIComponent(transport.model)}` : ''}`, { signal: transport.signal });
+  const r = await fetch(`/api/proxy/3d/seedance-nz/status/${encodeURIComponent(taskId)}${(transport.model?.startsWith('tripo-') || transport.model === 'miora-3d') ? `?model=${encodeURIComponent(transport.model)}` : ''}`, { signal: transport.signal });
   const data = await safeJsonResponse(r, 'Hunyuan 3D 查询');
   if (!r.ok && !data?.data?.recoverable) throw providerResponseError(r, data);
   return withProviderTransportTrace(data.data || { status: 'failed', error: data?.error }, r);
@@ -1960,7 +1962,7 @@ export async function queryMinimaxH3ContextIr(
 // 完全对齐主项目 gpt-image-2-web 的 runSuno / runSunoCover / runSunoExtend
 // ========================================================================
 export type AudioMode = 'generate' | 'cover' | 'extend';
-export type AudioProviderMode = 'suno' | 'seed-audio' | 'whisper' | 'qwen3-tts' | 'minimax' | 'mureka' | 'lyria';
+export type AudioProviderMode = 'suno' | 'seed-audio' | 'whisper' | 'qwen3-tts' | 'gemini-tts' | 'minimax' | 'mureka' | 'lyria';
 export type SunoPlatform = 'zhenzhen' | 'seedance-nz';
 export type WhisperResponseFormat = 'json' | 'verbose_json' | 'srt' | 'text' | 'vtt';
 
@@ -2347,6 +2349,7 @@ export type SeedanceNzAudioModel =
   | 'doubao-voice-clone'
   | 'doubao-seed-icl-2.0'
   | 'doubao-seed-audio-1.0'
+  | 'zhenzhen/gm-2.5-pro-tts' | 'zhenzhen/gm-2.5-flash-tts'
   | 'qwen-audio-3.1-tts-flash' | 'qwen-audio-3.1-tts-next' | 'qwen-audio-3.1-tts-plus'
   | 'qwen3-tts-flash'
   | 'qwen3-tts-instruct-flash'
@@ -2358,6 +2361,7 @@ export type SeedanceNzAudioModel =
   | 'mureka-v9-bgm';
 
 export interface SeedanceNzAudioSubmitRequest {
+  geminiTts?: Record<string,any>;
   model: SeedanceNzAudioModel;
   qwenAudio31?: Record<string, string | number | boolean>;
   doubaoVoice?: Record<string, string | number | boolean>;

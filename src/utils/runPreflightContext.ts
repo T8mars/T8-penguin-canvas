@@ -325,6 +325,7 @@ function builtInCredentialNotice(node: Node, settings: ApiSettings): RunPrefligh
   if (node.type === 'video' && data.klingV4Pending != null) {
     return configuredSecret(settings.zhenzhenSd2ApiKey) ? null : capabilityNotice(node, 'provider.seedance-nz-credential-missing', missingDomesticCredentialMessage());
   }
+  if (node.type === 'model-3d') return configuredSecret(settings.zhenzhenSd2ApiKey) ? null : capabilityNotice(node, 'provider.seedance-nz-credential-missing', missingDomesticCredentialMessage());
   if (node.type === 'code-animation') {
     let pending;
     try { pending = readMotionPending(data.motionPending); }
@@ -391,7 +392,7 @@ function builtInCredentialNotice(node: Node, settings: ApiSettings): RunPrefligh
 
   if (node.type === 'video') {
     const { definition, apiModel } = videoModelSelection(data);
-    if (definition?.kind === 'h3-lowprice' || definition?.kind === 'muse' || definition?.kind === 'happyhorse' || definition?.kind === 'hailuo' || definition?.kind === 'kling' || definition?.kind === 'upscaler' || definition?.kind === 'vidu' || definition?.kind === 'wan') {
+    if (definition?.kind === 'heygen' || definition?.kind === 'h3-lowprice' || definition?.kind === 'muse' || definition?.kind === 'happyhorse' || definition?.kind === 'hailuo' || definition?.kind === 'kling' || definition?.kind === 'upscaler' || definition?.kind === 'vidu' || definition?.kind === 'wan') {
       return configuredSecret(settings.zhenzhenSd2ApiKey)
         ? null
         : capabilityNotice(node, 'provider.seedance-nz-credential-missing', missingDomesticCredentialMessage());
@@ -424,7 +425,7 @@ function builtInCredentialNotice(node: Node, settings: ApiSettings): RunPrefligh
 
   if (node.type === 'audio') {
     if (
-      ['seed-audio', 'whisper', 'qwen3-tts', 'minimax', 'mureka'].includes(String(data.audioProviderMode || ''))
+      ['seed-audio', 'whisper', 'qwen3-tts', 'gemini-tts', 'minimax', 'mureka'].includes(String(data.audioProviderMode || ''))
       || (data.audioProviderMode === 'suno' && data.sunoPlatform === 'seedance-nz')
     ) {
       return configuredSecret(settings.zhenzhenSd2ApiKey)

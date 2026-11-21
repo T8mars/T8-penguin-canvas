@@ -1,3 +1,4 @@
+import nov21 from '../../backend/src/shared/nov21ModelsContract.json';
 import nov19 from '../../backend/src/shared/nov19ModelsContract.json';
 import h3Turbo from '../../backend/src/shared/h3TurboContract.json';
 import { isPreviewImage, isFluxVariant, PREVIEW_MUSE_FLUX } from './previewMuseFlux';
@@ -23,7 +24,7 @@ export type RunRecoveryKind =
   | 'fashvsr'
   | 'vosr2'
   | 'h3-lowprice'
-  | 'muse'
+  | 'muse' | 'heygen'
   | 'topaz'
   | 'motion'
   | 'animate'
@@ -56,7 +57,7 @@ export interface RunRecoveryDescriptor {
 }
 const RECOVERY_KINDS = new Set<RunRecoveryKind>([
   'runninghub', 'seedance', 'seedream-nz', 'wan', 'happyhorse', 'hailuo', 'flux3', 'kling', 'upscaler', 'fashvsr', 'vosr2', 'animate', 'vidu', 'seed-audio', 'suno',
-  'model3d', 'h3-lowprice', 'muse', 'topaz', 'motion', 'image', 'mj', 'video', 'image-fal', 'video-fal',
+  'model3d', 'h3-lowprice', 'heygen', 'muse', 'topaz', 'motion', 'image', 'mj', 'video', 'image-fal', 'video-fal',
 ]);
 
 function text(value: unknown, maxLength: number): string {
@@ -116,7 +117,7 @@ export function inferRunRecoveryDescriptor(payload: Record<string, unknown>): Ru
   const maxPolls = Math.min(7200, minimumProviderMediaPollCount(pollIntervalMs, Number(payload.pollLimit) || 1200));
   if (provider === 'suno' && taskIds.length) return { version: 1, kind: 'suno', taskIds, model, pollIntervalMs, maxPolls };
   if (!taskId) return null;
-  if(provider==='seedance-nz-3d'&&[...TRIPO.models,...NEW_IMAGE_CONTRACT.hitem.models,...NEW_IMAGE_CONTRACT.meshy.models,'hunyuan3d-v3.1-text-to-3d','hunyuan3d-v3.1-image-to-3d'].includes(model))return {version:1,kind:'model3d',taskId,model,pollIntervalMs,maxPolls:Math.max(maxPolls,1350)};
+  if(provider==='seedance-nz-3d'&&[nov21.miora.model,...TRIPO.models,...NEW_IMAGE_CONTRACT.hitem.models,...NEW_IMAGE_CONTRACT.meshy.models,'hunyuan3d-v3.1-text-to-3d','hunyuan3d-v3.1-image-to-3d'].includes(model))return {version:1,kind:'model3d',taskId,model,pollIntervalMs,maxPolls:Math.max(maxPolls,1350)};
   if (provider === 'runninghub') {
     const site = text(payload.site, 20).toLowerCase() === 'intl' ? 'intl' : 'cn';
     return { version: 1, kind: 'runninghub', taskId, model, site, pollIntervalMs, maxPolls };
@@ -125,15 +126,16 @@ export function inferRunRecoveryDescriptor(payload: Record<string, unknown>): Ru
     const lowerModel = model.toLowerCase();
     if (flashVideoProfile(model)) return {version:1,kind:'seedance',taskId,model,taskProvider:'seedance-nz',pollIntervalMs,maxPolls};
     if (motionVideo.models.includes(model)) return normalizeExplicitRecovery({ kind: 'motion', taskId, model, connectionRef: payload.connectionRef, pollIntervalMs, maxPolls });
-    if (nov19.audio.models.includes(lowerModel) || lowerModel.includes('seed-audio') || [nbDoubao.audio.cloneModel, nbDoubao.audio.iclModel].includes(lowerModel)) return { version: 1, kind: 'seed-audio', taskId, model, pollIntervalMs, maxPolls,
+    if (nov21.gemini.models.includes(lowerModel) || nov19.audio.models.includes(lowerModel) || lowerModel.includes('seed-audio') || [nbDoubao.audio.cloneModel, nbDoubao.audio.iclModel].includes(lowerModel)) return { version: 1, kind: 'seed-audio', taskId, model, pollIntervalMs, maxPolls,
       ...(nov19.audio.models.includes(lowerModel)&&payload.outputFormat==='pcm'?{outputFormat:'pcm',sampleRate:String(payload.sampleRate|| (lowerModel.endsWith('-next')?'48000':'22050')),channels:payload.channels==='2'&&lowerModel.endsWith('-next')?'2':'1'}:{}),
       ...(lowerModel === nbDoubao.audio.iclModel && payload.outputFormat === 'pcm' ? {
         outputFormat: 'pcm', sampleRate: nbDoubao.audio.iclFields.sample_rate.options.includes(String(payload.sampleRate)) ? String(payload.sampleRate) : '24000',
       } : {}),
     };
-    if ([nov19.kling.model,...nov19.mai.models,h3Turbo.minimax.model,h3Turbo.qwen.model].includes(lowerModel) || isNewImageModel(lowerModel) || isPreviewImage(lowerModel) || isFluxVariant(lowerModel) || lowerModel === mossImage.model || lowerModel.includes('seedream') || nbDoubao.banana.models.includes(lowerModel) || lowerModel === 'mai-image-2-6' || lowerModel === 'mai-image-2-6-flash' || lowerModel === 'vosr2-image-upscale' || lowerModel === 'flux-3-image' || lowerModel === 'zhenzhen-image-nb-2.1') {
+    if ([nov21.longImage.model,nov19.kling.model,...nov19.mai.models,h3Turbo.minimax.model,h3Turbo.qwen.model].includes(lowerModel) || isNewImageModel(lowerModel) || isPreviewImage(lowerModel) || isFluxVariant(lowerModel) || lowerModel === mossImage.model || lowerModel.includes('seedream') || nbDoubao.banana.models.includes(lowerModel) || lowerModel === 'mai-image-2-6' || lowerModel === 'mai-image-2-6-flash' || lowerModel === 'vosr2-image-upscale' || lowerModel === 'flux-3-image' || lowerModel === 'zhenzhen-image-nb-2.1') {
       return { version: 1, kind: 'seedream-nz', taskId, model, pollIntervalMs, maxPolls };
     }
+    if (nov21.heygen.models.includes(model))return {version:1,kind:'heygen',taskId,model,pollIntervalMs,maxPolls};
     if (lowerModel.startsWith('wan-')) return { version: 1, kind: 'wan', taskId, model, pollIntervalMs, maxPolls };
     if (lowerModel.startsWith('happyhorse-')) return { version: 1, kind: 'happyhorse', taskId, model, pollIntervalMs, maxPolls };
     if (lowerModel.startsWith('hailuo-')) return { version: 1, kind: 'hailuo', taskId, model, pollIntervalMs, maxPolls };

@@ -5,7 +5,7 @@ export function createH3TurboContract(contract) {
   const videoModels = Object.values(contract).filter(spec => spec === contract.video || spec.video).map(spec => spec.model);
   const normalizeResultModel = model => ({'minimax-h3-comfyui-max/10020':contract.wf.model,'minimax-h3-comfyui-max/10021':contract.selflift.model}[model] || model);
   const frames = Array.from({length: 21}, (_, i) => 22 + 17 * i);
-  const ratios = (spec, resolution) => spec.frames ? resolution === 'auto' ? ['auto'] : resolution === '768p' ? spec.ratios : ['auto','16:9','9:16'] : spec.ratios;
+  const ratios = (spec, resolution) => spec.token ? spec.ratios : spec.frames ? resolution === 'auto' ? ['auto'] : resolution === '768p' ? spec.ratios : ['auto','16:9','9:16'] : spec.ratios;
   const fail = code => { throw Object.assign(new Error(`H3/Turbo: ${code}`), { code, status: 400 }); };
   const refs = value => { if (value === undefined) return []; if (!Array.isArray(value) || value.some(url => typeof url !== 'string' || !url.trim())) fail('references'); return [...value]; };
   function build(request) {
@@ -14,12 +14,12 @@ export function createH3TurboContract(contract) {
     const prompt = typeof request.prompt === 'string' ? request.prompt.trim() : '';
     if (!prompt || spec.promptBytes && new TextEncoder().encode(prompt).length > spec.promptBytes) fail('prompt');
     const images = refs(request.images), audios = refs(request.audios), videos = refs(request.videos);
-    if (images.length > spec.maxImages || images.length < (spec.minImages || 0) || audios.length > (spec.maxAudios || 0) || videos.length > (spec.maxVideos || 0) || videos.length < (spec.minVideos || 0)) fail('references');
+    if (images.length > spec.maxImages || images.length < (spec.minImages || 0) || audios.length > (spec.maxAudios || 0) || audios.length < (spec.minAudios || 0) || videos.length > (spec.maxVideos || 0) || videos.length < (spec.minVideos || 0)) fail('references');
     if (spec.audioNeedsImage && audios.length && !images.length || spec.videoNeedsImage && videos.length && !images.length) fail('image-required');
     const resolution = request.resolution ?? spec.defaultResolution, ratio = request.ratio ?? spec.ratios[0];
     if (!spec.resolutions.includes(resolution) || !video && resolution === '720p' && !images.length) fail('resolution');
     if (!ratios(spec, resolution).includes(ratio)) fail('ratio');
-    const metadata = { resolution, ratio };
+    const metadata = { ...(spec.token ? {} : {resolution}), ratio };
     const payload = { model: spec.model, prompt, ...(images.length ? { images } : {}), metadata };
     if (video) {
       if (request.frames !== undefined) {

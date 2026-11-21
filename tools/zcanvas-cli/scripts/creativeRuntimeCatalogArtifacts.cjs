@@ -1,3 +1,4 @@
+const nov21=require('../../../backend/src/shared/nov21ModelsContract.json');
 const pmf = require('../../../backend/src/shared/previewMuseFluxContract.json');
 const newModels=require('../../../backend/src/providers/g26Krea3d');
 const tripo3d = require('../../../backend/src/providers/tripo3d');
@@ -23,6 +24,7 @@ const BACKEND_TARGET = path.join(ROOT, 'backend', 'src', 'shared', 'creativeMode
 const CLI_TARGET = path.join(ROOT, 'tools', 'zcanvas-cli', 'generated', 'creative-runtime-catalog.json');
 
 const SOURCE_PATHS = [
+  path.join(ROOT,'backend/src/shared/nov21ModelsContract.json'),path.join(ROOT,'backend/src/shared/nov21ModelsContract.mjs'),path.join(ROOT,'backend/src/providers/miora3d.js'),
   path.join(ROOT,'backend/src/shared/nov19ModelsContract.json'),path.join(ROOT,'backend/src/shared/nov19ModelsContract.mjs'),path.join(ROOT,'backend/src/shared/qwenAudio31Voices.json'),
   MODEL_SOURCE,
   SEEDANCE_SOURCE,
@@ -185,7 +187,7 @@ function buildRuntimeCatalog() {
   const budgetVideoModels = new Set([
     ...(seedanceNz.ZHENZHEN_APIMART_VIDEO_MODELS || []),
   ].map(String));
-  const seedanceNzVideoKinds = new Set(['wan', 'happyhorse', 'hailuo', 'vidu', 'kling', 'upscaler', 'seedance25', 'h3-lowprice', 'muse']);
+  const seedanceNzVideoKinds = new Set(['wan', 'happyhorse', 'hailuo', 'vidu', 'kling', 'upscaler', 'seedance25', 'h3-lowprice', 'heygen', 'muse']);
 
   const llm = [];
   for (const item of models.LLM_MODELS || []) {
@@ -249,6 +251,7 @@ function buildRuntimeCatalog() {
           maxReferenceImages: option.maxReferenceImages ?? family.maxReferenceImages,
           description: family.description,
           ...(family.paramKind==='h3-turbo-image'?{seedField:'h3TurboSeed',seedRange:[-1,2147483647],originalOutput:true,outputFormats:family.id===h3Turbo.minimax.model?h3Turbo.minimax.formats:undefined,promptMaxUtf8Bytes:family.id===h3Turbo.qwen.model?8192:undefined,resolution720pRequiresReferences:family.id===h3Turbo.qwen.model,sharedParameterContract:'backend/src/shared/h3TurboContract.mjs'}:{}),
+          ...(option.value===nov21.longImage.model?{parameterKind:'kling-long-image',sharedParameterContract:'backend/src/shared/nov21ModelsContract.mjs',skills:nov21.longImage.skills,ecommerceReferences:{min:1,max:3},webpageRoles:['style','subject'],resolutions:nov21.longImage.resolutions,unsupportedFields:['n','size','width','height'],outputFormat:'png'}:{}),
         },
         option.disabled !== true,
       ));
@@ -257,7 +260,7 @@ function buildRuntimeCatalog() {
   for (const rawModel of seedanceNz.IMAGE_MODELS || []) {
     const model = String(rawModel || '').trim();
     if (!model) continue;
-    if ([h3Turbo.minimax.model,h3Turbo.qwen.model,...newModels.imageModels,pmf.hy.model, pmf.muse.imageModel, ...pmf.flux.models].includes(model)) continue;
+    if ([nov21.longImage.model,h3Turbo.minimax.model,h3Turbo.qwen.model,...newModels.imageModels,pmf.hy.model, pmf.muse.imageModel, ...pmf.flux.models].includes(model)) continue;
     const family = model === seedanceNz.NOV19_CONTRACT.kling.model ? model : model === seedanceNz.MOSS_IMAGE_CONTRACT.model ? 'moss-image' : seedanceNz.MAI_IMAGE_MODELS?.has(model) ? 'mai-image-2-6' : model === seedanceNz.FLUX3_IMAGE_MODEL ? 'flux-3-image'
       : seedanceNz.QWEN_IMAGE_30_MODELS?.has(model)
       ? 'qwen-image-3.0'
@@ -415,6 +418,8 @@ function buildRuntimeCatalog() {
           maxReferenceAudios: option.maxRefAudios ?? 0,
           description: option.description ?? family.description,
           ...(family.kind === 'h3-lowprice' ? {sharedParameterContract:'backend/src/shared/h3TurboContract.mjs',nativeSeed:['minimax-h3-comfyui-charswap','minimax-h3-comfyui-wuxi'].includes(option.value),seedField:'h3ComfySeed',...(option.value === 'minimax-h3-comfyui-charswap' ? {framesField:'h3ComfyFrames',durationModeField:'h3ComfyDurationMode',framesRange:{min:22,max:362,step:17}} : {})} : {}),
+          ...(option.value.endsWith('-token')&&family.kind==='h3-lowprice'?{seedField:undefined,fixedResolution:'768p',minimumReferenceImages:1,audioLimitPerFile:true,...(option.value.includes('charswap')?{framesField:'h3ComfyFrames',durationModeField:'h3ComfyDurationMode',framesRange:{min:22,max:362,step:17},exactReferenceVideos:1}:{}),...(option.value.includes('digital-human')?{exactReferenceAudios:1,audioMustFitDuration:true}:{})}:{}),
+          ...(family.kind==='heygen'?{sharedParameterContract:'backend/src/shared/nov21ModelsContract.mjs',endpoint:'/v1/video/generations',durationFromInput:true,defaultDuration:undefined,promptMaxCharacters:5000,avatarField:'heygenAvatar',voiceField:'heygenVoice',motionField:'heygenMotionPrompt',audioExcludesPromptAndVoice:true}:{}),
           ...(String(option.value).includes('-flash-') && family.kind === 'seedance25' ? {sharedParameterContract:'backend/src/shared/seedance25FlashContract.mjs',supportsDraft:false,referenceTaskTypes:['auto','reference','edit','extend'],referenceTaskTypeField:'seedance25ReferenceTaskType',referenceDuration:{min:2,max:30,totalMax:30}} : {}),
           ...(String(option.value).endsWith('-draft-to-video') ? { noPrompt: true, inputMode: 'completed-draft-task-id', draftTaskIdField: 'seedance25DraftTaskId', outputFormats: ['mp4','mov'], outputResolution: 'native1080p', sharedParameterContract: 'backend/src/shared/seedream55DraftContract.mjs' } : {}),
           ...(option.value === models.TOPAZ_VIDEO_UPSCALE_MODEL ? {
@@ -480,7 +485,9 @@ function buildRuntimeCatalog() {
     description: 'Flow Music 官方九项音乐创作与处理能力；请求 model 固定为 flowmusic',
   }));
 
+  for(const model of nov21.gemini.models)audio.push(modelEntry('audio','seedance-nz',model,model,'gemini-tts',{tabLabel:'Gemini 2.5 TTS',sharedParameterContract:'backend/src/shared/nov21ModelsContract.mjs',format:'wav',sampleRate:24000,channels:1}));
   const actions = [];
+  actions.push(actionEntry('model3d','seedance-nz',nov21.miora.model,nov21.miora.model,'miora-3d','model3d',{tab:'Miora 3D',endpoint:'/v1/3d/generations',viewOrder:nov21.miora.views,maximumReferenceImages:8,sharedParameterContract:'backend/src/shared/nov21ModelsContract.mjs',preserveAllFiles:true}));
   for (const item of tripo3d.contract.models) actions.push(actionEntry('model3d', 'seedance-nz', item.id, item.id, 'tripo-3d', 'model3d', {
     tab: 'Tripo 3D', endpoint: '/v1/3d/generations', family: item.group, mode: item.mode,
     viewOrder: item.mode === 'multiview' ? tripo3d.contract.views : [],

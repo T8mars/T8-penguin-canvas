@@ -6,7 +6,7 @@ test('encrypted shared ESM factories load through relative lazy imports without 
   const source = path.join(scratch, 'source'), output = path.join(scratch, 'encrypted');
   try {
     for (const dir of ['shared', 'providers']) fs.mkdirSync(path.join(source, dir), { recursive: true });
-    const factories = [['h3TurboContract','createH3TurboContract'], ['seedream55DraftContract','createSeedream55DraftContract'], ['tripo3dContract','createTripoContract'], ['nov19ModelsContract','createNov19ModelsContract']];
+    const factories = [['nov21ModelsContract','createNov21ModelsContract'], ['h3TurboContract','createH3TurboContract'], ['seedream55DraftContract','createSeedream55DraftContract'], ['tripo3dContract','createTripoContract'], ['nov19ModelsContract','createNov19ModelsContract']];
     for (const [name] of factories) for (const extension of ['.mjs','.json']) {
       const input = path.join(source,'shared',name+extension);
       fs.copyFileSync(path.join(__dirname,'../backend/src/shared',name+extension),input);
@@ -17,10 +17,10 @@ test('encrypted shared ESM factories load through relative lazy imports without 
     fs.writeFileSync(shim, `module.exports = async () => Promise.all([${factories.map(([name,factory]) => `import('../shared/${name}.mjs').then(m => m.${factory}(require('../shared/${name}.json')${name==='nov19ModelsContract'?",require('../shared/qwenAudio31Voices.json')":''}))`)}]);`);
     encryptFile(shim,source,output);
     require('../electron/loader.cjs');
-    const [h3,seedream,tripo,nov19] = await require(path.join(output,'providers/probe.t8c'))();
+    const [nov21,h3,seedream,tripo,nov19] = await require(path.join(output,'providers/probe.t8c'))();
     assert.equal(h3.build({model:'minimax-h3-image',prompt:'probe',seed:0}).metadata.seed,0);
     assert.equal(seedream.buildDraft({model:'seedance-2.5-standard-draft-to-video',draft_task_id:'fixture'}).metadata.draft_task_id,'fixture');
-    assert.ok(tripo);
+    assert.ok(tripo);assert.equal(nov21.audio({model:'zhenzhen/gm-2.5-flash-tts',prompt:'hello'}).metadata.voice,'Kore');
     assert.equal(nov19.audio({model:'qwen-audio-3.1-tts-next',prompt:'hello',metadata:{seed:0,channels:'2'}}).metadata.channels,'2');
     for (const [name] of factories) { assert.ok(fs.existsSync(path.join(output,'shared',name+'.t8c'))); assert.ok(!fs.existsSync(path.join(output,'shared',name+'.mjs'))); }
   } finally {

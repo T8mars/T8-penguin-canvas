@@ -10,6 +10,7 @@ import FLASH_VIDEO from '../../backend/src/shared/flashVideoContract.json';
 
 import NB_FLUX_VIDU from '../../backend/src/shared/nb21FluxViduQ4Contract.json';
 import TOPAZ_VIDEO from '../../backend/src/shared/topazVideoContract.json';
+import NOV21 from '../../backend/src/shared/nov21ModelsContract.json';
 import NOV19 from '../../backend/src/shared/nov19ModelsContract.json';
 export const KLING_IMAGE_MODEL=NOV19.kling.model;
 export const QWEN_AUDIO31_MODELS=NOV19.audio.models;
@@ -207,7 +208,7 @@ export const ZHENZHEN_BUDGET_BANANA_PRO_MODEL_OPTIONS = [
 ] as const;
 export const ZHENZHEN_IMAGE_G2_MODEL_OPTIONS = ZHENZHEN_BUDGET_GPT2_MODEL_OPTIONS.slice(0, 2);
 export const ZHENZHEN_APIMART_IMAGE_MODELS = [
-  ...G26_KREA_3D.g26.models, ...G26_KREA_3D.krea.models, G26_KREA_3D.zimage.model,
+  NOV21.longImage.model, ...G26_KREA_3D.g26.models, ...G26_KREA_3D.krea.models, G26_KREA_3D.zimage.model,
   ...PREVIEW_IMAGE_MODELS, ...FLUX_IMAGE_VARIANTS,
   MOSS_IMAGE_MODEL,
   ...NB_LOWPRICE_MODELS,
@@ -424,7 +425,7 @@ export const IMAGE_MODELS: ImageModelDef[] = [
     supportsReference: true, maxReferenceImages: NB_FLUX_VIDU.flux.maxImages,
   },
   {
-    id: KLING_IMAGE_MODEL,apiModel:KLING_IMAGE_MODEL,label:'Kling Image',tabLabel:'Kling Image',provider:'zhenzhen',paramKind:'kling-image',capabilities:['t2i','i2i','edit'],apiModelOptions:[{value:KLING_IMAGE_MODEL,label:KLING_IMAGE_MODEL}],aspectRatios:[],defaultAspectRatio:'',sizes:[],defaultSize:'',supportsReference:true,maxReferenceImages:10,
+    id: KLING_IMAGE_MODEL,apiModel:KLING_IMAGE_MODEL,label:'Kling Image',tabLabel:'Kling Image',provider:'zhenzhen',paramKind:'kling-image',capabilities:['t2i','i2i','edit'],apiModelOptions:[{value:KLING_IMAGE_MODEL,label:KLING_IMAGE_MODEL},{value:NOV21.longImage.model,label:NOV21.longImage.model,maxReferenceImages:3}],aspectRatios:[],defaultAspectRatio:'',sizes:[],defaultSize:'',supportsReference:true,maxReferenceImages:10,
   },
   {
     id: MAI_IMAGE_TAB, apiModel: MAI_IMAGE_TAB,
@@ -736,7 +737,7 @@ export const NBPRO_FAL_RESOLUTIONS = ['1K', '2K', '4K'];
 
 // ========== 视频 ==========
 // kind 决定上游 payload 协议(后端会根据 model 名自动识别,前端主要用于控制参数 UI 列表)
-export type VideoKind = 'veo' | 'grok' | 'sora' | 'seedance' | 'seedance25' | 'happyhorse' | 'hailuo' | 'flux3' | 'kling' | 'vidu' | 'upscaler' | 'wan' | 'animate' | 'muse' | 'h3-lowprice';
+export type VideoKind = 'veo' | 'grok' | 'sora' | 'seedance' | 'seedance25' | 'happyhorse' | 'hailuo' | 'flux3' | 'kling' | 'vidu' | 'upscaler' | 'wan' | 'animate' | 'muse' | 'h3-lowprice' | 'heygen';
 
 // ---- Video FAL 渠道注册表 (1:1 对齐 gpt-image-2-web runVeo3Fal / runGrokFal / runSora2Fal) ----
 export interface VideoFalEndpointDef {
@@ -1733,6 +1734,7 @@ export const VIDEO_MODELS: VideoModelDef[] = [
     supportVideos: true,
     maxRefImages: 30,
   },
+  {id:'heygen-avatar-6',label:'HeyGen Avatar 6',kind:'heygen',provider:'zhenzhen',builtinSource:'seedance-nz',apiModelOptions:NOV21.heygen.models.map(value=>({value,label:value,supportAudios:true,maxRefAudios:1})),ratios:NOV21.heygen.ratios,defaultRatio:'16:9',durations:[],defaultDuration:5,resolutions:NOV21.heygen.resolutions,defaultResolution:'1080p',supportImages:false,maxRefImages:0,supportVideos:false},
   {id:H3_TURBO_CONTRACT.video.model,label:H3_TURBO_CONTRACT.video.tab,kind:'h3-lowprice',provider:'zhenzhen',builtinSource:'seedance-nz',
    apiModelOptions:Object.values(H3_TURBO_CONTRACT).filter(spec => spec === H3_TURBO_CONTRACT.video || 'video' in spec && spec.video).map(spec => ({
      value:spec.model,label:spec.model,supportImages:true,maxRefImages:spec.maxImages,
@@ -2096,6 +2098,7 @@ export function getFlowMusicActionDef(value: unknown) {
 }
 
 export const SEEDANCE_NZ_AUDIO_MODELS = [
+  ...NOV21.gemini.models,
   ...QWEN3_TTS_MODELS,
   ...QWEN_AUDIO31_MODELS,
   ...MINIMAX_AUDIO_MODELS,

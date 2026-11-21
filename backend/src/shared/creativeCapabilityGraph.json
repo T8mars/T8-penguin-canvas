@@ -7,6 +7,9 @@
     "i18nRendererResources": "src/i18n/resources.ts",
     "i18nElectronCatalog": "electron/i18n-catalog.json",
     "runtimeCatalog": [
+      "backend/src/shared/nov21ModelsContract.json",
+      "backend/src/shared/nov21ModelsContract.mjs",
+      "backend/src/providers/miora3d.js",
       "backend/src/shared/nov19ModelsContract.json",
       "backend/src/shared/nov19ModelsContract.mjs",
       "backend/src/shared/qwenAudio31Voices.json",
@@ -38,19 +41,19 @@
   },
   "sourceDigests": {
     "creativeCapabilityManifest": "35bb3f4a925c60886c9e10e739c340218c9b1abceb4c40a738cc73cec33c5948",
-    "canvasNodeSchema": "cac3f56f5e424ccb80d78cc8529f2a555c2265b5ba7823826ec46d08e76b796b",
-    "canvasNodeSchemaFile": "1adacb77d02e739e466b36b0577ebef6b322edcbba07dc3b213ed503d19b21e7",
+    "canvasNodeSchema": "31cb418e6d98a742ab75fc45126dc853f7f7ee20685ba401960a7a301e1f2b72",
+    "canvasNodeSchemaFile": "3898937fed60c3088af20e39cf63e70105d831637fdcaa7b687fa8bab5476f98",
     "i18nNodeCatalog": "fec04dd618a75492ca3a2d6e0d76b0a2a2b7e9f10cc5d008bdeedbf2a870c3d9",
-    "i18nRendererResources": "9b8201589ff8b98710bf44a3d0a458dad2bf040d505384b11f321de322ada0d3",
+    "i18nRendererResources": "ca691493bda2d8a39eb31bcc40b89e0cf4dbbb2e7bd3c14a2a05e68fd4c214b1",
     "i18nElectronCatalog": "bab981c4f10262117b0912e8be73c22b9a938b7fb232ba0f5b14b7efea0767ad",
-    "runtimeCatalogSources": "71bc6af6d351e0fe1a7a7ad1c429609c11674f0a01631ffedb2b427205913be5",
-    "runtimeCatalogArtifact": "0ee6f53963ca7ec78c7daf02e594bef2e7f0e962342922b9adbc1ca3d27fde26",
+    "runtimeCatalogSources": "cf0d95b89acd7e452b59c0cb3c7e510b98ad27398dfb5c6266b316a7fbdde5f9",
+    "runtimeCatalogArtifact": "6a2c50f00b81328bce40c37ffdab03d8ab45fd0ab367734fa9e2677955212c87",
     "handlerBindings": "3cd8cde3c05d1642d72ce8cbfae2874d1bdf986592ae431ef7d66b043da257b5",
     "capabilityGraphCompiler": "a3716d239b91e1c4775f5996b3865ba3ab8fd652263138feef0a56de40851c24",
     "coverageReceiptCompiler": "68c02167cb5317107edd346223a5e5999168e447bacbb977ff8e9678e6753fe7",
     "canonicalTextDigestCompiler": "b0afcf28a257fbbd8f391edc117348f8f2ede1b4a039ae91bce25a8d563ac0cf"
   },
-  "aggregateDigest": "638edd3ce7e3f4382edeb41b369ce79adb8c90c961edbf8ee5ef17409e32ed33",
+  "aggregateDigest": "9aac1690e5796123423a17103ed38af4999175f6ee79f930e022673aa2f57595",
   "principles": {
     "oneSentenceStart": true,
     "directCanvasMutation": false,
@@ -74,17 +77,17 @@
     "accountedNodes": 85,
     "unexplainedNodes": 0,
     "fullyOperableNodes": 21,
-    "runtimeEntries": 398,
+    "runtimeEntries": 408,
     "runtimeByKind": {
       "llm": 34,
-      "image": 93,
-      "video": 157,
-      "audio": 22,
-      "actions": 92
+      "image": 94,
+      "video": 163,
+      "audio": 24,
+      "actions": 93
     },
     "runtimeByProvider": {
       "grok-oauth": 2,
-      "seedance-nz": 325,
+      "seedance-nz": 335,
       "zhenzhen": 64,
       "fal": 7
     },
@@ -7521,7 +7524,7 @@
   ],
   "runtime": {
     "schema": "t8-creative-runtime-catalog-v1",
-    "sourceDigest": "71bc6af6d351e0fe1a7a7ad1c429609c11674f0a01631ffedb2b427205913be5",
+    "sourceDigest": "cf0d95b89acd7e452b59c0cb3c7e510b98ad27398dfb5c6266b316a7fbdde5f9",
     "platforms": [
       {
         "id": "zhenzhen",
@@ -8787,6 +8790,46 @@
         }
       },
       {
+        "id": "audio:seedance-nz:zhenzhen/gm-2.5-flash-tts",
+        "kind": "audio",
+        "provider": "seedance-nz",
+        "platformLabel": "贞贞的平价AI小屋",
+        "model": "zhenzhen/gm-2.5-flash-tts",
+        "label": "zhenzhen/gm-2.5-flash-tts",
+        "family": "gemini-tts",
+        "available": true,
+        "catalogSection": "audio",
+        "compatibility": {
+          "known": true,
+          "installed": true,
+          "credentialReady": null,
+          "regionReady": true,
+          "executable": false,
+          "available": true,
+          "requiresRuntimeCheck": true
+        }
+      },
+      {
+        "id": "audio:seedance-nz:zhenzhen/gm-2.5-pro-tts",
+        "kind": "audio",
+        "provider": "seedance-nz",
+        "platformLabel": "贞贞的平价AI小屋",
+        "model": "zhenzhen/gm-2.5-pro-tts",
+        "label": "zhenzhen/gm-2.5-pro-tts",
+        "family": "gemini-tts",
+        "available": true,
+        "catalogSection": "audio",
+        "compatibility": {
+          "known": true,
+          "installed": true,
+          "credentialReady": null,
+          "regionReady": true,
+          "executable": false,
+          "available": true,
+          "requiresRuntimeCheck": true
+        }
+      },
+      {
         "id": "audio:zhenzhen:suno-v5.5-cover",
         "kind": "audio",
         "provider": "zhenzhen",
@@ -9193,6 +9236,26 @@
         "platformLabel": "贞贞的平价AI小屋",
         "model": "kling-v4-image",
         "label": "kling-v4-image",
+        "family": "kling-v4-image",
+        "available": true,
+        "catalogSection": "image",
+        "compatibility": {
+          "known": true,
+          "installed": true,
+          "credentialReady": null,
+          "regionReady": true,
+          "executable": false,
+          "available": true,
+          "requiresRuntimeCheck": true
+        }
+      },
+      {
+        "id": "image:seedance-nz:kling-v4-long-image",
+        "kind": "image",
+        "provider": "seedance-nz",
+        "platformLabel": "贞贞的平价AI小屋",
+        "model": "kling-v4-long-image",
+        "label": "kling-v4-long-image",
         "family": "kling-v4-image",
         "available": true,
         "catalogSection": "image",
@@ -11849,6 +11912,27 @@
         }
       },
       {
+        "id": "model3d:seedance-nz:miora-3d",
+        "kind": "model3d",
+        "provider": "seedance-nz",
+        "platformLabel": "贞贞的平价AI小屋",
+        "action": "miora-3d",
+        "label": "miora-3d",
+        "family": "miora-3d",
+        "resultKind": "model3d",
+        "available": true,
+        "catalogSection": "actions",
+        "compatibility": {
+          "known": true,
+          "installed": true,
+          "credentialReady": null,
+          "regionReady": true,
+          "executable": false,
+          "available": true,
+          "requiresRuntimeCheck": true
+        }
+      },
+      {
         "id": "model3d:seedance-nz:tripo-convert",
         "kind": "model3d",
         "provider": "seedance-nz",
@@ -12997,6 +13081,46 @@
         }
       },
       {
+        "id": "video:seedance-nz:heygen-avatar-6",
+        "kind": "video",
+        "provider": "seedance-nz",
+        "platformLabel": "贞贞的平价AI小屋",
+        "model": "heygen-avatar-6",
+        "label": "heygen-avatar-6",
+        "family": "heygen-avatar-6",
+        "available": true,
+        "catalogSection": "video",
+        "compatibility": {
+          "known": true,
+          "installed": true,
+          "credentialReady": null,
+          "regionReady": true,
+          "executable": false,
+          "available": true,
+          "requiresRuntimeCheck": true
+        }
+      },
+      {
+        "id": "video:seedance-nz:heygen-avatar-6-turbo",
+        "kind": "video",
+        "provider": "seedance-nz",
+        "platformLabel": "贞贞的平价AI小屋",
+        "model": "heygen-avatar-6-turbo",
+        "label": "heygen-avatar-6-turbo",
+        "family": "heygen-avatar-6",
+        "available": true,
+        "catalogSection": "video",
+        "compatibility": {
+          "known": true,
+          "installed": true,
+          "credentialReady": null,
+          "regionReady": true,
+          "executable": false,
+          "available": true,
+          "requiresRuntimeCheck": true
+        }
+      },
+      {
         "id": "video:seedance-nz:kling-o3-4k-i2v",
         "kind": "video",
         "provider": "seedance-nz",
@@ -13598,6 +13722,46 @@
         }
       },
       {
+        "id": "video:seedance-nz:minimax-h3-comfyui-charswap-token",
+        "kind": "video",
+        "provider": "seedance-nz",
+        "platformLabel": "贞贞的平价AI小屋",
+        "model": "minimax-h3-comfyui-charswap-token",
+        "label": "minimax-h3-comfyui-charswap-token",
+        "family": "minimax-h3-comfyui-max",
+        "available": true,
+        "catalogSection": "video",
+        "compatibility": {
+          "known": true,
+          "installed": true,
+          "credentialReady": null,
+          "regionReady": true,
+          "executable": false,
+          "available": true,
+          "requiresRuntimeCheck": true
+        }
+      },
+      {
+        "id": "video:seedance-nz:minimax-h3-comfyui-digital-human-token",
+        "kind": "video",
+        "provider": "seedance-nz",
+        "platformLabel": "贞贞的平价AI小屋",
+        "model": "minimax-h3-comfyui-digital-human-token",
+        "label": "minimax-h3-comfyui-digital-human-token",
+        "family": "minimax-h3-comfyui-max",
+        "available": true,
+        "catalogSection": "video",
+        "compatibility": {
+          "known": true,
+          "installed": true,
+          "credentialReady": null,
+          "regionReady": true,
+          "executable": false,
+          "available": true,
+          "requiresRuntimeCheck": true
+        }
+      },
+      {
         "id": "video:seedance-nz:minimax-h3-comfyui-max",
         "kind": "video",
         "provider": "seedance-nz",
@@ -13638,12 +13802,52 @@
         }
       },
       {
+        "id": "video:seedance-nz:minimax-h3-comfyui-max-10020-token",
+        "kind": "video",
+        "provider": "seedance-nz",
+        "platformLabel": "贞贞的平价AI小屋",
+        "model": "minimax-h3-comfyui-max-10020-token",
+        "label": "minimax-h3-comfyui-max-10020-token",
+        "family": "minimax-h3-comfyui-max",
+        "available": true,
+        "catalogSection": "video",
+        "compatibility": {
+          "known": true,
+          "installed": true,
+          "credentialReady": null,
+          "regionReady": true,
+          "executable": false,
+          "available": true,
+          "requiresRuntimeCheck": true
+        }
+      },
+      {
         "id": "video:seedance-nz:minimax-h3-comfyui-max-10021",
         "kind": "video",
         "provider": "seedance-nz",
         "platformLabel": "贞贞的平价AI小屋",
         "model": "minimax-h3-comfyui-max-10021",
         "label": "minimax-h3-comfyui-max-10021",
+        "family": "minimax-h3-comfyui-max",
+        "available": true,
+        "catalogSection": "video",
+        "compatibility": {
+          "known": true,
+          "installed": true,
+          "credentialReady": null,
+          "regionReady": true,
+          "executable": false,
+          "available": true,
+          "requiresRuntimeCheck": true
+        }
+      },
+      {
+        "id": "video:seedance-nz:minimax-h3-comfyui-max-10021-token",
+        "kind": "video",
+        "provider": "seedance-nz",
+        "platformLabel": "贞贞的平价AI小屋",
+        "model": "minimax-h3-comfyui-max-10021-token",
+        "label": "minimax-h3-comfyui-max-10021-token",
         "family": "minimax-h3-comfyui-max",
         "available": true,
         "catalogSection": "video",
@@ -15869,6 +16073,8 @@
       "audio:seedance-nz:suno-vox",
       "audio:seedance-nz:suno-wav",
       "audio:seedance-nz:whisper-1",
+      "audio:seedance-nz:zhenzhen/gm-2.5-flash-tts",
+      "audio:seedance-nz:zhenzhen/gm-2.5-pro-tts",
       "audio:zhenzhen:suno-v5.5-cover",
       "audio:zhenzhen:suno-v5.5-extend",
       "audio:zhenzhen:suno-v5.5-generate",
@@ -15890,6 +16096,7 @@
       "image:seedance-nz:flux-3-image-klein-t2i",
       "image:seedance-nz:flux-3-image-t2i",
       "image:seedance-nz:kling-v4-image",
+      "image:seedance-nz:kling-v4-long-image",
       "image:seedance-nz:krea-v3-i2i",
       "image:seedance-nz:krea-v3-t2i",
       "image:seedance-nz:mai-image-2-6",
@@ -16021,6 +16228,7 @@
       "model3d:seedance-nz:hunyuan3d-v3.1-text-to-3d",
       "model3d:seedance-nz:meshy-6-global-image-to-3d",
       "model3d:seedance-nz:meshy-6-global-text-to-3d",
+      "model3d:seedance-nz:miora-3d",
       "model3d:seedance-nz:tripo-convert",
       "model3d:seedance-nz:tripo-h-v2.5-image-to-3d",
       "model3d:seedance-nz:tripo-h-v2.5-multiview-to-3d",
@@ -16077,6 +16285,8 @@
       "video:seedance-nz:happyhorse-1.1-i2v",
       "video:seedance-nz:happyhorse-1.1-r2v",
       "video:seedance-nz:happyhorse-1.1-t2v",
+      "video:seedance-nz:heygen-avatar-6",
+      "video:seedance-nz:heygen-avatar-6-turbo",
       "video:seedance-nz:kling-o3-4k-i2v",
       "video:seedance-nz:kling-o3-4k-r2v",
       "video:seedance-nz:kling-o3-4k-t2v",
@@ -16107,9 +16317,13 @@
       "video:seedance-nz:mini",
       "video:seedance-nz:MiniMax-H3",
       "video:seedance-nz:minimax-h3-comfyui-charswap",
+      "video:seedance-nz:minimax-h3-comfyui-charswap-token",
+      "video:seedance-nz:minimax-h3-comfyui-digital-human-token",
       "video:seedance-nz:minimax-h3-comfyui-max",
       "video:seedance-nz:minimax-h3-comfyui-max-10020",
+      "video:seedance-nz:minimax-h3-comfyui-max-10020-token",
       "video:seedance-nz:minimax-h3-comfyui-max-10021",
+      "video:seedance-nz:minimax-h3-comfyui-max-10021-token",
       "video:seedance-nz:minimax-h3-comfyui-wuxi",
       "video:seedance-nz:minimax-h3-ow-fl2va-audio-drive-fast",
       "video:seedance-nz:minimax-h3-ow-i2v",
@@ -16213,8 +16427,8 @@
     "schema": "t8-creative-capability-coverage-receipt-v1",
     "sourceDigests": {
       "capabilityManifest": "35bb3f4a925c60886c9e10e739c340218c9b1abceb4c40a738cc73cec33c5948",
-      "nodeSchema": "cac3f56f5e424ccb80d78cc8529f2a555c2265b5ba7823826ec46d08e76b796b",
-      "runtimeCatalog": "71bc6af6d351e0fe1a7a7ad1c429609c11674f0a01631ffedb2b427205913be5",
+      "nodeSchema": "31cb418e6d98a742ab75fc45126dc853f7f7ee20685ba401960a7a301e1f2b72",
+      "runtimeCatalog": "cf0d95b89acd7e452b59c0cb3c7e510b98ad27398dfb5c6266b316a7fbdde5f9",
       "handlerBindings": "3cd8cde3c05d1642d72ce8cbfae2874d1bdf986592ae431ef7d66b043da257b5",
       "receiptCompiler": "68c02167cb5317107edd346223a5e5999168e447bacbb977ff8e9678e6753fe7"
     },
@@ -16226,10 +16440,10 @@
       },
       "runtime": {
         "llm": 34,
-        "image": 93,
-        "video": 157,
-        "audio": 22,
-        "actions": 92
+        "image": 94,
+        "video": 163,
+        "audio": 24,
+        "actions": 93
       },
       "capabilities": 39,
       "handlers": 39,
@@ -16243,6 +16457,6 @@
       "missingCompatibilityEdges": []
     },
     "complete": true,
-    "digest": "d5d0890982b4f47a7b860b6c099213b3e06cc3818a748bab8fdb86cf3b108e0f"
+    "digest": "5dd9497c54848cb0cbde495ad0698a1e7a3a672b2db2474f1c472a66d19dfdea"
   }
 }

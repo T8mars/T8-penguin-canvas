@@ -1,0 +1,6 @@
+{
+  "longImage":{"model":"kling-v4-long-image","skills":["ecommerce","webpage"],"lengths":["medium","short","long"],"resolutions":["1k","2k"],"maxBytes":30000000},
+  "gemini":{"models":["zhenzhen/gm-2.5-flash-tts","zhenzhen/gm-2.5-pro-tts"],"voices":["Zephyr","Puck","Charon","Kore","Fenrir","Leda","Orus","Aoede","Callirrhoe","Autonoe","Enceladus","Iapetus","Umbriel","Algieba","Despina","Erinome","Algenib","Rasalgethi","Laomedeia","Achernar","Alnilam","Schedar","Gacrux","Pulcherrima","Achird","Zubenelgenubi","Vindemiatrix","Sadachbia","Sadaltager","Sulafat"]},
+  "heygen":{"models":["heygen-avatar-6-turbo","heygen-avatar-6"],"ratios":["16:9","9:16","1:1","4:5","5:4"],"resolutions":["1080p","2k"]},
+  "miora":{"model":"miora-3d","views":["front","left","right","back","top","bottom","front-left","front-right"],"maxBytes":10000000}
+}

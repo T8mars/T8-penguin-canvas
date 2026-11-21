@@ -7,6 +7,7 @@ const seedreamNzContract = require('../shared/seedreamNzContract.json');
 const nb21FluxViduContract = require('../shared/nb21FluxViduQ4Contract.json');
 const nbDoubaoContract = require('../shared/nbLowpriceDoubaoContract.json');
 const topazVideoContract = require('../shared/topazVideoContract.json');
+const nov21=require('../shared/nov21ModelsContract.json');
 const nov19=require('../shared/nov19ModelsContract.json');
 const maiImageContract = require('../shared/maiImageContract.json');
 const mossImageContract = require('../shared/mossImageContract.json');
@@ -66,7 +67,7 @@ const IMAGE_RUNTIME_MODELS = Object.freeze({
   [newModels.contract.zimage.tab]:{defaultModel:newModels.contract.zimage.model,models:[newModels.contract.zimage.model]},
   ...Object.fromEntries([pmf.hy.model, pmf.muse.imageModel].map(model => [model, {defaultModel:model, models:[model]}])),
   [mossImageContract.model]: { defaultModel: mossImageContract.model, models: [mossImageContract.model] },
-  [nov19.kling.model]:{defaultModel:nov19.kling.model,models:[nov19.kling.model]},
+  [nov19.kling.model]:{defaultModel:nov19.kling.model,models:[nov19.kling.model,nov21.longImage.model]},
   'mai-image-2-6': { defaultModel: maiImageContract.models[0], models: [...maiImageContract.models,...nov19.mai.models] },
   'gpt-image-2': {
     defaultModel: 'gpt-image-2-all',
@@ -163,6 +164,7 @@ const VIDEO_RUNTIME_MODELS = Object.freeze({
   'seedance-2.5': require('../shared/creativeModelCatalog.json').video.filter(entry => entry.family === 'seedance-2.5' && entry.provider === 'seedance-nz').map(entry => entry.model),
   'vosr2-video-upscale': ['vosr2-video-upscale'],
   [h3Turbo.video.model]: Object.values(h3Turbo).filter(spec => spec === h3Turbo.video || spec.video).map(spec => spec.model),
+  'heygen-avatar-6': nov21.heygen.models,
   [pmf.muse.videoModel]: [pmf.muse.videoModel],
   [topazVideoContract.model]: [topazVideoContract.model],
   'animate-motion-transfer': ['animate-motion-transfer'],
@@ -181,7 +183,7 @@ const SEEDANCE_NZ_IMAGE_RUNTIME_MODELS = new Set([
   pmf.hy.model, pmf.muse.imageModel, ...pmf.flux.models,
   mossImageContract.model,
   ...nbDoubaoContract.banana.models,
-  nov19.kling.model,...nov19.mai.models,
+  nov21.longImage.model, nov19.kling.model,...nov19.mai.models,
   ...maiImageContract.models,
   nb21FluxViduContract.banana21.model, nb21FluxViduContract.flux.model,
   ...seedreamNzContract.layerModels,
@@ -197,7 +199,7 @@ const SEEDANCE_NZ_IMAGE_RUNTIME_MODELS = new Set([
   'qwen-image-global-2.1',
 ]);
 const SEEDANCE_NZ_VIDEO_RUNTIME_MODELS = new Set([
-  ...VIDEO_RUNTIME_MODELS[h3Turbo.video.model],
+  ...nov21.heygen.models, ...VIDEO_RUNTIME_MODELS[h3Turbo.video.model],
   ...VIDEO_RUNTIME_MODELS['seedance-2.5'],
   ...Object.keys(require('../shared/flashVideoContract.json').models),
   pmf.muse.videoModel,
@@ -448,7 +450,7 @@ function providerDeclarationForNode(node, context = {}) {
 
   if (type === 'model-3d') {
     const requested = boundedString(data.model);
-    const model = newModels.models3d.includes(requested) || requested === 'hunyuan3d-v3.1-image-to-3d'
+    const model = requested===nov21.miora.model || newModels.models3d.includes(requested) || requested === 'hunyuan3d-v3.1-image-to-3d'
       ? requested : 'hunyuan3d-v3.1-text-to-3d';
     return { provider: 'seedance-nz-3d', model };
   }
@@ -508,6 +510,7 @@ function providerDeclarationForNode(node, context = {}) {
     const seedanceNzModels = {
       'seed-audio': boundedString(data.seedAudioModel) || 'doubao-seed-audio-1.0',
       whisper: 'whisper-1',
+      'gemini-tts':boundedString(data.geminiTtsModel)||nov21.gemini.models[0],
       'qwen3-tts': boundedString(data.qwenTtsModel) || 'qwen3-tts-flash',
       minimax: boundedString(data.minimaxAudioModel) || 'minimax-speech-2.8-turbo',
       mureka: boundedString(data.murekaModel) || 'mureka-v8-bgm',

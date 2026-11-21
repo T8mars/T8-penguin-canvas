@@ -58,5 +58,5 @@ test('authority, published capability metadata and recovery keep the exact provi
  }
  assert.ok(recovery.RECOVERY_KINDS.has('h3-lowprice'));
  const descriptor=recovery.normalizeRunRecoveryDescriptor({kind:'h3-lowprice',model:c.video.model,taskId:'fixture/id'});
- assert.deepEqual(recovery.recoveryRequest('http://127.0.0.1:18766',descriptor),{url:'http://127.0.0.1:18766/api/proxy/video/h3-lowprice/status/fixture%2Fid',options:{method:'GET'}});
+ assert.deepEqual(recovery.recoveryRequest('http://127.0.0.1:18766',descriptor),{url:'http://127.0.0.1:18766/api/proxy/video/h3-lowprice/status/fixture%2Fid?model=minimax-h3-comfyui-max',options:{method:'GET'}});
 });

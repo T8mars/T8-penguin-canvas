@@ -1,0 +1,73 @@
+{
+  "schema": "t8-workflow-fragment",
+  "version": 1,
+  "title": "kling-v4-long-image-ecommerce",
+  "nodes": [
+    {
+      "id": "image0",
+      "type": "upload",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "data": {
+        "uploadType": "image",
+        "lockedUploadType": "image",
+        "label": "image 1"
+      }
+    },
+    {
+      "id": "generate",
+      "type": "image",
+      "position": {
+        "x": 440,
+        "y": 30
+      },
+      "data": {
+        "providerSource": "zhenzhen",
+        "reuseResult": false,
+        "prompt": "Create a product detail page for the teapot in @Image1.",
+        "model": "kling-v4-image",
+        "apiModel": "kling-v4-long-image",
+        "imageBuiltinSource": "seedance-nz",
+        "imageOnlyOutput": true,
+        "longImageSkill": "ecommerce",
+        "longImageLength": "short",
+        "longImageResolution": "1k",
+        "longImageSingleRole": "style",
+        "longImageNsfw": false
+      }
+    },
+    {
+      "id": "result",
+      "type": "output",
+      "position": {
+        "x": 900,
+        "y": 30
+      },
+      "data": {
+        "label": "结果 / Result"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "image0-generate",
+      "source": "image0",
+      "target": "generate"
+    },
+    {
+      "id": "generate-result",
+      "source": "generate",
+      "target": "result"
+    }
+  ],
+  "nodeCount": 3,
+  "edgeCount": 2,
+  "nodeTypes": [
+    "upload",
+    "image",
+    "output"
+  ],
+  "savedAt": "2026-11-22T00:00:00.000Z"
+}

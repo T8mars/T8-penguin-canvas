@@ -160,6 +160,7 @@ const entries = {
   field_flux3SafetyTolerance: ['FLUX 安全容忍度', 'FLUX safety tolerance'],
   field_fluxImageGrounding: ['FLUX grounding', 'FLUX grounding'],
   field_klingImageSize:['Kling 图像比例','Kling image ratio'],field_klingImageResolution:['Kling 分辨率','Kling resolution'],field_klingImageMode:['Kling 组图模式','Kling image mode'],field_klingImageCount:['Kling 图片数量','Kling image count'],field_klingImageMaxImages:['Kling 组图数量','Kling group count'],field_klingImageNsfw:['Kling 内容审核','Kling content check'],field_maiBackground:['Mai 背景','Mai background'],field_maiNsfw:['Mai 内容审核','Mai content check'],
+  field_longImageSkill:['长图页面类型','Long-image page type'],field_longImageLength:['长图页面长度','Long-image length'],field_longImageResolution:['长图分辨率','Long-image resolution'],field_longImageSingleRole:['网页单图用途','Single webpage reference role'],field_longImageNsfw:['长图内容审核','Long-image content check'],
   field_maiSize: ['Mai 尺寸模式', 'Mai sizing mode'], field_maiResolution: ['Mai 分辨率', 'Mai resolution'],
   field_maiCustomRatio: ['Mai 自定义比例', 'Mai custom ratio'], field_maiWidth: ['Mai 宽度', 'Mai width'],
   field_maiHeight: ['Mai 高度', 'Mai height'], field_maiAutoAspectRatio: ['Mai 自动画幅', 'Mai automatic aspect ratio'],

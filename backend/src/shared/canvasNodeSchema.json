@@ -2860,7 +2860,8 @@
               "hunyuan-3d",
               "hitem3d",
               "meshy",
-              "tripo-3d"
+              "tripo-3d",
+              "miora-3d"
             ]
           },
           "model": {
@@ -2898,7 +2899,8 @@
               "tripo-mesh-smartsegment",
               "tripo-mesh-complete",
               "tripo-convert",
-              "tripo-image-to-splat"
+              "tripo-image-to-splat",
+              "miora-3d"
             ]
           },
           "prompt": {
@@ -3371,6 +3373,21 @@
               "true",
               "false"
             ]
+          },
+          "mioraGenerateType": {
+            "type": "string",
+            "enum": [
+              "normal",
+              "geometry"
+            ]
+          },
+          "mioraFaceCount": {
+            "type": "number",
+            "minimum": 3000,
+            "maximum": 1500000
+          },
+          "mioraPbr": {
+            "type": "boolean"
           }
         },
         "defaults": {
@@ -4383,6 +4400,38 @@
           },
           "klingImageNsfw": {
             "type": "boolean"
+          },
+          "longImageSkill": {
+            "type": "string",
+            "enum": [
+              "ecommerce",
+              "webpage"
+            ]
+          },
+          "longImageLength": {
+            "type": "string",
+            "enum": [
+              "short",
+              "medium",
+              "long"
+            ]
+          },
+          "longImageResolution": {
+            "type": "string",
+            "enum": [
+              "1k",
+              "2k"
+            ]
+          },
+          "longImageSingleRole": {
+            "type": "string",
+            "enum": [
+              "style",
+              "subject"
+            ]
+          },
+          "longImageNsfw": {
+            "type": "boolean"
           }
         },
         "defaults": {
@@ -4695,6 +4744,18 @@
               345,
               362
             ]
+          },
+          "heygenAvatar": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "heygenVoice": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "heygenMotionPrompt": {
+            "type": "string",
+            "maxLength": 1200
           }
         },
         "defaults": {
@@ -5064,7 +5125,8 @@
               "whisper",
               "qwen3-tts",
               "minimax",
-              "mureka"
+              "mureka",
+              "gemini-tts"
             ]
           },
           "sunoPlatform": {
@@ -5252,6 +5314,17 @@
           "qwenAudio31Params": {
             "type": "object",
             "maxProperties": 18
+          },
+          "geminiTtsModel": {
+            "type": "string",
+            "enum": [
+              "zhenzhen/gm-2.5-flash-tts",
+              "zhenzhen/gm-2.5-pro-tts"
+            ]
+          },
+          "geminiTtsParams": {
+            "type": "object",
+            "maxProperties": 3
           }
         },
         "defaults": {

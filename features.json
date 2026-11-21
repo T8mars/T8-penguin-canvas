@@ -17986,5 +17986,28 @@
     "status": "review-complete-no-new-reproducible-defect",
     "summary": "0 open PRs and 6 existing issues; no reporter follow-up. Released RH, localization and Creator fixes preserved. Mac, performance and English acceptance gaps remain open.",
     "details": "docs/github-issues-20261121.md"
+  },
+  "nov21Models20261122": {
+    "status": "implemented-local-heygen-upstream-pending",
+    "summary": "Ten budget-house models in existing nodes: Kling long image, Gemini TTS, H3 Token, HeyGen Avatar 6 and Miora 3D; fourteen credential-free workflows. Eight models have decoded real results; HeyGen originals remain running.",
+    "details": "docs/nov21-models.md",
+    "models": [
+      "kling-v4-long-image",
+      "zhenzhen/gm-2.5-flash-tts",
+      "zhenzhen/gm-2.5-pro-tts",
+      "minimax-h3-comfyui-max-10020-token",
+      "minimax-h3-comfyui-max-10021-token",
+      "minimax-h3-comfyui-charswap-token",
+      "minimax-h3-comfyui-digital-human-token",
+      "heygen-avatar-6-turbo",
+      "heygen-avatar-6",
+      "miora-3d"
+    ],
+    "workflows": 14,
+    "boundaries": [
+      "HeyGen real completed output not verified",
+      "No build, version bump, push, tag or release",
+      "No installed-client, user-device or F8-F10 acceptance"
+    ]
   }
 }

@@ -1,3 +1,5 @@
+import {LongImageControls} from './Nov21Controls';
+import {NOV21,buildLongImageRequest,longImageSettings} from '../../utils/nov21Models';
 import KlingImageControls from './KlingImageControls';
 import {NOV19,buildKlingImageRequest,klingImageSettings} from '../../utils/nov19Models';
 import H3TurboImageControls from './H3TurboImageControls';
@@ -758,6 +760,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
     ? isJimengCliImageSelected
       ? 10
       : Math.max(8, modelDef.maxReferenceImages || 0)
+    : NOV21.isImage(apiModel) ? d?.longImageSkill==='webpage'?2:3
     : isNewImageTab
       ? apiModel === NEW_IMAGE_CONTRACT.g26.models[0] ? (newImageSettings(apiModel,d || {}).g26Mode === 'image' ? NEW_IMAGE_CONTRACT.g26.lowpriceMaxReferences : 0)
         : NEW_IMAGE_CONTRACT.g26.models.includes(apiModel) ? (newImageSettings(apiModel,d || {}).g26Mode === 'image' ? 16 : 0)
@@ -1275,7 +1278,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
       try { buildPreviewImageRequest(apiModel, finalPrompt, upstreamImages, effectiveAspectRatio, effectiveSizeLevel, d || {}); }
       catch (error: any) { setError(translate(error.message)); return; }
     }
-    if (isKlingImage) { try{buildKlingImageRequest(finalPrompt,upstreamImages,d || {});}catch(error:any){setError(translate(error.message));return;} }
+    if (isKlingImage) { try{(NOV21.isImage(apiModel)?buildLongImageRequest:buildKlingImageRequest)(finalPrompt,upstreamImages,d || {});}catch(error:any){setError(translate(error.message));return;} }
     if (isMaiImage) {
       try { buildMaiImageRequest(apiModel, finalPrompt, upstreamImages, maiSettings); }
       catch (error: any) { setError(translate(error.message)); return; }
@@ -2184,7 +2187,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
           `${seedanceNzProviderLabel} ${imageFamilyLabel} 提交: model=${expectedModel} 参考图=${providerRefs.length} 尺寸=${sizeLabel}`,
           src,
         );
-        const submit = await submitSeedreamNz(isKlingImage ? buildKlingImageRequest(finalPrompt,providerRefs,d || {}) : isH3TurboImage ? buildH3ImageRequest(apiModel,finalPrompt,providerRefs,d || {}) : isNewImageTab ? buildNewImageRequest(apiModel,finalPrompt,providerRefs,d || {}) : isPreviewImageTab || isFluxImage && isFluxVariant(apiModel) ? buildPreviewImageRequest(apiModel, finalPrompt, providerRefs, effectiveAspectRatio, effectiveSizeLevel, d || {}) : isMaiImage ? buildMaiImageRequest(apiModel, finalPrompt, providerRefs, maiSettings) : isMossImage ? buildMossImageRequest(finalPrompt, providerRefs, effectiveAspectRatio) : isSeedream55 ? buildSeedream55Request(isSeedreamLayerTab ? apiModel : seedreamNzUiModel, finalPrompt, providerRefs, d, isSeedreamLayerTab, translate) : isVosr2ImageTab ? {
+        const submit = await submitSeedreamNz(isKlingImage ? (NOV21.isImage(apiModel)?buildLongImageRequest:buildKlingImageRequest)(finalPrompt,providerRefs,d || {}) : isH3TurboImage ? buildH3ImageRequest(apiModel,finalPrompt,providerRefs,d || {}) : isNewImageTab ? buildNewImageRequest(apiModel,finalPrompt,providerRefs,d || {}) : isPreviewImageTab || isFluxImage && isFluxVariant(apiModel) ? buildPreviewImageRequest(apiModel, finalPrompt, providerRefs, effectiveAspectRatio, effectiveSizeLevel, d || {}) : isMaiImage ? buildMaiImageRequest(apiModel, finalPrompt, providerRefs, maiSettings) : isMossImage ? buildMossImageRequest(finalPrompt, providerRefs, effectiveAspectRatio) : isSeedream55 ? buildSeedream55Request(isSeedreamLayerTab ? apiModel : seedreamNzUiModel, finalPrompt, providerRefs, d, isSeedreamLayerTab, translate) : isVosr2ImageTab ? {
           model: VOSR2_IMAGE_UPSCALE_MODEL,
           images: providerRefs,
         } : {
@@ -2629,7 +2632,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
             ...(isH3TurboImage ? { h3TurboSeed: d.h3TurboSeed ?? -1, ...(apiModel === H3_TURBO.contract.minimax.model ? { h3TurboFormat: d.h3TurboFormat ?? 'jpeg' } : {}) } : {}),
             ...(isNewImageTab ? newImageSettings(apiModel,d || {}) : {}),
             ...(isMaiImage ? maiSettings : {}),
-            ...(isKlingImage ? klingImageSettings(d || {}) : {}),
+            ...(isKlingImage ? NOV21.isImage(apiModel)?longImageSettings(d || {}):klingImageSettings(d || {}) : {}),
           } : {}),
           ...(!isExternalSelected && isQwenImageTab ? { qwenSizingMode, qwenResolution, qwenCustomSize,
             qwenImageCount, qwenSeed, qwenNegativePrompt, qwenPromptExtend } : {}),
@@ -3359,7 +3362,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
           <div className="rounded border border-cyan-400/25 bg-cyan-500/5 px-2 py-1.5 text-[10px] leading-4 text-cyan-100/80">
             <div>{`贞贞的平价AI小屋 · ${apiModel}`}</div>
             <div>
-              {isKlingImage ? translate('nov19:klingHint') : isH3TurboImage ? translate('h3Turbo:imageHint', { count: maxRefs }) : isNewImageTab ? translate('g26Krea3d:newImageDescription') : isPreviewImageTab ? translate(apiModel === PREVIEW_MUSE_FLUX.hy.model ? 'previewMuseFlux:hyDescription' : 'previewMuseFlux:museImageDescription') : isMossImage ? translate('nodes:generation.moss.description')
+              {isKlingImage ? translate(NOV21.isImage(apiModel)?'nov21:longHint':'nov19:klingHint') : isH3TurboImage ? translate('h3Turbo:imageHint', { count: maxRefs }) : isNewImageTab ? translate('g26Krea3d:newImageDescription') : isPreviewImageTab ? translate(apiModel === PREVIEW_MUSE_FLUX.hy.model ? 'previewMuseFlux:hyDescription' : 'previewMuseFlux:museImageDescription') : isMossImage ? translate('nodes:generation.moss.description')
                 : isMaiImage ? translate(NOV19.isMai(apiModel)?'nov19:maiHint':'nodes:generation.mai.description')
                 : isFluxImage ? translate(isFluxVariant(apiModel) ? 'previewMuseFlux:fluxDescription' : 'nodes:generation.newBudgetModels.fluxDescription')
                 : isNbLowprice ? translate('nodes:generation.newBudgetModels.nbLowpriceDescription')
@@ -3395,7 +3398,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
         {isH3TurboImage && <H3TurboImageControls model={apiModel} data={d || {}} referenceCount={orderedImages.length} update={update} />}
         {isNewImageTab && <G26KreaControls model={apiModel} data={d || {}} update={update} />}
         {(isPreviewImageTab || isFluxImage && isFluxVariant(apiModel)) && <PreviewImageControls model={apiModel} ratio={effectiveAspectRatio} data={d || {}} update={update} />}
-        {isKlingImage && <KlingImageControls data={d || {}} update={update} />}
+        {isKlingImage && (NOV21.isImage(apiModel)?<LongImageControls data={d || {}} update={update}/>:<KlingImageControls data={d || {}} update={update} />)}
         {isMaiImage && <MaiImageControls model={apiModel} data={maiSettings} referenceCount={orderedImages.length} update={update} />}
         {isMossImage && <MossImageControls ratio={effectiveAspectRatio} update={update} />}
         {isFluxImage && (

@@ -1,7 +1,10 @@
 {
   "schema": "t8-creative-runtime-catalog-v1",
-  "sourceDigest": "71bc6af6d351e0fe1a7a7ad1c429609c11674f0a01631ffedb2b427205913be5",
+  "sourceDigest": "cf0d95b89acd7e452b59c0cb3c7e510b98ad27398dfb5c6266b316a7fbdde5f9",
   "generatedFrom": [
+    "backend/src/shared/nov21ModelsContract.json",
+    "backend/src/shared/nov21ModelsContract.mjs",
+    "backend/src/providers/miora3d.js",
     "backend/src/shared/nov19ModelsContract.json",
     "backend/src/shared/nov19ModelsContract.mjs",
     "backend/src/shared/qwenAudio31Voices.json",
@@ -1281,6 +1284,58 @@
         "parameterKind": "seedance-nz-image",
         "supportsReference": true,
         "description": "贞贞的平价AI小屋图像模型"
+      }
+    },
+    {
+      "id": "image:seedance-nz:kling-v4-long-image",
+      "provider": "seedance-nz",
+      "platformLabel": "贞贞的平价AI小屋",
+      "model": "kling-v4-long-image",
+      "label": "kling-v4-long-image",
+      "family": "kling-v4-image",
+      "available": true,
+      "parameters": {
+        "label": "kling-v4-long-image",
+        "platformLabel": "贞贞的平价AI小屋",
+        "family": "kling-v4-image",
+        "available": true,
+        "tabLabel": "Kling Image",
+        "capabilities": [
+          "t2i",
+          "i2i",
+          "edit"
+        ],
+        "parameterKind": "kling-long-image",
+        "aspectRatios": [],
+        "defaultAspectRatio": "",
+        "sizes": [],
+        "defaultSize": "",
+        "supportsReference": true,
+        "maxReferenceImages": 3,
+        "sharedParameterContract": "backend/src/shared/nov21ModelsContract.mjs",
+        "skills": [
+          "ecommerce",
+          "webpage"
+        ],
+        "ecommerceReferences": {
+          "min": 1,
+          "max": 3
+        },
+        "webpageRoles": [
+          "style",
+          "subject"
+        ],
+        "resolutions": [
+          "1k",
+          "2k"
+        ],
+        "unsupportedFields": [
+          "n",
+          "size",
+          "width",
+          "height"
+        ],
+        "outputFormat": "png"
       }
     },
     {
@@ -5080,6 +5135,94 @@
       }
     },
     {
+      "id": "video:seedance-nz:heygen-avatar-6",
+      "provider": "seedance-nz",
+      "platformLabel": "贞贞的平价AI小屋",
+      "model": "heygen-avatar-6",
+      "label": "heygen-avatar-6",
+      "family": "heygen-avatar-6",
+      "available": true,
+      "parameters": {
+        "label": "heygen-avatar-6",
+        "platformLabel": "贞贞的平价AI小屋",
+        "family": "heygen-avatar-6",
+        "available": true,
+        "nodeKind": "heygen",
+        "ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:5",
+          "5:4"
+        ],
+        "defaultRatio": "16:9",
+        "durations": [],
+        "resolutions": [
+          "1080p",
+          "2k"
+        ],
+        "defaultResolution": "1080p",
+        "supportsImages": false,
+        "supportsVideos": false,
+        "supportsAudios": true,
+        "maxReferenceImages": 0,
+        "maxReferenceVideos": 0,
+        "maxReferenceAudios": 1,
+        "sharedParameterContract": "backend/src/shared/nov21ModelsContract.mjs",
+        "endpoint": "/v1/video/generations",
+        "durationFromInput": true,
+        "promptMaxCharacters": 5000,
+        "avatarField": "heygenAvatar",
+        "voiceField": "heygenVoice",
+        "motionField": "heygenMotionPrompt",
+        "audioExcludesPromptAndVoice": true
+      }
+    },
+    {
+      "id": "video:seedance-nz:heygen-avatar-6-turbo",
+      "provider": "seedance-nz",
+      "platformLabel": "贞贞的平价AI小屋",
+      "model": "heygen-avatar-6-turbo",
+      "label": "heygen-avatar-6-turbo",
+      "family": "heygen-avatar-6",
+      "available": true,
+      "parameters": {
+        "label": "heygen-avatar-6-turbo",
+        "platformLabel": "贞贞的平价AI小屋",
+        "family": "heygen-avatar-6",
+        "available": true,
+        "nodeKind": "heygen",
+        "ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:5",
+          "5:4"
+        ],
+        "defaultRatio": "16:9",
+        "durations": [],
+        "resolutions": [
+          "1080p",
+          "2k"
+        ],
+        "defaultResolution": "1080p",
+        "supportsImages": false,
+        "supportsVideos": false,
+        "supportsAudios": true,
+        "maxReferenceImages": 0,
+        "maxReferenceVideos": 0,
+        "maxReferenceAudios": 1,
+        "sharedParameterContract": "backend/src/shared/nov21ModelsContract.mjs",
+        "endpoint": "/v1/video/generations",
+        "durationFromInput": true,
+        "promptMaxCharacters": 5000,
+        "avatarField": "heygenAvatar",
+        "voiceField": "heygenVoice",
+        "motionField": "heygenMotionPrompt",
+        "audioExcludesPromptAndVoice": true
+      }
+    },
+    {
       "id": "video:seedance-nz:kling-o3-4k-i2v",
       "provider": "seedance-nz",
       "platformLabel": "贞贞的平价AI小屋",
@@ -6301,6 +6444,123 @@
       }
     },
     {
+      "id": "video:seedance-nz:minimax-h3-comfyui-charswap-token",
+      "provider": "seedance-nz",
+      "platformLabel": "贞贞的平价AI小屋",
+      "model": "minimax-h3-comfyui-charswap-token",
+      "label": "minimax-h3-comfyui-charswap-token",
+      "family": "minimax-h3-comfyui-max",
+      "available": true,
+      "parameters": {
+        "label": "minimax-h3-comfyui-charswap-token",
+        "platformLabel": "贞贞的平价AI小屋",
+        "family": "minimax-h3-comfyui-max",
+        "available": true,
+        "nodeKind": "h3-lowprice",
+        "ratios": [
+          "auto"
+        ],
+        "defaultRatio": "auto",
+        "durations": [
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "defaultDuration": 5,
+        "resolutions": [
+          "768p"
+        ],
+        "defaultResolution": "768p",
+        "supportsImages": true,
+        "supportsVideos": true,
+        "supportsAudios": false,
+        "maxReferenceImages": 5,
+        "maxReferenceVideos": 1,
+        "maxReferenceAudios": 0,
+        "sharedParameterContract": "backend/src/shared/h3TurboContract.mjs",
+        "nativeSeed": false,
+        "fixedResolution": "768p",
+        "minimumReferenceImages": 1,
+        "audioLimitPerFile": true,
+        "framesField": "h3ComfyFrames",
+        "durationModeField": "h3ComfyDurationMode",
+        "framesRange": {
+          "min": 22,
+          "max": 362,
+          "step": 17
+        },
+        "exactReferenceVideos": 1
+      }
+    },
+    {
+      "id": "video:seedance-nz:minimax-h3-comfyui-digital-human-token",
+      "provider": "seedance-nz",
+      "platformLabel": "贞贞的平价AI小屋",
+      "model": "minimax-h3-comfyui-digital-human-token",
+      "label": "minimax-h3-comfyui-digital-human-token",
+      "family": "minimax-h3-comfyui-max",
+      "available": true,
+      "parameters": {
+        "label": "minimax-h3-comfyui-digital-human-token",
+        "platformLabel": "贞贞的平价AI小屋",
+        "family": "minimax-h3-comfyui-max",
+        "available": true,
+        "nodeKind": "h3-lowprice",
+        "ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4",
+          "3:2",
+          "2:3",
+          "21:9"
+        ],
+        "defaultRatio": "16:9",
+        "durations": [
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "defaultDuration": 5,
+        "resolutions": [
+          "768p"
+        ],
+        "defaultResolution": "768p",
+        "supportsImages": true,
+        "supportsVideos": false,
+        "supportsAudios": true,
+        "maxReferenceImages": 1,
+        "maxReferenceVideos": 0,
+        "maxReferenceAudios": 1,
+        "sharedParameterContract": "backend/src/shared/h3TurboContract.mjs",
+        "nativeSeed": false,
+        "fixedResolution": "768p",
+        "minimumReferenceImages": 1,
+        "audioLimitPerFile": true,
+        "exactReferenceAudios": 1,
+        "audioMustFitDuration": true
+      }
+    },
+    {
       "id": "video:seedance-nz:minimax-h3-comfyui-max",
       "provider": "seedance-nz",
       "platformLabel": "贞贞的平价AI小屋",
@@ -6410,6 +6670,62 @@
       }
     },
     {
+      "id": "video:seedance-nz:minimax-h3-comfyui-max-10020-token",
+      "provider": "seedance-nz",
+      "platformLabel": "贞贞的平价AI小屋",
+      "model": "minimax-h3-comfyui-max-10020-token",
+      "label": "minimax-h3-comfyui-max-10020-token",
+      "family": "minimax-h3-comfyui-max",
+      "available": true,
+      "parameters": {
+        "label": "minimax-h3-comfyui-max-10020-token",
+        "platformLabel": "贞贞的平价AI小屋",
+        "family": "minimax-h3-comfyui-max",
+        "available": true,
+        "nodeKind": "h3-lowprice",
+        "ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4",
+          "3:2",
+          "2:3",
+          "21:9"
+        ],
+        "defaultRatio": "16:9",
+        "durations": [
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "defaultDuration": 5,
+        "resolutions": [
+          "768p"
+        ],
+        "defaultResolution": "768p",
+        "supportsImages": true,
+        "supportsVideos": false,
+        "supportsAudios": true,
+        "maxReferenceImages": 6,
+        "maxReferenceVideos": 0,
+        "maxReferenceAudios": 3,
+        "sharedParameterContract": "backend/src/shared/h3TurboContract.mjs",
+        "nativeSeed": false,
+        "fixedResolution": "768p",
+        "minimumReferenceImages": 1,
+        "audioLimitPerFile": true
+      }
+    },
+    {
       "id": "video:seedance-nz:minimax-h3-comfyui-max-10021",
       "provider": "seedance-nz",
       "platformLabel": "贞贞的平价AI小屋",
@@ -6460,6 +6776,62 @@
         "sharedParameterContract": "backend/src/shared/h3TurboContract.mjs",
         "nativeSeed": false,
         "seedField": "h3ComfySeed"
+      }
+    },
+    {
+      "id": "video:seedance-nz:minimax-h3-comfyui-max-10021-token",
+      "provider": "seedance-nz",
+      "platformLabel": "贞贞的平价AI小屋",
+      "model": "minimax-h3-comfyui-max-10021-token",
+      "label": "minimax-h3-comfyui-max-10021-token",
+      "family": "minimax-h3-comfyui-max",
+      "available": true,
+      "parameters": {
+        "label": "minimax-h3-comfyui-max-10021-token",
+        "platformLabel": "贞贞的平价AI小屋",
+        "family": "minimax-h3-comfyui-max",
+        "available": true,
+        "nodeKind": "h3-lowprice",
+        "ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4",
+          "3:2",
+          "2:3",
+          "21:9"
+        ],
+        "defaultRatio": "16:9",
+        "durations": [
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "defaultDuration": 5,
+        "resolutions": [
+          "768p"
+        ],
+        "defaultResolution": "768p",
+        "supportsImages": true,
+        "supportsVideos": true,
+        "supportsAudios": true,
+        "maxReferenceImages": 6,
+        "maxReferenceVideos": 1,
+        "maxReferenceAudios": 3,
+        "sharedParameterContract": "backend/src/shared/h3TurboContract.mjs",
+        "nativeSeed": false,
+        "fixedResolution": "768p",
+        "minimumReferenceImages": 1,
+        "audioLimitPerFile": true
       }
     },
     {
@@ -11746,6 +12118,46 @@
       }
     },
     {
+      "id": "audio:seedance-nz:zhenzhen/gm-2.5-flash-tts",
+      "provider": "seedance-nz",
+      "platformLabel": "贞贞的平价AI小屋",
+      "model": "zhenzhen/gm-2.5-flash-tts",
+      "label": "zhenzhen/gm-2.5-flash-tts",
+      "family": "gemini-tts",
+      "available": true,
+      "parameters": {
+        "label": "zhenzhen/gm-2.5-flash-tts",
+        "platformLabel": "贞贞的平价AI小屋",
+        "family": "gemini-tts",
+        "available": true,
+        "tabLabel": "Gemini 2.5 TTS",
+        "sharedParameterContract": "backend/src/shared/nov21ModelsContract.mjs",
+        "format": "wav",
+        "sampleRate": 24000,
+        "channels": 1
+      }
+    },
+    {
+      "id": "audio:seedance-nz:zhenzhen/gm-2.5-pro-tts",
+      "provider": "seedance-nz",
+      "platformLabel": "贞贞的平价AI小屋",
+      "model": "zhenzhen/gm-2.5-pro-tts",
+      "label": "zhenzhen/gm-2.5-pro-tts",
+      "family": "gemini-tts",
+      "available": true,
+      "parameters": {
+        "label": "zhenzhen/gm-2.5-pro-tts",
+        "platformLabel": "贞贞的平价AI小屋",
+        "family": "gemini-tts",
+        "available": true,
+        "tabLabel": "Gemini 2.5 TTS",
+        "sharedParameterContract": "backend/src/shared/nov21ModelsContract.mjs",
+        "format": "wav",
+        "sampleRate": 24000,
+        "channels": 1
+      }
+    },
+    {
       "id": "audio:zhenzhen:suno-v5.5-cover",
       "provider": "zhenzhen",
       "platformLabel": "贞贞的AI工坊",
@@ -13121,6 +13533,33 @@
       }
     },
     {
+      "id": "model3d:seedance-nz:miora-3d",
+      "kind": "model3d",
+      "provider": "seedance-nz",
+      "platformLabel": "贞贞的平价AI小屋",
+      "action": "miora-3d",
+      "label": "miora-3d",
+      "family": "miora-3d",
+      "resultKind": "model3d",
+      "parameters": {
+        "tab": "Miora 3D",
+        "endpoint": "/v1/3d/generations",
+        "viewOrder": [
+          "front",
+          "left",
+          "right",
+          "back",
+          "top",
+          "bottom",
+          "front-left",
+          "front-right"
+        ],
+        "maximumReferenceImages": 8,
+        "sharedParameterContract": "backend/src/shared/nov21ModelsContract.mjs",
+        "preserveAllFiles": true
+      }
+    },
+    {
       "id": "model3d:seedance-nz:tripo-convert",
       "kind": "model3d",
       "provider": "seedance-nz",
@@ -14143,9 +14582,9 @@
   ],
   "counts": {
     "llm": 34,
-    "image": 93,
-    "video": 157,
-    "audio": 22,
-    "actions": 92
+    "image": 94,
+    "video": 163,
+    "audio": 24,
+    "actions": 93
   }
 }

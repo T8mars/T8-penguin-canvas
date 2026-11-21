@@ -1,0 +1,1 @@
+export function createNov21ModelsContract(contract:any):{contract:any;isImage(model:string):boolean;isAudio(model:string):boolean;isVideo(model:string):boolean;image(request:any):any;audio(request:any):any;video(request:any):any;model3d(request:any):any};

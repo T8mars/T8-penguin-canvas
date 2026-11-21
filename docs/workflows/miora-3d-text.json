@@ -1,0 +1,50 @@
+{
+  "schema": "t8-workflow-fragment",
+  "version": 1,
+  "title": "miora-3d-text",
+  "nodes": [
+    {
+      "id": "generate",
+      "type": "model-3d",
+      "position": {
+        "x": 440,
+        "y": 30
+      },
+      "data": {
+        "providerSource": "zhenzhen",
+        "reuseResult": false,
+        "prompt": "A blue ceramic teapot.",
+        "model": "miora-3d",
+        "threeDTab": "miora-3d",
+        "mioraGenerateType": "normal",
+        "mioraFaceCount": 500000,
+        "mioraPbr": false
+      }
+    },
+    {
+      "id": "result",
+      "type": "model-3d-preview",
+      "position": {
+        "x": 900,
+        "y": 30
+      },
+      "data": {
+        "label": "结果 / Result"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "generate-result",
+      "source": "generate",
+      "target": "result"
+    }
+  ],
+  "nodeCount": 2,
+  "edgeCount": 1,
+  "nodeTypes": [
+    "model-3d",
+    "model-3d-preview"
+  ],
+  "savedAt": "2026-11-22T00:00:00.000Z"
+}
