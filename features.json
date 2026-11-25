@@ -429,7 +429,7 @@
     "details": "docs/zcanvas-saved-media-transfer.md"
   },
   "$schema": "本文件为 T8-penguin-canvas 节点清单防丢失锁,任何节点删减都需要在 roadmap.md 中说明并更新本文件。",
-  "version": "3.5.5",
+  "version": "3.5.6",
   "zcanvasRunApprovalRecovery20261020": {
     "status": "released-v3.3.7-local-verified",
     "summary": "原生运行计划单次操作绑定、同作用域GET恢复；20项限定回归与全新TEMP实际路由/账本通过，未运行Provider，真实窗口/生产版待验。",
@@ -3489,54 +3489,15 @@
     ]
   },
   "release": {
-    "status": "released-v3.5.5-dual-platform-verified",
-    "version": "3.5.5",
-    "tag": "v3.5.5",
-    "latest": true,
-    "date": "2026-11-22",
-    "details": "docs/release-v3.5.5.md",
-    "evidence": "docs/release-v3.5.5.md",
-    "postReleaseEvidence": "owner-approved-post-release-v3.5.5",
-    "macBoundary": "same-tag ad-hoc preview",
-    "sourceCommit": "d7750b90e607b5580bb7c56250d6fdca02bf577f",
-    "publishedAt": "2026-11-21T19:37:38Z",
-    "draft": false,
-    "prerelease": false,
-    "macWorkflow": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/44941971769",
-    "macAttempt": 1,
-    "macWorkflowConclusion": "success",
-    "assets": {
-      "windowsInstaller": {
-        "name": "T8-PenguinCanvas-Setup-3.5.5.exe",
-        "bytes": 1380164596,
-        "sha256": "99af02a6613ac78de1445679bb08b2856431b2e5bbd49e94608b8535bdd3e0da"
-      },
-      "windowsBlockmap": {
-        "name": "T8-PenguinCanvas-Setup-3.5.5.exe.blockmap",
-        "bytes": 1440005,
-        "sha256": "01c0c3f65fbd85d0a247999daa32479374d669c76fed0be1d4e568510fec861a"
-      },
-      "windowsUpdater": {
-        "name": "latest.yml",
-        "bytes": 362,
-        "sha256": "350dce44da9f901be46529f0f50fb76ac294292fe8fdc8cf198d4922c326ca9a"
-      },
-      "macDmg": {
-        "name": "T8-PenguinCanvas-3.5.5-mac-arm64.dmg",
-        "bytes": 520056389,
-        "sha256": "efdbdf4653a8c7b07c371f76c50441af340deb229b2ba24cb9ee0de0f3e48459"
-      },
-      "macZip": {
-        "name": "T8-PenguinCanvas-3.5.5-mac-arm64.zip",
-        "bytes": 511677310,
-        "sha256": "54de417f833929c16ae8fdfd6ab7b4e6562e29c844031a07ba5d6db74eec8ec6"
-      },
-      "macUpdater": {
-        "name": "latest-mac.yml",
-        "bytes": 536,
-        "sha256": "3bd2b9a2e5323cf0bbc34c150667e0990110c1fa3bd0fcf4d9e310ab71681fe9"
-      }
-    }
+    "status": "authorized-v3.5.6-pending-build",
+    "version": "3.5.6",
+    "tag": "v3.5.6",
+    "latest": false,
+    "date": "2026-11-25",
+    "details": "docs/release-v3.5.6.md",
+    "evidence": "docs/release-v3.5.6.md",
+    "postReleaseEvidence": "owner-approved-post-release-v3.5.6",
+    "macBoundary": "same-tag ad-hoc preview; defer if GitHub quota is insufficient"
   },
   "minimaxMusic3PromptEnhancer": {
     "status": "released-v2.9.3",
@@ -10882,11 +10843,11 @@
       "T8_ENABLE_LOCAL_PRIVATE": "开发环境和普通本机构建可选；0=关闭本机 local-private/extensions 私有扩展。正式 dist:release 固定为 1，不能被父环境降级。GitHub/clean clone 因为没有 local-private 目录，不包含充值实现。",
       "T8_DISABLE_LOCAL_EXTENSIONS": "开发环境可选；1=关闭本地扩展。正式 dist:release 固定为 0，确保本机私有 sidecar 参与加密打包与后置校验。"
     },
-    "version": "3.5.5",
-    "semverVersion": "3.5.5",
+    "version": "3.5.6",
+    "semverVersion": "3.5.6",
     "versionNumberPolicy": "T8 版本号仍采用 x.y.z 三段，但每一段只允许 0-9；任一段到 9 后下一次发布必须向左进位，禁止任一段出现两位数字。例：1.9.9 的下一版必须是 2.0.0。",
-    "versionNote": "v3.5.5 双平台已发布，见 docs/release-v3.5.5.md。",
-    "installer": "T8-PenguinCanvas-Setup-3.5.5.exe，远端完整回下载已校验。",
+    "versionNote": "v3.5.6 新增 Magi 视频模型，见 docs/release-v3.5.6.md。",
+    "installer": "T8-PenguinCanvas-Setup-3.5.6.exe",
     "updaterInstallMode": "自动更新下载完成后不得静默安装：main.cjs 必须设置 autoInstallOnAppQuit=false，显式安装调用 quitAndInstall(false,true)；electron/build-resources/installer.nsh 通过 SetSilent normal 让新版 NSIS 安装器即使收到旧客户端传入的 /S 也尽量切回前台安装向导。",
     "installerShortcutPolicy": "安装完成后必须创建桌面和开始菜单快捷方式：package.json build.nsis.createDesktopShortcut 必须为 \"always\"，createStartMenuShortcut 必须为 true；electron/build-resources/installer.nsh 必须保留 customInstall 兜底 CreateShortCut \"$newStartMenuLink\" 与 \"$DESKTOP\\${SHORTCUT_NAME}.lnk\"，防止更新安装/keepShortcuts 路径遗漏入口。",
     "updaterEntryPolicy": "顶栏桌面更新入口不得只因 window.t8pc.updater 缺失就静默消失；Electron UA 或 t8pc.getInfo/openExternal 可用时必须显示诊断入口，提示重新安装完整桌面包，Web/纯浏览器环境才隐藏。状态为 not-available 时按钮仍保留“更新”字样，避免用户误以为自动更新入口被删除。",
@@ -18028,7 +17989,8 @@
   "magi2Video20261125": {
     "status": "implemented",
     "summary": "视频节点平价小屋新增 Magi 模型组，含国内、海外共两款，文生、首尾帧和参考生模式各有工作流。实网两单完整解码。",
-    "details": "docs/magi2.md"
+    "details": "docs/magi2.md",
+    "releaseVersion": "3.5.6"
   },
   "nov21Models20261122": {
     "status": "released-v3.5.5-heygen-upstream-pending",
@@ -18059,7 +18021,7 @@
     "status": "released-v3.5.5-dual-platform-verified",
     "version": "3.5.5",
     "tag": "v3.5.5",
-    "latest": true,
+    "latest": false,
     "date": "2026-11-22",
     "details": "docs/release-v3.5.5.md",
     "evidence": "docs/release-v3.5.5.md",
@@ -18104,5 +18066,16 @@
         "sha256": "3bd2b9a2e5323cf0bbc34c150667e0990110c1fa3bd0fcf4d9e310ab71681fe9"
       }
     }
+  },
+  "electronReleaseV356": {
+    "status": "authorized-v3.5.6-pending-build",
+    "version": "3.5.6",
+    "tag": "v3.5.6",
+    "latest": false,
+    "date": "2026-11-25",
+    "details": "docs/release-v3.5.6.md",
+    "evidence": "docs/release-v3.5.6.md",
+    "postReleaseEvidence": "owner-approved-post-release-v3.5.6",
+    "macBoundary": "same-tag ad-hoc preview; defer if GitHub quota is insufficient"
   }
 }

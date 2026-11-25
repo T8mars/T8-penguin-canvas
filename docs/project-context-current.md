@@ -3,8 +3,8 @@
 更新：2026-11-25。仅维护当前事实；规则见根 `SKILL.md` 和 `AGENTS.md`。预算80行/8 KiB，历史见专题。
 
 - 默认目录 `E:\PenguinPravite\T8-penguin-canvas`；branch `codex/release-v3.0.8-volcengine-assets-ux`，common dir `.git`。开工以git/worktree门为准；正式源码/Tag固定后记录在发布专题，不移动。
-- package `3.5.5` 双平台已发，见[专题](release-v3.5.5.md)。v3.5.4 Tag与资产冻结。
-- 本版现场/安装升级/F8–F10按 `owner-approved-post-release-v3.5.5` 后补；Mac同Tag未公证预览。
+- package `3.5.6` 发布准备，见[专题](release-v3.5.6.md)。v3.5.5 Tag与资产冻结。
+- 本版现场/安装升级/F8–F10按 `owner-approved-post-release-v3.5.6` 后补；Mac同Tag未公证预览。
 
 ## 当前检查点
 
@@ -12,7 +12,7 @@
 
 | 事项 | 当前事实与下一步 |
 | --- | --- |
-| 本轮开发 | [Magi](magi2.md) 两模型、六工作流，实网两单解码成功。上一版[十模型](nov21-models.md)随v3.5.5发布。 |
+| 本版模型 | [Magi](magi2.md) 两模型、六工作流，实网两单解码成功。上一版[十模型](nov21-models.md)随v3.5.5发布。 |
 | G2.6/Krea/Z-image/3D | Meshy文生v3.4.8已发；LowPrice十图实测通过、v3.4.9已发，见[专题](g26-krea-hitem-meshy.md)。 |
 | HY/Muse/Flux | 七模型、十一工作流及Motion复验，v3.4.6已发；验证见[专题](preview-muse-flux.md)。 |
 | Kling4 | 既有视频Kling新增五模型，v3.4.5已发；六条实网、133回归及临时完整画布通过，见[专题](kling-v4.md)。 |
