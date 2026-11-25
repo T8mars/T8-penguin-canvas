@@ -1,4 +1,5 @@
 import {nov21Zh,nov21En} from './nov21Catalog';
+import { magi2Zh, magi2En } from './magi2Catalog';
 import {nov19Zh,nov19En} from './nov19Catalog';
 import { h3TurboZh, h3TurboEn } from './h3TurboCatalog';
 import { seedream55Zh, seedream55En } from './seedream55Catalog';
@@ -21,6 +22,7 @@ import { klingV4Zh, klingV4En } from './klingV4Catalog';
 import { tripo3dZh, tripo3dEn } from './tripo3dCatalog';
 
 export const zhCN = {
+  magi2: magi2Zh,
   nov21:nov21Zh,
   nov19:nov19Zh,
   h3Turbo: h3TurboZh, seedream55: seedream55Zh,
@@ -687,6 +689,7 @@ export const zhCN = {
 } as const;
 
 export const enUS = {
+  magi2: magi2En,
   nov21:nov21En,
   nov19:nov19En,
   h3Turbo: h3TurboEn, seedream55: seedream55En,

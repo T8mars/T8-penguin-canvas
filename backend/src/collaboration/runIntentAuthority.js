@@ -7,6 +7,7 @@ const seedreamNzContract = require('../shared/seedreamNzContract.json');
 const nb21FluxViduContract = require('../shared/nb21FluxViduQ4Contract.json');
 const nbDoubaoContract = require('../shared/nbLowpriceDoubaoContract.json');
 const topazVideoContract = require('../shared/topazVideoContract.json');
+const magi2 = require('../shared/magi2Contract.json');
 const nov21=require('../shared/nov21ModelsContract.json');
 const nov19=require('../shared/nov19ModelsContract.json');
 const maiImageContract = require('../shared/maiImageContract.json');
@@ -164,6 +165,7 @@ const VIDEO_RUNTIME_MODELS = Object.freeze({
   'seedance-2.5': require('../shared/creativeModelCatalog.json').video.filter(entry => entry.family === 'seedance-2.5' && entry.provider === 'seedance-nz').map(entry => entry.model),
   'vosr2-video-upscale': ['vosr2-video-upscale'],
   [h3Turbo.video.model]: Object.values(h3Turbo).filter(spec => spec === h3Turbo.video || spec.video).map(spec => spec.model),
+  'magi-2': magi2.models,
   'heygen-avatar-6': nov21.heygen.models,
   [pmf.muse.videoModel]: [pmf.muse.videoModel],
   [topazVideoContract.model]: [topazVideoContract.model],
@@ -199,7 +201,7 @@ const SEEDANCE_NZ_IMAGE_RUNTIME_MODELS = new Set([
   'qwen-image-global-2.1',
 ]);
 const SEEDANCE_NZ_VIDEO_RUNTIME_MODELS = new Set([
-  ...nov21.heygen.models, ...VIDEO_RUNTIME_MODELS[h3Turbo.video.model],
+  ...magi2.models, ...nov21.heygen.models, ...VIDEO_RUNTIME_MODELS[h3Turbo.video.model],
   ...VIDEO_RUNTIME_MODELS['seedance-2.5'],
   ...Object.keys(require('../shared/flashVideoContract.json').models),
   pmf.muse.videoModel,

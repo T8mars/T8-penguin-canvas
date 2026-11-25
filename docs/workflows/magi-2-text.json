@@ -1,0 +1,54 @@
+{
+  "schema": "t8-workflow-fragment",
+  "version": 1,
+  "title": "magi-2-text",
+  "nodes": [
+    {
+      "id": "generate",
+      "type": "video",
+      "position": {
+        "x": 430,
+        "y": 30
+      },
+      "data": {
+        "providerSource": "zhenzhen",
+        "videoBuiltinSource": "seedance-nz",
+        "mainId": "magi-2",
+        "model": "magi-2",
+        "reuseResult": false,
+        "prompt": "A cobalt-blue paper cube rotates slowly on a matte cream pedestal. Locked camera, soft light.",
+        "magi2Mode": "text",
+        "magi2GenerateAudio": false,
+        "magi2Seed": -1,
+        "ratio": "16:9",
+        "duration": 4,
+        "resolution": "1080p"
+      }
+    },
+    {
+      "id": "result",
+      "type": "output",
+      "position": {
+        "x": 880,
+        "y": 30
+      },
+      "data": {
+        "label": "结果 / Result"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "generate-result",
+      "source": "generate",
+      "target": "result"
+    }
+  ],
+  "nodeCount": 2,
+  "edgeCount": 1,
+  "nodeTypes": [
+    "video",
+    "output"
+  ],
+  "savedAt": "2026-11-25T14:22:00.000Z"
+}

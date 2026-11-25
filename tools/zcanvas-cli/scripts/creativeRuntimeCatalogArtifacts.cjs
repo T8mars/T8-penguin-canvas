@@ -1,3 +1,4 @@
+const magi2 = require('../../../backend/src/shared/magi2Contract.json');
 const nov21=require('../../../backend/src/shared/nov21ModelsContract.json');
 const pmf = require('../../../backend/src/shared/previewMuseFluxContract.json');
 const newModels=require('../../../backend/src/providers/g26Krea3d');
@@ -24,6 +25,7 @@ const BACKEND_TARGET = path.join(ROOT, 'backend', 'src', 'shared', 'creativeMode
 const CLI_TARGET = path.join(ROOT, 'tools', 'zcanvas-cli', 'generated', 'creative-runtime-catalog.json');
 
 const SOURCE_PATHS = [
+  path.join(ROOT,'backend/src/shared/magi2Contract.json'), path.join(ROOT,'backend/src/shared/magi2Contract.mjs'),
   path.join(ROOT,'backend/src/shared/nov21ModelsContract.json'),path.join(ROOT,'backend/src/shared/nov21ModelsContract.mjs'),path.join(ROOT,'backend/src/providers/miora3d.js'),
   path.join(ROOT,'backend/src/shared/nov19ModelsContract.json'),path.join(ROOT,'backend/src/shared/nov19ModelsContract.mjs'),path.join(ROOT,'backend/src/shared/qwenAudio31Voices.json'),
   MODEL_SOURCE,
@@ -187,7 +189,7 @@ function buildRuntimeCatalog() {
   const budgetVideoModels = new Set([
     ...(seedanceNz.ZHENZHEN_APIMART_VIDEO_MODELS || []),
   ].map(String));
-  const seedanceNzVideoKinds = new Set(['wan', 'happyhorse', 'hailuo', 'vidu', 'kling', 'upscaler', 'seedance25', 'h3-lowprice', 'heygen', 'muse']);
+  const seedanceNzVideoKinds = new Set(['wan', 'happyhorse', 'hailuo', 'vidu', 'kling', 'upscaler', 'seedance25', 'h3-lowprice', 'heygen', 'magi', 'muse']);
 
   const llm = [];
   for (const item of models.LLM_MODELS || []) {
@@ -419,6 +421,14 @@ function buildRuntimeCatalog() {
           description: option.description ?? family.description,
           ...(family.kind === 'h3-lowprice' ? {sharedParameterContract:'backend/src/shared/h3TurboContract.mjs',nativeSeed:['minimax-h3-comfyui-charswap','minimax-h3-comfyui-wuxi'].includes(option.value),seedField:'h3ComfySeed',...(option.value === 'minimax-h3-comfyui-charswap' ? {framesField:'h3ComfyFrames',durationModeField:'h3ComfyDurationMode',framesRange:{min:22,max:362,step:17}} : {})} : {}),
           ...(option.value.endsWith('-token')&&family.kind==='h3-lowprice'?{seedField:undefined,fixedResolution:'768p',minimumReferenceImages:1,audioLimitPerFile:true,...(option.value.includes('charswap')?{framesField:'h3ComfyFrames',durationModeField:'h3ComfyDurationMode',framesRange:{min:22,max:362,step:17},exactReferenceVideos:1}:{}),...(option.value.includes('digital-human')?{exactReferenceAudios:1,audioMustFitDuration:true}:{})}:{}),
+          ...(family.kind === 'magi' ? {
+            sharedParameterContract: 'backend/src/shared/magi2Contract.mjs',
+            endpoint: '/v1/video/generations', fixedResolution: magi2.resolution,
+            promptMaxCharacters: magi2.maxPromptCharacters, modeField: 'magi2Mode', modes: magi2.modes,
+            audioField: 'magi2GenerateAudio', defaultGenerateAudio: true, seedField: 'magi2Seed',
+            referenceDurationRange: { min: magi2.reference.minSeconds, max: magi2.reference.maxSeconds },
+            maxReferenceSecondsPerKind: magi2.reference.totalSecondsPerKind,
+          } : {}),
           ...(family.kind==='heygen'?{sharedParameterContract:'backend/src/shared/nov21ModelsContract.mjs',endpoint:'/v1/video/generations',durationFromInput:true,defaultDuration:undefined,promptMaxCharacters:5000,avatarField:'heygenAvatar',voiceField:'heygenVoice',motionField:'heygenMotionPrompt',audioExcludesPromptAndVoice:true}:{}),
           ...(String(option.value).includes('-flash-') && family.kind === 'seedance25' ? {sharedParameterContract:'backend/src/shared/seedance25FlashContract.mjs',supportsDraft:false,referenceTaskTypes:['auto','reference','edit','extend'],referenceTaskTypeField:'seedance25ReferenceTaskType',referenceDuration:{min:2,max:30,totalMax:30}} : {}),
           ...(String(option.value).endsWith('-draft-to-video') ? { noPrompt: true, inputMode: 'completed-draft-task-id', draftTaskIdField: 'seedance25DraftTaskId', outputFormats: ['mp4','mov'], outputResolution: 'native1080p', sharedParameterContract: 'backend/src/shared/seedream55DraftContract.mjs' } : {}),

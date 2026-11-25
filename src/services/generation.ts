@@ -1707,6 +1707,31 @@ export async function queryMotionVideo(taskId: string, model: string, connection
   return withProviderTransportTrace(data.data as MotionQueryResult, r);
 }
 
+export async function submitMagi2Video(
+  request: import('../../backend/src/shared/magi2Contract.mjs').Magi2Request,
+  transport: ProviderSubmissionTransport = {},
+): Promise<{ taskId: string; model: string; taskType: string } & ProviderTransportTrace> {
+  const response = await fetch('/api/proxy/video/magi/submit', {
+    method: 'POST', headers: providerSubmissionHeaders(transport),
+    body: JSON.stringify(request), signal: transport.signal,
+  });
+  const data = await safeJsonResponse(response, 'Magi 2 submit');
+  if (!response.ok || !data.success) throw providerResponseError(response, data);
+  return withProviderTransportTrace(data.data, response);
+}
+
+export async function queryMagi2Video(
+  taskId: string, model: string, transport: ProviderSubmissionTransport = {},
+): Promise<HappyHorseQueryResult> {
+  const response = await fetch(
+    '/api/proxy/video/magi/status/' + encodeURIComponent(taskId) + '?model=' + encodeURIComponent(model),
+    { signal: transport.signal },
+  );
+  const data = await safeJsonResponse(response, 'Magi 2 query');
+  if (!response.ok || !data.success) throw providerResponseError(response, data);
+  return withProviderTransportTrace(data.data, response);
+}
+
 export async function submitHeygenVideo(req: ReturnType<typeof import('../utils/nov21Models').buildHeygenRequest>, transport:ProviderSubmissionTransport={}){const r=await fetch('/api/proxy/video/heygen/submit',{method:'POST',headers:providerSubmissionHeaders(transport),body:JSON.stringify(req),signal:transport.signal});const data=await safeJsonResponse(r,'HeyGen submit');if(!r.ok||!data.success)throw providerResponseError(r,data);return withProviderTransportTrace(data.data,r);}
 export async function queryHeygenVideo(taskId:string,model:string,transport:ProviderSubmissionTransport={}):Promise<HappyHorseQueryResult>{const r=await fetch('/api/proxy/video/heygen/status/'+encodeURIComponent(taskId)+'?model='+encodeURIComponent(model),{signal:transport.signal});const data=await safeJsonResponse(r,'HeyGen query');if(!r.ok||!data.success)throw providerResponseError(r,data);return withProviderTransportTrace(data.data,r);}
 export async function submitH3TurboVideo(req: { model: string; prompt: string; images: string[]; audios: string[]; videos?: string[]; seconds?: string; frames?: number; seed?: number; resolution: string; ratio: string }, transport: ProviderSubmissionTransport = {}) {

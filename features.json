@@ -18025,6 +18025,11 @@
     "summary": "0 open PRs and 6 existing issues; no reporter follow-up. Released RH, localization and Creator fixes preserved. Mac, performance and English acceptance gaps remain open.",
     "details": "docs/github-issues-20261121.md"
   },
+  "magi2Video20261125": {
+    "status": "implemented",
+    "summary": "视频节点平价小屋新增 Magi 模型组，含国内、海外共两款，文生、首尾帧和参考生模式各有工作流。实网两单完整解码。",
+    "details": "docs/magi2.md"
+  },
   "nov21Models20261122": {
     "status": "released-v3.5.5-heygen-upstream-pending",
     "summary": "Ten budget-house models in existing nodes: Kling long image, Gemini TTS, H3 Token, HeyGen Avatar 6 and Miora 3D; fourteen credential-free workflows. Eight models have decoded real results; HeyGen originals remain running.",

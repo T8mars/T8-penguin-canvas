@@ -7,6 +7,8 @@
     "i18nRendererResources": "src/i18n/resources.ts",
     "i18nElectronCatalog": "electron/i18n-catalog.json",
     "runtimeCatalog": [
+      "backend/src/shared/magi2Contract.json",
+      "backend/src/shared/magi2Contract.mjs",
       "backend/src/shared/nov21ModelsContract.json",
       "backend/src/shared/nov21ModelsContract.mjs",
       "backend/src/providers/miora3d.js",
@@ -41,19 +43,19 @@
   },
   "sourceDigests": {
     "creativeCapabilityManifest": "35bb3f4a925c60886c9e10e739c340218c9b1abceb4c40a738cc73cec33c5948",
-    "canvasNodeSchema": "31cb418e6d98a742ab75fc45126dc853f7f7ee20685ba401960a7a301e1f2b72",
-    "canvasNodeSchemaFile": "3898937fed60c3088af20e39cf63e70105d831637fdcaa7b687fa8bab5476f98",
+    "canvasNodeSchema": "1df641f143e6df4097627d4bfb4ca35aa76578ba657aeae08eca6fa07213cbb3",
+    "canvasNodeSchemaFile": "e2c8d2b045723626fa7b22ad96fe4fec1522217da7d150696b46e49a8741ee99",
     "i18nNodeCatalog": "fec04dd618a75492ca3a2d6e0d76b0a2a2b7e9f10cc5d008bdeedbf2a870c3d9",
-    "i18nRendererResources": "ca691493bda2d8a39eb31bcc40b89e0cf4dbbb2e7bd3c14a2a05e68fd4c214b1",
+    "i18nRendererResources": "d646d8a456a4c12a05cf20fb19d3e17372a467d08f063471204e82ba333fede4",
     "i18nElectronCatalog": "bab981c4f10262117b0912e8be73c22b9a938b7fb232ba0f5b14b7efea0767ad",
-    "runtimeCatalogSources": "cf0d95b89acd7e452b59c0cb3c7e510b98ad27398dfb5c6266b316a7fbdde5f9",
-    "runtimeCatalogArtifact": "6a2c50f00b81328bce40c37ffdab03d8ab45fd0ab367734fa9e2677955212c87",
+    "runtimeCatalogSources": "8b9ceeab0016a15b22446cbb298606b3df9601c627a1e2f01f736997eb4ee97e",
+    "runtimeCatalogArtifact": "3396cc8b1f48c91e70c414258b4f6d6130945fe99a537089b86e8427baaf97c8",
     "handlerBindings": "3cd8cde3c05d1642d72ce8cbfae2874d1bdf986592ae431ef7d66b043da257b5",
     "capabilityGraphCompiler": "a3716d239b91e1c4775f5996b3865ba3ab8fd652263138feef0a56de40851c24",
     "coverageReceiptCompiler": "68c02167cb5317107edd346223a5e5999168e447bacbb977ff8e9678e6753fe7",
     "canonicalTextDigestCompiler": "b0afcf28a257fbbd8f391edc117348f8f2ede1b4a039ae91bce25a8d563ac0cf"
   },
-  "aggregateDigest": "9aac1690e5796123423a17103ed38af4999175f6ee79f930e022673aa2f57595",
+  "aggregateDigest": "3724c7a349e29cfc019c6f968841d45c2395a88bf379e853610d2111b7ccf3dc",
   "principles": {
     "oneSentenceStart": true,
     "directCanvasMutation": false,
@@ -77,17 +79,17 @@
     "accountedNodes": 85,
     "unexplainedNodes": 0,
     "fullyOperableNodes": 21,
-    "runtimeEntries": 408,
+    "runtimeEntries": 410,
     "runtimeByKind": {
       "llm": 34,
       "image": 94,
-      "video": 163,
+      "video": 165,
       "audio": 24,
       "actions": 93
     },
     "runtimeByProvider": {
       "grok-oauth": 2,
-      "seedance-nz": 335,
+      "seedance-nz": 337,
       "zhenzhen": 64,
       "fal": 7
     },
@@ -7524,7 +7526,7 @@
   ],
   "runtime": {
     "schema": "t8-creative-runtime-catalog-v1",
-    "sourceDigest": "cf0d95b89acd7e452b59c0cb3c7e510b98ad27398dfb5c6266b316a7fbdde5f9",
+    "sourceDigest": "8b9ceeab0016a15b22446cbb298606b3df9601c627a1e2f01f736997eb4ee97e",
     "platforms": [
       {
         "id": "zhenzhen",
@@ -13641,6 +13643,46 @@
         }
       },
       {
+        "id": "video:seedance-nz:magi-2",
+        "kind": "video",
+        "provider": "seedance-nz",
+        "platformLabel": "贞贞的平价AI小屋",
+        "model": "magi-2",
+        "label": "magi-2",
+        "family": "magi-2",
+        "available": true,
+        "catalogSection": "video",
+        "compatibility": {
+          "known": true,
+          "installed": true,
+          "credentialReady": null,
+          "regionReady": true,
+          "executable": false,
+          "available": true,
+          "requiresRuntimeCheck": true
+        }
+      },
+      {
+        "id": "video:seedance-nz:magi-2-global",
+        "kind": "video",
+        "provider": "seedance-nz",
+        "platformLabel": "贞贞的平价AI小屋",
+        "model": "magi-2-global",
+        "label": "magi-2-global",
+        "family": "magi-2",
+        "available": true,
+        "catalogSection": "video",
+        "compatibility": {
+          "known": true,
+          "installed": true,
+          "credentialReady": null,
+          "regionReady": true,
+          "executable": false,
+          "available": true,
+          "requiresRuntimeCheck": true
+        }
+      },
+      {
         "id": "video:seedance-nz:midjourney-video",
         "kind": "video",
         "provider": "seedance-nz",
@@ -16313,6 +16355,8 @@
       "video:seedance-nz:kling-v4-i2v",
       "video:seedance-nz:kling-v4-omni",
       "video:seedance-nz:kling-v4-t2v",
+      "video:seedance-nz:magi-2",
+      "video:seedance-nz:magi-2-global",
       "video:seedance-nz:midjourney-video",
       "video:seedance-nz:mini",
       "video:seedance-nz:MiniMax-H3",
@@ -16427,8 +16471,8 @@
     "schema": "t8-creative-capability-coverage-receipt-v1",
     "sourceDigests": {
       "capabilityManifest": "35bb3f4a925c60886c9e10e739c340218c9b1abceb4c40a738cc73cec33c5948",
-      "nodeSchema": "31cb418e6d98a742ab75fc45126dc853f7f7ee20685ba401960a7a301e1f2b72",
-      "runtimeCatalog": "cf0d95b89acd7e452b59c0cb3c7e510b98ad27398dfb5c6266b316a7fbdde5f9",
+      "nodeSchema": "1df641f143e6df4097627d4bfb4ca35aa76578ba657aeae08eca6fa07213cbb3",
+      "runtimeCatalog": "8b9ceeab0016a15b22446cbb298606b3df9601c627a1e2f01f736997eb4ee97e",
       "handlerBindings": "3cd8cde3c05d1642d72ce8cbfae2874d1bdf986592ae431ef7d66b043da257b5",
       "receiptCompiler": "68c02167cb5317107edd346223a5e5999168e447bacbb977ff8e9678e6753fe7"
     },
@@ -16441,7 +16485,7 @@
       "runtime": {
         "llm": 34,
         "image": 94,
-        "video": 163,
+        "video": 165,
         "audio": 24,
         "actions": 93
       },
@@ -16457,6 +16501,6 @@
       "missingCompatibilityEdges": []
     },
     "complete": true,
-    "digest": "5dd9497c54848cb0cbde495ad0698a1e7a3a672b2db2474f1c472a66d19dfdea"
+    "digest": "d8ded89bf0b1978654691aadfd44edf031e790f9e240da786b03b4bc8c72e0b1"
   }
 }

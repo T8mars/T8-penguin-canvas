@@ -392,7 +392,7 @@ function builtInCredentialNotice(node: Node, settings: ApiSettings): RunPrefligh
 
   if (node.type === 'video') {
     const { definition, apiModel } = videoModelSelection(data);
-    if (definition?.kind === 'heygen' || definition?.kind === 'h3-lowprice' || definition?.kind === 'muse' || definition?.kind === 'happyhorse' || definition?.kind === 'hailuo' || definition?.kind === 'kling' || definition?.kind === 'upscaler' || definition?.kind === 'vidu' || definition?.kind === 'wan') {
+    if (definition?.kind === 'magi' || definition?.kind === 'heygen' || definition?.kind === 'h3-lowprice' || definition?.kind === 'muse' || definition?.kind === 'happyhorse' || definition?.kind === 'hailuo' || definition?.kind === 'kling' || definition?.kind === 'upscaler' || definition?.kind === 'vidu' || definition?.kind === 'wan') {
       return configuredSecret(settings.zhenzhenSd2ApiKey)
         ? null
         : capabilityNotice(node, 'provider.seedance-nz-credential-missing', missingDomesticCredentialMessage());

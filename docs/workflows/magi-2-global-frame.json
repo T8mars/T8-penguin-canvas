@@ -1,0 +1,91 @@
+{
+  "schema": "t8-workflow-fragment",
+  "version": 1,
+  "title": "magi-2-global-frame",
+  "nodes": [
+    {
+      "id": "first-frame",
+      "type": "upload",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "data": {
+        "uploadType": "image",
+        "lockedUploadType": "image",
+        "label": "首帧 / Start frame"
+      }
+    },
+    {
+      "id": "last-frame",
+      "type": "upload",
+      "position": {
+        "x": 0,
+        "y": 285
+      },
+      "data": {
+        "uploadType": "image",
+        "lockedUploadType": "image",
+        "label": "尾帧 / End frame"
+      }
+    },
+    {
+      "id": "generate",
+      "type": "video",
+      "position": {
+        "x": 430,
+        "y": 30
+      },
+      "data": {
+        "providerSource": "zhenzhen",
+        "videoBuiltinSource": "seedance-nz",
+        "mainId": "magi-2",
+        "model": "magi-2-global",
+        "reuseResult": false,
+        "prompt": "Move smoothly from the start image to the end image in a single shot.",
+        "magi2Mode": "frame",
+        "magi2GenerateAudio": false,
+        "magi2Seed": -1,
+        "ratio": "api_default",
+        "duration": 4,
+        "resolution": "1080p"
+      }
+    },
+    {
+      "id": "result",
+      "type": "output",
+      "position": {
+        "x": 880,
+        "y": 30
+      },
+      "data": {
+        "label": "结果 / Result"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "first-frame-generate",
+      "source": "first-frame",
+      "target": "generate"
+    },
+    {
+      "id": "last-frame-generate",
+      "source": "last-frame",
+      "target": "generate"
+    },
+    {
+      "id": "generate-result",
+      "source": "generate",
+      "target": "result"
+    }
+  ],
+  "nodeCount": 4,
+  "edgeCount": 3,
+  "nodeTypes": [
+    "upload",
+    "video",
+    "output"
+  ],
+  "savedAt": "2026-11-25T14:22:00.000Z"
+}

@@ -4745,6 +4745,18 @@
               362
             ]
           },
+          "magi2Mode": {
+            "type": "string",
+            "enum": ["auto", "text", "frame", "reference"]
+          },
+          "magi2GenerateAudio": {
+            "type": "boolean"
+          },
+          "magi2Seed": {
+            "type": "integer",
+            "minimum": -1,
+            "maximum": 2147483647
+          },
           "heygenAvatar": {
             "type": "string",
             "maxLength": 500

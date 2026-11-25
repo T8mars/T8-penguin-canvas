@@ -1,0 +1,109 @@
+{
+  "schema": "t8-workflow-fragment",
+  "version": 1,
+  "title": "magi-2-global-reference",
+  "nodes": [
+    {
+      "id": "subject",
+      "type": "upload",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "data": {
+        "uploadType": "image",
+        "lockedUploadType": "image",
+        "label": "参考图 / Image reference"
+      }
+    },
+    {
+      "id": "motion",
+      "type": "upload",
+      "position": {
+        "x": 0,
+        "y": 285
+      },
+      "data": {
+        "uploadType": "video",
+        "lockedUploadType": "video",
+        "label": "参考视频 / Video reference"
+      }
+    },
+    {
+      "id": "sound",
+      "type": "upload",
+      "position": {
+        "x": 0,
+        "y": 570
+      },
+      "data": {
+        "uploadType": "audio",
+        "lockedUploadType": "audio",
+        "label": "参考音频 / Audio reference"
+      }
+    },
+    {
+      "id": "generate",
+      "type": "video",
+      "position": {
+        "x": 430,
+        "y": 30
+      },
+      "data": {
+        "providerSource": "zhenzhen",
+        "videoBuiltinSource": "seedance-nz",
+        "mainId": "magi-2",
+        "model": "magi-2-global",
+        "reuseResult": false,
+        "prompt": "Use the subject in Image 1, follow the motion in Video 1, and use Audio 1 for timing. Keep the camera stable.",
+        "magi2Mode": "reference",
+        "magi2GenerateAudio": true,
+        "magi2Seed": -1,
+        "ratio": "16:9",
+        "duration": 4,
+        "resolution": "1080p"
+      }
+    },
+    {
+      "id": "result",
+      "type": "output",
+      "position": {
+        "x": 880,
+        "y": 30
+      },
+      "data": {
+        "label": "结果 / Result"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "subject-generate",
+      "source": "subject",
+      "target": "generate"
+    },
+    {
+      "id": "motion-generate",
+      "source": "motion",
+      "target": "generate"
+    },
+    {
+      "id": "sound-generate",
+      "source": "sound",
+      "target": "generate"
+    },
+    {
+      "id": "generate-result",
+      "source": "generate",
+      "target": "result"
+    }
+  ],
+  "nodeCount": 5,
+  "edgeCount": 4,
+  "nodeTypes": [
+    "upload",
+    "video",
+    "output"
+  ],
+  "savedAt": "2026-11-25T14:22:00.000Z"
+}

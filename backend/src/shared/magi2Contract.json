@@ -1,0 +1,10 @@
+{
+  "models": ["magi-2", "magi-2-global"],
+  "modes": ["auto", "text", "frame", "reference"],
+  "ratios": ["api_default", "21:9", "16:9", "4:3", "1:1", "3:4", "9:16"],
+  "resolution": "1080p",
+  "duration": { "min": 4, "max": 30, "default": 5 },
+  "reference": { "images": 10, "videos": 5, "audios": 5, "minSeconds": 2, "maxSeconds": 30, "totalSecondsPerKind": 30 },
+  "maxPromptCharacters": 15000,
+  "maxSeed": 2147483647
+}

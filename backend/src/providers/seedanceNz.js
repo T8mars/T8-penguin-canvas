@@ -27,6 +27,7 @@ const NB_FLUX_VIDU = require('../shared/nb21FluxViduQ4Contract.json');
 const TOPAZ_VIDEO_CONTRACT = require('../shared/topazVideoContract.json');
 const NOV19_CONTRACT = require('../shared/nov19ModelsContract.json');
 const NOV21_CONTRACT = require('../shared/nov21ModelsContract.json');
+const MAGI2_CONTRACT = require('../shared/magi2Contract.json');
 let nov21Promise;
 const nov21Api = () => nov21Promise ||= import('../shared/nov21ModelsContract.mjs').then(m => m.createNov21ModelsContract(NOV21_CONTRACT));
 const NOV19_VOICES = require('../shared/qwenAudio31Voices.json');
@@ -2523,6 +2524,10 @@ async function probeSeedance25ReferenceDuration(buffer, file, kind, options = {}
         }
         try {
           const probe = JSON.parse(stdout);
+          if (options.requiredReferenceStream && !probe.streams?.some(stream => stream.codec_type === kind)) {
+            finish(Object.assign(new Error(`Reference file has no ${kind} track`), { status: 400 }));
+            return;
+          }
           if (options.requireAudioTrack && !probe.streams?.some(stream => stream.codec_type === 'audio')) {
             finish(Object.assign(new Error('CharSwap 源视频必须包含音轨；当前视频没有音轨，请提供带音轨的 MP4。'),{status:400,code:'h3_source_audio_required'}));
             return;
@@ -6275,11 +6280,70 @@ async function submitHeygenVideoTask(request,apiKey,options={}) {
 async function queryHeygenVideoTask(taskId,apiKey,options={}) {
   return queryNov21LegacyVideoTask(taskId,apiKey,options,NOV21_CONTRACT.heygen.models,NOV21_CONTRACT.heygen.models[0]);
 }
-async function queryNov21LegacyVideoTask(taskId, apiKey, options, models, fallback) {
+
+async function buildMagi2VideoPayload(request, apiKey, options = {}) {
+  const { buildMagi2Payload } = await import('../shared/magi2Contract.mjs');
+  const { payload, references, taskType } = buildMagi2Payload(MAGI2_CONTRACT, request);
+  const specs = [
+    { kind: 'image', sources: references.images, target: payload, field: 'images' },
+    { kind: 'video', sources: references.videos, target: payload.metadata, field: 'video_url' },
+    { kind: 'audio', sources: references.audios, target: payload.metadata, field: 'audio_urls' },
+  ];
+  const { minSeconds, maxSeconds, totalSecondsPerKind } = MAGI2_CONTRACT.reference;
+  for (const { kind, sources, target, field } of specs) {
+    if (!sources.length) continue;
+    let total = 0;
+    const uploadOptions = kind === 'image'
+      ? { ...options, normalizeImagePng: true, cacheVariant: 'magi2-png' }
+      : {
+        ...options,
+        // Validation uses the duration of each slot, including repeated sources.
+        uploadCacheTtlMs: 0,
+        async validateBuffer(buffer, file) {
+          const duration = await probeSeedance25ReferenceDuration(buffer, file, kind, {
+            ...options, requiredReferenceStream: true,
+          });
+          if (duration < minSeconds || duration > maxSeconds) {
+            throw Object.assign(new Error(`Magi 2 ${kind} references must be 2–30 seconds each`), { status: 400 });
+          }
+          total += duration;
+          if (total > totalSecondsPerKind + 0.001) {
+            throw Object.assign(new Error(`Magi 2 total ${kind} duration cannot exceed 30 seconds`), { status: 400 });
+          }
+        },
+      };
+    target[field] = [];
+    for (const source of sources) {
+      target[field].push(await uploadMedia(source, kind, apiKey, uploadOptions));
+    }
+  }
+  return { payload, model: payload.model, taskType };
+}
+
+async function submitMagi2VideoTask(request, apiKey, options = {}) {
+  if (!String(apiKey || '').trim()) throw new Error('Missing budget-house API Key');
+  const built = await buildMagi2VideoPayload(request, apiKey, options);
+  const label = 'Magi 2 submit';
+  const response = await fetchProviderResponse(getFetchImpl(options), `${cleanBaseUrl(options.baseUrl)}/v1/video/generations`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+    body: JSON.stringify(built.payload),
+  }, options, label);
+  const data = await responseJson(response, label);
+  if (!response.ok) throw createUpstreamError(data, response);
+  const taskId = requiredTaskId(data?.task_id || data?.id || data?.data?.task_id || data?.data?.id, label, response);
+  return { taskId, model: built.model, taskType: built.taskType, ...safeProviderTrace(response, data, { pollCount: 0 }) };
+}
+
+async function queryMagi2VideoTask(taskId, apiKey, options = {}) {
+  return queryNov21LegacyVideoTask(taskId, apiKey, options, MAGI2_CONTRACT.models, undefined, 'Magi 2 query');
+}
+
+async function queryNov21LegacyVideoTask(taskId, apiKey, options, models, fallback, label = 'H3 Lowprice query') {
   if (!String(apiKey || '').trim()) throw new Error('Missing budget-house API Key');
   const response=await fetchProviderResponse(getFetchImpl(options),cleanBaseUrl(options.baseUrl)+'/v1/video/generations/'+encodeURIComponent(taskId),{
-    method:'GET',headers:{Authorization:'Bearer '+apiKey}},options,'H3 Lowprice query');
-  const data=await responseJson(response,'H3 Lowprice query');
+    method:'GET',headers:{Authorization:'Bearer '+apiKey}},options,label);
+  const data=await responseJson(response,label);
   if (!response.ok) throw createUpstreamError(data,response);
   const record=data?.data||data,nested=record?.data||{};
   const api = await h3TurboApi();
@@ -6918,6 +6982,7 @@ function resetCachesForTests() {
 }
 
 module.exports = {
+  buildMagi2VideoPayload, submitMagi2VideoTask, queryMagi2VideoTask,
   H3_TURBO_CONTRACT, buildH3TurboPayload, submitH3TurboVideoTask, queryH3TurboVideoTask,
   VIDU_Q4_MODELS,
   FLUX3_IMAGE_MODEL,

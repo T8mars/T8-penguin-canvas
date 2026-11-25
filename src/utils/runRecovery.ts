@@ -1,3 +1,4 @@
+import magi2 from '../../backend/src/shared/magi2Contract.json';
 import nov21 from '../../backend/src/shared/nov21ModelsContract.json';
 import nov19 from '../../backend/src/shared/nov19ModelsContract.json';
 import h3Turbo from '../../backend/src/shared/h3TurboContract.json';
@@ -24,7 +25,7 @@ export type RunRecoveryKind =
   | 'fashvsr'
   | 'vosr2'
   | 'h3-lowprice'
-  | 'muse' | 'heygen'
+  | 'muse' | 'heygen' | 'magi'
   | 'topaz'
   | 'motion'
   | 'animate'
@@ -57,7 +58,7 @@ export interface RunRecoveryDescriptor {
 }
 const RECOVERY_KINDS = new Set<RunRecoveryKind>([
   'runninghub', 'seedance', 'seedream-nz', 'wan', 'happyhorse', 'hailuo', 'flux3', 'kling', 'upscaler', 'fashvsr', 'vosr2', 'animate', 'vidu', 'seed-audio', 'suno',
-  'model3d', 'h3-lowprice', 'heygen', 'muse', 'topaz', 'motion', 'image', 'mj', 'video', 'image-fal', 'video-fal',
+  'model3d', 'h3-lowprice', 'heygen', 'magi', 'muse', 'topaz', 'motion', 'image', 'mj', 'video', 'image-fal', 'video-fal',
 ]);
 
 function text(value: unknown, maxLength: number): string {
@@ -135,6 +136,7 @@ export function inferRunRecoveryDescriptor(payload: Record<string, unknown>): Ru
     if ([nov21.longImage.model,nov19.kling.model,...nov19.mai.models,h3Turbo.minimax.model,h3Turbo.qwen.model].includes(lowerModel) || isNewImageModel(lowerModel) || isPreviewImage(lowerModel) || isFluxVariant(lowerModel) || lowerModel === mossImage.model || lowerModel.includes('seedream') || nbDoubao.banana.models.includes(lowerModel) || lowerModel === 'mai-image-2-6' || lowerModel === 'mai-image-2-6-flash' || lowerModel === 'vosr2-image-upscale' || lowerModel === 'flux-3-image' || lowerModel === 'zhenzhen-image-nb-2.1') {
       return { version: 1, kind: 'seedream-nz', taskId, model, pollIntervalMs, maxPolls };
     }
+    if (magi2.models.includes(model)) return { version: 1, kind: 'magi', taskId, model, pollIntervalMs, maxPolls };
     if (nov21.heygen.models.includes(model))return {version:1,kind:'heygen',taskId,model,pollIntervalMs,maxPolls};
     if (lowerModel.startsWith('wan-')) return { version: 1, kind: 'wan', taskId, model, pollIntervalMs, maxPolls };
     if (lowerModel.startsWith('happyhorse-')) return { version: 1, kind: 'happyhorse', taskId, model, pollIntervalMs, maxPolls };

@@ -4474,6 +4474,7 @@ router.get('/video/motion/status/:tid', async (req, res) => {
 for(const {family,provider,submit,query} of [
  {family:'h3-lowprice',provider:'h3-lowprice-nz',submit:seedanceNz.submitH3TurboVideoTask,query:seedanceNz.queryH3TurboVideoTask},
  {family:'heygen',provider:'heygen-nz',submit:seedanceNz.submitHeygenVideoTask,query:seedanceNz.queryHeygenVideoTask},
+ {family:'magi',provider:'magi-nz',submit:seedanceNz.submitMagi2VideoTask,query:seedanceNz.queryMagi2VideoTask},
 ]) {
 router.post(`/video/${family}/submit`, async (req, res) => {
   const apiKey = String(loadRawSettings()?.zhenzhenSd2ApiKey || '').trim();

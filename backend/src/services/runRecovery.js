@@ -21,7 +21,7 @@ const RECOVERY_KINDS = new Set([
   'upscaler',
   'fashvsr',
   'vosr2',
-  'h3-lowprice', 'heygen', 'muse', 'topaz',
+  'h3-lowprice', 'heygen', 'magi', 'muse', 'topaz',
   'motion',
   'animate',
   'vidu',
@@ -156,6 +156,7 @@ function recoveryRequest(baseUrl, descriptor) {
   if (descriptor.kind === 'fashvsr') return get(`/api/proxy/video/fashvsr/status/${taskId}`);
   if (descriptor.kind === 'vosr2') return get(`/api/proxy/video/vosr2/status/${taskId}`);
   if (descriptor.kind === 'h3-lowprice') return get(`/api/proxy/video/h3-lowprice/status/${taskId}?model=${encodeURIComponent(descriptor.model)}`);
+  if (descriptor.kind === 'magi') return get(`/api/proxy/video/magi/status/${taskId}?model=${encodeURIComponent(descriptor.model)}`);
   if (descriptor.kind === 'heygen')return get(`/api/proxy/video/heygen/status/${taskId}?model=${encodeURIComponent(descriptor.model)}`);
   if (descriptor.kind === 'muse') return get(`/api/proxy/video/muse/status/${taskId}`);
   if (descriptor.kind === 'topaz') return get(`/api/proxy/video/topaz/status/${taskId}`);
@@ -189,7 +190,7 @@ function normalizedState(value) {
 function outputKindForDescriptor(descriptor) {
   if (descriptor.kind==='model3d')return 'model3d';
   if (descriptor.kind === 'seed-audio' || descriptor.kind === 'suno') return 'audio';
-  if (['seedance', 'wan', 'happyhorse', 'hailuo', 'flux3', 'kling', 'upscaler', 'fashvsr', 'vosr2', 'h3-lowprice', 'heygen', 'muse', 'topaz', 'motion', 'animate', 'vidu', 'video', 'video-fal'].includes(descriptor.kind)) return 'video';
+  if (['seedance', 'wan', 'happyhorse', 'hailuo', 'flux3', 'kling', 'upscaler', 'fashvsr', 'vosr2', 'h3-lowprice', 'heygen', 'magi', 'muse', 'topaz', 'motion', 'animate', 'vidu', 'video', 'video-fal'].includes(descriptor.kind)) return 'video';
   return 'image';
 }
 

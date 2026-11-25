@@ -11,6 +11,7 @@ import FLASH_VIDEO from '../../backend/src/shared/flashVideoContract.json';
 import NB_FLUX_VIDU from '../../backend/src/shared/nb21FluxViduQ4Contract.json';
 import TOPAZ_VIDEO from '../../backend/src/shared/topazVideoContract.json';
 import NOV21 from '../../backend/src/shared/nov21ModelsContract.json';
+import MAGI2 from '../../backend/src/shared/magi2Contract.json';
 import NOV19 from '../../backend/src/shared/nov19ModelsContract.json';
 export const KLING_IMAGE_MODEL=NOV19.kling.model;
 export const QWEN_AUDIO31_MODELS=NOV19.audio.models;
@@ -737,7 +738,7 @@ export const NBPRO_FAL_RESOLUTIONS = ['1K', '2K', '4K'];
 
 // ========== 视频 ==========
 // kind 决定上游 payload 协议(后端会根据 model 名自动识别,前端主要用于控制参数 UI 列表)
-export type VideoKind = 'veo' | 'grok' | 'sora' | 'seedance' | 'seedance25' | 'happyhorse' | 'hailuo' | 'flux3' | 'kling' | 'vidu' | 'upscaler' | 'wan' | 'animate' | 'muse' | 'h3-lowprice' | 'heygen';
+export type VideoKind = 'veo' | 'grok' | 'sora' | 'seedance' | 'seedance25' | 'happyhorse' | 'hailuo' | 'flux3' | 'kling' | 'vidu' | 'upscaler' | 'wan' | 'animate' | 'muse' | 'h3-lowprice' | 'heygen' | 'magi';
 
 // ---- Video FAL 渠道注册表 (1:1 对齐 gpt-image-2-web runVeo3Fal / runGrokFal / runSora2Fal) ----
 export interface VideoFalEndpointDef {
@@ -1733,6 +1734,17 @@ export const VIDEO_MODELS: VideoModelDef[] = [
     supportImages: true,
     supportVideos: true,
     maxRefImages: 30,
+  },
+  {
+    id: 'magi-2', label: 'Magi', kind: 'magi', provider: 'zhenzhen', builtinSource: 'seedance-nz',
+    apiModelOptions: MAGI2.models.map(value => ({
+      value, label: value, supportAudios: true,
+      maxRefAudios: MAGI2.reference.audios, maxRefVideos: MAGI2.reference.videos,
+    })),
+    ratios: MAGI2.ratios, defaultRatio: 'api_default',
+    durations: Array.from({ length: MAGI2.duration.max - MAGI2.duration.min + 1 }, (_, index) => index + MAGI2.duration.min),
+    defaultDuration: MAGI2.duration.default, resolutions: [MAGI2.resolution], defaultResolution: MAGI2.resolution,
+    supportImages: true, maxRefImages: MAGI2.reference.images, supportVideos: true,
   },
   {id:'heygen-avatar-6',label:'HeyGen Avatar 6',kind:'heygen',provider:'zhenzhen',builtinSource:'seedance-nz',apiModelOptions:NOV21.heygen.models.map(value=>({value,label:value,supportAudios:true,maxRefAudios:1})),ratios:NOV21.heygen.ratios,defaultRatio:'16:9',durations:[],defaultDuration:5,resolutions:NOV21.heygen.resolutions,defaultResolution:'1080p',supportImages:false,maxRefImages:0,supportVideos:false},
   {id:H3_TURBO_CONTRACT.video.model,label:H3_TURBO_CONTRACT.video.tab,kind:'h3-lowprice',provider:'zhenzhen',builtinSource:'seedance-nz',
