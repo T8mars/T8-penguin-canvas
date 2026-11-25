@@ -3489,15 +3489,54 @@
     ]
   },
   "release": {
-    "status": "authorized-v3.5.6-pending-build",
+    "status": "released-v3.5.6-dual-platform-verified",
     "version": "3.5.6",
     "tag": "v3.5.6",
-    "latest": false,
+    "latest": true,
     "date": "2026-11-25",
     "details": "docs/release-v3.5.6.md",
     "evidence": "docs/release-v3.5.6.md",
     "postReleaseEvidence": "owner-approved-post-release-v3.5.6",
-    "macBoundary": "same-tag ad-hoc preview; defer if GitHub quota is insufficient"
+    "macBoundary": "same-tag ad-hoc preview",
+    "sourceCommit": "e195dcad5108390d9a15c7a043a21f936d8fd294",
+    "publishedAt": "2026-11-25T14:56:44Z",
+    "draft": false,
+    "prerelease": false,
+    "macWorkflow": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/45639826896",
+    "macAttempt": 1,
+    "macWorkflowConclusion": "success",
+    "assets": {
+      "windowsInstaller": {
+        "name": "T8-PenguinCanvas-Setup-3.5.6.exe",
+        "bytes": 1380179019,
+        "sha256": "8314137709891e41c0cbc9c8927c8ac14b61df9b308a1293471cca581dabbd36"
+      },
+      "windowsBlockmap": {
+        "name": "T8-PenguinCanvas-Setup-3.5.6.exe.blockmap",
+        "bytes": 1438852,
+        "sha256": "5f8608f4a1dc6dc82208ca3c342aa77afaeda872896e2b7f286ed5b26bf34fec"
+      },
+      "windowsUpdater": {
+        "name": "latest.yml",
+        "bytes": 362,
+        "sha256": "3b15ee15e479a67bc1c4cbb43b07422f80391497042d5105a17f9affaa133351"
+      },
+      "macDmg": {
+        "name": "T8-PenguinCanvas-3.5.6-mac-arm64.dmg",
+        "bytes": 519983896,
+        "sha256": "c2cc9350856265c9643118add44455b5d7ab0b55f6a6af36e852f6f9bd2f2949"
+      },
+      "macZip": {
+        "name": "T8-PenguinCanvas-3.5.6-mac-arm64.zip",
+        "bytes": 511692406,
+        "sha256": "28578cca6fb71e1f97e526e304955e61fd159f78dd4c31604a25fed55f4ec04b"
+      },
+      "macUpdater": {
+        "name": "latest-mac.yml",
+        "bytes": 536,
+        "sha256": "4262e6179ae3818cf76a2f8ad6518f14005a7d69714260d567e7d3d74b5c1ae5"
+      }
+    }
   },
   "minimaxMusic3PromptEnhancer": {
     "status": "released-v2.9.3",
@@ -10846,8 +10885,8 @@
     "version": "3.5.6",
     "semverVersion": "3.5.6",
     "versionNumberPolicy": "T8 版本号仍采用 x.y.z 三段，但每一段只允许 0-9；任一段到 9 后下一次发布必须向左进位，禁止任一段出现两位数字。例：1.9.9 的下一版必须是 2.0.0。",
-    "versionNote": "v3.5.6 新增 Magi 视频模型，见 docs/release-v3.5.6.md。",
-    "installer": "T8-PenguinCanvas-Setup-3.5.6.exe",
+    "versionNote": "v3.5.6 双平台已发布，见 docs/release-v3.5.6.md。",
+    "installer": "T8-PenguinCanvas-Setup-3.5.6.exe，远端完整回下载已校验。",
     "updaterInstallMode": "自动更新下载完成后不得静默安装：main.cjs 必须设置 autoInstallOnAppQuit=false，显式安装调用 quitAndInstall(false,true)；electron/build-resources/installer.nsh 通过 SetSilent normal 让新版 NSIS 安装器即使收到旧客户端传入的 /S 也尽量切回前台安装向导。",
     "installerShortcutPolicy": "安装完成后必须创建桌面和开始菜单快捷方式：package.json build.nsis.createDesktopShortcut 必须为 \"always\"，createStartMenuShortcut 必须为 true；electron/build-resources/installer.nsh 必须保留 customInstall 兜底 CreateShortCut \"$newStartMenuLink\" 与 \"$DESKTOP\\${SHORTCUT_NAME}.lnk\"，防止更新安装/keepShortcuts 路径遗漏入口。",
     "updaterEntryPolicy": "顶栏桌面更新入口不得只因 window.t8pc.updater 缺失就静默消失；Electron UA 或 t8pc.getInfo/openExternal 可用时必须显示诊断入口，提示重新安装完整桌面包，Web/纯浏览器环境才隐藏。状态为 not-available 时按钮仍保留“更新”字样，避免用户误以为自动更新入口被删除。",
@@ -17987,10 +18026,12 @@
     "details": "docs/github-issues-20261121.md"
   },
   "magi2Video20261125": {
-    "status": "implemented",
+    "status": "released-v3.5.6",
     "summary": "视频节点平价小屋新增 Magi 模型组，含国内、海外共两款，文生、首尾帧和参考生模式各有工作流。实网两单完整解码。",
     "details": "docs/magi2.md",
-    "releaseVersion": "3.5.6"
+    "releaseVersion": "3.5.6",
+    "releaseIncluded": true,
+    "published": true
   },
   "nov21Models20261122": {
     "status": "released-v3.5.5-heygen-upstream-pending",
@@ -18068,14 +18109,53 @@
     }
   },
   "electronReleaseV356": {
-    "status": "authorized-v3.5.6-pending-build",
+    "status": "released-v3.5.6-dual-platform-verified",
     "version": "3.5.6",
     "tag": "v3.5.6",
-    "latest": false,
+    "latest": true,
     "date": "2026-11-25",
     "details": "docs/release-v3.5.6.md",
     "evidence": "docs/release-v3.5.6.md",
     "postReleaseEvidence": "owner-approved-post-release-v3.5.6",
-    "macBoundary": "same-tag ad-hoc preview; defer if GitHub quota is insufficient"
+    "macBoundary": "same-tag ad-hoc preview",
+    "sourceCommit": "e195dcad5108390d9a15c7a043a21f936d8fd294",
+    "publishedAt": "2026-11-25T14:56:44Z",
+    "draft": false,
+    "prerelease": false,
+    "macWorkflow": "https://github.com/T8mars/T8-penguin-canvas/actions/runs/45639826896",
+    "macAttempt": 1,
+    "macWorkflowConclusion": "success",
+    "assets": {
+      "windowsInstaller": {
+        "name": "T8-PenguinCanvas-Setup-3.5.6.exe",
+        "bytes": 1380179019,
+        "sha256": "8314137709891e41c0cbc9c8927c8ac14b61df9b308a1293471cca581dabbd36"
+      },
+      "windowsBlockmap": {
+        "name": "T8-PenguinCanvas-Setup-3.5.6.exe.blockmap",
+        "bytes": 1438852,
+        "sha256": "5f8608f4a1dc6dc82208ca3c342aa77afaeda872896e2b7f286ed5b26bf34fec"
+      },
+      "windowsUpdater": {
+        "name": "latest.yml",
+        "bytes": 362,
+        "sha256": "3b15ee15e479a67bc1c4cbb43b07422f80391497042d5105a17f9affaa133351"
+      },
+      "macDmg": {
+        "name": "T8-PenguinCanvas-3.5.6-mac-arm64.dmg",
+        "bytes": 519983896,
+        "sha256": "c2cc9350856265c9643118add44455b5d7ab0b55f6a6af36e852f6f9bd2f2949"
+      },
+      "macZip": {
+        "name": "T8-PenguinCanvas-3.5.6-mac-arm64.zip",
+        "bytes": 511692406,
+        "sha256": "28578cca6fb71e1f97e526e304955e61fd159f78dd4c31604a25fed55f4ec04b"
+      },
+      "macUpdater": {
+        "name": "latest-mac.yml",
+        "bytes": 536,
+        "sha256": "4262e6179ae3818cf76a2f8ad6518f14005a7d69714260d567e7d3d74b5c1ae5"
+      }
+    }
   }
 }
