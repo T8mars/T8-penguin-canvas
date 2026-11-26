@@ -627,14 +627,31 @@ test('seedance.nz APIMart image models follow the documented low-price and Grok 
     size: '3:2',
   });
 
-  const grokEdit = await seedanceNz.buildApimartImagePayload({
+  const references = [TINY_PNG_B, TINY_PNG_A, TINY_PNG_B, TINY_PNG_A, TINY_PNG_B];
+  const uploaded: string[] = [];
+  const editOptions = {
+    uploadCacheTtlMs: 0,
+    uploadIntervalMs: 0,
+    async fetchImpl(url: string, init: RequestInit) {
+      const file = (init.body as FormData).get('file') as Blob;
+      uploaded.push(Buffer.from(await file.arrayBuffer()).toString('base64'));
+      return fetchImpl(url);
+    },
+  };
+  const request = {
     model: 'zhenzhen-image-gk-v15-edit',
     prompt: 'Replace the sky',
     size: '16:9',
-    images: [TINY_PNG_A, TINY_PNG_B],
-  }, 'test-key', { fetchImpl, uploadIntervalMs: 0 });
+    images: references,
+  };
+  const grokEdit = await seedanceNz.buildApimartImagePayload(request, 'test-key', editOptions);
   assert.equal(grokEdit.taskType, 'i2i');
-  assert.deepEqual(grokEdit.payload.images, ['https://cdn.example.com/apimart-image-1.png']);
+  assert.deepEqual(uploaded, references.map(source => source.split(',')[1]));
+  assert.deepEqual(grokEdit.payload.images, [3, 4, 5, 6, 7].map(index => 'https://cdn.example.com/apimart-image-' + index + '.png'));
+  for (const images of [[], [...references, TINY_PNG_A]]) {
+    await assert.rejects(seedanceNz.buildApimartImagePayload({ ...request, images }, 'test-key', editOptions), { status: 400 });
+  }
+  assert.equal(uploaded.length, 5);
 
   await assert.rejects(
     seedanceNz.buildApimartImagePayload({

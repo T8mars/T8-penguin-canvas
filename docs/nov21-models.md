@@ -11,7 +11,7 @@
 | 图像 / Kling Image | `kling-v4-long-image` | 电商 1–3 张商品图；网页可无图，或按风格→主体排序，各一张 |
 | 音频 / Gemini 2.5 TTS（新分类） | `zhenzhen/gm-2.5-pro-tts`、`zhenzhen/gm-2.5-flash-tts` | 文本 1–5000 字符，30 音色，表达指令最多 1000 字符，WAV |
 | 视频 / Minimax H3 Lowprice | `minimax-h3-comfyui-max-10020-token`、`minimax-h3-comfyui-max-10021-token` | 1–6 图，可选 0–3 段音频；JY 另可选 1 个 MP4 |
-| 视频 / Minimax H3 Lowprice | `minimax-h3-comfyui-charswap-token` | 1–5 图、恰好 1 个源 MP4；秒数与帧数二选一 |
+| 视频 / Minimax H3 Lowprice | `minimax-h3-comfyui-charswap-token` | 1–3 图、恰好 1 个源 MP4；秒数与帧数二选一 |
 | 视频 / Minimax H3 Lowprice | `minimax-h3-comfyui-digital-human-token` | 恰好 1 图、1 音频；输出时长覆盖音频 |
 | 视频 / HeyGen Avatar 6（新分类） | `heygen-avatar-6-turbo`、`heygen-avatar-6` | 官方可用形象；台词+音色，或恰好 1 段音频 |
 | 3D / Miora 3D（新分类） | `miora-3d` | 无图为文生；有图仅使用图片，最多 8 个有序视图 |

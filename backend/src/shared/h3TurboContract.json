@@ -75,7 +75,7 @@
   "charswap": {
     "model": "minimax-h3-comfyui-charswap",
     "video": true,
-    "maxImages": 9,
+    "maxImages": 3,
     "minImages": 1,
     "maxAudios": 0,
     "maxVideos": 1,
@@ -254,7 +254,7 @@
     "model": "minimax-h3-comfyui-charswap-token",
     "video": true,
     "token": true,
-    "maxImages": 5,
+    "maxImages": 3,
     "minImages": 1,
     "maxAudios": 0,
     "minAudios": 0,

@@ -81,6 +81,7 @@ import {
   ZHENZHEN_IMAGE_G2_RATIOS,
   ZHENZHEN_IMAGE_G2_T2I_MODEL,
   ZHENZHEN_IMAGE_GK_V15_EDIT_MODEL,
+  ZHENZHEN_IMAGE_GK_V15_EDIT_MAX_IMAGES,
   ZHENZHEN_IMAGE_GK_V15_MODEL,
   ZHENZHEN_IMAGE_GK_V15_RATIOS,
   ZHENZHEN_IMAGE_GK_V2_MODEL,
@@ -786,10 +787,12 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
       : isZhenzhenNb
         ? 14
       : isZhenzhenGrokImageEdit
-          ? 1
+          ? ZHENZHEN_IMAGE_GK_V15_EDIT_MAX_IMAGES
           : (isZhenzhenImageG2 || isZhenzhenGrokImageV2 || isZhenzhenGrokImage)
             ? 0
       : (falDef?.maxRefs ?? modelDef.maxReferenceImages);
+  const rejectExcessReferences = isH3TurboImage || isNewImageTab || isPreviewImageTab || isFluxImage
+    || isZhenzhenNb21 || isMaiImage || isKlingImage || isMossImage || isNbLowprice || isZhenzhenGrokImageEdit;
   const status: 'idle' | 'generating' | 'success' | 'error' = d?.status || 'idle';
   const imageUrl = d?.imageUrl as string | undefined;
   const videoUrl = d?.videoUrl as string | undefined;
@@ -1155,7 +1158,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
     void getNodes;
     return {
       prompt: prompts.join('\n').trim(),
-      images: isH3TurboImage || isNewImageTab || isPreviewImageTab || isFluxImage || isZhenzhenNb21 || isMaiImage || isKlingImage || isMossImage || isNbLowprice ? images : images.slice(0, maxRefs),
+      images: rejectExcessReferences ? images : images.slice(0, maxRefs),
     };
   };
 
@@ -1252,7 +1255,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
     setDownloadNotice(null);
     const { upstreamImages, basePrompt, compiledPrompt, finalPrompt } = resolveGenerationInput();
     const src = `image:${id.slice(0, 6)}`;
-    if ((isH3TurboImage || isNewImageTab || isPreviewImageTab || isFluxImage || isZhenzhenNb21 || isMaiImage || isKlingImage || isMossImage || isNbLowprice) && upstreamImages.length > maxRefs) {
+    if (rejectExcessReferences && upstreamImages.length > maxRefs) {
       setError(translate('nodes:generation.newBudgetModels.tooManyImages', { count: maxRefs }));
       return;
     }
@@ -1355,7 +1358,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
       return;
     }
     if (isZhenzhenGrokImageEdit && upstreamImages.length === 0) {
-      setError(`${ZHENZHEN_IMAGE_GK_V15_EDIT_MODEL} 必须提供 1 张参考图`);
+      setError(translate('nodes:generation.grok15EditReferences', { maxImages: maxRefs }));
       logBus.error('生成中止: Grok Image 1.5 编辑缺少参考图', src);
       return;
     }
@@ -2114,9 +2117,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
               ? []
             : isZhenzhenGrokImageV2Edit
               ? allRefs.slice(0, 3)
-            : isZhenzhenGrokImageEdit
-              ? allRefs.slice(0, 1)
-              : allRefs;
+            : allRefs;
         const expectedModel = isVosr2ImageTab
           ? VOSR2_IMAGE_UPSCALE_MODEL
           : isSeedreamLayerTab
@@ -2661,7 +2662,8 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
     if (payload.kind === 'image' && payload.url) {
       const cur = Array.isArray(d?.referenceImages) ? d.referenceImages : [];
       if (cur.indexOf(payload.url) !== -1) return;
-      if (cur.length >= maxRefs) return;
+      const referenceCount = isZhenzhenGrokImageEdit ? orderedImages.length : cur.length;
+      if (referenceCount >= maxRefs) return;
       update({ referenceImages: [...cur, payload.url] });
     } else if (payload.kind === 'text' && typeof payload.text === 'string') {
       update({ prompt: payload.text });
@@ -3388,7 +3390,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
                   : isZhenzhenGrokImageV2Edit
                     ? 'Grok Imagine 2.0 编辑：必须按顺序提供 1–3 张参考图，支持 1K/2K、自动或固定比例、一次生成 1–10 张。'
                   : isZhenzhenGrokImageEdit
-                    ? 'Grok Image 1.5 编辑：必须提供参考图，仅使用第 1 张。'
+                    ? translate('nodes:generation.grok15EditReferences', { maxImages: maxRefs })
                     : 'Grok Image 1.5 文生图：只使用 Prompt，不发送参考图。'}
             </div>
             {!zhenzhenSd2ApiKey && <div className="text-amber-300">{translate('nodes:generation.missingBudgetKey')}</div>}

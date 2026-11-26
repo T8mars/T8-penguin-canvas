@@ -239,6 +239,7 @@ export const zhCN = {
         viduReferences: 'Vidu Q4：图生需恰好 1 张图，参考生需 1–15 张图、最多 3 段音频；不接受参考视频',
         generateAudio: '生成音频', isRec: '启用 is_rec（官方默认开启）', watermark: '添加水印',
       },
+      grok15EditReferences: 'Grok Image 1.5 编辑需要按顺序提供 1–{{maxImages}} 张参考图。',
       topaz: {
         restorationModel: '修复模型', videoUrl: '公开 MP4 直链（与素材输入二选一）',
         urlPlaceholder: '连接或拖入视频时留空',
@@ -906,6 +907,7 @@ export const enUS = {
         viduReferences: 'Vidu Q4: I2V needs exactly 1 image; R2V needs 1–15 images and up to 3 audios. Reference videos are not supported.',
         generateAudio: 'Generate audio', isRec: 'Enable is_rec (official default: on)', watermark: 'Add watermark',
       },
+      grok15EditReferences: 'Grok Image 1.5 editing requires 1–{{maxImages}} reference images in order.',
       topaz: {
         restorationModel: 'Restoration model', videoUrl: 'Public MP4 URL (instead of material input)',
         urlPlaceholder: 'Leave empty when connecting or dropping a video',

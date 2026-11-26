@@ -1,3 +1,4 @@
+const grok15Edit = require('../../../backend/src/shared/grok15ImageEditContract.json');
 const magi2 = require('../../../backend/src/shared/magi2Contract.json');
 const nov21=require('../../../backend/src/shared/nov21ModelsContract.json');
 const pmf = require('../../../backend/src/shared/previewMuseFluxContract.json');
@@ -25,6 +26,7 @@ const BACKEND_TARGET = path.join(ROOT, 'backend', 'src', 'shared', 'creativeMode
 const CLI_TARGET = path.join(ROOT, 'tools', 'zcanvas-cli', 'generated', 'creative-runtime-catalog.json');
 
 const SOURCE_PATHS = [
+  path.join(ROOT,'backend/src/shared/grok15ImageEditContract.json'),
   path.join(ROOT,'backend/src/shared/magi2Contract.json'), path.join(ROOT,'backend/src/shared/magi2Contract.mjs'),
   path.join(ROOT,'backend/src/shared/nov21ModelsContract.json'),path.join(ROOT,'backend/src/shared/nov21ModelsContract.mjs'),path.join(ROOT,'backend/src/providers/miora3d.js'),
   path.join(ROOT,'backend/src/shared/nov19ModelsContract.json'),path.join(ROOT,'backend/src/shared/nov19ModelsContract.mjs'),path.join(ROOT,'backend/src/shared/qwenAudio31Voices.json'),
@@ -310,7 +312,7 @@ function buildRuntimeCatalog() {
               || model === seedanceNz.ZHENZHEN_IMAGE_GK_V15_MODEL
             ? 0
             : model === seedanceNz.ZHENZHEN_IMAGE_GK_V15_EDIT_MODEL
-              ? 1
+              ? grok15Edit.maxReferenceImages
               : model === seedanceNz.ZHENZHEN_IMAGE_GK_V2_EDIT_MODEL
                 ? 3
               : undefined;
@@ -347,7 +349,9 @@ function buildRuntimeCatalog() {
           ? ['i2i', 'edit']
           : family === 'vosr2-image-upscale'
             ? ['i2i']
+          : model === seedanceNz.ZHENZHEN_IMAGE_GK_V15_EDIT_MODEL ? ['i2i', 'edit']
           : maxReferenceImages === 0 ? ['t2i'] : ['t2i', 'i2i', 'edit'],
+        ...(model === seedanceNz.ZHENZHEN_IMAGE_GK_V15_EDIT_MODEL ? { minimumReferenceImages: 1 } : {}),
         parameterKind: family === 'moss-image' ? 'moss-image' : family === 'mai-image-2-6' ? 'mai-image' : family === 'flux-3-image' ? 'flux-image' : family === 'grok-image-tools'
           ? (model === seedanceNz.ZHENZHEN_IMAGE_GK_V2_SEGMENT_MODEL ? 'grok-segment' : 'grok-region-edit')
           : seedanceNz.ZHENZHEN_IMAGE_G25_MODELS?.has(model)
@@ -419,7 +423,7 @@ function buildRuntimeCatalog() {
           maxReferenceVideos: option.maxRefVideos ?? (family.supportVideos === true ? 1 : 0),
           maxReferenceAudios: option.maxRefAudios ?? 0,
           description: option.description ?? family.description,
-          ...(family.kind === 'h3-lowprice' ? {sharedParameterContract:'backend/src/shared/h3TurboContract.mjs',nativeSeed:['minimax-h3-comfyui-charswap','minimax-h3-comfyui-wuxi'].includes(option.value),seedField:'h3ComfySeed',...(option.value === 'minimax-h3-comfyui-charswap' ? {framesField:'h3ComfyFrames',durationModeField:'h3ComfyDurationMode',framesRange:{min:22,max:362,step:17}} : {})} : {}),
+          ...(family.kind === 'h3-lowprice' ? {sharedParameterContract:'backend/src/shared/h3TurboContract.mjs',nativeSeed:['minimax-h3-comfyui-charswap','minimax-h3-comfyui-wuxi'].includes(option.value),seedField:'h3ComfySeed',...(option.value === 'minimax-h3-comfyui-charswap' ? {minimumReferenceImages:h3Turbo.charswap.minImages,exactReferenceVideos:h3Turbo.charswap.minVideos,framesField:'h3ComfyFrames',durationModeField:'h3ComfyDurationMode',framesRange:{min:22,max:362,step:17}} : {})} : {}),
           ...(option.value.endsWith('-token')&&family.kind==='h3-lowprice'?{seedField:undefined,fixedResolution:'768p',minimumReferenceImages:1,audioLimitPerFile:true,...(option.value.includes('charswap')?{framesField:'h3ComfyFrames',durationModeField:'h3ComfyDurationMode',framesRange:{min:22,max:362,step:17},exactReferenceVideos:1}:{}),...(option.value.includes('digital-human')?{exactReferenceAudios:1,audioMustFitDuration:true}:{})}:{}),
           ...(family.kind === 'magi' ? {
             sharedParameterContract: 'backend/src/shared/magi2Contract.mjs',

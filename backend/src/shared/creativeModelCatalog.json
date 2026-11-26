@@ -1,7 +1,8 @@
 {
   "schema": "t8-creative-runtime-catalog-v1",
-  "sourceDigest": "8b9ceeab0016a15b22446cbb298606b3df9601c627a1e2f01f736997eb4ee97e",
+  "sourceDigest": "fc132e12cc799b13ada9719ef882f8647660ddc3e52b98237ba0871a3f03493d",
   "generatedFrom": [
+    "backend/src/shared/grok15ImageEditContract.json",
     "backend/src/shared/magi2Contract.json",
     "backend/src/shared/magi2Contract.mjs",
     "backend/src/shared/nov21ModelsContract.json",
@@ -2601,13 +2602,13 @@
         "available": true,
         "tabLabel": "Grok",
         "capabilities": [
-          "t2i",
           "i2i",
           "edit"
         ],
+        "minimumReferenceImages": 1,
         "parameterKind": "seedance-nz-image",
         "supportsReference": true,
-        "maxReferenceImages": 1,
+        "maxReferenceImages": 5,
         "description": "贞贞的平价AI小屋图像模型"
       }
     },
@@ -6600,12 +6601,14 @@
         "supportsImages": true,
         "supportsVideos": true,
         "supportsAudios": false,
-        "maxReferenceImages": 9,
+        "maxReferenceImages": 3,
         "maxReferenceVideos": 1,
         "maxReferenceAudios": 0,
         "sharedParameterContract": "backend/src/shared/h3TurboContract.mjs",
         "nativeSeed": true,
         "seedField": "h3ComfySeed",
+        "minimumReferenceImages": 1,
+        "exactReferenceVideos": 1,
         "framesField": "h3ComfyFrames",
         "durationModeField": "h3ComfyDurationMode",
         "framesRange": {
@@ -6654,7 +6657,7 @@
         "supportsImages": true,
         "supportsVideos": true,
         "supportsAudios": false,
-        "maxReferenceImages": 5,
+        "maxReferenceImages": 3,
         "maxReferenceVideos": 1,
         "maxReferenceAudios": 0,
         "sharedParameterContract": "backend/src/shared/h3TurboContract.mjs",

@@ -7,6 +7,7 @@
     "i18nRendererResources": "src/i18n/resources.ts",
     "i18nElectronCatalog": "electron/i18n-catalog.json",
     "runtimeCatalog": [
+      "backend/src/shared/grok15ImageEditContract.json",
       "backend/src/shared/magi2Contract.json",
       "backend/src/shared/magi2Contract.mjs",
       "backend/src/shared/nov21ModelsContract.json",
@@ -46,16 +47,16 @@
     "canvasNodeSchema": "1df641f143e6df4097627d4bfb4ca35aa76578ba657aeae08eca6fa07213cbb3",
     "canvasNodeSchemaFile": "e2c8d2b045723626fa7b22ad96fe4fec1522217da7d150696b46e49a8741ee99",
     "i18nNodeCatalog": "fec04dd618a75492ca3a2d6e0d76b0a2a2b7e9f10cc5d008bdeedbf2a870c3d9",
-    "i18nRendererResources": "d646d8a456a4c12a05cf20fb19d3e17372a467d08f063471204e82ba333fede4",
+    "i18nRendererResources": "61e1236dced278cd897178721cd09923963789f1940b958a6bea3a3db934730d",
     "i18nElectronCatalog": "bab981c4f10262117b0912e8be73c22b9a938b7fb232ba0f5b14b7efea0767ad",
-    "runtimeCatalogSources": "8b9ceeab0016a15b22446cbb298606b3df9601c627a1e2f01f736997eb4ee97e",
-    "runtimeCatalogArtifact": "3396cc8b1f48c91e70c414258b4f6d6130945fe99a537089b86e8427baaf97c8",
+    "runtimeCatalogSources": "fc132e12cc799b13ada9719ef882f8647660ddc3e52b98237ba0871a3f03493d",
+    "runtimeCatalogArtifact": "92a93dc50d091fa86c14f94db6114fcb27f3b41532218158b240176259973956",
     "handlerBindings": "3cd8cde3c05d1642d72ce8cbfae2874d1bdf986592ae431ef7d66b043da257b5",
     "capabilityGraphCompiler": "a3716d239b91e1c4775f5996b3865ba3ab8fd652263138feef0a56de40851c24",
     "coverageReceiptCompiler": "68c02167cb5317107edd346223a5e5999168e447bacbb977ff8e9678e6753fe7",
     "canonicalTextDigestCompiler": "b0afcf28a257fbbd8f391edc117348f8f2ede1b4a039ae91bce25a8d563ac0cf"
   },
-  "aggregateDigest": "3724c7a349e29cfc019c6f968841d45c2395a88bf379e853610d2111b7ccf3dc",
+  "aggregateDigest": "31d18aec2d210d97bedff9e75ed24d843bf6b77dae42307eec9ef970774a029a",
   "principles": {
     "oneSentenceStart": true,
     "directCanvasMutation": false,
@@ -7526,7 +7527,7 @@
   ],
   "runtime": {
     "schema": "t8-creative-runtime-catalog-v1",
-    "sourceDigest": "8b9ceeab0016a15b22446cbb298606b3df9601c627a1e2f01f736997eb4ee97e",
+    "sourceDigest": "fc132e12cc799b13ada9719ef882f8647660ddc3e52b98237ba0871a3f03493d",
     "platforms": [
       {
         "id": "zhenzhen",
@@ -16472,7 +16473,7 @@
     "sourceDigests": {
       "capabilityManifest": "35bb3f4a925c60886c9e10e739c340218c9b1abceb4c40a738cc73cec33c5948",
       "nodeSchema": "1df641f143e6df4097627d4bfb4ca35aa76578ba657aeae08eca6fa07213cbb3",
-      "runtimeCatalog": "8b9ceeab0016a15b22446cbb298606b3df9601c627a1e2f01f736997eb4ee97e",
+      "runtimeCatalog": "fc132e12cc799b13ada9719ef882f8647660ddc3e52b98237ba0871a3f03493d",
       "handlerBindings": "3cd8cde3c05d1642d72ce8cbfae2874d1bdf986592ae431ef7d66b043da257b5",
       "receiptCompiler": "68c02167cb5317107edd346223a5e5999168e447bacbb977ff8e9678e6753fe7"
     },
@@ -16501,6 +16502,6 @@
       "missingCompatibilityEdges": []
     },
     "complete": true,
-    "digest": "d8ded89bf0b1978654691aadfd44edf031e790f9e240da786b03b4bc8c72e0b1"
+    "digest": "3492242484dc2ebf4e3d1404afa693ec4cda67deba06854c0a13000400ba84f2"
   }
 }

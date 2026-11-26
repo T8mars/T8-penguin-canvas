@@ -144,6 +144,7 @@ const ZHENZHEN_IMAGE_GK_V2_EDIT_MODEL = 'zhenzhen-image-gk-v2-edit';
 const ZHENZHEN_IMAGE_GK_V2_SEGMENT_MODEL = 'zhenzhen-image-gk-v2-segment';
 const ZHENZHEN_IMAGE_GK_V2_REGION_EDIT_MODEL = 'zhenzhen-image-gk-v2-region-edit';
 const ZHENZHEN_IMAGE_GK_V15_MODEL = 'zhenzhen-image-gk-v15';
+const GK_V15_EDIT = require('../shared/grok15ImageEditContract.json');
 const ZHENZHEN_IMAGE_GK_V15_EDIT_MODEL = 'zhenzhen-image-gk-v15-edit';
 const ZHENZHEN_IMAGE_NB_2_LITE_MODEL = 'zhenzhen-image-nb-2-lite';
 const ZHENZHEN_IMAGE_NB_2_MODEL = 'zhenzhen-image-nb-2';
@@ -3166,8 +3167,10 @@ async function buildApimartImagePayload(request, apiKey, options = {}) {
   }
   payload.size = size;
   if (model === ZHENZHEN_IMAGE_GK_V15_EDIT_MODEL) {
-    if (refs.length === 0) throw new Error(`${model} 必须提供 1 张参考图`);
-    payload.images = await uploadApimartImages(refs.slice(0, 1), apiKey, options);
+    if (refs.length < 1 || refs.length > GK_V15_EDIT.maxReferenceImages) {
+      throw Object.assign(new Error(`${model} 必须按顺序提供 1–${GK_V15_EDIT.maxReferenceImages} 张参考图`), { status: 400 });
+    }
+    payload.images = await uploadApimartImages(refs, apiKey, options);
     return { payload, model, taskType: 'i2i' };
   }
   if (refs.length) {

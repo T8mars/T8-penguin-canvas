@@ -39,6 +39,40 @@ test('backend rejects corrupt/over-limit final media before ANY upload',async()=
  await assert.rejects(provider.buildH3TurboPayload({model:c.video.model,prompt:'x',images:[image],audios:['data:audio/wav;base64,YmFk']},'test',options));
  assert.equal(calls,0);
 });
+test('both CharSwap models submit three ordered image slots and reject four before upload', async () => {
+  const sharp = require('sharp');
+  const image = async background => 'data:image/png;base64,' + (await sharp({
+    create: { width: 8, height: 8, channels: 3, background },
+  }).png().toBuffer()).toString('base64');
+  const red = await image('red'), blue = await image('blue');
+  const images = [red, blue, red];
+  for (const spec of [c.charswap, c.charswapToken]) {
+    const uploaded = [];
+    const options = {
+      uploadIntervalMs: 0,
+      uploadCacheTtlMs: 0,
+      seedance25DurationProbe: () => 5,
+      async fetchImpl(url, init) {
+        assert.match(url, /\/v1\/files\/upload$/);
+        const part = init.body.get('file');
+        uploaded.push(Buffer.from(await part.arrayBuffer()).toString('base64'));
+        return Response.json({ url: 'https://fixture.example/ref-' + uploaded.length });
+      },
+    };
+    const request = {
+      model: spec.model, prompt: 'Swap the character with <Picture 3>', images,
+      videos: ['data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb20='],
+    };
+    const { payload } = await provider.buildH3TurboPayload(request, 'fixture-key', options);
+    assert.deepEqual(payload.images, [1, 2, 3].map(index => 'https://fixture.example/ref-' + index));
+    assert.deepEqual(payload.metadata.video_url, ['https://fixture.example/ref-4']);
+    assert.deepEqual(uploaded.slice(0, 3), images.map(source => source.split(',')[1]));
+    await assert.rejects(provider.buildH3TurboPayload({
+      ...request, images: [...images, blue],
+    }, 'fixture-key', options), { code: 'references', status: 400 });
+    assert.equal(uploaded.length, 4);
+  }
+});
 test('legacy video endpoint and TaskDto success, wrong model rejected',async()=>{
  let requests=[];const options={fetchImpl:async(url,init)=>{requests.push([url,init]);return new Response(JSON.stringify(init.method==='POST'?{data:{id:'unit-task'}}:{data:{model:c.video.model,status:'SUCCESS',result_url:'https://example.com/video.mp4'}}),{status:200});}};
  const task=await provider.submitH3TurboVideoTask({model:c.video.model,prompt:'test',seconds:'3'},'test',options);

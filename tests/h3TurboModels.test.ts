@@ -8,6 +8,7 @@ import ts from 'typescript';
 import vm from 'node:vm';
 import { H3_TURBO,buildH3ImageRequest } from '../src/utils/h3Turbo';
 import Controls from '../src/components/nodes/H3TurboImageControls';
+import H3ComfyControls from '../src/components/nodes/H3ComfyControls';
 import {IMAGE_MODELS,VIDEO_MODELS,videoModelsForSource,inferVideoBuiltinSource} from '../src/providers/models';
 import {inferRunRecoveryDescriptor} from '../src/utils/runRecovery';
 import {workflowManifestToFragment} from '../src/utils/workflowResource';
@@ -35,6 +36,26 @@ test('actual production category filter shows H3/Turbo only for the budget house
 });
 test('native controls resolve both languages and Qwen format is absent',async()=>{
  for(const lang of ['zh-CN','en-US']){await i18n.changeLanguage(lang);for(const spec of [c.minimax,c.qwen]){const html=renderToStaticMarkup(React.createElement(Controls,{model:spec.model,data:{},referenceCount:0,update(){}}));assert.doesNotMatch(html,/h3Turbo:/);if(spec===c.qwen){assert.match(html,/<option value="720p" disabled="">/);assert.doesNotMatch(html,/value="webp"/);}}}await i18n.changeLanguage('zh-CN');
+});
+test('CharSwap controls and model catalog reflect the three-image limit in both languages', async () => {
+  const family = videoModelsForSource('seedance-nz').find(row => row.id === c.video.model)!;
+  const catalog = require('../backend/src/shared/creativeModelCatalog.json');
+  try {
+    for (const locale of ['zh-CN', 'en-US']) {
+      await i18n.changeLanguage(locale);
+      for (const spec of [c.charswap, c.charswapToken]) {
+        assert.equal(family.apiModelOptions.find(option => option.value === spec.model)?.maxRefImages, 3);
+        assert.equal(catalog.video.find(row => row.model === spec.model && row.provider === 'seedance-nz').parameters.maxReferenceImages, 3);
+        const html = renderToStaticMarkup(React.createElement(H3ComfyControls, { model: spec.model, data: {}, update() {} }));
+        assert.match(html, /1–3/);
+        assert.doesNotMatch(html, /1–[59]|\{\{maxImages\}\}/);
+      }
+      const note = i18n.t('nodes:generation.grok15EditReferences', { maxImages: 5 });
+      assert.match(note, /1–5/);
+    }
+  } finally {
+    await i18n.changeLanguage('zh-CN');
+  }
 });
 test('six credential-free saved workflows import with valid image/audio/video connections',()=>{
  const {CASES,workflow}=require('../scripts/generate-h3-turbo-workflows.cjs');assert.equal(CASES.length,6);

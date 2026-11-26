@@ -314,6 +314,7 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
   const activeModelOption = builtinApiModelOptions.find((option) => option.value === apiModel);
   const isH3Lowprice = !isExternalSelected && modelDef.kind === 'h3-lowprice';
   const h3Spec = isH3Lowprice ? H3_TURBO.profile(apiModel) : undefined;
+  const isH3CharSwap = isH3Lowprice && (apiModel === H3_TURBO.contract.charswap.model || apiModel === H3_TURBO.contract.charswapToken.model);
   const isMagi2 = !isExternalSelected && modelDef.kind === 'magi';
   const isHeygen=!isExternalSelected && modelDef.kind==='heygen';
   const isMuse = !isExternalSelected && modelDef.kind === 'muse';
@@ -1562,6 +1563,10 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
     }
     if(isHeygen){try{buildHeygenRequest(apiModel,finalPrompt,imageUrls,audioUrls,videoUrls,d);}catch(error:any){setError(error.message);return;}}
     if (isH3Lowprice) {
+      if (isH3CharSwap && imageUrls.length > h3Spec.maxImages) {
+        setError(translate('nodes:generation.newBudgetModels.tooManyImages', { count: h3Spec.maxImages }));
+        return;
+      }
       try { buildH3VideoRequest(apiModel,finalPrompt,imageUrls,audioUrls,videoUrls,d,duration,resolution,ratio); } catch { setError(translate('h3Turbo:invalid')); return; }
     }
     if (isMuse && (imageUrls.length > 9 || videoUrls.length || audioUrls.length)) {
@@ -2761,7 +2766,8 @@ const VideoNode = ({ id, data, selected }: NodeProps) => {
     if (payload.kind === 'image' && payload.url) {
       const cur = Array.isArray(d?.localRefImages) ? d.localRefImages : [];
       if (cur.indexOf(payload.url) !== -1) return;
-      const cap = isMagi2 || isAgnesExternalSelected ? maxMentionRefs : isAnimate
+      const cap = isH3CharSwap ? maxMentionRefs - orderedImages.length
+        : isMagi2 || isAgnesExternalSelected ? maxMentionRefs : isAnimate
         ? 1
         : isWan
         ? 1
