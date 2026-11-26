@@ -1,10 +1,11 @@
 import contract from '../../backend/src/shared/g26Krea3dContract.json';
 import type { SeedreamNzSubmitRequest } from '../services/generation';
 export const NEW_IMAGE_CONTRACT = contract;
-export const NEW_IMAGE_TABS = [contract.g26.tab,contract.krea.tab,contract.zimage.tab];
-export const NEW_IMAGE_MODELS = [...contract.g26.models,...contract.krea.models,contract.zimage.model];
+export const NEW_IMAGE_TABS = [contract.g26.tab,contract.krea.tab,contract.zimage.tab,contract.anima.tab];
+export const NEW_IMAGE_MODELS = [...contract.g26.models,...contract.krea.models,contract.zimage.model,contract.anima.model];
 export const isNewImageModel = (model: string) => NEW_IMAGE_MODELS.includes(model);
 export function newImageSettings(model: string, data: Record<string,any>) {
+  if (model === contract.anima.model) return { animaRatio: data.animaRatio ?? contract.anima.defaultRatio };
   const defaults: Record<string,string|number> = contract.g26.models.includes(model) ? {
     g26Mode:'image',g26Size:'1:1',g26Width:1024,g26Height:1024,g26Resolution:'1k',g26Count:1,g26Quality:'auto',g26Format:'png',g26Complexity:'api_default',g26Compression:-1,
     g26GifSize:'512x512',g26GifWidth:512,g26GifHeight:512,g26FrameCount:9,g26FrameDuration:200,g26MaskUrl:'',g26MarkupUrl:''
@@ -38,6 +39,10 @@ export function buildNewImageRequest(model: string,prompt: string,images: string
     const [w,h]=s.kreaSize==='custom'?[Number(s.kreaWidth),Number(s.kreaHeight)]:preset||[];
     if (![w,h].every(v=>Number.isInteger(v)&&v>=256&&v<=4096)||w*h>contract.krea.maxPixels) fail('kreaPixels');
     Object.assign(request,{size:`${w}*${h}`,model_variant:s.kreaVariant,reasoning_level:s.kreaReasoning,output_format:s.kreaFormat,seed:s.kreaSeed,negative_prompt:s.kreaNegative});
+  } else if (model === contract.anima.model) {
+    if (images.length) fail('animaReferences');
+    if (!contract.anima.ratios.includes(String(s.animaRatio))) fail('animaInvalidRatio');
+    request.ratio = s.animaRatio;
   } else {
     if (images.length) fail('zReferences');
     Object.assign(request,{ratio:s.zImageRatio,seed:s.zImageSeed});

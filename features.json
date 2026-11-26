@@ -18025,6 +18025,11 @@
     "summary": "0 open PRs and 6 existing issues; no reporter follow-up. Released RH, localization and Creator fixes preserved. Mac, performance and English acceptance gaps remain open.",
     "details": "docs/github-issues-20261121.md"
   },
+  "animaImage20261127": {
+    "status": "implemented-live-verified",
+    "summary": "平价小屋图像节点新增 Anima 文生图及一份工作流，实网下载和解码通过。",
+    "details": "docs/anima-image.md"
+  },
   "magi2Video20261125": {
     "status": "released-v3.5.6",
     "summary": "视频节点平价小屋新增 Magi 模型组，含国内、海外共两款，文生、首尾帧和参考生模式各有工作流。实网两单完整解码。",

@@ -22,7 +22,7 @@ export function readHistoryBudgetImageInput(data: Record<string, unknown>) {
   const settings = historyImageBasicSettings(data);
   if (!settings) throw new Error('历史未记录完整图像输入，未套用当前默认值');
   if(isNewImageModel(String(settings.apiModel))){
-    const model=String(settings.apiModel),family=nc.g26.models.includes(model)?nc.g26.tab:nc.krea.models.includes(model)?nc.krea.tab:nc.zimage.tab;
+    const model=String(settings.apiModel),family=nc.g26.models.includes(model)?nc.g26.tab:nc.krea.models.includes(model)?nc.krea.tab:model===nc.anima.model?nc.anima.tab:nc.zimage.tab;
     const keys=['model','apiModel','aspectRatio','sizeLevel','imageBuiltinSource','providerSource','providerId','providerModel',...Object.keys(newImageSettings(model,{}))];
     const context=data.historyResolvedInput as {prompt:string;referenceImages:string[]},invalid=()=>new Error('历史图像输入不完整或已不兼容，未套用当前默认值');
     if(settings.model!==family||settings.imageBuiltinSource!=='seedance-nz'||settings.providerSource!=='zhenzhen'||settings.providerId!==''||settings.providerModel!==''||keys.some(k=>!Object.hasOwn(settings,k)))throw invalid();

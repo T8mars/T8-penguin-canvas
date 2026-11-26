@@ -494,6 +494,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
   const isFluxImage = !isExternalSelected && modelDef.id === FLUX3_IMAGE_MODEL;
   const isPreviewImageTab = !isExternalSelected && isPreviewImage(modelDef.id);
   const isNewImageTab = !isExternalSelected && NEW_IMAGE_TABS.includes(modelDef.id);
+  const isAnima = isNewImageTab && modelDef.id === NEW_IMAGE_CONTRACT.anima.tab;
   const isMaiImage = !isExternalSelected && modelDef.id === MAI_IMAGE_TAB;
   const isMossImage = !isExternalSelected && modelDef.id === MOSS_IMAGE_MODEL;
   const maiSettings = maiImageSettings(d || {},savedApiModel);
@@ -583,7 +584,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
       : isZhenzhenLowpriceImage
         ? modelDef.aspectRatios.filter((item) => item !== 'Auto')
         : modelDef.aspectRatios;
-  const effectiveAspectRatio = effectiveAspectRatios.includes(aspectRatio)
+  const effectiveAspectRatio = isAnima ? newImageSettings(apiModel, d || {}).animaRatio : effectiveAspectRatios.includes(aspectRatio)
     ? aspectRatio
     : (isMossImage ? MOSS_IMAGE_CONTRACT.defaultRatio : isZhenzhenImageG2 ? 'adaptive' : isZhenzhenGrokImageV2Edit ? 'auto' : isQwenImage21Tab ? '3:4' : '1:1');
   const effectiveSizes = isZhenzhenImageG2
@@ -599,7 +600,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
       : (isZhenzhenGrokImageV2 || isZhenzhenGrokImageV2Edit || isZhenzhenGrokImage || isZhenzhenGrokImageEdit)
         ? []
         : modelDef.sizes;
-  const effectiveSizeLevel = isMossImage ? '' : isZhenzhenImageG2
+  const effectiveSizeLevel = isAnima || isMossImage ? '' : isZhenzhenImageG2
     ? '1K'
     : isZhenzhenNb2Lite
       ? '1K'
@@ -2131,7 +2132,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
           : isZhenzhenBudgetImageSelected
           ? apiModel
           : seedreamNzRuntimeModel(seedreamNzModelFamily, providerRefs.length);
-        const imageFamilyLabel = isH3TurboImage ? modelDef.tabLabel : isMossImage ? 'Moss Image' : isKlingImage ? 'Kling Image' : isMaiImage ? 'Mai' : isVosr2ImageTab
+        const imageFamilyLabel = isAnima || isH3TurboImage ? modelDef.tabLabel : isMossImage ? 'Moss Image' : isKlingImage ? 'Kling Image' : isMaiImage ? 'Mai' : isVosr2ImageTab
           ? 'Vosr2 图片超分'
           : isSeedreamLayerTab
           ? 'Seedream 分层'
@@ -2150,7 +2151,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
           : isZhenzhenApimartImage
             ? 'APIMart Image'
             : 'Seedream';
-        const sizeLabel = isH3TurboImage ? `${effectiveSizeLevel} · ${effectiveAspectRatio}` : isMossImage ? effectiveAspectRatio : isMaiImage
+        const sizeLabel = isAnima ? effectiveAspectRatio : isH3TurboImage ? `${effectiveSizeLevel} · ${effectiveAspectRatio}` : isMossImage ? effectiveAspectRatio : isMaiImage
           ? providerRefs.length ? '参考图决定尺寸 · 单张 PNG'
             : maiSettings.maiAutoAspectRatio ? `auto · ${maiSettings.maiResolution}`
             : maiSettings.maiSize === 'custom_pixels' ? `${maiSettings.maiWidth}x${maiSettings.maiHeight}`
@@ -3364,7 +3365,7 @@ const ImageNode = ({ id, data, selected }: NodeProps) => {
           <div className="rounded border border-cyan-400/25 bg-cyan-500/5 px-2 py-1.5 text-[10px] leading-4 text-cyan-100/80">
             <div>{`贞贞的平价AI小屋 · ${apiModel}`}</div>
             <div>
-              {isKlingImage ? translate(NOV21.isImage(apiModel)?'nov21:longHint':'nov19:klingHint') : isH3TurboImage ? translate('h3Turbo:imageHint', { count: maxRefs }) : isNewImageTab ? translate('g26Krea3d:newImageDescription') : isPreviewImageTab ? translate(apiModel === PREVIEW_MUSE_FLUX.hy.model ? 'previewMuseFlux:hyDescription' : 'previewMuseFlux:museImageDescription') : isMossImage ? translate('nodes:generation.moss.description')
+              {isKlingImage ? translate(NOV21.isImage(apiModel)?'nov21:longHint':'nov19:klingHint') : isH3TurboImage ? translate('h3Turbo:imageHint', { count: maxRefs }) : isAnima ? null : isNewImageTab ? translate('g26Krea3d:newImageDescription') : isPreviewImageTab ? translate(apiModel === PREVIEW_MUSE_FLUX.hy.model ? 'previewMuseFlux:hyDescription' : 'previewMuseFlux:museImageDescription') : isMossImage ? translate('nodes:generation.moss.description')
                 : isMaiImage ? translate(NOV19.isMai(apiModel)?'nov19:maiHint':'nodes:generation.mai.description')
                 : isFluxImage ? translate(isFluxVariant(apiModel) ? 'previewMuseFlux:fluxDescription' : 'nodes:generation.newBudgetModels.fluxDescription')
                 : isNbLowprice ? translate('nodes:generation.newBudgetModels.nbLowpriceDescription')

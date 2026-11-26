@@ -33,6 +33,21 @@ test('Krea native fields, exact area and Z-image safe-integer seed',()=>{
  assert.equal(z.metadata.seed,Number.MAX_SAFE_INTEGER);assert.deepEqual(Object.keys(z).sort(),['metadata','model','prompt']);
  assert.equal(api.buildImage({model:'z-image-t2i',prompt:'a',metadata:{ratio:'9:16',seed:0}}).payload.metadata.seed,0);
 });
+test('Anima uses its exact ID and ratio-only metadata without inherited image options', () => {
+ const {model,ratios}=api.contract.anima, prompt='A paper bird';
+ assert.deepEqual(api.buildImage({model,prompt}).payload,{model,prompt,metadata:{ratio:'1:1'}});
+ for(const ratio of ratios){
+   const {payload,sources,taskType}=api.buildImage({
+     model,prompt,metadata:{ratio,seed:4},seed:42,n:9,resolution:'4k',output_format:'gif',
+   });
+   assert.deepEqual(payload,{model,prompt,metadata:{ratio}});
+   assert.deepEqual(sources,[]);
+   assert.equal(taskType,'t2i');
+ }
+ for(const patch of [{model:model.toLowerCase()},{prompt:' '},{images:['fixture']},{ratio:'auto'}]){
+  assert.throws(()=>api.buildImage({model,prompt,...patch}),{status:400});
+ }
+});
 test('Hitem and Meshy use their own fields and explicit optional booleans',()=>{
  for(const model of api.contract.hitem.models){const p=api.build3d({model,images:model.includes('multi')?['front','back']:['front'],face:100000}).payload;assert.equal(p.face,100000);assert.equal('prompt' in p,false);assert.equal('face_count' in p,false);if(model.includes('portrait'))assert.equal(p.resolution,'1536pro');}
  assert.throws(()=>api.build3d({model:api.contract.hitem.models[1],images:['front']}),/2–4/);

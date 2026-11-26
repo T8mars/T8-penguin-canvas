@@ -1,4 +1,7 @@
 export const g26Krea3dZh={
+  animaDescription:'根据提示词生成一张图，默认比例 1:1。',
+  animaReferences:'Anima 仅支持文生图，请移除参考图。',
+  animaInvalidRatio:'请选择 Anima 支持的比例。',
   downloadFailed:'原文件保存失败：{{error}}',
   threeDReferences:'单图3D需要恰好一张参考图；多图3D需要2–4张有序视图。',
   generate3d:'生成 3D',connected:'已连接 {{count}}/{{max}} 张图片',
@@ -8,6 +11,9 @@ export const g26Krea3dZh={
   requestType:'生成内容',mesh:'仅几何体',both:'几何体及纹理',faces:'目标面数',frontBackViews:'多图顺序：正面 → 背面 → 左面 → 右面；需要2–4张。',singleView:'需要恰好一张参考图。',meshyPrompt:'Meshy 提示词（1–600 字符）',meshyPromptLength:'Meshy 提示词需为1–600个字符。',meshyTextReferences:'文生3D不接受参考图，请断开图片连接。',realistic:'写实',sculpture:'雕塑',artStyle:'艺术风格',promptExpansion:'自动扩写提示词',topology:'拓扑结构',symmetry:'对称处理',targetPolycount:'目标多边形数（0 使用平台默认）',should_remesh:'重新拓扑',enable_pbr:'PBR材质',ta_pose:'T／A姿势',should_texture:'生成纹理',enabled:'开启',disabled:'关闭',downloadOriginal:'保存原文件',archive:'保存原始归档'
 };
 export const g26Krea3dEn:Record<keyof typeof g26Krea3dZh,string>={
+  animaDescription:'Generate one image from a prompt. The default ratio is 1:1.',
+  animaReferences:'Anima generates images from text. Remove reference images to continue.',
+  animaInvalidRatio:'Select a supported Anima aspect ratio.',
  downloadFailed:'Could not save the original file: {{error}}',
  threeDReferences:'Single-image 3D requires exactly one reference; multi-image 3D requires 2–4 ordered views.',
  generate3d:'Generate 3D',connected:'{{count}}/{{max}} images connected',

@@ -254,6 +254,7 @@ function buildRuntimeCatalog() {
           supportsReference: !newTextOnly&&family.supportsReference === true,
           maxReferenceImages: option.maxReferenceImages ?? family.maxReferenceImages,
           description: family.description,
+          ...(option.value === newModels.contract.anima.model ? { ratioField: 'animaRatio', maxOutputs: 1, nativeSeed: false } : {}),
           ...(family.paramKind==='h3-turbo-image'?{seedField:'h3TurboSeed',seedRange:[-1,2147483647],originalOutput:true,outputFormats:family.id===h3Turbo.minimax.model?h3Turbo.minimax.formats:undefined,promptMaxUtf8Bytes:family.id===h3Turbo.qwen.model?8192:undefined,resolution720pRequiresReferences:family.id===h3Turbo.qwen.model,sharedParameterContract:'backend/src/shared/h3TurboContract.mjs'}:{}),
           ...(option.value===nov21.longImage.model?{parameterKind:'kling-long-image',sharedParameterContract:'backend/src/shared/nov21ModelsContract.mjs',skills:nov21.longImage.skills,ecommerceReferences:{min:1,max:3},webpageRoles:['style','subject'],resolutions:nov21.longImage.resolutions,unsupportedFields:['n','size','width','height'],outputFormat:'png'}:{}),
         },

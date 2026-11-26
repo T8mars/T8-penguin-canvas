@@ -3,6 +3,7 @@ import type { Edge, Node } from '@xyflow/react';
 import { readMotionPending, motionVersions } from './motionVideo.ts';
 import { IMAGE_MODELS, VIDEO_MODELS, isFalModel, isFalVideoModel, isMaiImageModel, MAI_IMAGE_TAB, ZHENZHEN_IMAGE_NB_21_MODEL, FLUX3_IMAGE_MODEL } from '../providers/models.ts';
 import { MOSS_IMAGE_MODEL } from '../providers/models.ts';
+import { NEW_IMAGE_CONTRACT } from './g26Krea';
 import type { ApiSettings, AdvancedProviderConfig } from '../types/canvas.ts';
 import type { AssetRef, CollaborationExecutionPolicySnapshot } from '../types/project.ts';
 import { advancedProviderModelOptions, advancedProviderCredentialReady } from './advancedProviders.ts';
@@ -368,7 +369,7 @@ function builtInCredentialNotice(node: Node, settings: ApiSettings): RunPrefligh
 
   if (node.type === 'image') {
     const { definition, apiModel } = imageModelSelection(data);
-    if (definition?.paramKind === 'kling-image' || definition?.paramKind === 'h3-turbo-image' || isPreviewImage(apiModel) || isFluxVariant(apiModel) || definition?.id === MOSS_IMAGE_MODEL || apiModel === MOSS_IMAGE_MODEL || definition?.id === MAI_IMAGE_TAB || isMaiImageModel(apiModel) || definition?.id === FLUX3_IMAGE_MODEL || data.apiModel === ZHENZHEN_IMAGE_NB_21_MODEL) {
+    if (definition?.id === NEW_IMAGE_CONTRACT.anima.tab || definition?.paramKind === 'kling-image' || definition?.paramKind === 'h3-turbo-image' || isPreviewImage(apiModel) || isFluxVariant(apiModel) || definition?.id === MOSS_IMAGE_MODEL || apiModel === MOSS_IMAGE_MODEL || definition?.id === MAI_IMAGE_TAB || isMaiImageModel(apiModel) || definition?.id === FLUX3_IMAGE_MODEL || data.apiModel === ZHENZHEN_IMAGE_NB_21_MODEL) {
       return configuredSecret(settings.zhenzhenSd2ApiKey)
         ? null
         : capabilityNotice(node, 'provider.seedance-nz-credential-missing', missingDomesticCredentialMessage());

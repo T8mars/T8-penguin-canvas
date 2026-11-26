@@ -12,6 +12,7 @@ import New3dControls from '../src/components/nodes/New3dControls';
 import {IMAGE_MODELS,isZhenzhenBudgetImageModel} from '../src/providers/models';
 import {readHistoryBudgetImageInput} from '../src/utils/historyBudgetImageInput';
 import {inferRunRecoveryDescriptor} from '../src/utils/runRecovery';
+import { buildRunPreflightDiagnostics } from '../src/utils/runPreflightContext';
 import {previewImageUrl,downloadOriginalImage} from '../src/utils/mediaPreview';
 import {workflowManifestToFragment} from '../src/utils/workflowResource';
 import {buildNew3dRequest} from '../src/utils/new3dModels';
@@ -25,11 +26,11 @@ test('New image tabs and all available models retain budget-house identity and G
  for(const family of [c.g26,c.krea,c.zimage])assert.equal(IMAGE_MODELS.find(m=>m.id===family.tab)?.tabLabel,family.tab);
  for(const model of NEW_IMAGE_MODELS){assert.ok(isZhenzhenBudgetImageModel(model));assert.ok(provider.IMAGE_MODELS.has(model));const d=inferRunRecoveryDescriptor({provider:'seedance-nz',model,taskId:'fixture-task'})!;assert.equal(d.kind,'seedream-nz');assert.equal(recovery.recoveryRequest('http://local',d).options.method,'GET');}
  for(const model of [...c.hitem.models,...c.meshy.models]){const d=inferRunRecoveryDescriptor({provider:'seedance-nz-3d',model,taskId:'fixture-task'})!;assert.equal(d.kind,'model3d');const req=recovery.recoveryRequest('http://local',d);assert.equal(req.options.method,'GET');assert.match(req.url,/\/3d\/seedance-nz\/status\/fixture-task$/);assert.ok(d.maxPolls!>=1350);}
- const catalog=require('../backend/src/shared/creativeModelCatalog.json');for(const model of ['krea-v3-t2i',c.zimage.model]){const entry=catalog.image.find((m:any)=>m.model===model);assert.deepEqual(entry.parameters.capabilities,['t2i']);assert.equal(entry.parameters.supportsReference,false);assert.equal(entry.parameters.maxReferenceImages,0);}
+ const catalog=require('../backend/src/shared/creativeModelCatalog.json');for(const model of ['krea-v3-t2i',c.zimage.model,c.anima.model]){const entry=catalog.image.find((m:any)=>m.model===model);assert.deepEqual(entry.parameters.capabilities,['t2i']);assert.equal(entry.parameters.supportsReference,false);assert.equal(entry.parameters.maxReferenceImages,0);}
 });
 test('Frontend models agree with production payload builder; history restores exact mode and options',()=>{
  for(const model of NEW_IMAGE_MODELS){
-  const family=c.g26.models.includes(model)?c.g26.tab:c.krea.models.includes(model)?c.krea.tab:c.zimage.tab,images=model.endsWith('-i2i')?['/files/input/view.png']:[];
+  const family=c.g26.models.includes(model)?c.g26.tab:c.krea.models.includes(model)?c.krea.tab:model===c.anima.model?c.anima.tab:c.zimage.tab,images=model.endsWith('-i2i')?['/files/input/view.png']:[];
   const values=newImageSettings(model,{g26Mode:model===c.g26.models[0]?'gif':'svg',kreaVariant:'jam',kreaSeed:0,zImageSeed:Number.MAX_SAFE_INTEGER});
   const settings={model:family,apiModel:model,imageBuiltinSource:'seedance-nz',providerSource:'zhenzhen',providerId:'',providerModel:'',aspectRatio:'',sizeLevel:'',...values};
   const request=buildNewImageRequest(model,'Blue robot',images,settings),built=pure.buildImage(request);assert.equal(built.model,model);assert.deepEqual(built.sources,images);
@@ -37,6 +38,38 @@ test('Frontend models agree with production payload builder; history restores ex
   assert.deepEqual(readHistoryBudgetImageInput({historyResolvedInput:input}).settings,settings);
   const missing={...settings};delete (missing as any)[Object.keys(values)[0]];assert.throws(()=>readHistoryBudgetImageInput({historyResolvedInput:{...input,basicSettings:missing}}));
  }
+});
+test('Anima workflow imports the exact model and uses the budget key with only the ratio control', async () => {
+ const raw = fs.readFileSync(new URL('../docs/workflows/anima-v1-t2i.json',import.meta.url),'utf8');
+ assert.doesNotMatch(raw,/apiKey|https?:\/\/|taskId|sk-/i);
+ const fragment = workflowManifestToFragment(JSON.parse(raw))!;
+ assert.ok(fragment);
+ const node = fragment.nodes.find(row=>row.type==='image')!;
+ const authority = require('../backend/src/collaboration/runIntentAuthority');
+ assert.deepEqual(authority.providerDeclarationForNode(node,fragment),{provider:'seedance-nz',model:c.anima.model});
+ const catalog = require('../backend/src/shared/canvasNodeSchema.json');
+ const fields = catalog.types.find(row=>row.type==='image').generation.allowedDataFields;
+ assert.ok(fields.apiModel.enum.includes(c.anima.model));
+ assert.deepEqual(fields.animaRatio.enum,c.anima.ratios);
+ assert.equal(IMAGE_MODELS.find(row=>row.id===c.anima.tab)?.tabLabel,'Anima');
+ const check = (key:string) => buildRunPreflightDiagnostics({
+   nodes:[node],edges:[],executionNodeIds:[node.id],projectId:'fixture',
+   settings:{zhenzhenApiKey:'workshop-fixture',zhenzhenSd2ApiKey:key,advancedProviders:[]} as any,
+   assets:[],providersComplete:true,policy:null,
+ });
+ assert.ok(check('').capability.some(row=>row.ruleId==='provider.seedance-nz-credential-missing'));
+ assert.ok(!check('fixture-budget').capability.some(row=>row.ruleId.includes('credential-missing')));
+ try {
+   for(const lang of ['zh-CN','en-US']){
+    await i18n.changeLanguage(lang);
+    const html=renderToStaticMarkup(React.createElement(G26KreaControls,{model:c.anima.model,data:node.data,update(){}}));
+    assert.equal((html.match(/<option /g)||[]).length,8);
+    assert.match(html,/<option value="3:2" selected="">/);
+    assert.doesNotMatch(html,/<input|g26Krea3d:/);
+   }
+ } finally { await i18n.changeLanguage('zh-CN'); }
+ assert.throws(()=>buildNewImageRequest(c.anima.model,'Prompt',['fixture'],{}),/animaReferences/);
+ assert.throws(()=>buildNewImageRequest(c.anima.model,'Prompt',[],{animaRatio:'auto'}),/animaInvalidRatio/);
 });
 test('LowPrice sixteen-reference static limit and text-only GIF agree across UI, requests, uploads and Agent catalog',async()=>{
  const model=c.g26.models[0],refs=Array.from({length:16},(_,i)=>'view-'+i);

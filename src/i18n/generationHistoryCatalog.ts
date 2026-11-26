@@ -96,6 +96,7 @@ const entries = {
   field_klingV4Tags: ["Kling 4主体标签","Kling 4 element tags"],
   field_klingV4VoiceName: ["Kling 4音色名称","Kling 4 voice name"],
   field_klingV4Duration: ["Kling 4时长","Kling 4 duration"],
+  field_animaRatio: ['Anima 比例', 'Anima aspect ratio'],
   field_klingV4Resolution: ["Kling 4清晰度","Kling 4 resolution"],
   field_klingV4Ratio: ["Kling 4比例","Kling 4 aspect ratio"],
   field_klingV4Watermark: ["Kling 4水印","Kling 4 watermark"],

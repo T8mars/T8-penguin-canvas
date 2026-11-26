@@ -1,6 +1,6 @@
 {
   "schema": "t8-creative-runtime-catalog-v1",
-  "sourceDigest": "fc132e12cc799b13ada9719ef882f8647660ddc3e52b98237ba0871a3f03493d",
+  "sourceDigest": "d8f77053bbc07cf50b44d7a8782f3d21d872e2860ced5ed9eee3cd0abc12bc85",
   "generatedFrom": [
     "backend/src/shared/grok15ImageEditContract.json",
     "backend/src/shared/magi2Contract.json",
@@ -764,6 +764,44 @@
         "supportsReference": true,
         "maxReferenceImages": 5,
         "description": "高品质 Pro 版本"
+      }
+    },
+    {
+      "id": "image:seedance-nz:Anima-v1-t2i",
+      "provider": "seedance-nz",
+      "platformLabel": "贞贞的平价AI小屋",
+      "model": "Anima-v1-t2i",
+      "label": "Anima-v1-t2i",
+      "family": "anima",
+      "available": true,
+      "parameters": {
+        "label": "Anima-v1-t2i",
+        "platformLabel": "贞贞的平价AI小屋",
+        "family": "anima",
+        "available": true,
+        "tabLabel": "Anima",
+        "capabilities": [
+          "t2i"
+        ],
+        "parameterKind": "g26-krea",
+        "aspectRatios": [
+          "1:1",
+          "2:3",
+          "3:2",
+          "3:4",
+          "4:3",
+          "9:16",
+          "16:9",
+          "21:9"
+        ],
+        "defaultAspectRatio": "1:1",
+        "sizes": [],
+        "defaultSize": "",
+        "supportsReference": false,
+        "maxReferenceImages": 0,
+        "ratioField": "animaRatio",
+        "maxOutputs": 1,
+        "nativeSeed": false
       }
     },
     {
@@ -14757,7 +14795,7 @@
   ],
   "counts": {
     "llm": 34,
-    "image": 94,
+    "image": 95,
     "video": 165,
     "audio": 24,
     "actions": 93

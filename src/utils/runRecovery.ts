@@ -133,7 +133,7 @@ export function inferRunRecoveryDescriptor(payload: Record<string, unknown>): Ru
         outputFormat: 'pcm', sampleRate: nbDoubao.audio.iclFields.sample_rate.options.includes(String(payload.sampleRate)) ? String(payload.sampleRate) : '24000',
       } : {}),
     };
-    if ([nov21.longImage.model,nov19.kling.model,...nov19.mai.models,h3Turbo.minimax.model,h3Turbo.qwen.model].includes(lowerModel) || isNewImageModel(lowerModel) || isPreviewImage(lowerModel) || isFluxVariant(lowerModel) || lowerModel === mossImage.model || lowerModel.includes('seedream') || nbDoubao.banana.models.includes(lowerModel) || lowerModel === 'mai-image-2-6' || lowerModel === 'mai-image-2-6-flash' || lowerModel === 'vosr2-image-upscale' || lowerModel === 'flux-3-image' || lowerModel === 'zhenzhen-image-nb-2.1') {
+    if ([nov21.longImage.model,nov19.kling.model,...nov19.mai.models,h3Turbo.minimax.model,h3Turbo.qwen.model].includes(lowerModel) || model === NEW_IMAGE_CONTRACT.anima.model || isNewImageModel(lowerModel) || isPreviewImage(lowerModel) || isFluxVariant(lowerModel) || lowerModel === mossImage.model || lowerModel.includes('seedream') || nbDoubao.banana.models.includes(lowerModel) || lowerModel === 'mai-image-2-6' || lowerModel === 'mai-image-2-6-flash' || lowerModel === 'vosr2-image-upscale' || lowerModel === 'flux-3-image' || lowerModel === 'zhenzhen-image-nb-2.1') {
       return { version: 1, kind: 'seedream-nz', taskId, model, pollIntervalMs, maxPolls };
     }
     if (magi2.models.includes(model)) return { version: 1, kind: 'magi', taskId, model, pollIntervalMs, maxPolls };

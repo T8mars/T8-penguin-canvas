@@ -12,6 +12,7 @@
     "minEdge": 256, "maxEdge": 4096, "maxPixels": 4220000, "maxImages": 8, "maxReferenceBytes": 31457280,
     "presets": {"1:1": [1024, 1024], "16:9": [1536, 864], "9:16": [864, 1536], "4:3": [1152, 864], "3:4": [864, 1152], "3:2": [1536, 1024], "2:3": [1024, 1536]}
   },
+  "anima": {"tab":"anima","model":"Anima-v1-t2i","label":"Anima","defaultRatio":"1:1","ratios":["1:1","2:3","3:2","3:4","4:3","9:16","16:9","21:9"]},
   "zimage": {"tab": "z-image", "model": "z-image-t2i", "ratios": ["1:1", "2:3", "3:2", "3:4", "4:3", "9:16", "16:9", "21:9"]},
   "hitem": {
     "tab": "hitem3d", "models": ["hitem3d-v2-image-to-3d", "hitem3d-v2-multi-image-to-3d", "hitem3d-portrait-v2.1-image-to-3d", "hitem3d-portrait-v2.1-multi-image-to-3d"],

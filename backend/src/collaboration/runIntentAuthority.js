@@ -66,6 +66,7 @@ const IMAGE_RUNTIME_MODELS = Object.freeze({
   [newModels.contract.g26.tab]:{defaultModel:newModels.contract.g26.models[0],models:newModels.contract.g26.models},
   [newModels.contract.krea.tab]:{defaultModel:newModels.contract.krea.models[0],models:newModels.contract.krea.models},
   [newModels.contract.zimage.tab]:{defaultModel:newModels.contract.zimage.model,models:[newModels.contract.zimage.model]},
+  [newModels.contract.anima.tab]:{defaultModel:newModels.contract.anima.model,models:[newModels.contract.anima.model]},
   ...Object.fromEntries([pmf.hy.model, pmf.muse.imageModel].map(model => [model, {defaultModel:model, models:[model]}])),
   [mossImageContract.model]: { defaultModel: mossImageContract.model, models: [mossImageContract.model] },
   [nov19.kling.model]:{defaultModel:nov19.kling.model,models:[nov19.kling.model,nov21.longImage.model]},

@@ -1,6 +1,6 @@
 'use strict';
 const contract = require('../shared/g26Krea3dContract.json');
-const imageModels = [...contract.g26.models, ...contract.krea.models, contract.zimage.model];
+const imageModels = [...contract.g26.models, ...contract.krea.models, contract.zimage.model, contract.anima.model];
 const models3d = [...contract.hitem.models, ...contract.meshy.models];
 const fail = message => { throw Object.assign(new Error(message), { status: 400 }); };
 const integer = (value, min, max, name) => {
@@ -98,6 +98,9 @@ function buildImage(request) {
     if (request.negative_prompt !== undefined && typeof request.negative_prompt !== 'string') fail('Negative prompt must be text');
     if (request.negative_prompt?.trim()) payload.negative_prompt = request.negative_prompt.trim();
     maxReferenceBytes = contract.krea.maxReferenceBytes;
+  } else if (model === contract.anima.model) {
+    if (refs.length) fail('Anima does not accept reference images');
+    payload.metadata = { ratio: choice(request.ratio ?? request.metadata?.ratio ?? contract.anima.defaultRatio, contract.anima.ratios, 'ratio') };
   } else {
     if (refs.length) fail('Z-image does not accept references');
     payload.metadata = { ratio: choice(request.ratio ?? request.metadata?.ratio ?? '1:1',contract.zimage.ratios,'ratio') };

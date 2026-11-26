@@ -211,7 +211,7 @@ export const ZHENZHEN_BUDGET_BANANA_PRO_MODEL_OPTIONS = [
 ] as const;
 export const ZHENZHEN_IMAGE_G2_MODEL_OPTIONS = ZHENZHEN_BUDGET_GPT2_MODEL_OPTIONS.slice(0, 2);
 export const ZHENZHEN_APIMART_IMAGE_MODELS = [
-  NOV21.longImage.model, ...G26_KREA_3D.g26.models, ...G26_KREA_3D.krea.models, G26_KREA_3D.zimage.model,
+  NOV21.longImage.model, ...G26_KREA_3D.g26.models, ...G26_KREA_3D.krea.models, G26_KREA_3D.zimage.model, G26_KREA_3D.anima.model,
   ...PREVIEW_IMAGE_MODELS, ...FLUX_IMAGE_VARIANTS,
   MOSS_IMAGE_MODEL,
   ...NB_LOWPRICE_MODELS,
@@ -444,6 +444,14 @@ export const IMAGE_MODELS: ImageModelDef[] = [
       capabilities:spec.tab==='z-image'?['t2i']:['t2i','i2i','edit'],apiModelOptions:models.map(value=>({value,label:value,maxReferenceImages:value===G26_KREA_3D.g26.models[0]?G26_KREA_3D.g26.lowpriceMaxReferences:value===G26_KREA_3D.zimage.model||value.endsWith('-t2i')?0:spec.tab==='krea'?8:16})),
       aspectRatios:[],defaultAspectRatio:'',sizes:[],defaultSize:'',supportsReference:spec.tab!=='z-image',maxReferenceImages:spec.tab==='gpt-image-2.6'?16:spec.tab==='krea'?8:0};
   }),
+  {
+    id: G26_KREA_3D.anima.tab, apiModel: G26_KREA_3D.anima.model,
+    label: G26_KREA_3D.anima.label, tabLabel: G26_KREA_3D.anima.label,
+    provider: 'zhenzhen', paramKind: 'g26-krea', capabilities: ['t2i'],
+    apiModelOptions: [{ value: G26_KREA_3D.anima.model, label: G26_KREA_3D.anima.model, maxReferenceImages: 0 }],
+    aspectRatios: G26_KREA_3D.anima.ratios, defaultAspectRatio: G26_KREA_3D.anima.defaultRatio,
+    sizes: [], defaultSize: '', supportsReference: false, maxReferenceImages: 0,
+  },
   ...PREVIEW_IMAGE_MODELS.map((id): ImageModelDef => ({
     id, apiModel: id, label: id === PREVIEW_MUSE_FLUX.hy.model ? 'Hunyuan Image' : 'Muse Image',
     tabLabel: id === PREVIEW_MUSE_FLUX.hy.model ? 'Hunyuan Image' : 'Muse Image', provider: 'zhenzhen', paramKind: 'preview-image',

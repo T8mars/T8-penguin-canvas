@@ -3775,6 +3775,7 @@
               "gpt-image-2.6",
               "krea",
               "z-image",
+              "anima",
               "seedream-v5-pro",
               "seedream-layer-decomposition",
               "minimax-h3-image",
@@ -3826,6 +3827,7 @@
               "krea-v3-t2i",
               "krea-v3-i2i",
               "z-image-t2i",
+              "Anima-v1-t2i",
               "seedream-v5.5-t2i",
               "seedream-v5.5-i2i",
               "dola-seedream-5.5-t2i",
@@ -4248,6 +4250,10 @@
           "kreaNegative": {
             "type": "string",
             "maxLength": 32000
+          },
+          "animaRatio": {
+            "type": "string",
+            "enum": ["1:1", "2:3", "3:2", "3:4", "4:3", "9:16", "16:9", "21:9"]
           },
           "zImageRatio": {
             "type": "string",

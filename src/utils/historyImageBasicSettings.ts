@@ -33,6 +33,7 @@ export const IMAGE_HISTORY_EXTRA_FIELDS: Record<string, { label: string; type: '
   kreaFormat: {label:'kreaFormat',type:'string'},
   kreaSeed: {label:'kreaSeed',type:'number'},
   kreaNegative: {label:'kreaNegative',type:'string'},
+  animaRatio: {label:'animaRatio',type:'string'},
   zImageRatio: {label:'zImageRatio',type:'string'},
   zImageSeed: {label:'zImageSeed',type:'number'},
   klingImageSize:{label:'klingImageSize',type:'string'},klingImageResolution:{label:'klingImageResolution',type:'string'},klingImageMode:{label:'klingImageMode',type:'string'},klingImageCount:{label:'klingImageCount',type:'number'},klingImageMaxImages:{label:'klingImageMaxImages',type:'number'},klingImageNsfw:{label:'klingImageNsfw',type:'boolean'},maiBackground:{label:'maiBackground',type:'string'},maiNsfw:{label:'maiNsfw',type:'boolean'},

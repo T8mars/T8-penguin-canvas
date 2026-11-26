@@ -332,7 +332,7 @@ export interface SeedreamNzSubmitRequest {
     | 'zhenzhen-image-g-v2.5-flare'
     | 'zhenzhen-image-g-v2.5-sunburst'
     | 'zhenzhen-image-g-v2.6-lowprice' | 'zhenzhen-image-g-v2.6-flare' | 'zhenzhen-image-g-v2.6-sunburst'
-    | 'krea-v3-t2i' | 'krea-v3-i2i' | 'z-image-t2i'
+    | 'krea-v3-t2i' | 'krea-v3-i2i' | 'z-image-t2i' | 'Anima-v1-t2i'
     | 'zhenzhen-image-gk-v2'
     | 'zhenzhen-image-gk-v2-edit'
     | 'zhenzhen-image-gk-v2-segment'
