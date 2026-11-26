@@ -3,7 +3,7 @@
 更新：2026-11-27。仅维护当前事实；规则见根 `SKILL.md` 和 `AGENTS.md`。预算80行/8 KiB，历史见专题。
 
 - 默认目录 `E:\PenguinPravite\T8-penguin-canvas`；branch `codex/release-v3.0.8-volcengine-assets-ux`，common dir `.git`。开工以git/worktree门为准；正式源码/Tag固定后记录在发布专题，不移动。
-- package `3.5.7` 发布准备，见[专题](release-v3.5.7.md)。v3.5.6 Tag与资产冻结。
+- package `3.5.7` 双平台已发，见[专题](release-v3.5.7.md)。v3.5.6 Tag与资产冻结。
 - 本版现场/安装升级/F8–F10按 `owner-approved-post-release-v3.5.7` 后补；Mac同Tag未公证预览。
 
 ## 当前检查点
