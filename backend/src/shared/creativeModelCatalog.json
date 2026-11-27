@@ -1,6 +1,6 @@
 {
   "schema": "t8-creative-runtime-catalog-v1",
-  "sourceDigest": "d8f77053bbc07cf50b44d7a8782f3d21d872e2860ced5ed9eee3cd0abc12bc85",
+  "sourceDigest": "1d6bc2bea079d2f2a59fd71f24dc5749f5372c7721dbe85488f3d714e7b01a1d",
   "generatedFrom": [
     "backend/src/shared/grok15ImageEditContract.json",
     "backend/src/shared/magi2Contract.json",
@@ -11840,6 +11840,39 @@
       }
     },
     {
+      "id": "audio:seedance-nz:bytedance-seed/seed-tts-3-0",
+      "provider": "seedance-nz",
+      "platformLabel": "贞贞的平价AI小屋",
+      "model": "bytedance-seed/seed-tts-3-0",
+      "label": "Seed-TTS 3.0",
+      "family": "seed-audio",
+      "available": true,
+      "parameters": {
+        "label": "Seed-TTS 3.0",
+        "platformLabel": "贞贞的平价AI小屋",
+        "family": "seed-audio",
+        "available": true,
+        "tabLabel": "Seed Audio",
+        "sharedParameterContract": "backend/src/shared/seedTts3Contract.json",
+        "promptCharacters": {
+          "min": 1,
+          "max": 5000
+        },
+        "instructionsMaxChars": 1000,
+        "defaultVoice": "sarah",
+        "speed": {
+          "min": 0.5,
+          "max": 2,
+          "default": 1
+        },
+        "format": "wav",
+        "sampleRate": 24000,
+        "channels": 1,
+        "maxOutputs": 1,
+        "supportsReference": false
+      }
+    },
+    {
       "id": "audio:seedance-nz:doubao-seed-audio-1.0",
       "provider": "seedance-nz",
       "platformLabel": "贞贞的平价AI小屋",
@@ -14797,7 +14830,7 @@
     "llm": 34,
     "image": 95,
     "video": 165,
-    "audio": 24,
+    "audio": 25,
     "actions": 93
   }
 }

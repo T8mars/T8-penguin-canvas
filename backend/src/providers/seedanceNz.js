@@ -46,6 +46,7 @@ const previewMuseFlux = require('./previewMuseFlux');
 const g26Krea3d = require('./g26Krea3d');
 const { buildMotionVideoPayload, normalizeMotionVideoResponse, motionError } = require('./motionVideoContract');
 const NB_DOUBAO = require('../shared/nbLowpriceDoubaoContract.json');
+const SEED_TTS_3 = require('../shared/seedTts3Contract.json');
 const { isDoubaoVoiceModel, buildDoubaoVoicePayload } = require('./doubaoVoiceContract');
 const NB_LOWPRICE_MODELS = new Set(NB_DOUBAO.banana.models);
 const MAI_IMAGE_MODELS = new Set([...MAI_IMAGE_CONTRACT.models,...NOV19_CONTRACT.mai.models]);
@@ -632,6 +633,7 @@ const SEEDANCE_NZ_AUDIO_MODELS = new Set([
   SEED_AUDIO_MODEL,
   NB_DOUBAO.audio.cloneModel,
   NB_DOUBAO.audio.iclModel,
+  SEED_TTS_3.model,
   ...QWEN3_TTS_MODELS,
   ...NOV19_AUDIO_MODELS,
   ...NOV21_CONTRACT.gemini.models,
@@ -5787,6 +5789,40 @@ function validMinimaxCustomVoiceId(value) {
 async function buildAudioPayload(request, apiKey, options = {}) {
   const model = String(request.model || SEED_AUDIO_MODEL).trim().toLowerCase();
   if (!SEEDANCE_NZ_AUDIO_MODELS.has(model)) throw new Error(`未知 seedance.nz 音频模型：${model}`);
+
+  if (model === SEED_TTS_3.model) {
+    const invalid = (message) => Object.assign(new Error(message), { status: 400 });
+    const readText = (value, name) => {
+      if (value === undefined) return '';
+      if (typeof value !== 'string') throw invalid(`Seed-TTS 3.0: ${name} must be text`);
+      return value.trim();
+    };
+    const prompt = readText(request.prompt, 'prompt');
+    const instructions = readText(request.instructions, 'instructions');
+    const voice = readText(request.voice, 'voice');
+    if (!prompt || [...prompt].length > SEED_TTS_3.promptMaxChars) {
+      throw invalid(`Seed-TTS 3.0: prompt must contain 1–${SEED_TTS_3.promptMaxChars} characters`);
+    }
+    if ([...instructions].length > SEED_TTS_3.instructionsMaxChars) {
+      throw invalid(`Seed-TTS 3.0: instructions must contain at most ${SEED_TTS_3.instructionsMaxChars} characters`);
+    }
+    if ([request.audioUrl, request.audioUrls, request.images, request.videoUrls].some(value => Array.isArray(value) ? value.length > 0 : Boolean(value))) {
+      throw invalid('Seed-TTS 3.0 does not accept reference media');
+    }
+    if (request.outputFormat !== undefined && request.outputFormat !== SEED_TTS_3.format) {
+      throw invalid('Seed-TTS 3.0 only supports WAV output');
+    }
+    const { speed } = request;
+    if (speed !== undefined && (typeof speed !== 'number' || !Number.isFinite(speed) || speed < SEED_TTS_3.speed.min || speed > SEED_TTS_3.speed.max)) {
+      throw invalid(`Seed-TTS 3.0: speed must be ${SEED_TTS_3.speed.min}–${SEED_TTS_3.speed.max}`);
+    }
+    return { model, payload: { model, prompt, metadata: {
+      format: SEED_TTS_3.format,
+      ...(voice ? { voice } : {}),
+      ...(instructions ? { instructions } : {}),
+      ...(speed !== undefined ? { speed } : {}),
+    } } };
+  }
 
   if (isDoubaoVoiceModel(model)) {
     const built = buildDoubaoVoicePayload({ ...request, model });

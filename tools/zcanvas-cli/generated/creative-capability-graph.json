@@ -44,19 +44,19 @@
   },
   "sourceDigests": {
     "creativeCapabilityManifest": "35bb3f4a925c60886c9e10e739c340218c9b1abceb4c40a738cc73cec33c5948",
-    "canvasNodeSchema": "bd4c1cedaeab76a464c1dcfa5e30c0b5db1f2e442d99c7f3e584d9d0fa7eab1a",
-    "canvasNodeSchemaFile": "ab355e4945ff86ba8bc2eacc193f7746a183ede0d43339a2a345961f54f1c7b7",
+    "canvasNodeSchema": "7b0057e85e08f62c6246725ea1baf550d4a4a3edbf2e478dd145e795000889bf",
+    "canvasNodeSchemaFile": "342f0cbe6eddd3d75bfd8ea60b11d6af03a12de9421baccdcab879df154b2a18",
     "i18nNodeCatalog": "fec04dd618a75492ca3a2d6e0d76b0a2a2b7e9f10cc5d008bdeedbf2a870c3d9",
-    "i18nRendererResources": "61e1236dced278cd897178721cd09923963789f1940b958a6bea3a3db934730d",
+    "i18nRendererResources": "e54b7727fdc7ec28f2a3132c69ca4f03b67da1bcfc7be8f50a0628f507ecd375",
     "i18nElectronCatalog": "bab981c4f10262117b0912e8be73c22b9a938b7fb232ba0f5b14b7efea0767ad",
-    "runtimeCatalogSources": "d8f77053bbc07cf50b44d7a8782f3d21d872e2860ced5ed9eee3cd0abc12bc85",
-    "runtimeCatalogArtifact": "7f6219db56b49cd6cbf13079a3d4bef346ef15f46b76b691151d12085f628685",
+    "runtimeCatalogSources": "1d6bc2bea079d2f2a59fd71f24dc5749f5372c7721dbe85488f3d714e7b01a1d",
+    "runtimeCatalogArtifact": "c407f9da8a6b7a1fdf0002584776130cca65e4e19262f806a9242790a4de899c",
     "handlerBindings": "3cd8cde3c05d1642d72ce8cbfae2874d1bdf986592ae431ef7d66b043da257b5",
     "capabilityGraphCompiler": "a3716d239b91e1c4775f5996b3865ba3ab8fd652263138feef0a56de40851c24",
     "coverageReceiptCompiler": "68c02167cb5317107edd346223a5e5999168e447bacbb977ff8e9678e6753fe7",
     "canonicalTextDigestCompiler": "b0afcf28a257fbbd8f391edc117348f8f2ede1b4a039ae91bce25a8d563ac0cf"
   },
-  "aggregateDigest": "bf2e0b6acf28649c70ba07989873b3a12dcace9114a59652405494f57ecb77bd",
+  "aggregateDigest": "c7eda7ec4f01889747f5e5c417f7544389b27f2aa8764406fd866bbba8d2f796",
   "principles": {
     "oneSentenceStart": true,
     "directCanvasMutation": false,
@@ -80,17 +80,17 @@
     "accountedNodes": 85,
     "unexplainedNodes": 0,
     "fullyOperableNodes": 21,
-    "runtimeEntries": 411,
+    "runtimeEntries": 412,
     "runtimeByKind": {
       "llm": 34,
       "image": 95,
       "video": 165,
-      "audio": 24,
+      "audio": 25,
       "actions": 93
     },
     "runtimeByProvider": {
       "grok-oauth": 2,
-      "seedance-nz": 338,
+      "seedance-nz": 339,
       "zhenzhen": 64,
       "fal": 7
     },
@@ -7527,7 +7527,7 @@
   ],
   "runtime": {
     "schema": "t8-creative-runtime-catalog-v1",
-    "sourceDigest": "d8f77053bbc07cf50b44d7a8782f3d21d872e2860ced5ed9eee3cd0abc12bc85",
+    "sourceDigest": "1d6bc2bea079d2f2a59fd71f24dc5749f5372c7721dbe85488f3d714e7b01a1d",
     "platforms": [
       {
         "id": "zhenzhen",
@@ -7586,6 +7586,26 @@
           "installed": null,
           "credentialReady": null,
           "regionReady": null,
+          "executable": false,
+          "available": true,
+          "requiresRuntimeCheck": true
+        }
+      },
+      {
+        "id": "audio:seedance-nz:bytedance-seed/seed-tts-3-0",
+        "kind": "audio",
+        "provider": "seedance-nz",
+        "platformLabel": "贞贞的平价AI小屋",
+        "model": "bytedance-seed/seed-tts-3-0",
+        "label": "Seed-TTS 3.0",
+        "family": "seed-audio",
+        "available": true,
+        "catalogSection": "audio",
+        "compatibility": {
+          "known": true,
+          "installed": true,
+          "credentialReady": null,
+          "regionReady": true,
           "executable": false,
           "available": true,
           "requiresRuntimeCheck": true
@@ -16078,6 +16098,7 @@
     "runtimeRequiringReadinessCheck": [
       "audio:grok-oauth:xai-stt",
       "audio:grok-oauth:xai-tts",
+      "audio:seedance-nz:bytedance-seed/seed-tts-3-0",
       "audio:seedance-nz:doubao-seed-audio-1.0",
       "audio:seedance-nz:doubao-seed-icl-2.0",
       "audio:seedance-nz:doubao-voice-clone",
@@ -16493,8 +16514,8 @@
     "schema": "t8-creative-capability-coverage-receipt-v1",
     "sourceDigests": {
       "capabilityManifest": "35bb3f4a925c60886c9e10e739c340218c9b1abceb4c40a738cc73cec33c5948",
-      "nodeSchema": "bd4c1cedaeab76a464c1dcfa5e30c0b5db1f2e442d99c7f3e584d9d0fa7eab1a",
-      "runtimeCatalog": "d8f77053bbc07cf50b44d7a8782f3d21d872e2860ced5ed9eee3cd0abc12bc85",
+      "nodeSchema": "7b0057e85e08f62c6246725ea1baf550d4a4a3edbf2e478dd145e795000889bf",
+      "runtimeCatalog": "1d6bc2bea079d2f2a59fd71f24dc5749f5372c7721dbe85488f3d714e7b01a1d",
       "handlerBindings": "3cd8cde3c05d1642d72ce8cbfae2874d1bdf986592ae431ef7d66b043da257b5",
       "receiptCompiler": "68c02167cb5317107edd346223a5e5999168e447bacbb977ff8e9678e6753fe7"
     },
@@ -16508,7 +16529,7 @@
         "llm": 34,
         "image": 95,
         "video": 165,
-        "audio": 24,
+        "audio": 25,
         "actions": 93
       },
       "capabilities": 39,
@@ -16523,6 +16544,6 @@
       "missingCompatibilityEdges": []
     },
     "complete": true,
-    "digest": "aeddcc1af52c2d94fc4fb47240fa4eb661d06ec9b07a70ac6159560bdfc6e7a7"
+    "digest": "0ed1cd2ef0608b9319a4487d32dc7423d0733e141822ac01f782428d65c4709c"
   }
 }

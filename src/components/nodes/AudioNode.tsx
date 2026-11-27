@@ -2,6 +2,8 @@ import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import QwenAudio31Controls from './QwenAudio31Controls';
 import {NOV21,buildGeminiTtsRequest} from '../../utils/nov21Models';
 import {GeminiTtsControls} from './Nov21Controls';
+import { SeedTts3Controls, seedTts3Request } from './SeedTts3Controls';
+import seedTts3 from '../../../backend/src/shared/seedTts3Contract.json';
 import {NOV19,buildQwenAudio31Request,qwenAudio31Settings} from '../../utils/nov19Models';
 import { useTranslation } from 'react-i18next';
 import { Handle, Position, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
@@ -156,7 +158,8 @@ const AudioNode = ({ id, data, selected }: NodeProps) => {
   const isDoubaoClone = isSeedAudio && seedAudioModel === NB_LOWPRICE_DOUBAO_CONTRACT.audio.cloneModel;
   const isDoubaoIcl = isSeedAudio && seedAudioModel === NB_LOWPRICE_DOUBAO_CONTRACT.audio.iclModel;
   const isDoubaoVoice = isDoubaoClone || isDoubaoIcl;
-  const isLegacySeedAudio = isSeedAudio && !isDoubaoVoice;
+  const isSeedTts3 = isSeedAudio && seedAudioModel === seedTts3.model;
+  const isLegacySeedAudio = isSeedAudio && !isDoubaoVoice && !isSeedTts3;
   const updateNodeInternals = useUpdateNodeInternals();
   const hadDoubaoPorts = useRef(isDoubaoVoice);
   useEffect(() => {
@@ -174,7 +177,7 @@ const AudioNode = ({ id, data, selected }: NodeProps) => {
   const isMinimaxAudio = audioProviderMode === 'minimax';
   const isMureka = audioProviderMode === 'mureka';
   const isLyria = audioProviderMode === 'lyria';
-  const isSeedanceNzAudio = isGeminiTts || isQwen3Tts || isMinimaxAudio || isMureka || isDoubaoVoice;
+  const isSeedanceNzAudio = isGeminiTts || isQwen3Tts || isMinimaxAudio || isMureka || isDoubaoVoice || isSeedTts3;
   const isSuno = audioProviderMode === 'suno';
   const sunoPlatform: SunoPlatform = d?.sunoPlatform === 'seedance-nz' ? 'seedance-nz' : 'zhenzhen';
   const isSunoNz = isSuno && sunoPlatform === 'seedance-nz';
@@ -388,24 +391,24 @@ const AudioNode = ({ id, data, selected }: NodeProps) => {
     [localRefAudio, id],
   );
   const mentionMaterials = useMemo(
-    () => isDoubaoVoice ? (isDoubaoClone ? [...orderedAudios, ...localRefAudioMaterials] : []) : isSeedAudio
+    () => isSeedTts3 ? [] : isDoubaoVoice ? (isDoubaoClone ? [...orderedAudios, ...localRefAudioMaterials] : []) : isSeedAudio
       ? [...orderedImages.slice(0, 1), ...orderedAudios.slice(0, 3), ...localRefAudioMaterials]
       : isMinimaxClone
         ? [...orderedAudios.slice(0, 1), ...localRefAudioMaterials]
       : [...orderedAudios, ...localRefAudioMaterials],
-    [isDoubaoVoice, isDoubaoClone, isSeedAudio, isMinimaxClone, orderedImages, orderedAudios, localRefAudioMaterials],
+    [isSeedTts3, isDoubaoVoice, isDoubaoClone, isSeedAudio, isMinimaxClone, orderedImages, orderedAudios, localRefAudioMaterials],
   );
   
   // 分组动态跟随模式: generate 只要文本, cover/extend 需要参考音频
   const previewGroups = useMemo<ReadonlyArray<'text' | 'image' | 'video' | 'audio'>>(
-    () => isDoubaoIcl ? ['text'] : isDoubaoClone ? ['text', 'audio'] : isSeedAudio
+    () => isSeedTts3 || isDoubaoIcl ? ['text'] : isDoubaoClone ? ['text', 'audio'] : isSeedAudio
       ? ['text', 'image', 'audio']
       : isMinimaxClone ? ['text', 'audio']
       : isSeedanceNzAudio ? ['text']
       : isLyria
         ? (['flowmusic-generation', 'flowmusic-lyrics'].includes(flowMusicOperation) ? ['text'] : ['text', 'audio'])
       : isWhisper ? ['video', 'audio'] : isSunoNz ? ['text', 'audio'] : (mode === 'generate' ? ['text'] : ['text', 'audio']),
-    [isDoubaoIcl, isDoubaoClone, isSeedAudio, isMinimaxClone, isSeedanceNzAudio, isLyria, flowMusicOperation, isWhisper, isSunoNz, mode],
+    [isSeedTts3, isDoubaoIcl, isDoubaoClone, isSeedAudio, isMinimaxClone, isSeedanceNzAudio, isLyria, flowMusicOperation, isWhisper, isSunoNz, mode],
   );
   
   // Whisper 可直接转写 MP4；其余音频能力仍只消费音频素材。
@@ -1090,11 +1093,19 @@ const AudioNode = ({ id, data, selected }: NodeProps) => {
       setError('Seed Audio 提示词长度必须为 5-2048 字符');
       return;
     }
+    if (isSeedTts3 && (orderedImages.length || orderedAudios.length || orderedVideos.length)) {
+      setError(translate('nodes:audio.seedTts3.noReferences'));
+      return;
+    }
+    if (isSeedTts3 && [...finalPrompt].length > seedTts3.promptMaxChars) {
+      setError(translate('nodes:audio.seedTts3.promptLimit'));
+      return;
+    }
     const latestAudioModel = isGeminiTts ? geminiTtsModel : isQwen3Tts
       ? qwenTtsModel
       : isMinimaxAudio
         ? minimaxAudioModel
-        : isMureka ? murekaModel : isDoubaoVoice ? seedAudioModel : '';
+        : isMureka ? murekaModel : isDoubaoVoice || isSeedTts3 ? seedAudioModel : '';
     const traceProvider = isSeedAudio || isWhisper || isSunoNz || isSeedanceNzAudio || isLyria ? 'seedance-nz' : 'suno';
     const traceModel = isWhisper
       ? 'whisper-1'
@@ -1285,7 +1296,8 @@ const AudioNode = ({ id, data, selected }: NodeProps) => {
         if (isMureka && Boolean(finalPrompt) === Boolean(murekaInstrumentalId.trim())) {
           throw new Error('Mureka 的 Prompt 与 instrumental_id 必须且只能填写一个');
         }
-        const request = isGeminiTts ? buildGeminiTtsRequest(geminiTtsModel,finalPrompt,upstream.audioUrls,d.geminiTtsParams||{}) : isDoubaoVoice
+        const request = isSeedTts3 ? seedTts3Request(finalPrompt, d)
+          : isGeminiTts ? buildGeminiTtsRequest(geminiTtsModel,finalPrompt,upstream.audioUrls,d.geminiTtsParams||{}) : isDoubaoVoice
           ? buildDoubaoVoiceClientRequest({ model: seedAudioModel, prompt: finalPrompt, params: doubaoVoiceParams,
             speaker: seedAudioSpeaker, texts: orderedTexts, audioUrls: upstream.audioUrls })
           : isQwen3Tts
@@ -1579,7 +1591,7 @@ const AudioNode = ({ id, data, selected }: NodeProps) => {
   };
   const { dropProps, isAccepting } = useMaterialDropTarget({
     id,
-    accepts: isDoubaoIcl ? ['text'] : isDoubaoClone ? ['audio', 'text'] : isSeedAudio
+    accepts: isSeedTts3 || isDoubaoIcl ? ['text'] : isDoubaoClone ? ['audio', 'text'] : isSeedAudio
       ? ['image', 'audio', 'text']
       : isWhisper
         ? ['video', 'audio', 'text']
@@ -2314,6 +2326,7 @@ const AudioNode = ({ id, data, selected }: NodeProps) => {
             {SEED_AUDIO_MODELS.map(model => <option key={model} value={model} className="bg-zinc-900">{model}</option>)}
           </select>
         </label>}
+        {isSeedTts3 && <SeedTts3Controls data={d} disabled={isBusy} update={update} />}
         {isDoubaoVoice && <DoubaoVoiceControls clone={isDoubaoClone} params={doubaoVoiceParams} onChange={params => update({ doubaoVoiceParams: params })} speaker={seedAudioSpeaker} onSpeakerChange={speaker => update({ seedAudioSpeaker: speaker })} />}
         {isLegacySeedAudio && (
           <div className="rounded border border-cyan-300/20 bg-cyan-400/[0.05] p-2 space-y-2">
@@ -2400,7 +2413,7 @@ const AudioNode = ({ id, data, selected }: NodeProps) => {
           groups={previewGroups}
           title={isWhisper
             ? '待转写素材 · 音频 / MP4'
-            : isSeedAudio
+            : isSeedTts3 ? translate('nodes:audio.seedTts3.upstreamTitle') : isSeedAudio
               ? '上游素材 · Seed Audio 参考'
               : isMinimaxClone
                 ? '上游素材 · MiniMax 克隆参考音频'
@@ -2415,7 +2428,7 @@ const AudioNode = ({ id, data, selected }: NodeProps) => {
                 : mode === 'generate' ? '上游素材 · 歌词提示' : '上游素材 · 参考音频'}
         />
 
-        {(isSeedAudio || isWhisper || isMinimaxClone || isLyria || showSunoNzAudioImport) && (localRefImage || localRefAudio || (isSunoNzCreateModel && sunoNzLocalRefAudios.length > 0)) && (
+        {((isSeedAudio && !isSeedTts3) || isWhisper || isMinimaxClone || isLyria || showSunoNzAudioImport) && (localRefImage || localRefAudio || (isSunoNzCreateModel && sunoNzLocalRefAudios.length > 0)) && (
           <div className="rounded border border-cyan-300/20 bg-cyan-400/[0.05] p-2 space-y-1">
             <div className="flex items-center justify-between gap-2 text-[10px] text-cyan-100/75">
               <span>本地参考素材</span>

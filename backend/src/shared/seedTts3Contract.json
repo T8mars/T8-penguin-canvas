@@ -1,0 +1,10 @@
+{
+  "model": "bytedance-seed/seed-tts-3-0",
+  "defaultVoice": "sarah",
+  "promptMaxChars": 5000,
+  "instructionsMaxChars": 1000,
+  "speed": { "min": 0.5, "max": 2, "default": 1 },
+  "format": "wav",
+  "sampleRate": 24000,
+  "channels": 1
+}

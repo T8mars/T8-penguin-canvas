@@ -1,6 +1,7 @@
 const grok15Edit = require('../../../backend/src/shared/grok15ImageEditContract.json');
 const magi2 = require('../../../backend/src/shared/magi2Contract.json');
 const nov21=require('../../../backend/src/shared/nov21ModelsContract.json');
+const seedTts3=require('../../../backend/src/shared/seedTts3Contract.json');
 const pmf = require('../../../backend/src/shared/previewMuseFluxContract.json');
 const newModels=require('../../../backend/src/providers/g26Krea3d');
 const tripo3d = require('../../../backend/src/providers/tripo3d');
@@ -490,6 +491,16 @@ function buildRuntimeCatalog() {
   for (const model of seedanceNz.MINIMAX_AUDIO_MODELS || []) {
     audio.push(modelEntry('audio', 'seedance-nz', model, model, 'minimax'));
   }
+  audio.push(modelEntry('audio', 'seedance-nz', seedTts3.model, 'Seed-TTS 3.0', 'seed-audio', {
+    tabLabel: 'Seed Audio',
+    sharedParameterContract: 'backend/src/shared/seedTts3Contract.json',
+    promptCharacters: { min: 1, max: seedTts3.promptMaxChars },
+    instructionsMaxChars: seedTts3.instructionsMaxChars,
+    defaultVoice: seedTts3.defaultVoice,
+    speed: seedTts3.speed,
+    format: seedTts3.format, sampleRate: seedTts3.sampleRate, channels: seedTts3.channels,
+    maxOutputs: 1, supportsReference: false,
+  }));
   for (const model of seedanceNz.MUREKA_BGM_MODELS || []) {
     audio.push(modelEntry('audio', 'seedance-nz', model, model, 'mureka', {
       orderedMultiOutput: true,

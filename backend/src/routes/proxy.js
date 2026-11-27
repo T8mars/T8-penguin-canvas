@@ -22,6 +22,7 @@ const {isSvgBuffer,validateSvgBuffer,prepareGlbBuffer}=require('../providers/pro
 const { contract: motionVideoContract, motionConnectionRef, motionError } = require('../providers/motionVideoContract');
 const { writeMotionVideoMetadata } = require('../services/motionVideoMetadata');
 const nbDoubao = require('../shared/nbLowpriceDoubaoContract.json');
+const seedTts3 = require('../shared/seedTts3Contract.json');
 const { wrapPcm16MonoWav,wrapPcm16Wav, hasAudioContainerHeader } = require('../utils/pcmAudio');
 const {
   DEFAULT_PROVIDER_LLM_TIMEOUT_MS,
@@ -5198,7 +5199,7 @@ router.get('/audio/seed-audio/status/:tid', async (req, res) => {
   const apiKey = String(remembered?.apiKey || settings?.zhenzhenSd2ApiKey || '').trim();
   if (!apiKey) return res.status(400).json({ success: false, error: '缺少贞贞的平价AI小屋 API Key' });
   try {
-    const recoveredModel = [...nov19.audio.models,'doubao-voice-clone', 'doubao-seed-icl-2.0'].includes(String(req.query.model)) ? String(req.query.model) : '';
+    const recoveredModel = [...nov19.audio.models, seedTts3.model, 'doubao-voice-clone', 'doubao-seed-icl-2.0'].includes(String(req.query.model)) ? String(req.query.model) : '';
     const model = remembered?.model || recoveredModel;
     const result = await seedanceNz.queryAudioTask(req.params.tid, apiKey, { model,
       outputFormat: remembered?.outputFormat || ((model === nbDoubao.audio.iclModel || nov19.audio.models.includes(model)) && req.query.outputFormat === 'pcm' ? 'pcm' : ''),
@@ -5216,7 +5217,7 @@ router.get('/audio/seed-audio/status/:tid', async (req, res) => {
         id: `${req.params.tid}:${index}`,
         clipId: req.params.tid,
         audioUrl,
-        title: `${remembered?.model || '音频'} #${index + 1}`,
+        title: `${remembered?.model || (model === seedTts3.model ? model : '音频')} #${index + 1}`,
       })),
       failReason: result.status === 'failed'
         ? safeDiagnosticText(result.failReason || '音频任务失败', 240, [apiKey])

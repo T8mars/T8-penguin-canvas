@@ -18215,5 +18215,10 @@
         "sha256": "07ee698fc2d481ea28385c2a7b52d65ec59575487b4833e0bb426394b4d027b5"
       }
     }
+  },
+  "seedTts3Audio20261128": {
+    "status": "implemented-live-verified",
+    "summary": "平价小屋 Seed Audio 新增 Seed-TTS 3.0，实网 WAV 及导入工作流通过验证。",
+    "details": "docs/seed-tts-3-0.md"
   }
 }

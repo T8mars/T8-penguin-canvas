@@ -1,0 +1,44 @@
+{
+  "schema": "t8-workflow-fragment",
+  "version": 1,
+  "title": "Seed-TTS 3.0",
+  "nodes": [
+    {
+      "id": "synthesis",
+      "type": "audio",
+      "position": { "x": 0, "y": 0 },
+      "data": {
+        "label": "Seed-TTS 3.0",
+        "audioProviderMode": "seed-audio",
+        "seedAudioModel": "bytedance-seed/seed-tts-3-0",
+        "seedTts3Voice": "multi_female_sarah_v3_uranus_bigtts",
+        "seedTts3Instructions": "用清晰、自然的语气朗读。",
+        "seedTts3Speed": 1.1,
+        "prompt": "你好，欢迎使用贞贞的无限画布。",
+        "reuseResult": false
+      }
+    },
+    {
+      "id": "output",
+      "type": "output",
+      "position": { "x": 450, "y": 0 },
+      "data": { "label": "语音输出" }
+    }
+  ],
+  "edges": [
+    { "id": "voice-output", "source": "synthesis", "sourceHandle": "audio-0", "target": "output" }
+  ],
+  "nodeCount": 2,
+  "edgeCount": 1,
+  "nodeTypes": ["audio", "output"],
+  "topologyPreview": {
+    "nodes": [
+      { "id": "synthesis", "type": "audio", "label": "Seed-TTS 3.0", "x": 50, "y": 50 },
+      { "id": "output", "type": "output", "label": "语音输出", "x": 500, "y": 50 }
+    ],
+    "edges": [
+      { "id": "voice-output", "source": "synthesis", "sourceHandle": "audio-0", "target": "output" }
+    ]
+  },
+  "savedAt": "2026-11-28T00:00:00+08:00"
+}

@@ -5,6 +5,7 @@ import h3Turbo from '../../backend/src/shared/h3TurboContract.json';
 import { isPreviewImage, isFluxVariant, PREVIEW_MUSE_FLUX } from './previewMuseFlux';
 import { minimumProviderMediaPollCount } from './providerTimeoutPolicy';
 import nbDoubao from '../../backend/src/shared/nbLowpriceDoubaoContract.json';
+import seedTts3 from '../../backend/src/shared/seedTts3Contract.json';
 import mossImage from '../../backend/src/shared/mossImageContract.json';
 import motionVideo from '../../backend/src/shared/motionVideoContract.json';
 import {isNewImageModel,NEW_IMAGE_CONTRACT} from './g26Krea';
@@ -127,7 +128,7 @@ export function inferRunRecoveryDescriptor(payload: Record<string, unknown>): Ru
     const lowerModel = model.toLowerCase();
     if (flashVideoProfile(model)) return {version:1,kind:'seedance',taskId,model,taskProvider:'seedance-nz',pollIntervalMs,maxPolls};
     if (motionVideo.models.includes(model)) return normalizeExplicitRecovery({ kind: 'motion', taskId, model, connectionRef: payload.connectionRef, pollIntervalMs, maxPolls });
-    if (nov21.gemini.models.includes(lowerModel) || nov19.audio.models.includes(lowerModel) || lowerModel.includes('seed-audio') || [nbDoubao.audio.cloneModel, nbDoubao.audio.iclModel].includes(lowerModel)) return { version: 1, kind: 'seed-audio', taskId, model, pollIntervalMs, maxPolls,
+    if (nov21.gemini.models.includes(lowerModel) || nov19.audio.models.includes(lowerModel) || lowerModel.includes('seed-audio') || [seedTts3.model, nbDoubao.audio.cloneModel, nbDoubao.audio.iclModel].includes(lowerModel)) return { version: 1, kind: 'seed-audio', taskId, model, pollIntervalMs, maxPolls,
       ...(nov19.audio.models.includes(lowerModel)&&payload.outputFormat==='pcm'?{outputFormat:'pcm',sampleRate:String(payload.sampleRate|| (lowerModel.endsWith('-next')?'48000':'22050')),channels:payload.channels==='2'&&lowerModel.endsWith('-next')?'2':'1'}:{}),
       ...(lowerModel === nbDoubao.audio.iclModel && payload.outputFormat === 'pcm' ? {
         outputFormat: 'pcm', sampleRate: nbDoubao.audio.iclFields.sample_rate.options.includes(String(payload.sampleRate)) ? String(payload.sampleRate) : '24000',

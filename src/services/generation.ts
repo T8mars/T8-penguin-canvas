@@ -6,6 +6,7 @@ import type { AdvancedProviderConfig } from '../types/canvas';
 import type { ImageParamKind, SunoNzOperation, SunoNzResultFamily } from '../providers/models';
 import { normalizeProviderErrorMessage } from '../utils/providerErrorMessage.ts';
 import nov19Models from '../../backend/src/shared/nov19ModelsContract.json';
+import seedTts3 from '../../backend/src/shared/seedTts3Contract.json';
 
 export interface ProviderTransportTrace {
   /** 上游或本地代理显式返回的请求 ID；绝不从通用 id 字段猜测。 */
@@ -2371,6 +2372,7 @@ export interface SeedAudioSubmitRequest {
 }
 
 export type SeedanceNzAudioModel =
+  | 'bytedance-seed/seed-tts-3-0'
   | 'doubao-voice-clone'
   | 'doubao-seed-icl-2.0'
   | 'doubao-seed-audio-1.0'
@@ -2466,7 +2468,7 @@ export async function querySeedanceNzAudio(
 ): Promise<SeedanceNzAudioQueryResult> {
   const query = new URLSearchParams();
   const qwen31 = nov19Models.audio.models.includes(recipe.model || '');
-  if (qwen31 || recipe.model === 'doubao-voice-clone' || recipe.model === 'doubao-seed-icl-2.0') query.set('model', recipe.model!);
+  if (qwen31 || recipe.model === seedTts3.model || recipe.model === 'doubao-voice-clone' || recipe.model === 'doubao-seed-icl-2.0') query.set('model', recipe.model!);
   if ((recipe.model === 'doubao-seed-icl-2.0' || qwen31) && recipe.outputFormat === 'pcm') {
     query.set('outputFormat', 'pcm'); query.set('sampleRate', recipe.sampleRate || (qwen31 ? recipe.model?.endsWith('-next') ? '48000' : '22050' : '24000'));if(recipe.channels)query.set('channels',recipe.channels);
   }

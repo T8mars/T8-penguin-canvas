@@ -393,6 +393,15 @@ export const zhCN = {
     image: { title: '图像', promptTitle: '图像 Prompt', imageOnlyAria: '仅输出图片结果', imageOnly: '仅输出图片结果（不输出 Prompt）', resultAlt: '生成结果', generatedImage: '生成图像', qwen21ModeHint: '同一模型自动区分文生图/图生图；参考图可选 0–10 张，固定单图输出。', qwen21FieldsHint: '仅发送 Prompt、参考图、比例、分辨率与可选 Seed，不复用 Qwen 3.0 参数。', qwen21SeedHint: '-1 表示不发送 seed；范围 0–9007199254740991。' },
     audio: {
       doubaoVoice: doubaoVoiceZh,
+      seedTts3: {
+        hint: '朗读本地或上游文本，输出单声道 24 kHz WAV。不接收参考素材。',
+        voice: '音色短名或完整 ID（可选）',
+        instructions: '朗读指令（可选，最多 1000 字符）',
+        speed: '语速倍率（可选，0.5–2）',
+        noReferences: 'Seed-TTS 3.0 仅支持文本。请断开或从输入中排除已连接的参考素材。',
+        promptLimit: 'Seed-TTS 3.0 朗读文本最多 5000 字符。',
+        upstreamTitle: '上游素材 · 朗读文本',
+      },
       sunoV6Hint: 'V6 / wild / mini：歌词最多 5000 字符，标签最多 1000 字符，歌曲最长 8 分钟（非固定时长）。旧版本请求由工坊转为 V6 基础版；旧画布选项保留。',
       sunoV6PromptLimit: 'Suno V6 歌词 / 提示词最多 5000 字符（含上游输入）。',
       sunoV6TagsLimit: 'Suno V6 风格标签最多 1000 字符。',
@@ -1061,6 +1070,15 @@ export const enUS = {
     image: { title: 'Image', promptTitle: 'Image prompt', imageOnlyAria: 'Output images only', imageOnly: 'Output images only (omit the prompt)', resultAlt: 'Generated result', generatedImage: 'Generated image', qwen21ModeHint: 'The model automatically switches between text-to-image and image-to-image; use 0–10 references and receive exactly one image.', qwen21FieldsHint: 'Sends only the prompt, references, aspect ratio, resolution, and optional seed; Qwen 3.0 fields are not reused.', qwen21SeedHint: '-1 omits the seed; the supported range is 0–9007199254740991.' },
     audio: {
       doubaoVoice: doubaoVoiceEn,
+      seedTts3: {
+        hint: 'Reads local or upstream text and outputs mono 24 kHz WAV. No reference media.',
+        voice: 'Voice alias or full ID (optional)',
+        instructions: 'Delivery instructions (optional, up to 1,000 characters)',
+        speed: 'Speed multiplier (optional, 0.5–2)',
+        noReferences: 'Seed-TTS 3.0 only accepts text. Disconnect or exclude reference media.',
+        promptLimit: 'Seed-TTS 3.0 accepts up to 5,000 characters of text.',
+        upstreamTitle: 'Upstream input · Text to read',
+      },
       sunoV6Hint: 'V6 / wild / mini: up to 5,000 prompt characters, 1,000 tag characters and 8 minutes per song (not a fixed duration). Workshop redirects legacy models to V6 base; saved selections are preserved.',
       sunoV6PromptLimit: 'Suno V6 lyrics / prompt may contain at most 5,000 characters, including upstream input.',
       sunoV6TagsLimit: 'Suno V6 style tags may contain at most 1,000 characters.',

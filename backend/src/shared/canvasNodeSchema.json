@@ -5159,11 +5159,23 @@
             "enum": [
               "doubao-seed-audio-1.0",
               "doubao-voice-clone",
-              "doubao-seed-icl-2.0"
+              "doubao-seed-icl-2.0",
+              "bytedance-seed/seed-tts-3-0"
             ]
           },
           "seedAudioSpeaker": {
             "type": "string"
+          },
+          "seedTts3Voice": {
+            "type": "string"
+          },
+          "seedTts3Instructions": {
+            "type": "string"
+          },
+          "seedTts3Speed": {
+            "type": "number",
+            "minimum": 0.5,
+            "maximum": 2
           },
           "doubaoVoiceParams": {
             "type": "object",

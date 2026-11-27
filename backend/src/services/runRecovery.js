@@ -4,6 +4,7 @@ const nov19=require('../shared/nov19ModelsContract.json');
 const { minimumProviderMediaPollCount } = require('../providers/providerTimeoutPolicy');
 const viduQ4Models = new Set(require('../shared/nb21FluxViduQ4Contract.json').viduQ4.models);
 const nbDoubao = require('../shared/nbLowpriceDoubaoContract.json');
+const seedTts3 = require('../shared/seedTts3Contract.json');
 const motionVideo = require('../shared/motionVideoContract.json');
 const klingV4 = require('../shared/klingV4Contract.json');
 
@@ -165,7 +166,7 @@ function recoveryRequest(baseUrl, descriptor) {
   if (descriptor.kind === 'vidu') return get(`/api/proxy/video/vidu/status/${taskId}${viduQ4Models.has(descriptor.model) ? `?model=${encodeURIComponent(descriptor.model)}` : ''}`);
   if (descriptor.kind === 'seed-audio') {
     const query = new URLSearchParams();
-    if ([...nov19.audio.models,nbDoubao.audio.cloneModel, nbDoubao.audio.iclModel].includes(descriptor.model)) query.set('model', descriptor.model);
+    if ([...nov19.audio.models,seedTts3.model,nbDoubao.audio.cloneModel, nbDoubao.audio.iclModel].includes(descriptor.model)) query.set('model', descriptor.model);
     if ((nov19.audio.models.includes(descriptor.model) || descriptor.model === nbDoubao.audio.iclModel) && descriptor.outputFormat === 'pcm') {
       query.set('outputFormat', 'pcm'); query.set('sampleRate', descriptor.sampleRate || '24000');if(descriptor.channels)query.set('channels',descriptor.channels);
     }
